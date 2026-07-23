@@ -141,27 +141,27 @@ class SyntheticEvaluationService:
         review_samples: list[ReviewSample] = []
 
         for fixture in self._fixtures:
-            prepared = await self.prepare_case(fixture)
-            if isinstance(prepared, PreparedCaseFailure):
-                cases.append(
-                    EvaluationCaseResult(
-                        fixture_id=fixture.fixture_id,
-                        repetition=1,
-                        outcome_code=prepared.code,
-                        attempts_used=0,
-                        usage=_ZERO_USAGE,
-                        latency_ms=0,
-                        source_id=None,
-                        used_template_fallback=False,
-                    )
-                )
-                return EvaluationRun(
-                    planned_generations=planned_generations,
-                    cases=tuple(cases),
-                    review_samples=tuple(review_samples),
-                )
-
             for repetition in range(1, repetitions + 1):
+                prepared = await self.prepare_case(fixture)
+                if isinstance(prepared, PreparedCaseFailure):
+                    cases.append(
+                        EvaluationCaseResult(
+                            fixture_id=fixture.fixture_id,
+                            repetition=repetition,
+                            outcome_code=prepared.code,
+                            attempts_used=0,
+                            usage=_ZERO_USAGE,
+                            latency_ms=0,
+                            source_id=None,
+                            used_template_fallback=False,
+                        )
+                    )
+                    return EvaluationRun(
+                        planned_generations=planned_generations,
+                        cases=tuple(cases),
+                        review_samples=tuple(review_samples),
+                    )
+
                 started_ns = self._read_monotonic_ns()
                 outcome = await self._provider.generate(prepared)
                 latency_ms = max(0, (self._read_monotonic_ns() - started_ns) // 1_000_000)

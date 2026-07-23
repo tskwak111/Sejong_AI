@@ -26,6 +26,18 @@ class FakeRepository:
         return tuple(record for record in self._records if record.category is intent)
 
 
+class StatefulRepository:
+    def __init__(self, first_record: KnowledgeRecord) -> None:
+        self._first_record = first_record
+        self.calls = 0
+
+    async def list_active_kb(self, intent: Intent) -> tuple[KnowledgeRecord, ...]:
+        self.calls += 1
+        if self.calls == 1 and self._first_record.category is intent:
+            return (self._first_record,)
+        return ()
+
+
 class SpyProvider:
     def __init__(self, outcomes: Sequence[GenerationOutcome]) -> None:
         self._outcomes = list(outcomes)
@@ -347,6 +359,35 @@ async def test_run_sorts_fixture_ids_and_repeats_sequentially() -> None:
         "T-02",
     )
     assert tuple(sample.fixture_id for sample in run.review_samples) == ("T-01", "T-02")
+
+
+@pytest.mark.asyncio
+async def test_each_repetition_revalidates_active_grounding_and_stops_on_drift() -> None:
+    record = _move_in_record()
+    repository = StatefulRepository(record)
+    provider = SpyProvider((_outcome(),))
+    service = SyntheticEvaluationService(
+        fixtures=(_fixture(),),
+        repository=repository,
+        provider=provider,
+    )
+
+    run = await service.run(repetitions=3)
+
+    assert run.planned_generations == 3
+    assert len(run.cases) == 2
+    assert run.cases[0].outcome_code is OutcomeCode.SUCCESS
+    assert run.cases[0].repetition == 1
+    second = run.cases[1]
+    assert second.outcome_code is PreparationCode.INSUFFICIENT_GROUNDING
+    assert second.repetition == 2
+    assert second.attempts_used == second.latency_ms == 0
+    assert second.usage == TokenUsage(0, 0, 0)
+    assert second.source_id is None
+    assert second.used_template_fallback is False
+    assert repository.calls == 2
+    assert provider.calls == 1
+    assert tuple(sample.fixture_id for sample in run.review_samples) == ("T-01",)
 
 
 @pytest.mark.asyncio
