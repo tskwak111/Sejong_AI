@@ -62,12 +62,17 @@ function DraftRow({
   );
 }
 
+/** fixture 판정 비활성 사유 - 버튼 툴팁·안내 캡션 공용 (Q-PM-DEMO-001) */
+const REVIEW_LOCKED_REASON =
+  "시연용 샘플(fixture) 데이터는 승인·반려 판정을 지원하지 않습니다";
+
 export default function KbCandidateReview({
   candidate,
   sourceFailure,
   actor,
   busy,
   justApproved,
+  reviewLocked = false,
   onReview,
   onNext,
 }: {
@@ -79,6 +84,8 @@ export default function KbCandidateReview({
   busy: boolean;
   /** 승인 직후 완료형 전환 + 스탬프 연출 (§9-3) */
   justApproved: boolean;
+  /** fixture 모드 - 승인·반려 판정 비활성 (Q-PM-DEMO-001: 판정은 actual 전용) */
+  reviewLocked?: boolean;
   onReview: (id: string, decision: ReviewDecision, reviewComment: string) => void;
   /** 완료형의 "다음 후보 보기 →" */
   onNext: () => void;
@@ -91,9 +98,11 @@ export default function KbCandidateReview({
   const canReview =
     actor.role === "APPROVER" &&
     candidate.status === "PENDING_APPROVAL" &&
-    !isOwnCandidate;
+    !isOwnCandidate &&
+    !reviewLocked;
   const canApprove = canReview && candidate.data_origin === "OFFICIAL";
   const hasComment = reviewComment.trim().length > 0;
+  const lockTooltip = reviewLocked ? REVIEW_LOCKED_REASON : undefined;
 
   /* ── 승인 직후 완료형 (§9-3) ── */
   if (justApproved) {
@@ -347,12 +356,17 @@ export default function KbCandidateReview({
           </p>
         ) : (
           <div className="flex flex-col gap-3">
-            {candidate.data_origin === "MOCK" && (
+            {reviewLocked ? (
+              /* fixture 판정 비활성 안내 - 사유 캡션 (Q-PM-DEMO-001) */
+              <p className="text-caption text-text-sub">
+                {`${REVIEW_LOCKED_REASON}. 판정 흐름(ACTIVE 반영)은 local API를 연결한 actual 모드에서 확인하세요.`}
+              </p>
+            ) : candidate.data_origin === "MOCK" ? (
               <p className="text-caption text-text-sub">
                 시연용 샘플(MOCK)은 ACTIVE로 승인할 수 없습니다. 반려만
                 가능합니다.
               </p>
-            )}
+            ) : null}
             {/* 계약: 승인·반려 모두 review_comment(자유 텍스트 1..1000) 필수 */}
             <div>
               <label
@@ -366,9 +380,11 @@ export default function KbCandidateReview({
                 rows={3}
                 maxLength={1000}
                 value={reviewComment}
+                disabled={reviewLocked}
+                title={lockTooltip}
                 onChange={(event) => setReviewComment(event.target.value)}
                 placeholder="확인한 출처와 판정 근거를 남겨 주세요"
-                className="w-full rounded-btn border border-border bg-white px-3.5 py-2.5 text-admin-body text-text placeholder:text-text-faint focus:border-primary"
+                className="w-full rounded-btn border border-border bg-white px-3.5 py-2.5 text-admin-body text-text placeholder:text-text-faint focus:border-primary disabled:bg-bg-sub disabled:text-text-faint"
               />
             </div>
             {!rejecting ? (
@@ -383,6 +399,7 @@ export default function KbCandidateReview({
                   <button
                     type="button"
                     disabled={busy || !canApprove || !hasComment}
+                    title={lockTooltip}
                     onClick={() =>
                       onReview(candidate.id, "APPROVED", reviewComment.trim())
                     }
@@ -393,6 +410,7 @@ export default function KbCandidateReview({
                   <button
                     type="button"
                     disabled={busy || !canReview || !hasComment}
+                    title={lockTooltip}
                     onClick={() => setRejecting(true)}
                     className="min-h-12 w-full rounded-btn border border-border bg-white px-5 text-[16px] font-bold text-text-sub hover:border-text-faint hover:text-text active:bg-bg-sub disabled:opacity-60 md:w-auto"
                   >

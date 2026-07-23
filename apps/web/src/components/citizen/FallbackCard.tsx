@@ -188,12 +188,13 @@ export default function FallbackCard({ fallback }: { fallback: Fallback }) {
               {code === "LEGAL_JUDGMENT" && " 방문 상담도 같은 시간에 가능해요."}
             </p>
             {office?.address && <p>{office.address}</p>}
-            {/* 저장 정책 문구 - 계약: OUT_OF_SCOPE는 미저장, 나머지 저장
-                사유 3종은 마스킹 후 30일 보관 (FailedQuestion.text_expires_at) */}
+            {/* 저장 정책 문구 - Q-MVP-002/D-059 (개인정보 최소수집 강화):
+                INSUFFICIENT_GROUNDING만 마스킹 후 30일 보관.
+                PERSONAL_LOOKUP·LEGAL_JUDGMENT·OUT_OF_SCOPE는 완전 미저장. */}
             <p className="mt-1">
-              {code === "OUT_OF_SCOPE"
-                ? "질문 내용은 저장되지 않았습니다."
-                : "이 질문은 안내 개선을 위해 개인정보를 가린 채 30일간만 보관돼요."}
+              {code === "INSUFFICIENT_GROUNDING"
+                ? "이 질문은 안내 개선을 위해 개인정보를 가린 채 30일간만 보관돼요."
+                : "질문 내용은 저장되지 않았습니다."}
             </p>
           </div>
         )}

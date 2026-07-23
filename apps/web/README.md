@@ -19,6 +19,11 @@
 - `/admin` 이음센터: 실패 질문 큐(NEW → 사유 확정) → 근거 부족 건만 KB 후보
   초안 생성 → 별도 승인자(APPROVER) 검수(검수 의견 필수) → 공식 출처 초안만
   ACTIVE 승인. 자기검수 금지·MOCK 승인 금지 불변식을 유지한다.
+  ACTIVE 승인 판정은 actual 모드 전용이며, fixture 모드에서는 승인·반려
+  버튼이 비활성이다 (Q-PM-DEMO-001).
+- 실패 질문 저장은 INSUFFICIENT_GROUNDING만 (마스킹 후 30일 보관).
+  PERSONAL_LOOKUP·LEGAL_JUDGMENT·OUT_OF_SCOPE·PRIVACY_UNRESOLVED는 완전
+  미저장 (Q-MVP-002/D-059, 개인정보 최소수집 강화).
 
 ## 로컬 환경변수
 
@@ -27,25 +32,45 @@
 - `API_INTERNAL_BASE_URL`: Next 서버가 same-origin `/api/v1/*` 요청을 local
   API로 전달할 때만 사용한다 (기본 `http://127.0.0.1:8000`). `NEXT_PUBLIC_*`
   API 주소나 backend 비밀을 브라우저 번들에 추가하지 않는다.
-- `CHAT_UI_MODE` (server-only): 시민 대화 mock/실API 전환. 기본 `fixture` =
-  데모 5문항 로컬 시연 버전(제안서 7.4). local API 리허설에서만 `actual`.
+- `CHAT_UI_MODE` (server-only): **미설정 기본은 `actual`** — local API 연결
+  실패 시 값 없는 안전 오류 화면을 보여준다. `fixture`는 명시 설정에서만
+  켜지며 전 화면에 "시연용 샘플 — 공식 데이터 아님" 앰버 배너가 상시
+  노출된다.
 - `ADMIN_UI_ENABLED` (server-only): local/private 관리자 화면 게이트. 기본과
   공개 모드는 `false`. 인증을 대체하지 않으며 public 관리자 연결은 금지.
-- `ADMIN_UI_MODE` (server-only): `ADMIN_UI_ENABLED=true`인 local/private
-  리허설에서 `actual`일 때만 typed actual admin transport를 사용하고, 그 외에는
-  명시적 fixture다. fixture와 actual 데이터는 절대 섞지 않는다.
+- `ADMIN_UI_MODE` (server-only): **미설정 기본은 `actual`** (typed actual
+  admin transport). `fixture`는 명시 설정에서만 — 시연용 샘플 배너 노출 +
+  승인·반려 판정 비활성. fixture와 actual 데이터는 절대 섞지 않는다.
 
-## 데모 5문항 (mock 모드 = 로컬 시연 버전)
+## 실행 방법 — actual 데모 기준 (Q-PM-DEMO-001)
 
-`CHAT_UI_MODE=fixture` + `ADMIN_UI_ENABLED=true`로 실행하면 아래 흐름이
-네트워크 없이 완주된다.
+데모 완주(#5 포함)는 actual 경로에서 검증한다. 저장소 루트에서:
 
-1. "전입신고는 언제까지 해야 하나요?" → SUCCESS 카드 + 출처 + 확인일 + 정부24 딥링크
-2. "아름동에서 대형폐기물은 언제 내놓나요?" → SUCCESS (지역 조건 반영, 동 변경 가능)
-3. "이사했는데 뭐 해야 하나요?" → FOLLOWUP 선택지
-4. "제 자동차세 얼마 나왔나요?" → FALLBACK PERSONAL_LOOKUP + 위택스 연결
-5. `/admin` 실패 질문 큐 도착 → 사유 확정 → KB 후보 생성 → 역할 전환(승인자) →
-   검수 의견 작성 → ACTIVE 승인
+1. local Supabase/Postgres 기동 (저장소 루트 README의 DB 기준선 가이드 —
+   patched supabase CLI + `supabase/migrations/` 권위).
+2. local API 실행: `python scripts/run_local_api.py`
+   (기본 `http://127.0.0.1:8000`).
+3. `apps/web/.env.local` 설정:
+
+   ```dotenv
+   API_INTERNAL_BASE_URL=http://127.0.0.1:8000
+   CHAT_UI_MODE=actual
+   ADMIN_UI_ENABLED=true
+   ADMIN_UI_MODE=actual
+   ```
+
+4. `corepack pnpm --filter @sejong-ai/web dev` 후 `/` → `/chat` → `/admin`.
+   데모 #5는 근거 부족 질문("침대 2인용 프레임 배출 수수료" 계열) →
+   실패 질문 큐 도착 → 사유 확정 → KB 후보 생성 → 별도 승인자 검수 →
+   ACTIVE 승인으로 확인한다.
+
+## fixture 모드 — UI 개발·상태 확인 도구 (데모 백업 아님)
+
+`CHAT_UI_MODE=fixture` (+ `ADMIN_UI_ENABLED=true`, `ADMIN_UI_MODE=fixture`)
+를 **명시**하면 네트워크 없이 화면 상태를 확인할 수 있다: 시민 #1~#4
+(SUCCESS·FOLLOWUP·FALLBACK 카드)와 이음센터 열람·사유 확정·KB 후보 초안
+생성까지. fixture 데이터는 전부 MOCK(시연용 샘플)이라 승인·반려 판정과
+ACTIVE 전환은 동작하지 않는다 — 해당 흐름은 위 actual 경로에서만 확인한다.
 
 ## 로컬 명령
 

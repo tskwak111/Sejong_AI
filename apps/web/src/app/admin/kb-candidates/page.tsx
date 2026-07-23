@@ -24,7 +24,7 @@ type KBCandidateSummary = components["schemas"]["KBCandidateSummary"];
 type ReviewDecision = components["schemas"]["CandidateReviewRequest"]["decision"];
 
 export default function AdminKbCandidatesPage() {
-  const { transport, actor, role, notifyDataChanged } = useAdmin();
+  const { transport, actor, role, mode, notifyDataChanged } = useAdmin();
   const [items, setItems] = useState<KBCandidateSummary[] | null>(null);
   const [failures, setFailures] = useState<Map<string, FailedQuestion>>(
     new Map(),
@@ -264,6 +264,8 @@ export default function AdminKbCandidatesPage() {
                   actor={actor}
                   busy={busyId === selected.id}
                   justApproved={justApprovedId === selected.id}
+                  /* fixture 판정 비활성 (Q-PM-DEMO-001) - ACTIVE 전환은 actual 전용 */
+                  reviewLocked={mode === "fixture"}
                   onReview={(id, decision, comment) =>
                     void review(id, decision, comment)
                   }
