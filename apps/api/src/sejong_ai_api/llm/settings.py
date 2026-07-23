@@ -117,7 +117,7 @@ def _is_safe_value(value: object) -> bool:
         and "\x00" not in value
         and "\r" not in value
         and "\n" not in value
-        and "\"" not in value
+        and '"' not in value
         and "'" not in value
         and value.isascii()
     )

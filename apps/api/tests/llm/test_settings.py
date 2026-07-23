@@ -50,10 +50,7 @@ def test_disabled_or_non_exact_values_fail_closed() -> None:
         candidate = dict(VALID)
         candidate[key] = invalid
 
-        assert (
-            load_upstage_synthetic_settings(environ=candidate, env_path=Path("missing"))
-            is None
-        )
+        assert load_upstage_synthetic_settings(environ=candidate, env_path=Path("missing")) is None
 
 
 def test_malformed_or_ambiguous_values_fail_closed(tmp_path: Path) -> None:
@@ -69,8 +66,7 @@ def test_malformed_or_ambiguous_values_fail_closed(tmp_path: Path) -> None:
         candidate = dict(VALID)
         candidate[key] = invalid
         assert (
-            load_upstage_synthetic_settings(environ=candidate, env_path=tmp_path / "none")
-            is None
+            load_upstage_synthetic_settings(environ=candidate, env_path=tmp_path / "none") is None
         )
 
 
