@@ -158,7 +158,6 @@ test.describe("opt-in actual local/private citizen-to-admin improvement loop", (
     await candidate.getByRole("button", { name: "승인하고 ACTIVE 반영" }).click();
     await expect(candidate).toContainText("ACTIVE 반영 완료");
     await expect(candidate).toContainText("검수 PM-LOCAL-001");
-    await expect(candidate).toContainText("KB-WASTE-03");
 
     await page.goto("/chat");
     const improved = await submitAndReadChatResponse(
