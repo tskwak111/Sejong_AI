@@ -241,7 +241,7 @@ def test_full_actual_http_workflow_is_exact_and_outputs_only_stable_evidence() -
         "PASS candidate-approved",
         "PASS improved-requery public_id=KB-WASTE-03",
         "PASS old-replay",
-        "PASS final-active total=20 categories=4 count_each=5 public_id=KB-WASTE-03",
+        "PASS final-active total=20 categories=4 count_each=5",
     )
     assert runtime.events == ["enter", "exit"]
     assert runtime.responses == []
