@@ -3,7 +3,7 @@
 > **최종 제품**: 시민용 민원 AI 플랫폼 + 관리자용 AI 민원 운영센터  
 > **프로젝트 기간**: 2026-07-06 ~ 2026-07-31  
 > **책임 역할**: PM·Frontend·Backend·AI/Data 4개; 현재 실제 개발 협업은 사용자 owner + Frontend 팀원 1명
-> **문서 버전**: v2.3.1
+> **문서 버전**: v2.4.0
 > **팀명·팀원·연락처·제출일**: 제출 전 직접 입력
 
 ## 1. 프로젝트 정의
@@ -183,7 +183,7 @@ Review이고 Draft PR review/merge와 manual demo/accessibility는 인간 Pendin
 | Backend | FastAPI + Python 3.12+uv | 초기 로컬 실행·백업; Render는 공개 배포 승인 후 |
 | DB | Supabase PostgreSQL + Supabase CLI 버전 SQL migration | Docker local stack 우선; 원격 push·파괴 변경은 별도 승인 |
 | 검색 | 키워드+메타데이터 기본, 임베딩 보조 | KB 20건에서 예측 가능성 우선 |
-| LLM | 사용자 기존 DeepSeek API 잔액 + provider adapter | `deepseek-v4-flash`, thinking off, max 1024, concurrency 1, retry 1, run당 outbound attempt 30; local/private 합성 전용, disabled/template fallback 필수 |
+| LLM | Upstage direct API + provider adapter | exact `solar-pro3`, max output 1024, concurrency 1, retry 1, run당 outbound attempt 30; canonical local/private 합성 평가 전용, disabled/template fallback 필수 |
 | 차트 | Recharts | 기본 KPI만 |
 | 테스트 | Pytest, Playwright, k6/Locust, 수동 표본 평가 | 품질·UI·성능 분리 |
 
@@ -208,7 +208,7 @@ Review이고 Draft PR review/merge와 manual demo/accessibility는 인간 Pendin
 - Codex Cloud는 `codex/<task-id>-<slug>` branch와 Draft PR까지만 만들고 사용자가 병합한다.
   App installation의 `Only select repositories / Sejong_AI`와 secret-free `sejong-ai-cloud-docs`
   환경 저장은 사용자 확인됐다. Cloud docs-only task/Draft-PR/manual-merge rehearsal은 Pending이다.
-  비밀·DeepSeek 실호출·Docker/Supabase actual 검증은 Cloud에서 금지한다.
+  비밀·외부 LLM 실호출·Docker/Supabase actual 검증은 Cloud에서 금지한다.
 - private GitHub source remote는 D-046이 차단하는 remote/public application·DB deployment와
   별개이며 이를 해제하지 않는다.
 
@@ -254,11 +254,17 @@ audit_logs
 
 - 외부 LLM 호출 전 백엔드에서 개인정보를 마스킹한다.
 - 마스킹된 질문과 승인된 KB 청크만 전달한다.
-- 공급자는 사용자가 보유한 기존 DeepSeek API 잔액을 사용하며 새 충전·자동 충전은 하지 않는다. 키는 backend 환경변수에만 둔다.
-- DeepSeek 호출은 클라이언트 플래그가 아니라 서버 allowlist로 확인한 local/private 합성 fixture에만 허용한다. 실제 시민 질문·PII·민감정보·공개 환경 요청은 provider에 전송하지 않는다.
-- DeepSeek의 기본 디스크 context cache와 고정되지 않은 전체 보관기간을 고려해 ACTIVE KB 최소 청크만 전달하고 `user_id`에는 개인정보를 넣지 않는다.
-- `deepseek-chat`·`deepseek-reasoner` legacy alias와 다른 model ID를 거부하고 정확히 `deepseek-v4-flash`를 사용한다. thinking off, `max_tokens=1024`, 동시 호출 1, 요청당 재시도 최대 1회, 한 process run에서 재시도를 포함한 외부 전송 시도 총 30회를 강제한다.
-- `DEEPSEEK_ENABLED=false`가 기본이며 명시적 synthetic evaluation mode와 서버 fixture allowlist가 모두 참일 때만 호출한다. 한도 도달·429·잔액 부족은 자동 충전이나 무한 재시도 없이 template 또는 정책 폴백으로 전환한다.
+- 공급자는 Upstage direct API의 exact `solar-pro3`를 사용한다. 키는 ignored backend local
+  환경변수에만 두며 새 충전·자동 충전·잔액 조회를 하지 않는다.
+- 호출은 클라이언트 플래그가 아니라 서버 allowlist로 확인한 canonical local/private
+  합성 `T-01`~`T-10` 평가에만 허용한다. 실제 시민 질문·PII·민감정보·자유 입력·공개 환경
+  요청은 provider에 전송하지 않는다.
+- model 입력은 마스킹된 합성 질문과 ACTIVE/OFFICIAL KB 최소 청크, output schema로 제한한다.
+- exact `solar-pro3`, `max_tokens=1024`, 동시 호출 1, 요청당 재시도 최대 1회, 한 process
+  run에서 재시도를 포함한 outbound attempt 총 30회를 강제한다.
+- provider는 기본 disabled이며 명시적 synthetic evaluation mode와 서버 fixture allowlist가
+  모두 참일 때만 호출한다. 한도 도달·429·잔액 부족은 자동 충전이나 무한 재시도 없이 template
+  또는 정책 폴백으로 전환한다.
 - LLM 장애 시 구조화 KB 템플릿을 반환하고, 근거가 없으면 안전 폴백한다.
 
 ### 마스킹·대화·오류 경계
@@ -267,7 +273,8 @@ audit_logs
 - 초기 마스킹 코어는 표준 라이브러리 기반 결정론적 typed rule engine과 원문 값 없는 고정 토큰을 사용한다. 정규화·탐지 후에도 안전한 마스킹 문자열을 만들 수 없으면 텍스트를 반환하지 않고 실패 질문 row·provider 호출을 금지하며 질문 없는 interaction event만 허용한다.
 - 안전한 마스킹 문자열을 만들 수 없는 시민 요청은 HTTP 200 `PRIVACY_UNRESOLVED`로 개인정보를 빼거나 표현을 바꿔 다시 질문하도록 안내한다. source/context/office, provider 호출, 질문 text, 실패 질문 행·DB event·후보는 만들지 않는다. Q-MVP-001로 local/private route와 API 3.1.0-draft consumer는 활성화했지만, public route와 persistent metadata migration은 reserved `00700` 단계의 별도 승인 전까지 비활성이다.
 - 시민 질문에 들어온 phone-shaped value는 사용자가 “공식 대표번호”라고 적어도 모두 마스킹한다. 공식 연락처는 입력에서 보존하지 않고 승인된 KB·기관 메타데이터를 서버가 결합한 기관 카드에서만 제공한다.
-- 마스킹 성공은 저장·합성 fixture provider 호출의 필요조건일 뿐 충분조건이 아니다. 실제 시민 질문은 마스킹 여부와 무관하게 DeepSeek에 전송하지 않는다.
+- 마스킹 성공은 저장·합성 fixture provider 호출의 필요조건일 뿐 충분조건이 아니다. 실제 시민
+  질문은 마스킹 여부와 무관하게 Upstage 또는 다른 외부 LLM에 전송하지 않는다.
 - 화면상 대화 기록과 15분 서명형 `context_token`은 현재 브라우저 탭 메모리에만 둔다. 서버 세션·raw 대화문·token을 DB/로그에 저장하지 않고 새로고침·탭 종료 시 화면 기록을 없앤다.
 - token에는 서버 정의 enum/ID와 발급·만료 시각만 허용하며 질문·답변·PII·URL·공식 사실을 넣지 않는다. 만료·위변조 token은 문맥 없는 새 요청으로 처리하고 인증·권한·ACTIVE KB·근거 판단에 사용하지 않는다.
 - 정책 폴백은 HTTP 200이다. provider/DB 장애라도 ACTIVE KB·검증 snapshot으로 안전 응답이 가능하면 200이고, 안전 대체가 없을 때만 HTTP 503 `SERVICE_UNAVAILABLE`을 반환한다.
@@ -319,7 +326,7 @@ audit_logs
 | 7/24 | chat API, event/admin API, 20번째 후보 backend | 실제 `/chat`, 최소 `/admin` | author/reviewer rehearsal | PASS: candidate approval atomic local E2E |
 | 7/25 | 전체 회귀·보안·데모 | 390/430/desktop 접근성 수정 | 표본 20·회귀 1 판정 | AI closeout PASS: final ACTIVE 20·sample 20/20·root green; human manual review Pending |
 
-7월 25일 gate에는 DeepSeek 품질 튜닝, 100명 부하, 자동 백업, public deployment, 고급 UI를
+7월 25일 gate에는 외부 LLM 품질 평가, 100명 부하, 자동 백업, public deployment, 고급 UI를
 포함하지 않는다. 이 항목은 4주차 P1에 남으며, 개인정보·ACTIVE·승인·출처·접근성 최소선은
 마일스톤에서도 필수다.
 
@@ -376,7 +383,7 @@ audit_logs
 | GitHub Free의 약한 merge 강제 | direct `main` push 금지 팀 규칙, scope CI, 작은 PR, green evidence와 revert runbook |
 | Frontend 자가 병합 범위 초과 | contract/backend/DB/data/security/dependency deny 경계와 owner-review 승격 |
 | GitHub App·collaborator 권한 과다 | private repository, selected-repository-only Codex 권한, 최소 collaborator와 revoke 절차 |
-| Cloud가 local 검증을 대체 | Docker/Supabase/DeepSeek actual은 `local-verification-required`로 유지 |
+| Cloud가 local 검증을 대체 | Docker/Supabase/Upstage actual은 `local-verification-required`로 유지 |
 
 ## 14. 최종 완료 기준
 

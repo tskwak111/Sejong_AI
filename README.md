@@ -85,7 +85,8 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
   HTTPS 전용 공식 링크와 local/private admin envelope를 판별 union으로 동결했다. DB executable authority는 timestamp
   migrations이며 `database/`의 `0.4.0-local` projection은 실제 검증된 local 기준선의 읽기용
   투영이다. 공개·원격 DB 기준선이나 production readiness를 뜻하지 않는다.
-- LLM은 local/private 합성 fixture에서만 `deepseek-v4-flash`를 제한 사용하고, 실제 시민·공개 경로는 disabled/template provider를 사용함.
+- Q-LLM-005=A로 외부 합성 평가 공급자는 Upstage exact `solar-pro3`다. 구현·actual call 전
+  명세/계획 승인이 필요하며, 실제 시민·공개 경로는 계속 deterministic disabled/template provider다.
 - 권장 배포는 Vercel + Render + Supabase이며 실제 계정·리전·비밀값은 별도 확인이 필요함.
 - Q-SEC-003=A/D-046으로 exact privileged function 22 signatures의 property-only `00700`
   hardening 방향은 확정됐지만 public 준비까지 구현을 보류했다. 그전에는 local/private 전용이며
@@ -100,9 +101,9 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
 - 원격 생성·CI·Codex 연결 순서:
   [COLLAB-001 실행계획](docs/superpowers/plans/2026-07-20-github-codex-cloud-collaboration-transition.md)
 
-private GitHub source remote는 public Web/API나 remote DB 배포가 아니다. Cloud에는 DeepSeek key,
+private GitHub source remote는 public Web/API나 remote DB 배포가 아니다. Cloud에는 LLM API key,
 DB DSN과 context secret을 넣지 않고 Codex는 branch와 Draft PR까지만 만든다. Docker/Supabase와
-DeepSeek 합성 actual 검증은 계속 local-only다.
+Upstage 합성 actual 검증은 계속 local-only다.
 
 ## 개발 런타임 계약
 

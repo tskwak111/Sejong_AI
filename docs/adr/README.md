@@ -29,3 +29,4 @@
 - 0019: 비공개 GitHub 단일 저장소와 역할 제한형 Codex Cloud 협업
 - 0020: 7월 25일 local/private 핵심 개선 루프 마일스톤
 - 0021: local policy fallback, admin read와 durable chat idempotency
+- 0022: Upstage Solar Pro 3 합성 평가와 실제 시민 경로 분리

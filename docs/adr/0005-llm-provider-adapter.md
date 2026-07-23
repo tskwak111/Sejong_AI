@@ -1,7 +1,11 @@
 # ADR-0005: DeepSeek LLM 공급자 어댑터와 합성 시연 경계
 
-- Status: Accepted
+- Status: Superseded by ADR-0022 for provider/model selection
 - Date: 2026-07-13 (updated 2026-07-14 by Q-LLM-001, Q-LLM-002, Q-LLM-003, Q-LLM-004)
+
+> 2026-07-23 Q-LLM-005=A로 실제 구현 전 공급자를 Upstage `solar-pro3` 합성 평가로
+> 변경했다. 아래 내용은 DeepSeek 선택의 역사 기록이며, provider abstraction·합성 전용·cap·
+> deterministic fallback·서버 출처 결합 원칙은 ADR-0022가 승계한다.
 
 ## Decision
 

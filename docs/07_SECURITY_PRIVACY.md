@@ -30,17 +30,19 @@ raw request in memory
 - service role key는 backend only.
 - CORS는 명시적 origin allowlist.
 - 실제 배포 전 인프라 제공사의 자동 로그와 데이터 보관 정책 확인.
-- DeepSeek adapter는 서버 allowlist의 합성 fixture만 허용하고 클라이언트 `is_test`는 신뢰하지 않는다.
-- 실제 시민·PII·민감정보·public 요청은 DeepSeek로 보내지 않으며 `user_id`에도 개인정보를 넣지 않는다.
-- DeepSeek 기본 디스크 cache를 전제로 ACTIVE KB 최소 청크만 보내고 provider request/response body를 로깅하지 않는다.
-- DeepSeek는 `deepseek-v4-flash`, thinking off, max 1024, concurrency 1, retry 최대 1, run당 실제 outbound attempt 총 30을 강제하고 cap/장애 시 template/policy fallback으로 전환한다.
+- Upstage adapter는 서버 allowlist의 canonical 합성 `T-01`~`T-10`만 허용하고 클라이언트
+  `is_test`나 자유 입력을 신뢰하지 않는다.
+- 실제 시민·PII·민감정보·public 요청은 Upstage로 보내지 않으며 run/attempt ID에도 개인정보를 넣지 않는다.
+- ACTIVE/OFFICIAL KB 최소 청크만 보내고 provider request/response body를 로깅·저장하지 않는다.
+- exact `solar-pro3`, max output 1024, concurrency 1, retry 최대 1, run당 실제 outbound attempt
+  총 30을 강제하고 cap/장애 시 template/policy fallback으로 전환한다.
 - transcript와 15분 context token은 current-tab memory만 사용한다. token은 HMAC 무결성만 제공하므로 free text·PII·URL·공식 사실을 넣지 않고 DB/log/browser storage에 저장하지 않는다.
 
 ## Phase 1 환경·로그 구현 경계
 
 - root 환경 예시는 변수값을 섞지 않고 Web/API 서비스별 템플릿 위치만 가리킨다.
 - Web 예시는 브라우저 공개 API base URL만 허용하고, API 예시는 민감 필드를 빈 값으로 둔 채
-  provider와 DeepSeek를 기본 비활성화한다. 성공 질문·범위 밖 질문 텍스트 미저장은 설정으로
+  provider를 기본 비활성화한다. 성공 질문·범위 밖 질문 텍스트 미저장은 설정으로
   끌 수 있는 toggle이 아니라 코드·DB 단계에서 지킬 불변 정책이다.
 - 현재 pure ASGI middleware는 request receive channel을 읽거나 재생하지 않는다. HTTP 응답의
   status만 관찰하고 정상 완료와 일반 `Exception` 경로에서 요청당 JSON 한 줄을 남긴다.
@@ -83,7 +85,7 @@ raw request in memory
 - 마스킹 범위 축소
 - 보관기간 변경
 - 외부 LLM 실제 시민/공개 사용으로 범위 확대
-- DeepSeek model/call cap 변경과 잔액 추가 충전
+- Upstage model/call cap 변경, actual 시민 연결과 잔액 추가 충전
 - context token TTL·claim allowlist·저장 경계 변경
 - admin public exposure
 - RLS/auth 방식

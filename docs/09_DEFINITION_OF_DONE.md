@@ -31,7 +31,7 @@
 - [ ] idempotency/transaction 경계 검토
 - [ ] OpenAPI 3.1.0-draft와 JSON Schema가 `session_id` 거부·FALLBACK null context·
   사유별 불변조건·HTTPS 전용 URL·FALLBACK 추가 필드 거부와 optional UUID `Idempotency-Key`를 같은 fixture로 검증
-- [ ] DeepSeek 합성 경로의 exact config·30-attempt cap·concurrency 1·hidden retry off 검증
+- [ ] Upstage 합성 평가 경로의 exact model/config·30-attempt cap·concurrency 1·hidden retry off 검증
 
 ## 데이터
 

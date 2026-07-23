@@ -20,7 +20,7 @@
 - approval guard
 - retention expiration
 - context token sign/verify, exact 900-second TTL, closed claims, current request precedence
-- DeepSeek outbound cap/retry/concurrency state machine
+- Upstage synthetic evaluator outbound cap/retry/concurrency state machine
 
 ### Contract
 
@@ -36,11 +36,11 @@
 - Postgres transaction for approval→ACTIVE KB
 - event without question text
 - failed question storage policy
-- DeepSeek server fixture allowlist와 자유 입력 차단
+- Upstage exact `T-01`~`T-10` server fixture allowlist와 자유 입력 차단
 - AI-001 consumer activation 시 provider/DB-writer spy로 raw sentinel 전달 0건,
   unresolved 결과의 provider 호출 0건과 질문-text row 생성 0건을 함께 검증
 - provider timeout/empty/schema invalid의 200 안전 대체 또는 503 분기
-- DeepSeek exact model/thinking off/max 1024, hidden retry off, concurrency 1, run cap 28/29/30 경계
+- Upstage exact `solar-pro3`/max 1024, hidden retry off, concurrency 1, run cap 28/29/30 경계
 - tampered/expired/unknown context token의 silent new-conversation 처리와 token/secret DB·로그 0건
 - Supabase empty DB reset/replay와 명시적 보상 rollback/replay
 - office mapping
@@ -111,6 +111,6 @@ patched tooling 24/24(262.368s), AST error 0·secret·protected gate와 독립 r
 - mock과 공식 결과를 같은 KPI로 합산
 - LLM 랜덤 결과를 고정 정답처럼 과장
 - 원문 PII를 fixture로 사용
-- 클라이언트 `is_test` 값만 믿고 DeepSeek를 호출
+- 클라이언트 `is_test` 값만 믿고 외부 provider를 호출
 - context token을 인증·공식 사실로 신뢰하거나 브라우저 storage/로그에 보관
 - frozen PII oracle을 구현에 맞춰 삭제·완화하거나 실제 개인정보·공식 연락처를 fixture에 사용

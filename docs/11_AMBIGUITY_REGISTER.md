@@ -4,14 +4,14 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 
 | ID | 우선도 | 영역 | 현재 상태 | 질문/결정 | 기본 추천 |
 |---|---|---|---|---|---|
-| A-001 | A | LLM | Resolved | `deepseek-v4-flash`, thinking off, max 1024, concurrency 1, retry 1, run당 외부 전송 시도 30회; 합성 전용 | Q-LLM-004 / D-023 / ADR-0005 |
+| A-001 | A | LLM | Resolved historically / provider superseded | DeepSeek exact model 선택은 D-065로 대체; 합성 전용, max 1024, concurrency 1, retry 1, run당 outbound attempt 30과 fallback 원칙은 유지 | Q-LLM-004 / D-023 / ADR-0005/0022 |
 | A-002 | A | 개발환경 | Resolved | Node 24.x+pnpm, Python 3.12+uv; exact patch는 스캐폴딩에서 고정 | Q-DEV-001 / D-010 |
 | A-003 | A | DB/배포 | Resolved for local; public deferred | Supabase CLI 버전 SQL migration과 Docker local stack 사용. 공개 DB·원격 push는 별도 승인 | Q-DB-001 / ADR-0008; 설치는 계획 승인 후 |
 | A-004 | A | Admin 보안 | Resolved | local/private 전용, 공개 시 서버측 gate 없이는 관리자 경로 비활성 | Q-SEC-001 / ADR-0007 |
 | A-005 | A | 데이터 | Resolved | AI/Data·Backend 작성, PM 승인, 2026-07-20 목표 | Q-DATA-001 / D-011 |
 | A-006 | B | 마스킹 | Resolved with review gate | 이름·상세주소는 재현율 우선 보수적 감지. 과잉 마스킹이 성공률 80% 미달 원인으로 입증돼도 B 전환은 재승인 | Q-PRIV-002 / ADR-0004 |
 | A-007 | B | 검색 | Defaulted / Deferred | MVP는 keyword/metadata만 사용하고 embedding flag는 off | ADR-0006; 품질 근거와 비용 승인 전 활성화 금지 |
-| A-008 | B | CI·source remote | Resolved / external bootstrap verified | private `tskwak111/Sejong_AI` remote, initial `main` push, hosted policy/Frontend CI PASS, collaborator/variable/read-only Actions evidence를 확인했다. Windows/Docker/DeepSeek local gate는 유지한다 | D-021 partially superseded by D-047~D-055 / ADR-0019 |
+| A-008 | B | CI·source remote | Resolved / external bootstrap verified | private `tskwak111/Sejong_AI` remote, initial `main` push, hosted policy/Frontend CI PASS, collaborator/variable/read-only Actions evidence를 확인했다. Windows/Docker/external-provider local gate는 유지한다 | D-021 partially superseded by D-047~D-055 / ADR-0019 |
 | A-009 | B | 데모 | Defaulted / Deferred | 현재 완료 기준은 local live demo+재시작 runbook. 공개 URL·녹화본은 별도 발표/배포 승인 시 선택 | D-013/D-021 범위의 0원·local-first 기본값 |
 | A-010 | C | UI | Defaultable | 디자인 시스템 세부 | 기존 아이디어노트 톤, 접근성 우선 |
 | A-011 | C | 코드 | Defaultable | 모듈 명명·파일 분할 | framework conventions |
@@ -40,13 +40,14 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-034 | A | Frontend ownership | Resolved | Q-OWN-001=A: 인간 팀원이 세 페이지·typed client·화면 상태·반응형·접근성·frontend unit/E2E 전체 소유 | D-048 / frontend handoff; contract/backend/DB/data/security는 owner 요청 |
 | A-035 | B | GitHub plan·enforcement | Resolved | Q-GIT-002=A: GitHub Free·0원, private branch protection/CODEOWNERS 강제를 전제하지 않음 | D-049 / ADR-0019; PR·CI·scope policy와 사람 규칙, Pro 전환은 재승인 |
 | A-036 | B | Frontend merge | Resolved policy | Q-GIT-003=B: 허용 frontend-only green PR은 팀원 자가 병합, 경계 밖은 사용자 검토 | D-050 / ADR-0019; GitHub Free 기술적 완전 강제 아님 |
-| A-037 | A | Codex Cloud merge·secret | Resolved policy | Q-CLOUD-001=A: Cloud는 branch+Draft PR만, 사람이 merge; secret·DeepSeek·Docker actual 없음 | D-051 / ADR-0019 |
+| A-037 | A | Codex Cloud merge·secret | Resolved policy | Q-CLOUD-001=A: Cloud는 branch+Draft PR만, 사람이 merge; secret·external LLM·Docker actual 없음 | D-051 / ADR-0019 |
 | A-038 | A | Collaboration operating model | Resolved spec / In Progress execution | Tasks 1~4 완료, Task 5 partial, Task 6 partial, Task 7 pending. App scope·PR #1 merge/post-merge CI·secret-free Cloud environment 저장은 확인됐고 teammate MFA/recovery·첫 PR-only rehearsal, Cloud docs-only task/Draft PR/manual merge와 나머지 Task 7 rehearsal이 남았다 | D-052~D-057 / collaboration design and plan |
 | A-039 | A / Blocker | Git author identity privacy | Resolved | Q-GIT-004=A: 해당 email이 사용자 본인 것이며 private Frontend collaborator에게 보여도 괜찮음을 확인. 현재 history와 모든 SHA를 보존하고 noreply rewrite를 하지 않음 | D-053/D-054 / ADR-0019; 승인된 pre-push gate를 통과한 뒤에만 private push |
-| A-040 | A / Blocker | 7/25 MVP scope·schedule | Resolved / Review — local-private AI scope complete | Q-MVP-001=A: final local 19→20, sample 20/20, full root/DB/API/Web gate PASS | D-058/ADR-0020. human Draft PR/manual demo·a11y Pending; DeepSeek·100명·backup·advanced UI·public deploy deferred |
+| A-040 | A / Blocker | 7/25 MVP scope·schedule | Resolved / Review — local-private AI scope complete | Q-MVP-001=A: final local 19→20, sample 20/20, full root/DB/API/Web gate PASS | D-058/ADR-0020. PR #6 merged; manual demo·a11y Pending. external provider·100명·backup·advanced UI·public deploy는 별도 |
 | A-041 | B / High | 범위 밖 개인조회·법적판단 표현 | Resolved / Q-MVP-002=A | 공개 응답은 `intent=UNKNOWN`+정확한 정책 reason, 후보 false; local MVP에서 text/event/failed row 0 | D-059/ADR-0021; sample T-16~T-18 실행 승인 |
 | A-042 | A / Blocker | 관리자 DB read capability | Resolved / Q-DB-004=A | local/private 전용 `00650` migration+rollback+pgTAP+repository adapter 승인 | D-060/ADR-0021; public admin/remote/00700 불변 |
 | A-043 | B / High | chat 재시도 idempotency | Resolved / Q-API-002=A | optional UUID header, Web retry key 유지, correlation 분리, `00660` durable dedupe 승인 | D-061/ADR-0021; raw question 저장 0, local 24h TTL |
+| A-044 | A / Blocker | LLM 공급자 전환·실사용 경계 | Resolved design / Q-LLM-005=A | Upstage exact `solar-pro3`를 canonical `T-01`~`T-10` local/private 합성 평가에만 사용해 한국어·strict JSON·비용을 먼저 판정 | D-065/ADR-0022/LLM-002 design. actual 시민/free-input/public/remote 연결은 선택지 B 별도 승인; 실행계획 승인 전 code/key/call 0 |
 
 ## 우선도 정의
 
@@ -55,7 +56,9 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 - C: AI 기본값 가능, 기록 필요
 - D: 내부 구현 판단
 
-현재 MVP 구현을 막는 인터뷰 결정은 없다. A-041~A-043은 2026-07-22 D-059~D-061로 해결됐다.
+현재 deterministic MVP를 막는 인터뷰 결정은 없다. A-044/Q-LLM-005는 2026-07-23 D-065로
+합성 평가 설계까지만 해결됐으며 명세와 후속 실행계획 승인 전 구현·actual call은 하지 않는다.
+A-041~A-043은 2026-07-22 D-059~D-061로 해결됐다.
 T-16~T-18, local admin DB read와 durable chat 재시도는 승인 범위에서 구현·검증한다. DATA actual과
 end-to-end 증거가 통과해 final local 19→20 ACTIVE를 확인했다. A-040/Q-MVP-001은
 2026-07-22 D-058로 해결됐고,

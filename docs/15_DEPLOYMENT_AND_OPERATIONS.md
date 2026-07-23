@@ -29,7 +29,7 @@ description warning, PR #1 merge/post-merge CI와 Codex App `Only select reposit
 사용자 확인은 검증됐다. teammate MFA/recovery, Cloud Draft PR/manual merge와 Frontend onboarding
 rehearsal은 여전히 Pending이다. Task 5는 partial이며 첫
 Task 7 PR-only/no-direct-main-push rehearsal이 완료돼야 닫힌다. 실행 뒤에도 local Git의
-lint·typecheck·test·build·contract·secret 증거를 유지하고 Windows/Docker/DeepSeek actual gate를
+lint·typecheck·test·build·contract·secret 증거를 유지하고 Windows/Docker/Upstage actual gate를
 Cloud CI로 대체하지 않는다. 이 source remote는 tracked source/history의 협업 경로이며
 Vercel/Render/Supabase application deployment, remote DB, public admin/API 승인이 아니다.
 

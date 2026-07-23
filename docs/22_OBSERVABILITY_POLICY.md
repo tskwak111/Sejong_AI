@@ -12,7 +12,7 @@
 - source_count와 source ID
 - latency, timeout, retry count
 - provider name/model identifier
-- DeepSeek run attempt count, cap outcome, token usage
+- provider run attempt count, cap outcome, token usage와 price-snapshot 기반 aggregate cost
 - selected region(읍면동)
 - candidate/audit state transition IDs
 - is_test/mock/source label
@@ -76,5 +76,5 @@ masked_question은 failed_questions 도메인 저장소에만 보관하고 일�
 - provider timeout rate
 - p95 latency
 - retention deletion failures
-- DeepSeek outbound attempt cap violation
+- provider outbound attempt/cost cap violation
 - context token/storage leak sentinel

@@ -53,7 +53,8 @@
 
 ## LLM과 배포
 
-- DeepSeek provider adapter, local/private 합성 fixture 전용; `deepseek-v4-flash`, thinking off, max 1024, concurrency 1, retry 1, run당 outbound attempt 30
+- Upstage provider adapter 설계, canonical `T-01`~`T-10` local/private 합성 평가 전용;
+  exact `solar-pro3`, max 1024, concurrency 1, retry 1, run당 outbound attempt 30. 실제 시민 연결은 별도 승인
 - 화면 transcript는 현재 탭 메모리, 문맥은 15분 서명형 client-carried token; 서버 세션·raw transcript 저장 없음
 - 키워드·메타데이터 검색 기본, MVP 임베딩 off
 - Vercel(web) + Render(api) + Supabase(DB) 권장

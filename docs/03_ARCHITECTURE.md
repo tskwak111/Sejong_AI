@@ -61,7 +61,11 @@ scripts        reproducible project tooling
 
 ## 4. LLM adapter
 
-공급자 모델은 정확히 `deepseek-v4-flash`로 고정한다. thinking off, max output 1024, concurrency 1, 논리 요청당 재시도 최대 1회, 명시적 process run당 재시도를 포함한 실제 outbound attempt 총 30회를 강제한다. 도메인 서비스가 공급자 SDK에 직접 의존하지 않도록 다음 인터페이스를 둔다.
+합성 평가 공급자 모델은 정확히 Upstage `solar-pro3`로 고정한다. max output 1024,
+concurrency 1, 논리 요청당 재시도 최대 1회, 명시적 process run당 재시도를 포함한 실제
+outbound attempt 총 30회를 강제한다. 도메인 서비스가 공급자 API에 직접 의존하지 않도록
+다음 인터페이스를 둔다. 이 adapter는 LLM-002 계획 승인 전 미구현이며 시민 chat 기본 경로는
+deterministic template다.
 
 ```python
 class LLMProvider(Protocol):
@@ -71,12 +75,12 @@ class LLMProvider(Protocol):
 요구사항:
 
 - 입력은 마스킹된 질문과 허용된 KB 청크만
-- DeepSeek 입력은 서버 allowlist로 확인한 local/private 합성 fixture만; 실제 시민·public 요청은 disabled/template
+- Upstage 입력은 서버 allowlist의 canonical local/private `T-01`~`T-10`만; 실제 시민·public 요청은 disabled/template
 - 출력은 스키마 검증 가능한 구조화 객체
 - timeout/retry/circuit-breaker 경계
 - 공급자 장애 시 KB 템플릿 또는 안전 폴백
 - 공급자 이름/모델/latency는 관측 가능하되 질문 텍스트 로그 금지
-- `DEEPSEEK_ENABLED=false` 기본, 서버 allowlist synthetic evaluation mode에서만 활성; hidden retry·preflight provider call·cap reset endpoint 금지
+- provider disabled 기본, 서버 allowlist synthetic evaluation runner에서만 활성; hidden retry·preflight provider call·cap reset endpoint 금지
 
 ## 4.1 대화 문맥 경계
 

@@ -16,7 +16,7 @@
 8. 이름·상세주소는 개인정보 누락 방지를 우선해 보수적으로 마스킹하고, 불확실하면 외부 호출 없이 안전 폴백한다.
 9. 화면 transcript와 대화 문맥 token은 현재 탭 메모리에만 두고 서버 세션·DB·로그·브라우저 영속 저장소에는 저장하지 않는다.
 10. 안전한 마스킹 값을 만들 수 없으면 질문 텍스트를 반환·저장·외부 전송하지 않는다. 이 경우 질문 없는 interaction event만 기록할 수 있다.
-11. 마스킹 성공은 저장 또는 provider 호출의 필요조건일 뿐 충분조건이 아니다. 실제 시민 질문은 마스킹 여부와 무관하게 DeepSeek로 전송하지 않는다.
+11. 마스킹 성공은 저장 또는 provider 호출의 필요조건일 뿐 충분조건이 아니다. 실제 시민 질문은 마스킹 여부와 무관하게 Upstage 또는 다른 외부 LLM으로 전송하지 않는다.
 12. 시민 입력의 “공식 대표번호” 표시는 신뢰 근거가 아니다. 입력 안의 모든 phone-shaped value를 마스킹하고, 공식 기관 연락처는 승인된 KB·기관 메타데이터를 서버가 결합한 카드에서만 제공한다.
 13. 안전한 마스킹 문자열을 만들 수 없는 요청은 `PRIVACY_UNRESOLVED`로 분리해 HTTP 200 안전 재질문을 제공한다. 이 outcome에는 질문 text, source/context/office, provider 호출, 실패 질문 row와 후보를 만들지 않고 질문 없는 interaction metadata만 허용한다.
 
@@ -93,21 +93,34 @@ text_purged_at
 - `text_expires_at`: `created_at + 30일`; 실패 행 전체가 아니라 `masked_question` 텍스트의 만료 시각
 - `text_purged_at`: 파기 전에는 NULL, 파기 후에는 실제 처리 시각
 
-## 7. DeepSeek 외부 LLM 처리 경계
+## 7. Upstage 외부 LLM 합성 평가 경계
 
-실제 provider는 사용자가 보유한 기존 DeepSeek API 잔액을 사용한다. 새 충전·자동 충전은 하지 않으며 API key는 backend 환경변수에만 두고 브라우저·저장소·문서·로그에 값이나 잔액을 남기지 않는다. 정확한 model은 `deepseek-v4-flash`이며 thinking off, `max_tokens=1024`, 동시 외부 호출 1개, 논리 요청당 재시도 최대 1회, 한 process run에서 재시도를 포함한 실제 외부 전송 시도 총 30회를 강제한다.
+Q-LLM-005=A/D-065로 provider는 Upstage direct API exact `solar-pro3`로 변경한다. API key는
+ignored backend local 환경변수에만 두고 브라우저·저장소·GitHub·Codex Cloud·문서·로그에
+값이나 잔액을 남기지 않는다. `max_tokens=1024`, 동시 외부 호출 1개, 논리 요청당 재시도 최대
+1회, 한 process run에서 재시도를 포함한 실제 outbound attempt 총 30회를 강제한다.
 
-- local/private 환경에서 서버 allowlist로 확인한 합성 fixture만 DeepSeek로 전송한다. 클라이언트 `is_test` 값만으로 허용하지 않는다.
-- 실제 시민 자유 입력, 실제 개인정보·민감정보, 공개 환경 요청은 마스킹 여부와 무관하게 DeepSeek로 전송하지 않는다.
-- 합성 fixture도 백엔드 보수적 마스킹을 통과한 뒤 ACTIVE KB 최소 청크와 함께 전송한다.
-- DeepSeek context caching은 기본 활성화되어 입력 prefix가 디스크에 저장되고 미사용 cache가 보통 수 시간~수일 남을 수 있다. API 문서에서 cache off, no-training, Zero Data Retention, 한국 리전, 전체 prompt의 고정 보관기간은 확인되지 않았다.
-- `user_id`에는 개인정보를 넣지 않고 비식별 난수만 사용한다.
-- JSON Output은 서버 schema 검증을 통과해야 하며 provider body·reasoning·질문을 로그에 남기지 않는다.
-- 공개 운영·실제 시민 입력은 별도 개인정보 고지, 처리 법적 근거, 국외 처리, 보관·삭제, 공급자 약관 검토와 인간 승인 전까지 금지한다.
-- provider 장애 또는 정책 변경 시 disabled/template 경로로 즉시 전환한다.
-- `DEEPSEEK_ENABLED=false`가 기본이며 명시적 synthetic evaluation mode와 서버 fixture allowlist가 함께 만족할 때만 호출한다. cap·retry·latency·outcome·token usage는 질문 없는 지표만 기록하고 provider body·reasoning·잔액은 기록하지 않는다.
+- local/private에서 server-owned canonical `T-01`~`T-10`만 Upstage로 전송한다. 클라이언트
+  `is_test`, fixture ID 또는 자유 입력을 그대로 신뢰하지 않는다.
+- 실제 시민 자유 입력, 실제 개인정보·민감정보, 공개/remote 요청은 마스킹 여부와 무관하게
+  Upstage 또는 다른 외부 LLM으로 전송하지 않는다.
+- 합성 fixture도 백엔드 보수적 마스킹과 ACTIVE/OFFICIAL retrieval·grounding을 통과한 뒤
+  최소 KB 청크와 output schema만 전송한다.
+- Upstage의 2026-07-07 개인정보 처리방침은 Playground, Async API, 별도 동의 API logging,
+  Free Tier request/response에 다른 처리·보관 조건과 AWS US 국외 처리를 명시한다. 실제 계정의
+  계약·동의 상태를 저장소에서 확인할 수 없으므로 합성 전용 경계를 완화하지 않는다.
+- run/attempt ID에는 개인정보를 넣지 않는다.
+- JSON output은 서버 strict schema 검증을 통과해야 하며 provider body·reasoning·질문·답변을
+  로그나 평가 artifact에 남기지 않는다.
+- 공개 운영·실제 시민 입력은 별도 개인정보 고지, 처리 법적 근거, 국외 처리, 보관·삭제,
+  공급자 약관·비용 검토와 선택지 B의 인간 승인 전까지 금지한다.
+- provider 장애 또는 정책 변경 시 disabled/template 경로를 유지한다.
+- provider는 기본 disabled이며 명시적 synthetic evaluation runner와 서버 fixture allowlist가
+  함께 만족할 때만 호출한다. cap·retry·latency·outcome·token usage·aggregate cost는 질문 없는
+  지표만 기록하고 provider body·reasoning·잔액은 기록하지 않는다.
 
-공식 확인 기준일은 2026-07-14이며 모델·가격·약관·캐시 정책은 구현 시작과 데모 전에 다시 확인한다.
+공식 확인 기준일은 2026-07-23이며 모델·API·가격·개인정보 처리방침은 구현 시작과 actual 합성
+평가 전에 다시 확인한다.
 
 ### 대화 문맥 token
 
@@ -142,9 +155,9 @@ text_purged_at
 - 서버 액세스 로그에 요청 본문 0건
 - 오류 추적 도구에 질문 본문 0건
 - 외부 LLM 호출 payload가 마스킹됐는지 테스트 더블로 확인
-- 합성 fixture allowlist를 우회한 자유 입력이 DeepSeek adapter에 도달하지 않는지 확인
-- provider payload와 `user_id`에 PII·비밀·불필요한 KB 필드가 0건인지 확인
-- DeepSeek 실제 outbound attempt가 run당 30회 이하이고 retry도 합계에 포함되며, cap 지표·로그에 질문/provider body가 0건인지 확인
+- 합성 fixture allowlist를 우회한 자유 입력이 Upstage adapter에 도달하지 않는지 확인
+- provider payload와 run/attempt ID에 PII·비밀·불필요한 KB 필드가 0건인지 확인
+- Upstage 실제 outbound attempt가 run당 30회 이하이고 retry도 합계에 포함되며, cap 지표·로그에 질문/provider body가 0건인지 확인
 - context token의 TTL 900초·claim allowlist·tamper/expiry silent reset과 token/secret의 DB·로그·브라우저 영속 저장 0건 확인
 - 고정 평가셋에서 보수적 마스킹의 PII 누락 0건과 답변 성공률을 함께 측정하고 완화는 인간 재승인 없이 적용하지 않음
 - `masked_text=None` consumer가 HTTP 200 `PRIVACY_UNRESOLVED`와 안전 재질문을 반환하고 source/context/office/provider/failed-question text·row가 모두 0인지 확인

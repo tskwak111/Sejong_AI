@@ -31,9 +31,14 @@
 
 2026-07-25의 Q-MVP-001 local/private 마일스톤은 위 최종 범위를 줄이지 않는다. 19개 초기 ACTIVE를
 실제 local DB에 반영한 뒤 관리자 개선 루프로 20번째 ACTIVE를 만들고 표본 20·회귀 1·보안·데모를
-완주하는 중간 gate다. DeepSeek 품질 튜닝, 고급 UI, 100명 부하, 자동 백업과 공개 배포는 이
+완주하는 중간 gate다. 외부 LLM 품질 평가, 고급 UI, 100명 부하, 자동 백업과 공개 배포는 이
 마일스톤 뒤로 연기하지만 최종 P1 백로그에서 삭제하지 않는다. 상세 권위는 D-058/ADR-0020과
 승인된 MVP-001 명세·계획이다.
+
+2026-07-23 Q-LLM-005=A/D-065/ADR-0022는 아직 구현되지 않은 DeepSeek 선택을 대체한다. 외부
+공급자는 Upstage exact `solar-pro3`이며, 먼저 local/private server-allowlisted 합성
+`T-01`~`T-10` 평가로 한국어 품질·strict JSON·비용을 검증한다. 결정론적 시민 경로는 계속
+기본이고 실제 시민/free-input/public/remote provider 사용은 선택지 B의 별도 승인 전 금지한다.
 
 ## 4. 변경 절차
 
