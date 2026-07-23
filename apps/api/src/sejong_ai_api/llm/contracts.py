@@ -90,3 +90,5 @@ class GenerationOutcome:
             raise ValueError("ATTEMPTS_USED_INVALID")
         if (self.code is OutcomeCode.SUCCESS) is not (self.answer is not None):
             raise ValueError("GENERATION_OUTCOME_INVALID")
+        if self.code is OutcomeCode.SUCCESS and self.attempts_used == 0:
+            raise ValueError("ATTEMPTS_USED_INVALID")

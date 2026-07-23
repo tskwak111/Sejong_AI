@@ -10,7 +10,6 @@ OUTPUT_PER_MILLION = Decimal("0.60")
 VAT_RATE = Decimal("0.10")
 ONE_MILLION = Decimal("1000000")
 RUN_COST_CAP_USD = Decimal("0.05")
-_MAX_RUN_ATTEMPTS = Decimal("30")
 
 
 def estimate_cost_usd(usage: TokenUsage) -> Decimal:
@@ -24,4 +23,4 @@ def estimate_cost_usd(usage: TokenUsage) -> Decimal:
         + Decimal(usage.cached_input_tokens) * CACHED_INPUT_PER_MILLION / ONE_MILLION
         + Decimal(usage.output_tokens) * OUTPUT_PER_MILLION / ONE_MILLION
     )
-    return subtotal * _MAX_RUN_ATTEMPTS * (Decimal(1) + VAT_RATE)
+    return subtotal * (Decimal(1) + VAT_RATE)

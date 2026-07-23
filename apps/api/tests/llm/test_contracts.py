@@ -78,6 +78,18 @@ def test_token_usage_rejects_cached_tokens_above_input_tokens() -> None:
             ),
             -1,
         ),
+        (
+            OutcomeCode.SUCCESS,
+            GeneratedAnswer(
+                summary="안내",
+                procedure_steps=[],
+                required_documents=[],
+                processing_time=None,
+                fee=None,
+                department=None,
+            ),
+            0,
+        ),
     ],
 )
 def test_generation_outcome_rejects_invalid_state_combinations(
