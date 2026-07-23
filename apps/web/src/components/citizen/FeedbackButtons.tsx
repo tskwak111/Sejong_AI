@@ -6,7 +6,7 @@
  * 만족/불만족(엄지 아이콘, outline, 우측 정렬).
  * variant는 배치만 다르다 - "footer"(기본): FOLLOWUP·FALLBACK 카드 푸터 행 /
  * "inline": SUCCESS 카드 하단 행.
- * 클릭 시: 두 버튼이 사라지고 "의견을 보내주셔서 감사합니다" 한 줄. 재클릭 불가.
+ * 클릭 시: 두 버튼이 사라지고 "의견을 선택해 주셔서 감사합니다" 한 줄. 재클릭 불가.
  * 불만족 → FeedbackReasonSheet(분야+사유 코드만, 자유 텍스트 없음 §9).
  *
  * 계약에 피드백 엔드포인트가 없어(보고 항목) 전송은 하지 않는다 -
@@ -54,7 +54,7 @@ export default function FeedbackButtons({
     return (
       <div className={inline ? "" : "border-t border-border-soft px-4 py-3.5"}>
         <p role="status" className="py-2.5 text-note text-text-sub">
-          의견을 보내주셔서 감사합니다
+          의견을 선택해 주셔서 감사합니다
         </p>
       </div>
     );

@@ -10,6 +10,10 @@ import type {
   Office,
 } from "../../lib/chat-api";
 import { ChatTransportError } from "../../lib/chat-api";
+import {
+  consumePendingQuestion,
+  setPendingQuestion,
+} from "../../lib/pending-question";
 
 import ChatScreen from "./chat-screen";
 
@@ -20,7 +24,6 @@ vi.mock("next/navigation", async () => {
   return {
     ...actual,
     useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-    useSearchParams: () => new URLSearchParams(),
   };
 });
 
@@ -73,9 +76,24 @@ function ask(question: string) {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  consumePendingQuestion(); // 테스트 간 탭 메모리 초기화
 });
 
 describe("citizen chat screen", () => {
+  it("auto-sends the home-screen question from tab memory, consuming it once (태성 리뷰 1)", async () => {
+    setPendingQuestion("전입신고는 언제까지 해야 하나요?");
+    const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
+    render(<ChatScreen transport={transportWith(send)} />);
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    expect((send.mock.calls[0][0] as ChatRequest).question).toBe(
+      "전입신고는 언제까지 해야 하나요?",
+    );
+    // 1회성 소비 - URL은 물론 탭 메모리에도 질문이 남지 않는다
+    expect(consumePendingQuestion()).toBeNull();
+    expect(window.location.search).toBe("");
+  });
+
   it("renders a successful answer with source, office metadata and the generated request shape", async () => {
     const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
     render(

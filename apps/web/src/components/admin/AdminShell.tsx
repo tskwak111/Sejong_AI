@@ -17,6 +17,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import FixtureNotice from "@/components/common/FixtureNotice";
 import Logo from "@/components/common/Logo";
 import {
   createAdminTransport,
@@ -137,6 +138,8 @@ export default function AdminShell({
   if (pathname === "/admin/login") {
     return (
       <AdminContext.Provider value={contextValue}>
+        {/* fixture 모드 상시 배너 - 관문 화면 포함 전 화면 (태성 리뷰 2) */}
+        {mode === "fixture" && <FixtureNotice />}
         {children}
       </AdminContext.Provider>
     );
@@ -173,6 +176,8 @@ export default function AdminShell({
 
   return (
     <AdminContext.Provider value={contextValue}>
+      {/* fixture 모드 상시 배너 - 공지·사이드바와 구분되는 앰버 톤 (태성 리뷰 2) */}
+      {mode === "fixture" && <FixtureNotice />}
       <div className="min-h-screen md:flex">
         {/* 768px 미만: 상단 고정 바 - 로고 줄 + 메뉴 탭 줄 (모바일 정비 1) */}
         <header className="sticky top-0 z-40 bg-admin-nav md:hidden">

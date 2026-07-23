@@ -268,5 +268,7 @@ describe("fixture admin transport guards (contract invariants)", () => {
     const newest = after.items[0];
     expect(newest.fallback_reason).toBe("PERSONAL_LOOKUP");
     expect(newest.candidate_eligible).toBe(false);
+    // 태성 리뷰 3: PERSONAL_LOOKUP 신규 적재 건은 질문 원문을 싣지 않는다
+    expect(newest.masked_question).toBeNull();
   });
 });

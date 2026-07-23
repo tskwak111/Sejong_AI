@@ -394,9 +394,14 @@ export function resetDemoStore(): void {
 
 /** 시민 화면 폴백 발생 시 실패 질문 큐에 신규 건 적재 (fixture 전용).
  *  질문 마스킹은 백엔드 책임이라 mock에서는 원문을 그대로 쓴다.
- *  저장 대상은 StoredFailureReason 3종뿐이다 (OUT_OF_SCOPE·PRIVACY 미저장). */
+ *  저장 대상은 StoredFailureReason 3종뿐이다 (OUT_OF_SCOPE·PRIVACY 미저장).
+ *  태성 리뷰 3: PERSONAL_LOOKUP은 행 생성 여부 자체가 팀 결정 대기라
+ *  질문 원문을 싣지 않고 maskedQuestion=null로 적재한다(사전 시드된 데모
+ *  행은 유지). null 텍스트 행은 계약 불변식(masked_question null ⇔
+ *  text_purged_at 기록)과 어긋나는 임시 상태다 - 결정 확정 시 행 미생성
+ *  또는 마스킹 저장으로 정리한다 (MISMATCH_REPORT C1). */
 function enqueueFailure(
-  question: string,
+  maskedQuestion: string | null,
   reason: StoredFailureReason,
   intent: SupportedIntent,
 ): void {
@@ -404,7 +409,7 @@ function enqueueFailure(
   failureQueue = [
     {
       id: uuid(),
-      masked_question: question,
+      masked_question: maskedQuestion,
       intent,
       fallback_reason: reason,
       candidate_eligible: reason === "INSUFFICIENT_GROUNDING",
@@ -467,9 +472,9 @@ export function routeDemoAnswer(request: ChatRequest): ChatResponse {
     return certificateAnswer(region);
   }
 
-  // 데모 #4
+  // 데모 #4 - 질문 원문 미적재 (태성 리뷰 3: 행 생성 여부 팀 결정 대기)
   if (q.includes("자동차세") || q.includes("재산세") || q.includes("지방세")) {
-    enqueueFailure(question, "PERSONAL_LOOKUP", "LOCAL_TAX_GENERAL");
+    enqueueFailure(null, "PERSONAL_LOOKUP", "LOCAL_TAX_GENERAL");
     return personalLookupFallback();
   }
 

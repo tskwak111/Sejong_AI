@@ -29,21 +29,8 @@ describe("admin layout gate", () => {
     );
   });
 
-  it("renders the fixture shell by default when enabled", () => {
+  it("defaults to the actual API transport when enabled without a mode (태성 리뷰 2)", () => {
     process.env.ADMIN_UI_ENABLED = "true";
-    render(<AdminLayout>{null}</AdminLayout>);
-
-    expect(screen.getAllByText("이음")[0]).toBeInTheDocument();
-    expect(screen.getByText("시연용 샘플 데이터")).toBeInTheDocument();
-    expect(screen.queryByText("실제 local DB API 연결")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("navigation", { name: "관리자 메뉴" }),
-    ).toBeInTheDocument();
-  });
-
-  it("selects the actual API transport only when the server explicitly requests actual mode", () => {
-    process.env.ADMIN_UI_ENABLED = "true";
-    process.env.ADMIN_UI_MODE = "actual";
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -56,8 +43,27 @@ describe("admin layout gate", () => {
 
     render(<AdminLayout>{null}</AdminLayout>);
 
+    expect(screen.getAllByText("이음")[0]).toBeInTheDocument();
     expect(screen.getByText("실제 local DB API 연결")).toBeInTheDocument();
     expect(screen.queryByText("시연용 샘플 데이터")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("시연용 샘플 — 공식 데이터 아님"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "관리자 메뉴" }),
+    ).toBeInTheDocument();
     vi.unstubAllGlobals();
+  });
+
+  it("renders the fixture shell with the amber sample banner only when explicitly requested", () => {
+    process.env.ADMIN_UI_ENABLED = "true";
+    process.env.ADMIN_UI_MODE = "fixture";
+    render(<AdminLayout>{null}</AdminLayout>);
+
+    expect(screen.getByText("시연용 샘플 데이터")).toBeInTheDocument();
+    expect(
+      screen.getByText("시연용 샘플 — 공식 데이터 아님"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("실제 local DB API 연결")).not.toBeInTheDocument();
   });
 });

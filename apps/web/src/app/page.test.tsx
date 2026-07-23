@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import HomePage from "./page";
+import { consumePendingQuestion } from "../lib/pending-question";
+
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
 
 vi.mock("next/navigation", async () => {
   const actual = await vi.importActual<typeof import("next/navigation")>(
@@ -11,8 +14,14 @@ vi.mock("next/navigation", async () => {
   );
   return {
     ...actual,
-    useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+    useRouter: () => ({ push: pushMock, replace: vi.fn() }),
   };
+});
+
+afterEach(() => {
+  pushMock.mockReset();
+  consumePendingQuestion(); // 테스트 간 탭 메모리 초기화
+  delete process.env.CHAT_UI_MODE;
 });
 
 describe("citizen home page", () => {
@@ -36,21 +45,32 @@ describe("citizen home page", () => {
     }
   });
 
-  it("links suggested question chips to the chat screen (SFR-006)", () => {
+  it("hands suggested question chips to chat via tab memory, never the URL (태성 리뷰 1)", () => {
     render(<HomePage />);
 
     const chip = screen.getByRole("link", {
       name: "전입신고는 언제까지 해야 하나요?",
     });
-    expect(chip).toHaveAttribute(
-      "href",
-      `/chat?q=${encodeURIComponent("전입신고는 언제까지 해야 하나요?")}`,
-    );
+    // 질문 원문이 href(URL·히스토리·서버 로그)에 남지 않는다
+    expect(chip).toHaveAttribute("href", "/chat");
+    chip.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(chip);
+    expect(consumePendingQuestion()).toBe("전입신고는 언제까지 해야 하나요?");
+
     const demo4 = screen.getByRole("link", { name: "제 자동차세 얼마 나왔나요?" });
-    expect(demo4).toHaveAttribute(
-      "href",
-      `/chat?q=${encodeURIComponent("제 자동차세 얼마 나왔나요?")}`,
-    );
+    expect(demo4).toHaveAttribute("href", "/chat");
+  });
+
+  it("submits the typed question through tab memory and navigates without a query string", () => {
+    render(<HomePage />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "질문 입력" }), {
+      target: { value: "전입신고는 언제까지 해야 하나요?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /질문하기/ }));
+
+    expect(pushMock).toHaveBeenCalledWith("/chat");
+    expect(consumePendingQuestion()).toBe("전입신고는 언제까지 해야 하나요?");
   });
 
   it("keeps the always-visible privacy warning under the input (CLAUDE.md §5)", () => {
@@ -63,5 +83,12 @@ describe("citizen home page", () => {
     expect(
       within(form as HTMLElement).getByText("개인정보는 입력하지 마세요"),
     ).toBeInTheDocument();
+  });
+
+  it("shows the fixture sample banner only when fixture mode is explicit (태성 리뷰 2)", () => {
+    render(<HomePage />);
+    expect(
+      screen.queryByText("시연용 샘플 — 공식 데이터 아님"),
+    ).not.toBeInTheDocument();
   });
 });

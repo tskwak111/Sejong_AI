@@ -12,7 +12,6 @@ vi.mock("next/navigation", async () => {
   return {
     ...actual,
     useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-    useSearchParams: () => new URLSearchParams(),
   };
 });
 
@@ -32,6 +31,23 @@ describe("chat page", () => {
     expect(screen.getByText("개인정보는 입력하지 마세요")).toBeInTheDocument();
     expect(
       screen.getByRole("form", { name: "민원 질문 작성" }),
+    ).toBeInTheDocument();
+  });
+
+  it("defaults to actual mode without the fixture sample banner (태성 리뷰 2)", () => {
+    render(<ChatPage />);
+
+    expect(
+      screen.queryByText("시연용 샘플 — 공식 데이터 아님"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the always-visible amber sample banner only in explicit fixture mode", () => {
+    process.env.CHAT_UI_MODE = "fixture";
+    render(<ChatPage />);
+
+    expect(
+      screen.getByText("시연용 샘플 — 공식 데이터 아님"),
     ).toBeInTheDocument();
   });
 });

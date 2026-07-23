@@ -12,9 +12,12 @@
  * - 오류는 값 노출 없는 ChatTransportError - retryable이면 "다시 시도" 제공,
  *   422(비재시도)는 입력 확인 안내만. 만료 토큰은 계약상 오류가 아니라
  *   "무맥락"으로 처리되므로 별도 만료 UI는 없다.
+ *
+ * 태성 리뷰 1: 첫 화면에서 넘어온 질문은 URL 쿼리(?q=)가 아니라 탭 메모리
+ * (pending-question)에서 1회성으로 소비한다 - 질문 원문이 URL·히스토리·
+ * 서버 로그에 남지 않는다.
  */
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   type ChatRequest,
@@ -25,8 +28,10 @@ import {
   createChatTransport,
 } from "@/lib/chat-api";
 import { createFixtureChatTransport } from "@/lib/demo-fixtures";
+import { consumePendingQuestion } from "@/lib/pending-question";
 import { isRegion, type Region } from "@/lib/labels";
 import { ChatHeader, NoticeBanner } from "@/components/citizen/PageChrome";
+import FixtureNotice from "@/components/common/FixtureNotice";
 import AnswerCard from "@/components/citizen/AnswerCard";
 import FollowupCard from "@/components/citizen/FollowupCard";
 import FallbackCard from "@/components/citizen/FallbackCard";
@@ -57,8 +62,8 @@ type FailedDraft = Readonly<{
 
 export type ChatTransportMode = "fixture" | "actual";
 
-function ChatScreen({
-  transportMode = "fixture",
+export default function ChatScreen({
+  transportMode = "actual",
   transport: providedTransport,
   createIdempotencyKey = () => crypto.randomUUID(),
 }: {
@@ -66,9 +71,6 @@ function ChatScreen({
   transport?: ChatTransport;
   createIdempotencyKey?: () => string;
 }) {
-  const searchParams = useSearchParams();
-  const initialQuestion = searchParams.get("q") ?? "";
-
   const [transport] = useState<ChatTransport>(
     () =>
       providedTransport ??
@@ -168,13 +170,13 @@ function ChatScreen({
     [createIdempotencyKey, sendRequest],
   );
 
-  // 첫 화면에서 넘어온 질문 자동 전송
+  // 첫 화면에서 넘어온 질문 자동 전송 - 탭 메모리 1회성 소비 (태성 리뷰 1)
   useEffect(() => {
-    if (initialQuestion && !askedInitial.current) {
-      askedInitial.current = true;
-      ask(initialQuestion);
-    }
-  }, [initialQuestion, ask]);
+    if (askedInitial.current) return;
+    askedInitial.current = true;
+    const pending = consumePendingQuestion();
+    if (pending) ask(pending);
+  }, [ask]);
 
   useEffect(() => {
     // §12: prefers-reduced-motion 존중 - smooth 스크롤도 모션이다
@@ -210,6 +212,8 @@ function ChatScreen({
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">
+      {/* fixture 모드 상시 배너 - 공지 배너와 구분되는 앰버 톤 (태성 리뷰 2) */}
+      {transportMode === "fixture" && <FixtureNotice />}
       {/* 공지 배너 - 시민 전 페이지 최상단 (대화 화면 개정 1) */}
       <NoticeBanner />
       <ChatHeader />
@@ -377,16 +381,4 @@ function BotResponse({
     case "FALLBACK":
       return <FallbackCard fallback={response.fallback} />;
   }
-}
-
-export default function ChatScreenWithSuspense(props: {
-  transportMode?: ChatTransportMode;
-  transport?: ChatTransport;
-  createIdempotencyKey?: () => string;
-}) {
-  return (
-    <Suspense fallback={<LoadingSkeleton />}>
-      <ChatScreen {...props} />
-    </Suspense>
-  );
 }
