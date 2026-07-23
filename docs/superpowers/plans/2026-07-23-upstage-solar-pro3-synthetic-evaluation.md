@@ -52,6 +52,20 @@ existing Psycopg repository, standard-library `csv`, `decimal`, `json`, `asyncio
 - Actual Upstage execution is the final local-only gate after all offline tests pass. Codex Cloud,
   GitHub Actions and public/remote environments never receive the key.
 
+Before the first PowerShell command block in a terminal, resolve the ignored project-local `uv`
+binary from the Git common directory so the commands work in both the primary checkout and linked
+worktrees:
+
+```powershell
+$commonGitDir = git rev-parse --path-format=absolute --git-common-dir
+$uv = Join-Path (Split-Path $commonGitDir -Parent) ".tools\uv\uv.exe"
+if (-not (Test-Path -LiteralPath $uv)) {
+  throw "PROJECT_UV_NOT_FOUND"
+}
+```
+
+Every `& $uv ...` command below consumes that resolved binary and never downloads a tool.
+
 ---
 
 ## File and Responsibility Map
@@ -158,7 +172,7 @@ def test_disabled_or_non_exact_values_fail_closed() -> None:
 Run:
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_settings.py -q
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_settings.py -q
 ```
 
 Expected: collection/import failure because `sejong_ai_api.llm.settings` does not exist.
@@ -238,9 +252,9 @@ the ignored real `.env`.
 Run:
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_settings.py -q
-.\.tools\uv\uv.exe run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
-.\.tools\uv\uv.exe run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_settings.py -q
+& $uv run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 ```
 
 Expected: all tests PASS, Ruff exit 0, Mypy exit 0.
@@ -369,7 +383,7 @@ def grounded_fixture() -> GroundedFixture:
 Run:
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest `
+& $uv run --project apps/api --frozen pytest `
   apps/api/tests/llm/test_contracts.py `
   apps/api/tests/llm/test_prompt.py `
   apps/api/tests/llm/test_cost.py -q
@@ -496,9 +510,9 @@ RUN_COST_CAP_USD = Decimal("0.05")
 Run:
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_contracts.py apps/api/tests/llm/test_prompt.py apps/api/tests/llm/test_cost.py -q
-.\.tools\uv\uv.exe run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
-.\.tools\uv\uv.exe run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_contracts.py apps/api/tests/llm/test_prompt.py apps/api/tests/llm/test_cost.py -q
+& $uv run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 git add apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 git commit -m "feat(llm): define synthetic prompt and cost contracts"
 ```
@@ -587,7 +601,7 @@ async def test_rate_limit_retries_once_and_never_uses_hidden_retry(
 Run:
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_limits.py apps/api/tests/llm/test_upstage.py -q
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_limits.py apps/api/tests/llm/test_upstage.py -q
 ```
 
 Expected: imports fail for `limits` and `upstage`.
@@ -652,9 +666,9 @@ provider usage 4097→INPUT_LIMIT/no retry and cap reached→ATTEMPT_CAP/no requ
 Run:
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_limits.py apps/api/tests/llm/test_upstage.py -q
-.\.tools\uv\uv.exe run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
-.\.tools\uv\uv.exe run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_limits.py apps/api/tests/llm/test_upstage.py -q
+& $uv run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 ```
 
 Expected: full failure matrix PASS, no real DNS/network request.
@@ -772,7 +786,7 @@ The fake repository must expose only `list_active_kb(intent)` and the fake provi
 Run:
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_fixtures.py apps/api/tests/llm/test_evaluation.py -q
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_fixtures.py apps/api/tests/llm/test_evaluation.py -q
 ```
 
 Expected: imports fail for `fixtures` and `evaluation`.
@@ -852,9 +866,9 @@ latency, server source ID and fallback boolean, never question/answer text.
 - [ ] **Step 6: Run focused gates and commit**
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_fixtures.py apps/api/tests/llm/test_evaluation.py -q
-.\.tools\uv\uv.exe run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
-.\.tools\uv\uv.exe run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_fixtures.py apps/api/tests/llm/test_evaluation.py -q
+& $uv run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 git add apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 git commit -m "feat(llm): gate canonical grounded evaluation"
 ```
@@ -973,7 +987,7 @@ Patch all factories and assert:
 - [ ] **Step 3: Run RED**
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_report.py -q
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_report.py -q
 python -B -m unittest scripts.tests.test_run_upstage_synthetic_evaluation -v
 ```
 
@@ -1044,10 +1058,10 @@ OVERALL_PASS=true|false
 - [ ] **Step 6: Run focused gates and commit**
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests/llm/test_report.py -q
+& $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_report.py -q
 python -B -m unittest scripts.tests.test_run_upstage_synthetic_evaluation -v
-.\.tools\uv\uv.exe run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
-.\.tools\uv\uv.exe run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen ruff check apps/api/src/sejong_ai_api/llm apps/api/tests/llm
+& $uv run --project apps/api --frozen mypy apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 git add apps/api/src/sejong_ai_api/llm apps/api/tests/llm scripts/run_upstage_synthetic_evaluation.py scripts/tests/test_run_upstage_synthetic_evaluation.py scripts/README.md
 git commit -m "feat(llm): add safe synthetic evaluation runner"
 ```
@@ -1114,10 +1128,10 @@ Run with provider environment explicitly disabled:
 $env:LLM_PROVIDER = "disabled"
 $env:UPSTAGE_SYNTHETIC_EVALUATION_MODE = "false"
 try {
-  .\.tools\uv\uv.exe run --project apps/api --frozen pytest apps/api/tests -q
-  .\.tools\uv\uv.exe run --project apps/api --frozen ruff format --check apps/api/src apps/api/tests
-  .\.tools\uv\uv.exe run --project apps/api --frozen ruff check apps/api/src apps/api/tests
-  .\.tools\uv\uv.exe run --project apps/api --frozen mypy apps/api/src apps/api/tests
+  & $uv run --project apps/api --frozen pytest apps/api/tests -q
+  & $uv run --project apps/api --frozen ruff format --check apps/api/src apps/api/tests
+  & $uv run --project apps/api --frozen ruff check apps/api/src apps/api/tests
+  & $uv run --project apps/api --frozen mypy apps/api/src apps/api/tests
   python -B -m unittest discover -s scripts/tests -p "test_*.py" -v
 } finally {
   Remove-Item Env:LLM_PROVIDER -ErrorAction SilentlyContinue
@@ -1229,7 +1243,7 @@ prints counts/rule IDs only.
 The human runs in a personal local interactive terminal, not Codex Cloud:
 
 ```powershell
-.\.tools\uv\uv.exe run --project apps/api --frozen python scripts/run_upstage_synthetic_evaluation.py --review
+& $uv run --project apps/api --frozen python scripts/run_upstage_synthetic_evaluation.py --review
 ```
 
 Review the first valid result for each T-01..T-10 and enter five scores. Do not rerun automatically
