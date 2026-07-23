@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <!-- 세종 민원이음 favicon - 로고 축약형: 좌측 점 + 첫 곡선, 정사각에 꽉 차게.
-       정적 에셋이므로 v3 primary #0F4C9A 리터럴 사용
-       (= --color-primary 값. 토큰 변경 시 이 파일도 함께 교체) -->
-  <rect width="24" height="24" fill="#ffffff"/>
-  <circle cx="6.2" cy="7.4" r="3.4" fill="#0F4C9A"/>
-  <path d="M6.2 7.4C6.2 16.8 13 20.4 20.4 15.2" stroke="#0F4C9A" stroke-width="4.2" stroke-linecap="round" fill="none"/>
-</svg>
