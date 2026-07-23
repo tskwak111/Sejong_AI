@@ -51,9 +51,9 @@ def test_token_usage_rejects_cached_tokens_above_input_tokens() -> None:
 
 
 @pytest.mark.parametrize(
-    ("code", "answer", "attempts"),
+    ("code", "answer", "attempts", "attempt_outcomes"),
     [
-        (OutcomeCode.SUCCESS, None, 1),
+        (OutcomeCode.SUCCESS, None, 1, (OutcomeCode.SUCCESS,)),
         (
             OutcomeCode.TIMEOUT,
             GeneratedAnswer(
@@ -65,6 +65,7 @@ def test_token_usage_rejects_cached_tokens_above_input_tokens() -> None:
                 department=None,
             ),
             1,
+            (OutcomeCode.TIMEOUT,),
         ),
         (
             OutcomeCode.SUCCESS,
@@ -77,6 +78,7 @@ def test_token_usage_rejects_cached_tokens_above_input_tokens() -> None:
                 department=None,
             ),
             -1,
+            (),
         ),
         (
             OutcomeCode.SUCCESS,
@@ -89,11 +91,15 @@ def test_token_usage_rejects_cached_tokens_above_input_tokens() -> None:
                 department=None,
             ),
             0,
+            (),
         ),
     ],
 )
 def test_generation_outcome_rejects_invalid_state_combinations(
-    code: OutcomeCode, answer: GeneratedAnswer | None, attempts: int
+    code: OutcomeCode,
+    answer: GeneratedAnswer | None,
+    attempts: int,
+    attempt_outcomes: tuple[OutcomeCode, ...],
 ) -> None:
     with pytest.raises(ValueError, match="GENERATION_OUTCOME_INVALID|ATTEMPTS_USED_INVALID"):
         GenerationOutcome(
@@ -101,4 +107,69 @@ def test_generation_outcome_rejects_invalid_state_combinations(
             answer=answer,
             usage=TokenUsage(input_tokens=0, cached_input_tokens=0, output_tokens=0),
             attempts_used=attempts,
+            attempt_outcomes=attempt_outcomes,
         )
+
+
+def test_generation_outcome_rejects_attempt_trace_length_mismatch() -> None:
+    with pytest.raises(ValueError, match="ATTEMPT_OUTCOMES_LENGTH_INVALID"):
+        GenerationOutcome(
+            code=OutcomeCode.TIMEOUT,
+            answer=None,
+            usage=TokenUsage(input_tokens=0, cached_input_tokens=0, output_tokens=0),
+            attempts_used=2,
+            attempt_outcomes=(OutcomeCode.TIMEOUT,),
+        )
+
+
+def test_generation_outcome_rejects_success_without_final_success_code() -> None:
+    with pytest.raises(ValueError, match="ATTEMPT_OUTCOMES_SUCCESS_INVALID"):
+        GenerationOutcome(
+            code=OutcomeCode.SUCCESS,
+            answer=GeneratedAnswer(
+                summary="안내",
+                procedure_steps=[],
+                required_documents=[],
+                processing_time=None,
+                fee=None,
+                department=None,
+            ),
+            usage=TokenUsage(input_tokens=0, cached_input_tokens=0, output_tokens=0),
+            attempts_used=1,
+            attempt_outcomes=(OutcomeCode.TIMEOUT,),
+        )
+
+
+@pytest.mark.parametrize(
+    "attempt_outcomes",
+    [
+        [OutcomeCode.TIMEOUT],
+        ("provider-body-must-not-be-stored",),
+    ],
+)
+def test_generation_outcome_rejects_mutable_or_free_string_attempt_trace(
+    attempt_outcomes: object,
+) -> None:
+    with pytest.raises(ValueError, match="ATTEMPT_OUTCOMES_INVALID"):
+        GenerationOutcome(
+            code=OutcomeCode.TIMEOUT,
+            answer=None,
+            usage=TokenUsage(input_tokens=0, cached_input_tokens=0, output_tokens=0),
+            attempts_used=1,
+            attempt_outcomes=attempt_outcomes,  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize("code", [OutcomeCode.INPUT_LIMIT, OutcomeCode.ATTEMPT_CAP])
+def test_generation_outcome_accepts_empty_trace_before_first_request(
+    code: OutcomeCode,
+) -> None:
+    outcome = GenerationOutcome(
+        code=code,
+        answer=None,
+        usage=TokenUsage(input_tokens=0, cached_input_tokens=0, output_tokens=0),
+        attempts_used=0,
+        attempt_outcomes=(),
+    )
+
+    assert outcome.attempt_outcomes == ()

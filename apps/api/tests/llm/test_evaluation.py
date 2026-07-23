@@ -12,7 +12,7 @@ from sejong_ai_api.llm.contracts import (
     OutcomeCode,
     TokenUsage,
 )
-from sejong_ai_api.llm.evaluation import SyntheticEvaluationService
+from sejong_ai_api.llm.evaluation import EvaluationCaseResult, SyntheticEvaluationService
 from sejong_ai_api.llm.fixtures import PreparationCode, SyntheticFixture
 
 
@@ -127,12 +127,16 @@ def _outcome(
     code: OutcomeCode = OutcomeCode.SUCCESS,
     *,
     attempts_used: int = 1,
+    attempt_outcomes: tuple[OutcomeCode, ...] | None = None,
 ) -> GenerationOutcome:
+    if attempt_outcomes is None:
+        attempt_outcomes = () if attempts_used == 0 else (code,) * attempts_used
     return GenerationOutcome(
         code=code,
         answer=_answer() if code is OutcomeCode.SUCCESS else None,
         usage=TokenUsage(20, 0, 10),
         attempts_used=attempts_used,
+        attempt_outcomes=attempt_outcomes,
     )
 
 
@@ -142,6 +146,55 @@ def _assert_preparation_failure(
     expected: PreparationCode,
 ) -> None:
     assert run_code is expected
+
+
+@pytest.mark.parametrize(
+    ("outcome_code", "attempts_used", "attempt_outcomes", "expected_error"),
+    [
+        (
+            OutcomeCode.TIMEOUT,
+            1,
+            [OutcomeCode.TIMEOUT],
+            "ATTEMPT_OUTCOMES_INVALID",
+        ),
+        (
+            OutcomeCode.TIMEOUT,
+            1,
+            ("provider-content",),
+            "ATTEMPT_OUTCOMES_INVALID",
+        ),
+        (
+            OutcomeCode.TIMEOUT,
+            2,
+            (OutcomeCode.TIMEOUT,),
+            "ATTEMPT_OUTCOMES_LENGTH_INVALID",
+        ),
+        (
+            PreparationCode.PRIVACY_UNRESOLVED,
+            0,
+            (OutcomeCode.TIMEOUT,),
+            "PREPARATION_ATTEMPT_OUTCOMES_INVALID",
+        ),
+    ],
+)
+def test_evaluation_case_result_rejects_mutable_inconsistent_or_content_trace(
+    outcome_code: OutcomeCode | PreparationCode,
+    attempts_used: int,
+    attempt_outcomes: object,
+    expected_error: str,
+) -> None:
+    with pytest.raises(ValueError, match=expected_error):
+        EvaluationCaseResult(
+            fixture_id="T-01",
+            repetition=1,
+            outcome_code=outcome_code,
+            attempts_used=attempts_used,
+            attempt_outcomes=attempt_outcomes,  # type: ignore[arg-type]
+            usage=TokenUsage(0, 0, 0),
+            latency_ms=0,
+            source_id=None,
+            used_template_fallback=False,
+        )
 
 
 @pytest.mark.asyncio
@@ -165,6 +218,7 @@ async def test_privacy_unresolved_stops_before_repository_and_provider() -> None
         expected=PreparationCode.PRIVACY_UNRESOLVED,
     )
     assert result.attempts_used == 0
+    assert result.attempt_outcomes == ()
     assert result.usage == TokenUsage(0, 0, 0)
     assert result.latency_ms == 0
     assert result.source_id is None
@@ -192,6 +246,7 @@ async def test_non_success_classification_stops_before_repository_and_provider()
         expected=PreparationCode.NOT_DETERMINISTIC_SUCCESS,
     )
     assert result.attempts_used == result.latency_ms == 0
+    assert result.attempt_outcomes == ()
     assert result.usage == TokenUsage(0, 0, 0)
     assert result.source_id is None
     assert repository.intents == []
@@ -217,6 +272,7 @@ async def test_classification_that_disagrees_with_canonical_expectation_stops() 
         expected=PreparationCode.NOT_DETERMINISTIC_SUCCESS,
     )
     assert result.attempts_used == result.latency_ms == 0
+    assert result.attempt_outcomes == ()
     assert result.usage == TokenUsage(0, 0, 0)
     assert result.source_id is None
     assert repository.intents == []
@@ -242,6 +298,7 @@ async def test_no_active_record_stops_before_provider() -> None:
         expected=PreparationCode.INSUFFICIENT_GROUNDING,
     )
     assert result.attempts_used == result.latency_ms == 0
+    assert result.attempt_outcomes == ()
     assert result.usage == TokenUsage(0, 0, 0)
     assert result.source_id is None
     assert repository.intents == [Intent.MOVE_IN_RESIDENT_REGISTRATION]
@@ -267,6 +324,7 @@ async def test_grounding_failure_stops_before_provider() -> None:
         expected=PreparationCode.INSUFFICIENT_GROUNDING,
     )
     assert result.attempts_used == result.latency_ms == 0
+    assert result.attempt_outcomes == ()
     assert result.usage == TokenUsage(0, 0, 0)
     assert result.source_id is None
     assert provider.calls == 0
@@ -275,7 +333,8 @@ async def test_grounding_failure_stops_before_provider() -> None:
 @pytest.mark.asyncio
 async def test_grounded_success_calls_provider_and_binds_server_source() -> None:
     record = _move_in_record()
-    provider = SpyProvider((_outcome(),))
+    trace = (OutcomeCode.RATE_LIMIT, OutcomeCode.SUCCESS)
+    provider = SpyProvider((_outcome(attempts_used=2, attempt_outcomes=trace),))
     service = SyntheticEvaluationService(
         fixtures=(_fixture(),),
         repository=FakeRepository((record,)),
@@ -292,6 +351,7 @@ async def test_grounded_success_calls_provider_and_binds_server_source() -> None
         record=record,
     )
     assert run.cases[0].outcome_code is OutcomeCode.SUCCESS
+    assert run.cases[0].attempt_outcomes == trace
     assert run.cases[0].source_id == record.public_id
     assert run.cases[0].used_template_fallback is False
     assert len(run.review_samples) == 1
@@ -382,6 +442,7 @@ async def test_each_repetition_revalidates_active_grounding_and_stops_on_drift()
     assert second.outcome_code is PreparationCode.INSUFFICIENT_GROUNDING
     assert second.repetition == 2
     assert second.attempts_used == second.latency_ms == 0
+    assert second.attempt_outcomes == ()
     assert second.usage == TokenUsage(0, 0, 0)
     assert second.source_id is None
     assert second.used_template_fallback is False

@@ -50,10 +50,23 @@ class EvaluationCaseResult:
     repetition: int
     outcome_code: OutcomeCode | PreparationCode
     attempts_used: int
+    attempt_outcomes: tuple[OutcomeCode, ...]
     usage: TokenUsage
     latency_ms: int
     source_id: str | None
     used_template_fallback: bool
+
+    def __post_init__(self) -> None:
+        if type(self.attempt_outcomes) is not tuple or any(
+            type(outcome) is not OutcomeCode for outcome in self.attempt_outcomes
+        ):
+            raise ValueError("ATTEMPT_OUTCOMES_INVALID")
+        if type(self.outcome_code) is OutcomeCode and (
+            len(self.attempt_outcomes) != self.attempts_used
+        ):
+            raise ValueError("ATTEMPT_OUTCOMES_LENGTH_INVALID")
+        if type(self.outcome_code) is PreparationCode and self.attempt_outcomes:
+            raise ValueError("PREPARATION_ATTEMPT_OUTCOMES_INVALID")
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,6 +163,7 @@ class SyntheticEvaluationService:
                             repetition=repetition,
                             outcome_code=prepared.code,
                             attempts_used=0,
+                            attempt_outcomes=(),
                             usage=_ZERO_USAGE,
                             latency_ms=0,
                             source_id=None,
@@ -188,6 +202,7 @@ class SyntheticEvaluationService:
                         repetition=repetition,
                         outcome_code=outcome.code,
                         attempts_used=outcome.attempts_used,
+                        attempt_outcomes=outcome.attempt_outcomes,
                         usage=outcome.usage,
                         latency_ms=latency_ms,
                         source_id=prepared.record.public_id,

@@ -83,7 +83,7 @@ class UpstageProvider:
     async def generate(self, fixture: GroundedFixture) -> GenerationOutcome:
         messages = build_upstage_messages(fixture)
         if estimate_input_token_upper_bound(messages) > self._settings.max_input_tokens:
-            return _outcome(OutcomeCode.INPUT_LIMIT)
+            return _outcome(OutcomeCode.INPUT_LIMIT, attempt_outcomes=())
 
         payload = {
             "model": UPSTAGE_MODEL,
@@ -93,6 +93,7 @@ class UpstageProvider:
             "max_tokens": UPSTAGE_MAX_OUTPUT_TOKENS,
         }
         attempts_used = 0
+        attempt_outcomes: list[OutcomeCode] = []
         total_input_tokens = 0
         total_output_tokens = 0
 
@@ -108,6 +109,7 @@ class UpstageProvider:
                 return _outcome(
                     OutcomeCode.ATTEMPT_CAP,
                     attempts_used=attempts_used,
+                    attempt_outcomes=tuple(attempt_outcomes),
                     input_tokens=total_input_tokens,
                     output_tokens=total_output_tokens,
                 )
@@ -121,6 +123,7 @@ class UpstageProvider:
                     max_input_tokens=self._settings.max_input_tokens,
                 )
 
+            attempt_outcomes.append(parsed.code)
             total_input_tokens += parsed.usage.input_tokens
             total_output_tokens += parsed.usage.output_tokens
             if parsed.code is OutcomeCode.SUCCESS:
@@ -128,6 +131,7 @@ class UpstageProvider:
                     OutcomeCode.SUCCESS,
                     answer=parsed.answer,
                     attempts_used=attempts_used,
+                    attempt_outcomes=tuple(attempt_outcomes),
                     input_tokens=total_input_tokens,
                     output_tokens=total_output_tokens,
                 )
@@ -135,6 +139,7 @@ class UpstageProvider:
                 return _outcome(
                     OutcomeCode.INPUT_LIMIT,
                     attempts_used=attempts_used,
+                    attempt_outcomes=tuple(attempt_outcomes),
                     input_tokens=total_input_tokens,
                     output_tokens=total_output_tokens,
                 )
@@ -142,6 +147,7 @@ class UpstageProvider:
                 return _outcome(
                     parsed.code,
                     attempts_used=attempts_used,
+                    attempt_outcomes=tuple(attempt_outcomes),
                     input_tokens=total_input_tokens,
                     output_tokens=total_output_tokens,
                 )
@@ -251,6 +257,7 @@ def _outcome(
     *,
     answer: GeneratedAnswer | None = None,
     attempts_used: int = 0,
+    attempt_outcomes: tuple[OutcomeCode, ...],
     input_tokens: int = 0,
     output_tokens: int = 0,
 ) -> GenerationOutcome:
@@ -263,4 +270,5 @@ def _outcome(
             output_tokens=output_tokens,
         ),
         attempts_used=attempts_used,
+        attempt_outcomes=attempt_outcomes,
     )

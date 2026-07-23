@@ -78,6 +78,7 @@ class GenerationOutcome:
     answer: GeneratedAnswer | None
     usage: TokenUsage
     attempts_used: int
+    attempt_outcomes: tuple[OutcomeCode, ...]
 
     def __post_init__(self) -> None:
         if type(self.code) is not OutcomeCode:
@@ -88,7 +89,18 @@ class GenerationOutcome:
             raise ValueError("TOKEN_USAGE_INVALID")
         if type(self.attempts_used) is not int or self.attempts_used < 0:
             raise ValueError("ATTEMPTS_USED_INVALID")
+        if type(self.attempt_outcomes) is not tuple or any(
+            type(outcome) is not OutcomeCode for outcome in self.attempt_outcomes
+        ):
+            raise ValueError("ATTEMPT_OUTCOMES_INVALID")
+        if len(self.attempt_outcomes) != self.attempts_used:
+            raise ValueError("ATTEMPT_OUTCOMES_LENGTH_INVALID")
         if (self.code is OutcomeCode.SUCCESS) is not (self.answer is not None):
             raise ValueError("GENERATION_OUTCOME_INVALID")
         if self.code is OutcomeCode.SUCCESS and self.attempts_used == 0:
             raise ValueError("ATTEMPTS_USED_INVALID")
+        if (
+            self.code is OutcomeCode.SUCCESS
+            and self.attempt_outcomes[-1] is not OutcomeCode.SUCCESS
+        ):
+            raise ValueError("ATTEMPT_OUTCOMES_SUCCESS_INVALID")

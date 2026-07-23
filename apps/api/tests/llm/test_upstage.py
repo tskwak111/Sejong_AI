@@ -78,6 +78,7 @@ async def test_success_uses_exact_request_and_parses_only_answer_and_usage(
     assert outcome.usage.cached_input_tokens == 0
     assert outcome.usage.output_tokens == 10
     assert outcome.attempts_used == 1
+    assert outcome.attempt_outcomes == (OutcomeCode.SUCCESS,)
     assert len(seen) == 1
     request = seen[0]
     assert request.method == "POST"
@@ -116,6 +117,10 @@ async def test_rate_limit_retries_once_and_never_uses_hidden_retry(
 
     assert outcome.code is OutcomeCode.SUCCESS
     assert outcome.attempts_used == 2
+    assert outcome.attempt_outcomes == (
+        OutcomeCode.RATE_LIMIT,
+        OutcomeCode.SUCCESS,
+    )
     assert len(seen) == 2
 
 
@@ -201,6 +206,7 @@ async def test_retryable_provider_failures_retry_exactly_once(
 
     assert outcome.code is expected_code
     assert outcome.attempts_used == 2
+    assert outcome.attempt_outcomes == (expected_code, expected_code)
     assert requests == 2
 
 
@@ -246,6 +252,7 @@ async def test_transport_failures_retry_exactly_once_without_exception_text(
 
     assert outcome.code is expected_code
     assert outcome.attempts_used == 2
+    assert outcome.attempt_outcomes == (expected_code, expected_code)
     assert requests == 2
     assert "private-" not in repr(outcome)
 
@@ -313,6 +320,7 @@ async def test_conservative_input_overflow_returns_without_request(
 
     assert outcome.code is OutcomeCode.INPUT_LIMIT
     assert outcome.attempts_used == 0
+    assert outcome.attempt_outcomes == ()
     assert requests == 0
 
 
@@ -341,6 +349,7 @@ async def test_provider_reported_input_overflow_returns_without_retry(
     assert outcome.code is OutcomeCode.INPUT_LIMIT
     assert outcome.usage.input_tokens == 4097
     assert outcome.attempts_used == 1
+    assert outcome.attempt_outcomes == (OutcomeCode.INPUT_LIMIT,)
     assert requests == 1
 
 
@@ -371,7 +380,36 @@ async def test_cap_reached_returns_without_request(
 
     assert outcome.code is OutcomeCode.ATTEMPT_CAP
     assert outcome.attempts_used == 0
+    assert outcome.attempt_outcomes == ()
     assert requests == 0
+
+
+@pytest.mark.asyncio
+async def test_retryable_failure_then_attempt_cap_preserves_reserved_attempt_trace(
+    grounded_fixture,
+    exact_settings,
+) -> None:
+    requests = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal requests
+        requests += 1
+        return httpx.Response(429)
+
+    async with httpx.AsyncClient(
+        base_url=exact_settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        outcome = await UpstageProvider(
+            settings=exact_settings,
+            client=client,
+            budget=AttemptBudget(cap=1, concurrency=1),
+        ).generate(grounded_fixture)
+
+    assert outcome.code is OutcomeCode.ATTEMPT_CAP
+    assert outcome.attempts_used == 1
+    assert outcome.attempt_outcomes == (OutcomeCode.RATE_LIMIT,)
+    assert requests == 1
 
 
 def test_production_client_uses_exact_profile(exact_settings, monkeypatch) -> None:
