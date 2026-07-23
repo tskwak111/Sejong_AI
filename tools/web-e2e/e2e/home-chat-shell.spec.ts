@@ -41,18 +41,30 @@ async function submit(page: Page, question: string) {
   await submitButton.click();
 }
 
-test("home question input reaches chat and renders a grounded source strip", async ({ page }) => {
+test("recommended question reaches chat via tab memory - exact /chat, empty search, no raw question in URL/history/storage", async ({ page }) => {
   await page.route("**/api/v1/chat", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(successResponse) }),
   );
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("궁금한 민원을 물어보세요");
 
-  const homeInput = page.getByRole("textbox", { name: "질문 입력" });
-  await homeInput.fill("전입신고 절차를 알려줘");
-  await page.getByRole("button", { name: /질문하기/ }).click();
+  // 추천 질문 클릭 - 질문 원문은 탭 메모리(pending-question)로만 전달한다.
+  // 링크 href에도 쿼리가 없다 (태성 리뷰 1: /chat?q= 폐지).
+  const chipQuestion = "전입신고는 언제까지 해야 하나요?";
+  const chip = page.getByRole("link", { name: chipQuestion });
+  await expect(chip).toHaveAttribute("href", "/chat");
+  await chip.click();
 
-  await expect(page).toHaveURL(/\/chat\?q=/);
+  // URL pathname은 정확히 /chat, location.search는 빈 문자열
+  await page.waitForURL("**/chat");
+  const location = await page.evaluate(() => ({
+    pathname: window.location.pathname,
+    search: window.location.search,
+  }));
+  expect(location.pathname).toBe("/chat");
+  expect(location.search).toBe("");
+
+  // 탭 메모리로 넘어간 질문이 자동 전송되어 응답 카드가 렌더된다
   await expect(page.getByText(successResponse.summary)).toBeVisible();
   await expect(page.getByText(successResponse.sources[0].title)).toBeVisible();
   await expect(page.getByText("공식 출처 확인")).toBeVisible();
@@ -60,6 +72,23 @@ test("home question input reaches chat and renders a grounded source strip", asy
     "href",
     successResponse.sources[0].url,
   );
+
+  // 질문 원문이 URL·히스토리 어디에도 남지 않는다 (현재 /chat + 뒤로가기 홈 모두)
+  expect(page.url()).not.toContain(chipQuestion);
+  expect(page.url()).not.toContain(encodeURIComponent(chipQuestion));
+  await page.goBack();
+  await page.waitForURL((url) => url.pathname === "/");
+  expect(page.url()).not.toContain(chipQuestion);
+  expect(page.url()).not.toContain(encodeURIComponent(chipQuestion));
+
+  // localStorage/sessionStorage/쿠키 미사용
+  expect(await page.context().cookies()).toEqual([]);
+  expect(
+    await page.evaluate(() => ({
+      localStorageCount: localStorage.length,
+      sessionStorageCount: sessionStorage.length,
+    })),
+  ).toEqual({ localStorageCount: 0, sessionStorageCount: 0 });
 });
 
 test("follow-up uses its signed in-memory context once and stores nothing", async ({ page }) => {
