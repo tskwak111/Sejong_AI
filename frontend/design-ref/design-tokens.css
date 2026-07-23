@@ -1,0 +1,71 @@
+/* 세종 민원이음 — 디자인 토큰 (개발 이식 기준 문서) */
+:root {
+  /* 색 — 역할 기반 */
+  --ink: #1A2433;         /* 본문 */
+  --sub: #55627A;         /* 보조 텍스트 (대비 6.1:1) */
+  --faint: #66738A;       /* 캡션·메타 (대비 4.8:1) — #8A94A8 사용 금지(3.1:1) */
+  --line: #DDE3EC;        /* 기본 테두리 */
+  --line-soft: #E7ECF3;   /* 내부 구분선 */
+  --bg: #FBFCFD;          /* 화면 배경 */
+  --bg-sunken: #F3F6FB;   /* 정보 셀 배경 */
+  --bg-admin: #F6F8FB;    /* 관리자 작업 영역 */
+
+  --primary: #0F4C9A;         /* 행동·링크·선택 — 유일한 행동색 */
+  --primary-strong: #0A3A77;  /* hover */
+  --primary-tint: #EEF4FC;
+  --primary-border: #CFE0F5;
+
+  --verify: #0E7A4E;          /* 검증·승인·출처 전용 */
+  --verify-strong: #0B5C3C;
+  --verify-tint: #F2FAF5;
+  --verify-tint-2: #E9F6EF;
+  --verify-border: #BFE4D0;
+
+  --wait: #8A5A12;  --wait-tint: #FDF3E0;   /* 대기·주의 */
+  --error: #B3261E; --error-tint: #FBEEED;  /* 오류·반려 전용 — 폴백 사용 금지 */
+
+  --admin-nav: #122A4D;   /* 이음센터 사이드바 */
+  --tie-line: #9DB8DC;    /* 이음선(2px dotted) — 절차 단계 연결 전용, 화면당 1회 */
+  --highlight: #FFF3D6;   /* 핵심 기한 강조 */
+
+  /* 간격 (4배수) */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
+
+  /* 반경 */
+  --r-chip: 6px;  --r-btn-s: 10px; --r-btn: 12px;
+  --r-cell: 12px; --r-card-s: 14px; --r-card: 18px;
+  --r-panel: 16px; --r-pill: 999px;
+
+  /* 그림자 */
+  --sh-card: 0 10px 28px rgba(20,35,60,0.08);
+  --sh-frame: 0 18px 44px rgba(20,35,60,0.12);
+
+  /* 타이포 (Pretendard) */
+  --t-display: 800 27px/1.3;    /* 모바일 히어로 */
+  --t-title: 800 21px/1.35;     /* 화면 제목 */
+  --t-card-title: 800 19px/1.4;
+  --t-body-lg: 600 18px/1.55;   /* 답변 요약 */
+  --t-body: 500 17px/1.5;       /* 모바일 본문 최소 */
+  --t-body-admin: 500 15.5px/1.55;
+  --t-label: 800 15px/1.4;      /* 섹션 라벨 */
+  --t-caption: 600 14px/1.5;
+  --t-mono: 600 13px/1.4 ui-monospace, monospace; /* KB ID, 사유 코드 */
+
+  /* 포커스 링 (키보드 탐색 시에만) */
+  --focus-ring: 0 0 0 2px #FFF, 0 0 0 5px rgba(15,76,154,0.45);
+}
+
+/*
+사용 규칙 요약
+1. 시민 모바일(390px): 본문 17px+, CTA 높이 56px, 카드 r-card, 화면 패딩 20px.
+   출처 블록은 verify-tint + verify-border 고정.
+2. 시민 데스크톱: 콘텐츠 폭 680px 고정, 좌우 여백 auto(최소 80px).
+   카드 내부 구조·타이포는 모바일과 동일, 그리드만 2~4열 확장.
+3. 이음센터: 사이드바 admin-nav 216px, 작업 영역 bg-admin, 본문 15.5px+.
+   상태 뱃지 — 대기=wait, 검토중=primary-tint, 완료=verify-tint, 반려=error.
+4. 색 역할: 초록=검증·승인·출처 전용 / 빨강=오류·반려 전용(폴백 금지) / 남색=행동.
+5. 메타 구분자 " · " 금지 — gap(1em) 또는 줄바꿈. 단어 결합 가운뎃점(전입·주민등록)은 유지.
+6. 터치 대상 44px 이상. 출처 도장: 인라인 12~13px / 카드 14px / 승인 스탬프 ~104px,
+   카드당 1개·화면당 최대 2개, 초록 외 색 금지.
+*/
