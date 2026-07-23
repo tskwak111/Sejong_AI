@@ -18,7 +18,7 @@ aggregate metrics.
 existing Psycopg repository, standard-library `csv`, `decimal`, `json`, `asyncio`, `argparse`.
 
 - Plan ID: LLM-002-PLAN
-- Status: **In Progress — specification and execution plan approved; Tasks 1–3 review clean**
+- Status: **In Progress — specification and execution plan approved; Tasks 1–4 review clean**
 - Design:
   `docs/superpowers/specs/2026-07-23-upstage-solar-pro3-synthetic-evaluation-design.md`
 - ADR: `docs/adr/0022-upstage-solar-pro3-synthetic-evaluation.md`
@@ -743,7 +743,7 @@ The internal preparation interface is
 `await prepare_case(fixture: SyntheticFixture) -> GroundedFixture | PreparedCaseFailure`.
 Both preparation and run are `async def` because the repository and provider boundaries are async.
 
-- [ ] **Step 1: Write RED fixture allowlist tests**
+- [x] **Step 1: Write RED fixture allowlist tests**
 
 ```python
 from pathlib import Path
@@ -778,7 +778,7 @@ The implementation must pin the SHA-256 of the exact approved `T-01`~`T-10` proj
 The hash constant is computed during implementation from base commit `b318375` and reviewed as a
 literal. Later CSV wording drift must fail before provider construction.
 
-- [ ] **Step 2: Write RED evaluation boundary tests**
+- [x] **Step 2: Write RED evaluation boundary tests**
 
 Use spies to prove:
 
@@ -795,7 +795,7 @@ assert result.used_template_fallback is True  # provider failure
 The fake repository must expose only `list_active_kb(intent)` and the fake provider must accept
 `GroundedFixture`; neither may receive the raw pre-redaction question from an external caller.
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 Run:
 
@@ -805,7 +805,7 @@ Run:
 
 Expected: imports fail for `fixtures` and `evaluation`.
 
-- [ ] **Step 4: Implement the existing deterministic gate**
+- [x] **Step 4: Implement the existing deterministic gate**
 
 For each server-loaded `SyntheticFixture`:
 
@@ -840,7 +840,7 @@ Only then create `GroundedFixture` and call the provider. On provider failure, c
 `office=None`, `confidence=1.0`, `context_token=None`; mark the evaluation result as template fallback.
 Do not call `record_interaction`.
 
-- [ ] **Step 5: Enforce run semantics**
+- [x] **Step 5: Enforce run semantics**
 
 Define these exact immutable result shapes in `evaluation.py` before implementing the loop:
 
@@ -883,7 +883,7 @@ provider `OutcomeCode`. Task 4 canonical tests use their own exact T-01 MOVE_IN 
 transport-only `grounded_fixture` label T-09 does not represent canonical sample T-09 and must not
 be reused for fixture-set validation.
 
-- [ ] **Step 6: Run focused gates and commit**
+- [x] **Step 6: Run focused gates and commit**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_fixtures.py apps/api/tests/llm/test_evaluation.py -q
@@ -892,6 +892,49 @@ be reused for fixture-set validation.
 git add apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 git commit -m "feat(llm): gate canonical grounded evaluation"
 ```
+
+---
+
+### Task 4.5: Preserve content-free per-attempt evidence
+
+Task 5 preflight found a blocking traceability gap against design section 6.2: final case outcomes
+alone cannot count a retryable first-attempt timeout/429/empty/truncated/schema-invalid followed by
+SUCCESS. Close it before report implementation without retaining any provider content.
+
+**Files:**
+- Modify: `apps/api/src/sejong_ai_api/llm/contracts.py`
+- Modify: `apps/api/src/sejong_ai_api/llm/upstage.py`
+- Modify: `apps/api/src/sejong_ai_api/llm/evaluation.py`
+- Modify: focused `apps/api/tests/llm/` contract/transport/evaluation tests
+
+**Contract:**
+
+```python
+GenerationOutcome.attempt_outcomes: tuple[OutcomeCode, ...]
+EvaluationCaseResult.attempt_outcomes: tuple[OutcomeCode, ...]
+```
+
+- [ ] **Step 1: Write RED trace tests**
+
+Prove retryable failure→SUCCESS preserves both content-free codes, timeout twice preserves two
+TIMEOUT codes, no-request preflight/cap and preparation failures preserve an empty tuple, and the
+evaluator copies the tuple without question/answer/body/exception content.
+
+- [ ] **Step 2: Enforce trace invariants**
+
+For every provider `GenerationOutcome`, `len(attempt_outcomes) == attempts_used`. Every reserved
+outbound request appends exactly one stable `OutcomeCode`; a successful outcome ends in SUCCESS.
+Preflight INPUT_LIMIT and cap-before-first-request have an empty trace. If a retryable failure is
+followed by ATTEMPT_CAP, preserve the prior attempt code and make final case code ATTEMPT_CAP.
+
+- [ ] **Step 3: Run focused/full LLM gates and independent review**
+
+Use frozen project uv for pytest, Ruff format/check and Mypy. The diff must not add loggers,
+strings from response/exception bodies, public routes, DB/data, dependencies, key or network use.
+Commit as `fix(llm): preserve content-free attempt outcomes`.
+
+Task 5 keeps final `outcome_counts` and adds `attempt_outcome_counts` for design §6.2. Report
+integrity requires attempt trace totals, case attempt totals and the process budget to reconcile.
 
 ---
 
@@ -1028,6 +1071,7 @@ The report root keys are exactly:
     "completed_generations": int,
     "outbound_attempts": int,
     "outcome_counts": dict[str, int],
+    "attempt_outcome_counts": dict[str, int],
     "schema_valid_count": int,
     "template_fallback_count": int,
     "input_tokens": int,
@@ -1054,6 +1098,18 @@ The report root keys are exactly:
     },
 }
 ```
+
+Before `overall_pass` can be true, require exactly one score for each T-01..T-10 matching the ten
+in-memory review samples; no preparation/INPUT_LIMIT/ATTEMPT_CAP result; trace count equals summed
+case attempts and is at most 30; all content-invalid attempt counts are zero; every provider-failure
+case used template fallback; and the run completed its safe planned count. Non-review or incomplete
+scores always produce `overall_pass=false`.
+
+The runner uses a safe argument parser that never echoes rejected values. It installs
+`WindowsSelectorEventLoopPolicy` before `asyncio.run()` on Windows, validates canonical fixtures,
+opens the local pool, then requires `RepositoryReadinessProbe.check_ready()` before constructing
+the provider/client. Human `decision` is derived: `OK` means PASS and every other closed reason
+means FAIL; no free-text reason is accepted.
 
 No timestamp, hostname, username, IP, path, request ID or account identifier is needed.
 
@@ -1467,6 +1523,8 @@ Still not approved:
 - 2026-07-24: Task 3 commit `854b3b5`; focused 23/Ruff/Mypy and independent review clean.
   Controller normalized two older Task 1 files with Ruff format in `b2849f3`, with focused tests
   unchanged.
+- 2026-07-24: Task 4 commits `968fdbb` and `4ab5277`; focused 15/full LLM 61 and independent
+  re-review clean after per-repetition ACTIVE/OFFICIAL grounding freshness fix.
 
 ## Result and Retrospective
 
@@ -1480,4 +1538,7 @@ Still not approved:
 - Task 4 preflight correction: repository/provider calls are async, and preparation failures require
   their own typed result code. Internal interfaces are async; `EvaluationCaseResult.outcome_code`
   accepts `OutcomeCode | PreparationCode` and preparation failure stops the run before provider use.
-- Next step: Task 4 canonical fixture hash gate and grounded evaluator.
+- Task 5 preflight correction: design §6.2 attempt-level counts require a content-free attempt trace;
+  Windows selector policy, readiness-before-provider, exact ten-score completeness and safe argument
+  errors are explicit gates. Added Task 4.5 before report/runner implementation.
+- Next step: Task 4.5 content-free per-attempt evidence.

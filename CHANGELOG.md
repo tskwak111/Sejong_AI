@@ -24,8 +24,12 @@
 - Task 3 adds the atomic 30-attempt/concurrency-one budget and exact zero-hidden-retry HTTPX
   transport. Its 23-case MockTransport failure matrix and independent review passed; no key, DNS or
   provider network call occurred.
+- Task 4 hash-binds canonical T-01~T-10 and reuses the deterministic privacy/classification/
+  ACTIVE-only retrieval/grounding path before every generation. Independent review caught and
+  closed stale grounding reuse between repetitions. Task 5 preflight added a required content-free
+  attempt trace and local runner/report integrity gates before actual use.
 - Versions: product spec `2.4.0`, prompt selection
-  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.4`.
+  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.5`.
 
 ### Changed — MVP-001 local/private closeout
 
