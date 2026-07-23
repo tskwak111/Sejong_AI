@@ -242,6 +242,11 @@ async def test_api_key_is_header_only_and_absent_from_outcome_report_repr_and_lo
         )
     )
     assert KEY_SENTINEL not in safe_evidence
+    assert all(
+        KEY_SENTINEL not in representation
+        for record in caplog.records
+        for representation in _log_record_representations(record)
+    )
 
 
 @pytest.mark.asyncio
