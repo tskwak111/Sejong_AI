@@ -21,8 +21,11 @@
 - Task 2 adds strict source-free output/prompt/outcome contracts, canonical UTF-8 input preflight and
   exact Decimal pricing. Independent review caught and closed aggregate-cost double multiplication
   and zero-attempt SUCCESS; focused 17 tests, Ruff and Mypy passed with key/network use still zero.
+- Task 3 adds the atomic 30-attempt/concurrency-one budget and exact zero-hidden-retry HTTPX
+  transport. Its 23-case MockTransport failure matrix and independent review passed; no key, DNS or
+  provider network call occurred.
 - Versions: product spec `2.4.0`, prompt selection
-  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.3`.
+  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.4`.
 
 ### Changed — MVP-001 local/private closeout
 

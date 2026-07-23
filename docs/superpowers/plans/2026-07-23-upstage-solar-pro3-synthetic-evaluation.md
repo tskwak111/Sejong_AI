@@ -18,7 +18,7 @@ aggregate metrics.
 existing Psycopg repository, standard-library `csv`, `decimal`, `json`, `asyncio`, `argparse`.
 
 - Plan ID: LLM-002-PLAN
-- Status: **In Progress — specification and execution plan approved; Tasks 1–2 review clean**
+- Status: **In Progress — specification and execution plan approved; Tasks 1–3 review clean**
 - Design:
   `docs/superpowers/specs/2026-07-23-upstage-solar-pro3-synthetic-evaluation-design.md`
 - ADR: `docs/adr/0022-upstage-solar-pro3-synthetic-evaluation.md`
@@ -548,7 +548,7 @@ Expected: PASS and no dependency/lockfile diff.
 - Produces:
   `UpstageProvider.generate(fixture: GroundedFixture) -> GenerationOutcome`
 
-- [ ] **Step 1: Write RED cap and transport tests**
+- [x] **Step 1: Write RED cap and transport tests**
 
 ```python
 import httpx
@@ -609,7 +609,7 @@ async def test_rate_limit_retries_once_and_never_uses_hidden_retry(
     assert len(seen) == 2
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -619,14 +619,14 @@ Run:
 
 Expected: imports fail for `limits` and `upstage`.
 
-- [ ] **Step 3: Implement atomic reservation**
+- [x] **Step 3: Implement atomic reservation**
 
 `AttemptBudget.reserve()` must be an `@asynccontextmanager` that acquires an
 `asyncio.Semaphore(1)`, increments the counter under `asyncio.Lock`, raises `AttemptCapReached`
 before a network attempt when the count is already 30, and releases the semaphore in `finally`.
 Expose read-only `attempts_used`.
 
-- [ ] **Step 4: Implement exact HTTPX call and parsing**
+- [x] **Step 4: Implement exact HTTPX call and parsing**
 
 The provider request body is exactly:
 
@@ -669,7 +669,7 @@ Before reserving an attempt, return `INPUT_LIMIT` without transport if
 envelope reports `prompt_tokens > settings.max_input_tokens`, discard the generated answer, return
 `INPUT_LIMIT`, do not retry it, and make the evaluator stop before any later fixture call.
 
-- [ ] **Step 5: Complete the failure matrix**
+- [x] **Step 5: Complete the failure matrix**
 
 Add exact parameterized cases for 401→AUTH/no retry, 400→HTTP_ERROR/no retry, timeout twice→TIMEOUT,
 500 twice→HTTP_ERROR, empty twice→EMPTY, `length` twice→TRUNCATED, invalid JSON twice→SCHEMA_INVALID,
@@ -686,7 +686,7 @@ Run:
 
 Expected: full failure matrix PASS, no real DNS/network request.
 
-- [ ] **Step 6: Review and commit**
+- [x] **Step 6: Review and commit**
 
 ```powershell
 git add apps/api/src/sejong_ai_api/llm apps/api/tests/llm
@@ -708,7 +708,7 @@ git commit -m "feat(llm): add bounded Upstage transport"
 - Produces:
   `load_allowed_fixtures(path: Path) -> tuple[SyntheticFixture, ...]`
 - Produces:
-  `SyntheticEvaluationService.run(*, repetitions: int = 3) -> EvaluationRun`
+  `await SyntheticEvaluationService.run(*, repetitions: int = 3) -> EvaluationRun`
 
 Define the exact preparation types in `fixtures.py`/`evaluation.py`:
 
@@ -740,7 +740,8 @@ class PreparedCaseFailure:
 ```
 
 The internal preparation interface is
-`prepare_case(fixture: SyntheticFixture) -> GroundedFixture | PreparedCaseFailure`.
+`await prepare_case(fixture: SyntheticFixture) -> GroundedFixture | PreparedCaseFailure`.
+Both preparation and run are `async def` because the repository and provider boundaries are async.
 
 - [ ] **Step 1: Write RED fixture allowlist tests**
 
@@ -855,7 +856,7 @@ class ReviewSample:
 class EvaluationCaseResult:
     fixture_id: str
     repetition: int
-    outcome_code: OutcomeCode
+    outcome_code: OutcomeCode | PreparationCode
     attempts_used: int
     usage: TokenUsage
     latency_ms: int
@@ -875,6 +876,12 @@ returns ATTEMPT_CAP or INPUT_LIMIT; do not start a new process or reset the coun
 answers and canonical synthetic questions in the returned in-memory review samples only. The
 serializable aggregate contains fixture ID, repetition, outcome code, attempt count, token counts,
 latency, server source ID and fallback boolean, never question/answer text.
+
+Any `PreparedCaseFailure` is recorded with its exact `PreparationCode`, zero attempts/tokens/latency,
+no source and no provider call, then stops the run fail-closed. It must not be relabeled as a
+provider `OutcomeCode`. Task 4 canonical tests use their own exact T-01 MOVE_IN fixture; the Task 2
+transport-only `grounded_fixture` label T-09 does not represent canonical sample T-09 and must not
+be reused for fixture-set validation.
 
 - [ ] **Step 6: Run focused gates and commit**
 
@@ -1457,6 +1464,9 @@ Still not approved:
   re-review clean after malformed-dotenv/non-string fail-closed fixes.
 - 2026-07-24: Task 2 commits `12953a2` and `c59f0b3`; focused 17/Ruff/Mypy and independent
   re-review clean after aggregate-cost-once and zero-attempt SUCCESS fixes.
+- 2026-07-24: Task 3 commit `854b3b5`; focused 23/Ruff/Mypy and independent review clean.
+  Controller normalized two older Task 1 files with Ruff format in `b2849f3`, with focused tests
+  unchanged.
 
 ## Result and Retrospective
 
@@ -1467,4 +1477,7 @@ Still not approved:
 - Plan correction: the original Task 2 single-usage cost snapshot accidentally contained the
   30-attempt aggregate amount. Task 2 TDD and review fixed the contract to price supplied aggregate
   usage once and test both single-attempt and separately aggregated 30-attempt values.
-- Next step: Task 3 atomic process-run attempt budget and HTTPX transport.
+- Task 4 preflight correction: repository/provider calls are async, and preparation failures require
+  their own typed result code. Internal interfaces are async; `EvaluationCaseResult.outcome_code`
+  accepts `OutcomeCode | PreparationCode` and preparation failure stops the run before provider use.
+- Next step: Task 4 canonical fixture hash gate and grounded evaluator.
