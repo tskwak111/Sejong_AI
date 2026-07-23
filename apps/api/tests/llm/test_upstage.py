@@ -4,7 +4,7 @@ from collections.abc import Callable
 import httpx
 import pytest
 
-from sejong_ai_api.llm.contracts import OutcomeCode
+from sejong_ai_api.llm.contracts import GroundedFixture, OutcomeCode
 from sejong_ai_api.llm.limits import AttemptBudget
 from sejong_ai_api.llm.prompt import build_upstage_messages
 from sejong_ai_api.llm.settings import UpstageSyntheticSettings
@@ -52,8 +52,8 @@ def _provider_response(
 
 @pytest.mark.asyncio
 async def test_success_uses_exact_request_and_parses_only_answer_and_usage(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
 ) -> None:
     seen: list[httpx.Request] = []
 
@@ -94,8 +94,8 @@ async def test_success_uses_exact_request_and_parses_only_answer_and_usage(
 
 @pytest.mark.asyncio
 async def test_rate_limit_retries_once_and_never_uses_hidden_retry(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
 ) -> None:
     seen: list[httpx.Request] = []
 
@@ -135,8 +135,8 @@ async def test_rate_limit_retries_once_and_never_uses_hidden_retry(
     ],
 )
 async def test_non_retryable_http_errors_make_one_request(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
     status_code: int,
     expected_code: OutcomeCode,
 ) -> None:
@@ -182,8 +182,8 @@ async def test_non_retryable_http_errors_make_one_request(
     ],
 )
 async def test_retryable_provider_failures_retry_exactly_once(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
     response_factory: Callable[[], httpx.Response],
     expected_code: OutcomeCode,
 ) -> None:
@@ -228,8 +228,8 @@ async def test_retryable_provider_failures_retry_exactly_once(
     ],
 )
 async def test_transport_failures_retry_exactly_once_without_exception_text(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
     exception_factory: Callable[[httpx.Request], httpx.TransportError],
     expected_code: OutcomeCode,
 ) -> None:
@@ -259,8 +259,8 @@ async def test_transport_failures_retry_exactly_once_without_exception_text(
 
 @pytest.mark.asyncio
 async def test_usage_is_summed_only_from_valid_integer_fields(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
 ) -> None:
     requests = 0
 
@@ -294,8 +294,8 @@ async def test_usage_is_summed_only_from_valid_integer_fields(
 
 @pytest.mark.asyncio
 async def test_conservative_input_overflow_returns_without_request(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
 ) -> None:
     requests = 0
 
@@ -326,8 +326,8 @@ async def test_conservative_input_overflow_returns_without_request(
 
 @pytest.mark.asyncio
 async def test_provider_reported_input_overflow_returns_without_retry(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
 ) -> None:
     requests = 0
 
@@ -355,8 +355,8 @@ async def test_provider_reported_input_overflow_returns_without_retry(
 
 @pytest.mark.asyncio
 async def test_cap_reached_returns_without_request(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
 ) -> None:
     requests = 0
     budget = AttemptBudget(cap=1, concurrency=1)
@@ -386,8 +386,8 @@ async def test_cap_reached_returns_without_request(
 
 @pytest.mark.asyncio
 async def test_retryable_failure_then_attempt_cap_preserves_reserved_attempt_trace(
-    grounded_fixture,
-    exact_settings,
+    grounded_fixture: GroundedFixture,
+    exact_settings: UpstageSyntheticSettings,
 ) -> None:
     requests = 0
 
@@ -412,7 +412,10 @@ async def test_retryable_failure_then_attempt_cap_preserves_reserved_attempt_tra
     assert requests == 1
 
 
-def test_production_client_uses_exact_profile(exact_settings, monkeypatch) -> None:
+def test_production_client_uses_exact_profile(
+    exact_settings: UpstageSyntheticSettings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured: dict[str, object] = {}
 
     class CapturingTransport:

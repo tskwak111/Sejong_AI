@@ -1,5 +1,6 @@
 import json
 
+from sejong_ai_api.llm.contracts import GroundedFixture
 from sejong_ai_api.llm.prompt import (
     PROMPT_VERSION,
     build_upstage_messages,
@@ -7,12 +8,16 @@ from sejong_ai_api.llm.prompt import (
 )
 
 
-def test_canonical_prompt_stays_within_conservative_input_upper_bound(grounded_fixture) -> None:
+def test_canonical_prompt_stays_within_conservative_input_upper_bound(
+    grounded_fixture: GroundedFixture,
+) -> None:
     messages = build_upstage_messages(grounded_fixture)
     assert estimate_input_token_upper_bound(messages) <= 4096
 
 
-def test_prompt_is_source_free_and_system_requires_strict_json(grounded_fixture) -> None:
+def test_prompt_is_source_free_and_system_requires_strict_json(
+    grounded_fixture: GroundedFixture,
+) -> None:
     messages = build_upstage_messages(grounded_fixture)
     serialized = json.dumps(messages, ensure_ascii=False, separators=(",", ":"))
     assert PROMPT_VERSION == "0.1.0-upstage-solar-pro3-synthetic"

@@ -144,7 +144,7 @@ def test_human_fixture_score_has_exact_closed_fields_and_rejects_bool() -> None:
     with pytest.raises(ValueError, match="HUMAN_SCORE_INVALID"):
         HumanFixtureScore(
             fixture_id="T-01",
-            natural_korean=True,  # type: ignore[arg-type]
+            natural_korean=True,
             directness=5,
             official_fact_preservation=5,
             unsupported_claim_absence=5,
