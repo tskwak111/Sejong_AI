@@ -18,7 +18,7 @@ aggregate metrics.
 existing Psycopg repository, standard-library `csv`, `decimal`, `json`, `asyncio`, `argparse`.
 
 - Plan ID: LLM-002-PLAN
-- Status: **In Progress — specification and execution plan approved; Tasks 1–4.5 review clean**
+- Status: **In Progress — specification and execution plan approved; Tasks 1–5 review clean**
 - Design:
   `docs/superpowers/specs/2026-07-23-upstage-solar-pro3-synthetic-evaluation-design.md`
 - ADR: `docs/adr/0022-upstage-solar-pro3-synthetic-evaluation.md`
@@ -954,7 +954,7 @@ integrity requires attempt trace totals, case attempt totals and the process bud
 - Produces: fixed ignored file `artifacts/llm-002/upstage-synthetic-evaluation.json`
 - CLI: `python scripts/run_upstage_synthetic_evaluation.py [--review]`
 
-- [ ] **Step 1: Write RED report-safety tests**
+- [x] **Step 1: Write RED report-safety tests**
 
 ```python
 import json
@@ -1036,7 +1036,7 @@ def test_serialized_report_contains_no_question_answer_or_secret() -> None:
 integers 1..5), `decision` in `PASS|FAIL`, and `reason_code` in:
 `OK|UNNATURAL_KOREAN|INDIRECT|MISSING_OFFICIAL_FACT|UNSUPPORTED_CLAIM|OFFICIAL_FACT_CONTRADICTION|UNCLEAR_NEXT_ACTION`.
 
-- [ ] **Step 2: Write RED CLI tests**
+- [x] **Step 2: Write RED CLI tests**
 
 Patch all factories and assert:
 
@@ -1047,7 +1047,7 @@ Patch all factories and assert:
 - stdout/stderr contain no synthetic key, DSN, question, answer or exception text
 - no command-line option accepts a key, URL, model, fixture path, output path, cap or arbitrary question
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_report.py -q
@@ -1056,7 +1056,7 @@ Patch all factories and assert:
 
 Expected: import/script failures.
 
-- [ ] **Step 4: Implement report validation**
+- [x] **Step 4: Implement report validation**
 
 The report root keys are exactly:
 
@@ -1113,7 +1113,7 @@ means FAIL; no free-text reason is accepted.
 
 No timestamp, hostname, username, IP, path, request ID or account identifier is needed.
 
-- [ ] **Step 5: Implement the runner lifecycle**
+- [x] **Step 5: Implement the runner lifecycle**
 
 The root script adds only `apps/api/src` to `sys.path`, uses a value-free argument parser, calls
 `load_local_settings()` and `load_upstage_synthetic_settings()`, opens the existing local pool,
@@ -1131,7 +1131,7 @@ REPORT=artifacts/llm-002/upstage-synthetic-evaluation.json
 OVERALL_PASS=true|false
 ```
 
-- [ ] **Step 6: Run focused gates and commit**
+- [x] **Step 6: Run focused gates and commit**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_report.py -q
@@ -1531,6 +1531,8 @@ Still not approved:
   re-review clean after per-repetition ACTIVE/OFFICIAL grounding freshness fix.
 - 2026-07-24: Task 4.5 commits `0e04901` and `b8e32ae`; full LLM 93 and independent re-review
   clean after strict preparation/provider evidence invariant fix.
+- 2026-07-24: Task 5 commits `4a972a6` and `bfe350e`; report 30, runner 14, full LLM 123 and
+  independent re-review clean after human/trace/token evidence integrity fixes.
 
 ## Result and Retrospective
 
@@ -1550,4 +1552,4 @@ Still not approved:
 - Task 6 preflight correction: use common-dir uv/Python 3.12.13 offline, compare protected paths from
   execution base `b318375`, bootstrap Web dependencies offline, and assert transitive public import
   isolation through `sys.modules`.
-- Next step: Task 5 text-free aggregate report and safe local runner.
+- Next step: Task 6 offline security, architecture and regression gates.

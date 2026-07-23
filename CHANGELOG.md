@@ -31,8 +31,11 @@
 - Task 4.5 preserves one content-free enum per outbound attempt and strictly reconciles preparation
   and provider evidence. Independent review caught and closed mutable aggregate evidence that could
   corrupt cost/source/fallback metrics; full LLM 93 tests passed.
+- Task 5 adds the explicit text-free aggregate and a Windows-safe, readiness-before-provider local
+  runner. Independent review caught and closed human FAIL, per-case trace and forged token PASS
+  paths; report 30, runner 14 and full LLM 123 tests passed with actual DB/key/network use zero.
 - Versions: product spec `2.4.0`, prompt selection
-  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.6`.
+  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.7`.
 
 ### Changed — MVP-001 local/private closeout
 
