@@ -214,6 +214,7 @@ def _success_runtime(
         or [
             {"interaction_events": 8, "failed_questions": 3},
             {"interaction_events": 8, "failed_questions": 3},
+            {"interaction_events": 9, "failed_questions": 4},
         ],
         events=events,
     )
@@ -228,9 +229,10 @@ def test_full_actual_http_workflow_is_exact_and_outputs_only_stable_evidence() -
     assert lines == (
         "PASS ready",
         "PASS initial-active count=19",
-        "PASS personal-lookup no-storage",
+        "PASS personal-lookup persistence event_delta=0 failed_delta=0",
         "PASS initial-fallback",
         "PASS business-replay",
+        "PASS insufficient-grounding event_delta=1 failed_delta=1",
         "PASS failed-new count=1",
         "PASS reason-confirmed",
         "PASS candidate-created",
@@ -245,7 +247,7 @@ def test_full_actual_http_workflow_is_exact_and_outputs_only_stable_evidence() -
     assert runtime.responses == []
     assert runtime.projections == []
     assert runtime.persistence_counts == []
-    assert runtime.persistence_count_request_positions == [1, 2]
+    assert runtime.persistence_count_request_positions == [1, 2, 4]
 
     calls = runtime.requests
     assert [(method, path) for method, path, _headers, _json in calls] == [
@@ -375,6 +377,41 @@ def test_personal_lookup_persistence_delta_stops_before_improvement_workflow(
     assert runtime.persistence_count_request_positions == [1, 2]
     assert [(method, path) for method, path, _headers, _json in runtime.requests] == [
         ("GET", "/ready"),
+        ("POST", "/api/v1/chat"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "after_insufficient_counts",
+    [
+        {"interaction_events": 8, "failed_questions": 3},
+        {"interaction_events": 9, "failed_questions": 3},
+        {"interaction_events": 8, "failed_questions": 4},
+        {"interaction_events": 10, "failed_questions": 4},
+        {"interaction_events": 9, "failed_questions": 5},
+    ],
+)
+def test_insufficient_grounding_requires_exact_single_event_and_failure_delta(
+    after_insufficient_counts: Mapping[str, int],
+) -> None:
+    runner = _runner()
+    runtime = _success_runtime(
+        persistence_counts=[
+            {"interaction_events": 8, "failed_questions": 3},
+            {"interaction_events": 8, "failed_questions": 3},
+            after_insufficient_counts,
+        ]
+    )
+
+    with pytest.raises(runner._RegressionFailed, match="^IG_STORAGE$"):
+        runner.run_regression(runtime)
+
+    assert runtime.persistence_counts == []
+    assert runtime.persistence_count_request_positions == [1, 2, 4]
+    assert [(method, path) for method, path, _headers, _json in runtime.requests] == [
+        ("GET", "/ready"),
+        ("POST", "/api/v1/chat"),
+        ("POST", "/api/v1/chat"),
         ("POST", "/api/v1/chat"),
     ]
 
