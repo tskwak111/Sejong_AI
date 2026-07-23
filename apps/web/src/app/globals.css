@@ -1,737 +1,264 @@
+/*
+ * 디자인 토큰 - DESIGN.md v3 §1-2 자기완결형 블록 (design-tokens.css 번역본).
+ * 컴포넌트에서 임의 hex 사용 금지 - 반드시 아래 변수를 참조한다.
+ * 시안 원본 변수명(--ink 등)은 코드에 쓰지 않는다 (§1 매핑 표 기준).
+ */
 @import "tailwindcss";
 
 :root {
-  color-scheme: light;
-  --background: #f4f7fb;
-  --surface: #ffffff;
-  --surface-muted: #eaf1fb;
-  --text: #14213d;
-  --text-muted: #3f4d66;
-  --border: #bdcbe0;
-  --accent: #084fb7;
-  --accent-strong: #063b88;
-  --focus-inner: #ffffff;
-  --focus-outer: #08142b;
+  /* ── 색 - 텍스트·면·선 ── */
+  --color-text: #1a2433; /* 본문 (15.9:1) */
+  --color-text-sub: #55627a; /* 보조 텍스트 (6.1:1) */
+  --color-text-faint: #66738a; /* 캡션·메타 (4.8:1) - #8A94A8 금지(3.1:1) */
+  --color-border: #dde3ec; /* 기본 테두리 */
+  --color-border-soft: #e7ecf3; /* 내부 구분선 */
+  --color-bg: #fbfcfd; /* 화면 배경 */
+  --color-bg-sub: #f3f6fb; /* 정보 셀 배경 */
+  --color-bg-admin: #f6f8fb; /* 이음센터 작업 영역 */
+
+  /* ── 색 - 역할 ── */
+  --color-primary: #0f4c9a; /* 행동·링크·선택 - 유일한 행동색 */
+  --color-primary-dark: #0a3a77; /* hover */
+  --color-primary-light: #eef4fc; /* 뱃지·선택 배경 */
+  --color-primary-border: #cfe0f5; /* 틴트 보더 */
+
+  --color-verify: #0e7a4e; /* 검증·승인·출처 전용 */
+  --color-verify-dark: #0b5c3c;
+  --color-verify-light: #f2faf5; /* 출처 블록 배경 */
+  --color-verify-light-2: #e9f6ef; /* 완료 뱃지·신뢰 배너 배경 */
+  --color-verify-border: #bfe4d0;
+
+  --color-warning: #8a5a12; /* 대기·주의 */
+  --color-warning-light: #fdf3e0;
+  --color-danger: #b3261e; /* 오류·반려 전용 - 폴백 사용 금지 */
+  --color-danger-light: #fbeeed;
+
+  --color-admin-nav: #122a4d; /* 이음센터 사이드바 */
+  --color-tie-line: #9db8dc; /* 이음선(2px dotted) - 절차 연결 전용 */
+  --color-highlight: #fff3d6; /* 이음센터 신규 도착 행 펄스 전용 - 본문 강조 사용 금지 (대화 화면 개정 2) */
+  --color-highlight-text: #eef4fc; /* 본문 핵심 수치 강조 배경 (파란 틴트, 대화 화면 개정 2) */
+
+  /* DESIGN.md §6 명시 리터럴 - 카드 헤더 행 배경 / 보조 버튼·선택지 hover 배경 */
+  --color-card-head: #f6f9fd;
+  --color-hover-tint: #f6faff;
+
+  /* DESIGN.md §5·§9 명시 리터럴 - 이음센터 테이블 헤더·판정 바 배경 / 사이드바 비활성 텍스트 */
+  --color-admin-soft: #fafbfd;
+  --color-admin-nav-soft: #c8d6ea;
+
+  /* ── 간격 (4배수) - Tailwind 기본 spacing(4px 단위)과 일치 ── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 48px;
+
+  /* ── 포커스 링 (키보드 탐색 시에만 - :focus-visible) ── */
+  --focus-ring: 0 0 0 2px #fff, 0 0 0 5px rgba(15, 76, 154, 0.45);
 }
 
-* {
-  box-sizing: border-box;
+@theme inline {
+  /* 기본 팔레트 제거 - 위 토큰 외 색상 유틸리티를 만들지 않는다 */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-bg: var(--color-bg);
+  --color-bg-sub: var(--color-bg-sub);
+  --color-bg-admin: var(--color-bg-admin);
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-border: var(--color-primary-border);
+  --color-verify: var(--color-verify);
+  --color-verify-dark: var(--color-verify-dark);
+  --color-verify-light: var(--color-verify-light);
+  --color-verify-light-2: var(--color-verify-light-2);
+  --color-verify-border: var(--color-verify-border);
+  --color-warning: var(--color-warning);
+  --color-warning-light: var(--color-warning-light);
+  --color-danger: var(--color-danger);
+  --color-danger-light: var(--color-danger-light);
+  --color-admin-nav: var(--color-admin-nav);
+  --color-tie-line: var(--color-tie-line);
+  --color-highlight: var(--color-highlight);
+  --color-highlight-text: var(--color-highlight-text);
+  --color-text: var(--color-text);
+  --color-text-sub: var(--color-text-sub);
+  --color-text-faint: var(--color-text-faint);
+  --color-border: var(--color-border);
+  --color-border-soft: var(--color-border-soft);
+  --color-card-head: var(--color-card-head);
+  --color-hover-tint: var(--color-hover-tint);
+  --color-admin-soft: var(--color-admin-soft);
+  --color-admin-nav-soft: var(--color-admin-nav-soft);
+
+  /* ── 타이포 스케일 - v3 §1 --t-* 번역. 이 스케일 외 크기는 DESIGN.md에
+     수치가 명시된 곳(13.5px 셀 라벨 등)에서만 arbitrary 값으로 쓴다 ── */
+  --text-*: initial;
+  --text-display: 27px; /* 모바일 히어로 / 800 */
+  --text-display--line-height: 1.3;
+  --text-title: 21px; /* 화면 제목 / 800 */
+  --text-title--line-height: 1.35;
+  --text-card-title: 19px; /* 카드 제목 / 800 */
+  --text-card-title--line-height: 1.4;
+  --text-body-lg: 18px; /* 답변 요약·리드 문장 / 600 */
+  --text-body-lg--line-height: 1.55;
+  --text-body: 17px; /* 시민 본문 최소 / 500 */
+  --text-body--line-height: 1.5;
+  --text-label: 15px; /* 섹션 라벨 / 800 */
+  --text-label--line-height: 1.4;
+  --text-note: 15px; /* 보조 안내 문장 */
+  --text-note--line-height: 1.5;
+  --text-caption: 14px; /* 캡션 / 600 */
+  --text-caption--line-height: 1.5;
+  /* 이음센터 v3 스케일 - --t-body-admin(15.5px) + §9-1 KPI 카드 수치 */
+  --text-admin-body: 15.5px;
+  --text-admin-body--line-height: 1.55;
+  --text-table-head: 13px;
+  --text-table-head--line-height: 1.4;
+  --text-kpi: 28px;
+  --text-kpi--line-height: 1.2;
+  --text-kpi-label: 13.5px;
+  --text-kpi-label--line-height: 1.4;
+
+  /* ── 반경 스케일 8종 (v3 §3 - 이 외 임의 반경 금지) ── */
+  --radius-chip: 6px; /* 사유·상태 뱃지, 인라인 태그 */
+  --radius-btn-s: 10px; /* 작은 버튼, 필요 서류 칩 */
+  --radius-btn: 12px; /* 버튼·입력창·CTA, 신뢰 배너, 주의 박스 */
+  --radius-cell: 12px; /* 정보 셀 */
+  --radius-card-s: 14px; /* 출처 블록, 분야 카드, 예시 질문 버튼 */
+  --radius-panel: 16px; /* 이음센터 패널 */
+  --radius-card: 18px; /* 답변·후속질문·폴백 카드, 질문 입력 박스 */
+  --radius-pill: 999px; /* 필터 칩, 건수 뱃지, 필 */
+
+  /* ── 그림자 - 두 값만 ── */
+  --shadow-*: initial;
+  --shadow-card: 0 10px 28px rgba(20, 35, 60, 0.08);
+  --shadow-raised: 0 18px 44px rgba(20, 35, 60, 0.12); /* 시트·모달·프레임 전용 */
+
+  /* ── 서체 - Pretendard GOV (v3 §1, Noto Serif KR 폐기) ── */
+  --font-sans: "Pretendard GOV Variable", "Pretendard GOV",
+    "Apple SD Gothic Neo", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Consolas, monospace; /* KB ID, 사유 코드 */
 }
 
 html {
-  scroll-behavior: smooth;
+  font-family: var(--font-sans);
 }
 
 body {
-  min-height: 100vh;
-  margin: 0;
-  background: var(--background);
-  color: var(--text);
-  font-family:
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR",
-    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  font-size: 1.125rem;
-  line-height: 1.65;
-  overflow-wrap: anywhere;
+  background: var(--color-bg);
+  color: var(--color-text);
+  /* 시민 본문 17px (--t-body) */
+  font-size: 17px;
+  line-height: 1.5;
 }
 
-a {
-  color: var(--accent);
-  text-underline-offset: 0.2em;
-}
-
-a:hover {
-  color: var(--accent-strong);
-}
-
+/* v3 §11: focus-visible 링 - 흰 띠 2px + 남색 링 3px, 전 인터랙티브 요소 */
 :focus-visible {
-  outline: 0.2rem solid var(--focus-inner);
-  outline-offset: 0.2rem;
-  box-shadow: 0 0 0 0.4rem var(--focus-outer);
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
-.page-shell {
-  width: min(100% - 2rem, 72rem);
-  margin-inline: auto;
-}
-
+/* 스킵 링크 - 포커스 시에만 보임 (v3 §1) */
 .skip-link {
-  position: fixed;
-  z-index: 10;
-  top: 0.75rem;
-  left: 0.75rem;
-  padding: 0.75rem 1rem;
-  border: 0.125rem solid var(--text);
-  border-radius: 0.5rem;
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 800;
-  transform: translateY(-200%);
+  position: absolute;
+  left: -9999px;
+  z-index: 100;
 }
-
-.skip-link:focus {
-  transform: translateY(0);
-}
-
-.site-header {
-  border-bottom: 0.0625rem solid var(--border);
-  background: var(--surface);
-}
-
-.site-header .page-shell {
-  display: flex;
-  min-height: 4.75rem;
-  align-items: center;
-  gap: 1rem;
-  justify-content: space-between;
-}
-
-.service-name {
-  min-width: 0;
-  color: var(--text);
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.header-boundary {
-  flex: 0 1 auto;
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-align: right;
-}
-
-.hero {
-  padding-block: clamp(3rem, 9vw, 6.5rem);
-}
-
-.hero-content {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.eyebrow,
-.section-kicker,
-.notice-label {
-  margin: 0;
-  color: var(--accent-strong);
-  font-size: 1.125rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-h1,
-h2,
-p {
-  margin-top: 0;
-}
-
-h1 {
-  max-width: 18ch;
-  margin-bottom: 0;
-  font-size: clamp(2.35rem, 10vw, 4.75rem);
-  line-height: 1.16;
-  letter-spacing: -0.045em;
-  text-wrap: balance;
-}
-
-.hero-summary {
-  max-width: 38rem;
-  margin-bottom: 0;
-  color: var(--text-muted);
-  font-size: clamp(1.125rem, 3vw, 1.3rem);
-}
-
-.primary-link {
-  display: inline-flex;
-  width: fit-content;
-  min-height: 3.25rem;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.25rem;
-  border: 0.125rem solid var(--accent);
-  border-radius: 0.75rem;
-  background: var(--accent);
-  color: #ffffff;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.primary-link:hover {
-  border-color: var(--accent-strong);
-  background: var(--accent-strong);
-  color: #ffffff;
-}
-
-.development-notice {
-  max-width: 42rem;
-  margin-top: 1rem;
-  padding: 1.25rem;
-  border: 0.125rem solid var(--border);
-  border-left: 0.4rem solid var(--accent);
-  border-radius: 0.75rem;
-  background: var(--surface);
-}
-
-.development-notice p:last-child {
-  margin-bottom: 0;
-}
-
-.supported-services {
-  padding-block: clamp(3.5rem, 8vw, 6rem);
-  border-block: 0.0625rem solid var(--border);
-  background: var(--surface);
-}
-
-.supported-services h2 {
-  margin-bottom: 0.75rem;
-  font-size: clamp(2rem, 7vw, 3.25rem);
-  line-height: 1.2;
-  letter-spacing: -0.035em;
-}
-
-.section-summary {
-  max-width: 44rem;
-  margin-bottom: 2rem;
-  color: var(--text-muted);
-}
-
-.service-grid {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.service-grid li {
-  min-width: 0;
-  padding: 1.25rem;
-  border: 0.125rem solid var(--border);
-  border-radius: 0.75rem;
-  background: var(--surface-muted);
-  color: var(--text);
-  font-weight: 800;
-}
-
-.text-link {
-  width: fit-content;
-  color: var(--accent-strong);
-  font-weight: 800;
-}
-
-.chat-shell {
-  padding-block: clamp(3rem, 9vw, 6.5rem);
-}
-
-.chat-shell-content {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.chat-shell h1 {
-  max-width: 16ch;
-  margin-bottom: 0;
-  font-size: clamp(2.25rem, 9vw, 4.25rem);
-  line-height: 1.16;
-  letter-spacing: -0.045em;
-  text-wrap: balance;
-}
-
-.chat-summary {
-  max-width: 42rem;
-  margin-bottom: 0;
-  color: var(--text-muted);
-  font-size: clamp(1.125rem, 3vw, 1.3rem);
-}
-
-.chat-scope {
-  display: grid;
-  gap: 0.75rem;
-  max-width: 60rem;
-}
-
-.chat-scope h2 {
-  margin-bottom: 0;
-  font-size: clamp(1.75rem, 6vw, 2.75rem);
-  line-height: 1.2;
-  letter-spacing: -0.035em;
-}
-
-.chat-info-grid {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.chat-info-grid li {
-  min-width: 0;
-  padding: 1.125rem;
-  border: 0.125rem solid var(--border);
-  border-radius: 0.75rem;
-  background: var(--surface-muted);
-  color: var(--text);
-  font-weight: 800;
-}
-
-.secondary-link {
-  display: inline-flex;
-  width: fit-content;
-  min-height: 3.25rem;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.25rem;
-  border: 0.125rem solid var(--accent);
-  border-radius: 0.75rem;
-  background: var(--surface);
-  color: var(--accent-strong);
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.secondary-link:hover {
-  border-color: var(--accent-strong);
-  background: var(--surface-muted);
-  color: var(--accent-strong);
-}
-
-.chat-page-main {
-  padding-block: clamp(2rem, 7vw, 4rem);
-}
-
-.chat-workspace,
-.chat-intro,
-.transcript-panel,
-.chat-composer,
-.transcript-list,
-.exchange,
-.answer-card,
-.citizen-message,
-.office-card,
-.source-section,
-.source-list,
-.source-list li,
-.field-group {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.chat-workspace {
-  display: grid;
-  width: min(100%, 54rem);
-  gap: 1.25rem;
-  margin-inline: auto;
-}
-
-.chat-intro {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.chat-intro h1 {
-  max-width: none;
-  margin: 0;
-  font-size: clamp(2.15rem, 9vw, 4rem);
-  line-height: 1.12;
-  letter-spacing: -0.045em;
-}
-
-.chat-intro > p:last-child {
-  max-width: 43rem;
-  margin: 0;
-  color: var(--text-muted);
-}
-
-.transcript-panel {
-  min-height: 18rem;
-  padding: clamp(1rem, 4vw, 1.75rem);
-  border: 0.125rem solid var(--border);
-  border-radius: 1rem;
-  background: var(--surface);
-}
-
-.empty-chat {
-  display: grid;
-  min-height: 14rem;
-  place-content: center;
-  gap: 0.5rem;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.empty-chat p {
-  max-width: 34rem;
-  margin: 0;
-}
-
-.empty-chat p:first-child {
-  color: var(--text);
-  font-size: 1.35rem;
-  font-weight: 800;
-}
-
-.transcript-list {
-  display: grid;
-  gap: 1.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.exchange {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.citizen-message {
-  width: fit-content;
-  max-width: min(100%, 38rem);
-  margin-left: auto;
-  padding: 0.9rem 1rem;
-  border-radius: 1rem 1rem 0.25rem 1rem;
-  background: var(--accent-strong);
-  color: #ffffff;
-}
-
-.citizen-message p {
-  margin: 0;
-}
-
-.message-speaker,
-.answer-state,
-.card-label {
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.message-speaker {
-  color: #dbeafe;
-}
-
-.answer-card {
-  display: grid;
-  gap: 1rem;
-  padding: clamp(1rem, 4vw, 1.5rem);
-  border: 0.125rem solid var(--border);
-  border-radius: 0.25rem 1rem 1rem;
-  background: var(--surface-muted);
-}
-
-.answer-card h2,
-.answer-card h3,
-.office-card h3 {
-  margin: 0;
-  line-height: 1.3;
-  letter-spacing: -0.025em;
-}
-
-.answer-card h2 {
-  font-size: clamp(1.4rem, 5vw, 1.85rem);
-}
-
-.answer-card h3,
-.office-card h3 {
-  font-size: 1.15rem;
-}
-
-.answer-card > p:not(.answer-state, .fallback-code),
-.office-card p {
-  margin-bottom: 0;
-}
-
-.answer-state,
-.card-label {
-  color: var(--accent-strong);
-}
-
-.answer-list {
-  display: grid;
-  gap: 0.35rem;
-  margin: 0.5rem 0 0;
-  padding-left: 1.5rem;
-}
-
-.fact-list {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-}
-
-.fact-list div {
-  display: grid;
-  min-width: 0;
-  gap: 0.125rem;
-}
-
-.fact-list dt {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.fact-list dd {
-  min-width: 0;
-  margin: 0;
-  font-weight: 700;
-}
-
-.source-section,
-.office-card {
-  padding-top: 1rem;
-  border-top: 0.0625rem solid var(--border);
-}
-
-.source-list {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.source-list li {
-  display: grid;
-  gap: 0.25rem;
-  padding: 0.875rem;
-  border: 0.0625rem solid var(--border);
-  border-radius: 0.75rem;
-  background: var(--surface);
-}
-
-.source-list a,
-.card-links a,
-.card-links span {
-  overflow-wrap: anywhere;
-}
-
-.source-list span,
-.verified-date,
-.empty-office {
-  color: var(--text-muted);
-  font-size: 0.925rem;
-}
-
-.office-card {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.card-links {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+.skip-link:focus-visible {
+  left: 8px;
+  top: 8px;
 }
 
-.fallback-code {
-  width: fit-content;
-  max-width: 100%;
-  margin: 0;
-  padding: 0.25rem 0.5rem;
-  border: 0.0625rem solid #8a4b00;
-  border-radius: 999px;
-  background: #fff4e6;
-  color: #5c3200;
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 0.8rem;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.followup-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.followup-options button,
-.error-state button {
-  min-height: 3rem;
-  padding: 0.65rem 1rem;
-  border: 0.125rem solid var(--accent);
-  border-radius: 0.75rem;
-  background: var(--surface);
-  color: var(--accent-strong);
-  font: inherit;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.followup-options button:hover,
-.error-state button:hover {
-  background: #dceaff;
-}
-
-.followup-options button:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
-.loading-state,
-.error-state {
-  margin: 1rem 0 0;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  font-weight: 700;
-}
-
-.loading-state {
-  border: 0.125rem solid #537cb2;
-  background: #eaf2ff;
-}
-
-.error-state {
-  display: grid;
-  justify-items: start;
-  gap: 0.75rem;
-  border: 0.125rem solid #a72b2b;
-  background: #fff0f0;
-  color: #5f1111;
-}
-
-.error-state p {
-  margin: 0;
-}
-
-.chat-composer {
-  display: grid;
-  gap: 1rem;
-  padding: clamp(1rem, 4vw, 1.5rem);
-  border: 0.125rem solid var(--border);
-  border-radius: 1rem;
-  background: var(--surface);
-}
-
-.field-group {
-  display: grid;
-  gap: 0.4rem;
-}
-
-.field-group label,
-.simple-language-field label {
-  color: var(--text);
-  font-weight: 800;
-}
-
-.field-group select,
-.field-group textarea {
-  width: 100%;
-  max-width: 100%;
-  min-height: 3.25rem;
-  padding: 0.75rem;
-  border: 0.125rem solid #7183a0;
-  border-radius: 0.65rem;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-}
-
-.field-group textarea {
-  min-height: 7rem;
-  resize: vertical;
-}
-
-.simple-language-field {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.simple-language-field input {
-  width: 1.4rem;
-  height: 1.4rem;
-  flex: 0 0 auto;
-  accent-color: var(--accent-strong);
-}
-
-.send-button {
-  min-height: 3.5rem;
-  padding: 0.75rem 1.25rem;
-  border: 0.125rem solid var(--accent);
-  border-radius: 0.75rem;
-  background: var(--accent);
-  color: #ffffff;
-  font: inherit;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.send-button:hover:not(:disabled) {
-  border-color: var(--accent-strong);
-  background: var(--accent-strong);
-}
-
-.send-button:disabled {
-  border-color: #8390a3;
-  background: #68768b;
-  cursor: not-allowed;
-}
-
-.privacy-note {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.925rem;
-}
-
-.site-footer {
-  padding-block: 2rem;
-  background: var(--text);
-  color: #ffffff;
-}
-
-.site-footer p {
-  margin-bottom: 0;
-}
+/* ---- 모션 허용 목록 (v3 §12) - 이외 전부 금지 ---- */
 
-@media (min-width: 34rem) {
-  .page-shell {
-    width: min(100% - 3rem, 72rem);
+/* 1. 답변 카드 등장: opacity + 8px 상승, 200ms, 1회 */
+@keyframes card-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-
-  .service-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .chat-info-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .answer-facts,
-  .office-card .fact-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .chat-composer {
-    grid-template-columns: minmax(10rem, 0.8fr) minmax(12rem, 1.2fr);
-    align-items: end;
-  }
-
-  .question-field,
-  .send-button,
-  .privacy-note {
-    grid-column: 1 / -1;
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
-
-@media (min-width: 64rem) {
-  .service-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .chat-info-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+.card-enter {
+  animation: card-fade-in 0.2s ease-out;
 }
 
+/* 2. 실패 질문 신규 행 하이라이트 페이드: 2초, 1회 */
+@keyframes row-highlight-fade {
+  from {
+    background-color: var(--color-highlight);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.row-highlight {
+  animation: row-highlight-fade 2s ease-out 1;
+}
+
+/* 3. 토스트 등장: 150ms */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast-enter {
+  animation: toast-in 0.15s ease-out;
+}
+
+/* 4. 하단 시트 슬라이드: 200ms */
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.sheet-enter {
+  animation: sheet-up 0.2s ease-out;
+}
+
+/* 5. 승인 스탬프 찍힘: scale 1.6→1.0, 200ms ease-out, 승인 직후 1회 */
+@keyframes stamp-in {
+  from {
+    transform: rotate(-8deg) scale(1.6);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(-8deg) scale(1);
+    opacity: 1;
+  }
+}
+.stamp-enter {
+  animation: stamp-in 0.2s ease-out;
+}
+
+/* 6. 로딩 스피너 회전은 Tailwind animate-spin 사용 (로딩 상태 한정) */
+
+/* v3 §12: prefers-reduced-motion 시 전부 비활성화(즉시 표시) */
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

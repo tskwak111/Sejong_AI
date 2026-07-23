@@ -1,73 +1,67 @@
 // @vitest-environment jsdom
 
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import Home from "./page";
+import HomePage from "./page";
 
-describe("home page shell", () => {
-  it("presents the service identity and principle with exactly one main heading", () => {
-    render(<Home />);
+vi.mock("next/navigation", async () => {
+  const actual = await vi.importActual<typeof import("next/navigation")>(
+    "next/navigation",
+  );
+  return {
+    ...actual,
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  };
+});
 
-    expect(screen.getByText("세종 민원 AI 길잡이", { exact: true })).toBeInTheDocument();
+describe("citizen home page", () => {
+  it("presents the service hero with exactly one main heading and the question input", () => {
+    render(<HomePage />);
 
     const mainHeadings = screen.getAllByRole("heading", { level: 1 });
     expect(mainHeadings).toHaveLength(1);
-    expect(mainHeadings[0]).toHaveTextContent(
-      "모르면 지어내지 않고, 알면 끝까지 안내",
+    expect(mainHeadings[0]).toHaveTextContent("궁금한 민원을 물어보세요");
+    expect(screen.getByRole("textbox", { name: "질문 입력" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /질문하기/ })).toBeInTheDocument();
+  });
+
+  it("lists the four approved service areas from the contract intents", () => {
+    render(<HomePage />);
+
+    const scope = screen.getByRole("region", { name: "안내해 드리는 4개 분야" });
+    expect(scope).toHaveAttribute("aria-labelledby", "scope-heading");
+    for (const label of ["전입·주민등록", "대형폐기물", "증명서 발급", "지방세"]) {
+      expect(within(scope).getByText(label)).toBeInTheDocument();
+    }
+  });
+
+  it("links suggested question chips to the chat screen (SFR-006)", () => {
+    render(<HomePage />);
+
+    const chip = screen.getByRole("link", {
+      name: "전입신고는 언제까지 해야 하나요?",
+    });
+    expect(chip).toHaveAttribute(
+      "href",
+      `/chat?q=${encodeURIComponent("전입신고는 언제까지 해야 하나요?")}`,
+    );
+    const demo4 = screen.getByRole("link", { name: "제 자동차세 얼마 나왔나요?" });
+    expect(demo4).toHaveAttribute(
+      "href",
+      `/chat?q=${encodeURIComponent("제 자동차세 얼마 나왔나요?")}`,
     );
   });
 
-  it("provides skip and chat-entry links without removing the supported-services link", () => {
-    render(<Home />);
+  it("keeps the always-visible privacy warning under the input (CLAUDE.md §5)", () => {
+    render(<HomePage />);
 
-    expect(screen.getByRole("link", { name: "본문 바로가기" })).toHaveAttribute(
-      "href",
-      "#main-content",
-    );
-    expect(screen.getByRole("main")).toHaveAttribute("id", "main-content");
-    expect(screen.getByRole("link", { name: "민원 안내 시작하기" })).toHaveAttribute(
-      "href",
-      "/chat",
-    );
-    expect(screen.getByRole("link", { name: "지원 분야 확인하기" })).toHaveAttribute(
-      "href",
-      "#supported-services",
-    );
-  });
-
-  it("lists the four approved service areas in a semantic section", () => {
-    const { container } = render(<Home />);
-    const section = container.querySelector("section#supported-services");
-
-    expect(section).not.toBeNull();
-    expect(section).toHaveAttribute("aria-labelledby", "supported-services-title");
+    const form = screen
+      .getByRole("textbox", { name: "질문 입력" })
+      .closest("form");
+    expect(form).not.toBeNull();
     expect(
-      within(section as HTMLElement).getByRole("heading", { name: "지원 분야" }),
-    ).toHaveAttribute("id", "supported-services-title");
-
-    const items = within(section as HTMLElement).getAllByRole("listitem");
-    expect(items).toHaveLength(4);
-    expect(items.map((item) => item.textContent)).toEqual([
-      "전입·주민등록",
-      "증명서 발급",
-      "대형폐기물",
-      "지방세 일반 안내",
-    ]);
-  });
-
-  it("states the current development limits and exposes semantic landmarks", () => {
-    render(<Home />);
-
-    expect(screen.getByRole("banner")).toBeInTheDocument();
-    expect(screen.getByRole("contentinfo")).toBeInTheDocument();
-    expect(
-      screen.getByText("현재는 서비스 소개 화면을 준비한 개발 단계입니다."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "채팅 답변, 민원 신청, 개인 조회와 공식 KB 데이터는 아직 제공하지 않습니다.",
-      ),
+      within(form as HTMLElement).getByText("개인정보는 입력하지 마세요"),
     ).toBeInTheDocument();
   });
 });

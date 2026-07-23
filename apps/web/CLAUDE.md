@@ -299,3 +299,41 @@ types/
 styles/
   globals.css               # KRDS 기반 CSS 변수 (색상 토큰, Pretendard GOV)
 ```
+
+---
+
+## 14. 모노레포 통합 확정 사항 (2026-07-24, apps/web 이관)
+
+이 문서는 `frontend/`에서 `apps/web/`으로 승계되었다. 아래는 §11의 미확정
+사항이 `contracts/openapi-v1.yaml`로 확정되면서 바뀐 규칙이다. 충돌 시 이
+장이 §11보다 우선한다.
+
+- **타입·데이터 계층 기준**: `packages/shared-contracts/src/generated/api.ts`
+  (계약 생성 타입)와 `src/lib/chat-api.ts` / `src/lib/admin-api.ts`가 기준이다.
+  `types/api.ts` 임시 타입은 폐기되었다. 계약이 UI와 안 맞으면 UI를 계약에
+  맞춘다. 계약 변경이 필요하면 수정하지 말고 보고한다.
+- **응답 구분**: `answer_status: 'SUCCESS' | 'FOLLOWUP' | 'FALLBACK'`.
+  ERROR는 200 응답이 아니라 HTTP 422/503 envelope다.
+- **폴백 사유 5종**: `fallback.reason` — 기존 4종 + `PRIVACY_UNRESOLVED`
+  (고정 문구 계약).
+- **mock 전환**: `NEXT_PUBLIC_USE_MOCK`·`NEXT_PUBLIC_API_BASE_URL`은 쓰지
+  않는다. server-only `CHAT_UI_MODE=fixture|actual`(시민),
+  `ADMIN_UI_ENABLED` + `ADMIN_UI_MODE=fixture|actual`(이음센터)로 전환하며,
+  브라우저는 항상 same-origin `/api/v1/*`(Next rewrite →
+  `API_INTERNAL_BASE_URL`)만 호출한다. 데모 5문항 fixture는
+  `src/lib/demo-fixtures.ts`에 있다.
+- **지역(동)**: 요청 파라미터 `selected_region`, 계약 enum
+  `아름동|도담동|조치원읍` 3개동 한정.
+- **context_token**: 요청·응답 모두 바디 필드. FALLBACK 응답은 항상 null →
+  탭 메모리 토큰 초기화. CONTEXT_EXPIRED 개념은 계약에 없다(만료 토큰 =
+  무맥락 처리).
+- **이음센터**: 실패 질문 상태는 `NEW → REASON_CONFIRMED` 2단계. 저장 사유는
+  3종(OUT_OF_SCOPE는 행 미생성). KB 후보는
+  `DRAFTED → PENDING_APPROVAL → APPROVED/REJECTED`, 검수 의견
+  `review_comment` 자유 텍스트 필수(반려 사유 코드 없음), 자기검수 금지,
+  `data_origin=OFFICIAL`만 ACTIVE 승인 가능. 헤더는
+  `X-Demo-Actor-Id`/`X-Demo-Role`(인증 아님).
+- **계약에 없는 요소**(UI 상수 유지 또는 미연결, 계약 변경 필요 목록으로
+  보고됨): 피드백 전송 엔드포인트, quality-summary 응답 스키마, SUCCESS의
+  caution, deep_link, related_question, FOLLOWUP 옵션 구조(문자열만),
+  repeat_count.

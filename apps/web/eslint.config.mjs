@@ -5,5 +5,6 @@ import nextTypeScript from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  // design-ref는 디자인 시안 참고 자산(빌드·번들 미포함)이라 린트 제외
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "design-ref/**"]),
 ]);

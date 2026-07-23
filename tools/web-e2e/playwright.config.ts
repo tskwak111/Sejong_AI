@@ -25,6 +25,8 @@ export default defineConfig({
     env: {
       ...process.env,
       ADMIN_UI_ENABLED: "true",
+      // e2e는 라우트 인터셉션으로 /api/v1/chat을 검증하므로 actual transport 사용
+      CHAT_UI_MODE: "actual",
     },
   },
   projects: [
