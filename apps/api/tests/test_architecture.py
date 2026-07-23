@@ -209,6 +209,44 @@ class ApiArchitectureTest(unittest.TestCase):
         self.assertEqual(completed.stdout.strip(), "isolated-import-safe")
         self.assertEqual(completed.stderr, "")
 
+    def test_public_app_import_does_not_transitively_load_llm_package(self) -> None:
+        source_root = API_ROOT / "src"
+        probe = textwrap.dedent(
+            f"""
+            import sys
+            from pathlib import Path
+
+            sys.path.insert(0, {str(source_root)!r})
+
+            import sejong_ai_api.main
+            import sejong_ai_api.local
+
+            missing_env = Path({str(API_ROOT)!r}) / "tests" / ".missing-task6-env"
+            sejong_ai_api.main.create_app()
+            sejong_ai_api.local.create_local_app(environ={{}}, env_path=missing_env)
+
+            loaded = tuple(
+                name
+                for name in sys.modules
+                if name == "sejong_ai_api.llm" or name.startswith("sejong_ai_api.llm.")
+            )
+            assert not loaded, loaded
+            print("public-import-llm-isolated")
+            """
+        )
+
+        completed = subprocess.run(
+            [sys.executable, "-I", "-c", probe],
+            cwd=API_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stdout.strip(), "public-import-llm-isolated")
+        self.assertEqual(completed.stderr, "")
+
 
 if __name__ == "__main__":
     unittest.main()
