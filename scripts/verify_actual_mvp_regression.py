@@ -354,6 +354,15 @@ def run_regression(runtime: _RegressionRuntime) -> tuple[str, ...]:
             first, "BUSINESS_REPLAY"
         ) != _business_payload(replay, "BUSINESS_REPLAY"):
             _fail("BUSINESS_REPLAY")
+        insufficient_after = _persistence_counts(
+            active.read_persistence_counts(),
+            "IG_STORAGE",
+        )
+        if insufficient_after != (
+            personal_after[0] + 1,
+            personal_after[1] + 1,
+        ):
+            _fail("IG_STORAGE")
 
         failed_list = _mapping_response(
             active.request(
@@ -500,9 +509,10 @@ def run_regression(runtime: _RegressionRuntime) -> tuple[str, ...]:
     return (
         "PASS ready",
         "PASS initial-active count=19",
-        "PASS personal-lookup no-storage",
+        "PASS personal-lookup persistence event_delta=0 failed_delta=0",
         "PASS initial-fallback",
         "PASS business-replay",
+        "PASS insufficient-grounding event_delta=1 failed_delta=1",
         "PASS failed-new count=1",
         "PASS reason-confirmed",
         "PASS candidate-created",
@@ -511,8 +521,7 @@ def run_regression(runtime: _RegressionRuntime) -> tuple[str, ...]:
         "PASS candidate-approved",
         f"PASS improved-requery public_id={_RESERVED_PUBLIC_ID}",
         "PASS old-replay",
-        "PASS final-active total=20 categories=4 count_each=5 "
-        f"public_id={_RESERVED_PUBLIC_ID}",
+        "PASS final-active total=20 categories=4 count_each=5",
     )
 
 
