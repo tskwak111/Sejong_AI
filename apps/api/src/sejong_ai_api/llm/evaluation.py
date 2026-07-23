@@ -57,16 +57,44 @@ class EvaluationCaseResult:
     used_template_fallback: bool
 
     def __post_init__(self) -> None:
+        if type(self.outcome_code) not in (OutcomeCode, PreparationCode):
+            raise ValueError("EVALUATION_OUTCOME_CODE_INVALID")
+        if type(self.attempts_used) is not int or self.attempts_used < 0:
+            raise ValueError("EVALUATION_ATTEMPTS_USED_INVALID")
+        if type(self.usage) is not TokenUsage:
+            raise ValueError("EVALUATION_USAGE_INVALID")
+        if type(self.latency_ms) is not int or self.latency_ms < 0:
+            raise ValueError("EVALUATION_LATENCY_INVALID")
+        if self.source_id is not None and (type(self.source_id) is not str or not self.source_id):
+            raise ValueError("EVALUATION_SOURCE_ID_INVALID")
+        if type(self.used_template_fallback) is not bool:
+            raise ValueError("EVALUATION_FALLBACK_FLAG_INVALID")
         if type(self.attempt_outcomes) is not tuple or any(
             type(outcome) is not OutcomeCode for outcome in self.attempt_outcomes
         ):
             raise ValueError("ATTEMPT_OUTCOMES_INVALID")
-        if type(self.outcome_code) is OutcomeCode and (
-            len(self.attempt_outcomes) != self.attempts_used
-        ):
+        if type(self.outcome_code) is PreparationCode:
+            if (
+                self.attempts_used != 0
+                or self.attempt_outcomes
+                or self.usage != _ZERO_USAGE
+                or self.latency_ms != 0
+                or self.source_id is not None
+                or self.used_template_fallback
+            ):
+                raise ValueError("PREPARATION_EVIDENCE_INVALID")
+            return
+        if len(self.attempt_outcomes) != self.attempts_used:
             raise ValueError("ATTEMPT_OUTCOMES_LENGTH_INVALID")
-        if type(self.outcome_code) is PreparationCode and self.attempt_outcomes:
-            raise ValueError("PREPARATION_ATTEMPT_OUTCOMES_INVALID")
+        if self.source_id is None:
+            raise ValueError("PROVIDER_SOURCE_ID_REQUIRED")
+        if self.outcome_code is OutcomeCode.SUCCESS:
+            if not self.attempt_outcomes or self.attempt_outcomes[-1] is not OutcomeCode.SUCCESS:
+                raise ValueError("EVALUATION_SUCCESS_TRACE_INVALID")
+            if self.used_template_fallback:
+                raise ValueError("EVALUATION_FALLBACK_INVARIANT_INVALID")
+        elif not self.used_template_fallback:
+            raise ValueError("EVALUATION_FALLBACK_INVARIANT_INVALID")
 
 
 @dataclass(frozen=True, slots=True)

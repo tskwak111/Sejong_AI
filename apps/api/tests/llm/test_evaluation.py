@@ -173,7 +173,7 @@ def _assert_preparation_failure(
             PreparationCode.PRIVACY_UNRESOLVED,
             0,
             (OutcomeCode.TIMEOUT,),
-            "PREPARATION_ATTEMPT_OUTCOMES_INVALID",
+            "PREPARATION_EVIDENCE_INVALID",
         ),
     ],
 )
@@ -195,6 +195,136 @@ def test_evaluation_case_result_rejects_mutable_inconsistent_or_content_trace(
             source_id=None,
             used_template_fallback=False,
         )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected_error"),
+    [
+        ("outcome_code", "PRIVACY_UNRESOLVED", "EVALUATION_OUTCOME_CODE_INVALID"),
+        ("attempts_used", True, "EVALUATION_ATTEMPTS_USED_INVALID"),
+        ("usage", object(), "EVALUATION_USAGE_INVALID"),
+        ("latency_ms", True, "EVALUATION_LATENCY_INVALID"),
+        ("source_id", 1, "EVALUATION_SOURCE_ID_INVALID"),
+        ("source_id", "", "EVALUATION_SOURCE_ID_INVALID"),
+        ("used_template_fallback", 0, "EVALUATION_FALLBACK_FLAG_INVALID"),
+    ],
+)
+def test_evaluation_case_result_rejects_invalid_runtime_field_types(
+    field: str,
+    value: object,
+    expected_error: str,
+) -> None:
+    values: dict[str, object] = {
+        "fixture_id": "T-01",
+        "repetition": 1,
+        "outcome_code": PreparationCode.PRIVACY_UNRESOLVED,
+        "attempts_used": 0,
+        "attempt_outcomes": (),
+        "usage": TokenUsage(0, 0, 0),
+        "latency_ms": 0,
+        "source_id": None,
+        "used_template_fallback": False,
+    }
+    values[field] = value
+
+    with pytest.raises(ValueError, match=expected_error):
+        EvaluationCaseResult(**values)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("attempts_used", 1),
+        ("attempt_outcomes", (OutcomeCode.TIMEOUT,)),
+        ("usage", TokenUsage(1, 0, 0)),
+        ("latency_ms", 1),
+        ("source_id", "KB-MOVE-001"),
+        ("used_template_fallback", True),
+    ],
+)
+def test_preparation_result_rejects_any_nonzero_provider_evidence(
+    field: str,
+    value: object,
+) -> None:
+    values: dict[str, object] = {
+        "fixture_id": "T-01",
+        "repetition": 1,
+        "outcome_code": PreparationCode.PRIVACY_UNRESOLVED,
+        "attempts_used": 0,
+        "attempt_outcomes": (),
+        "usage": TokenUsage(0, 0, 0),
+        "latency_ms": 0,
+        "source_id": None,
+        "used_template_fallback": False,
+    }
+    values[field] = value
+
+    with pytest.raises(ValueError, match="PREPARATION_EVIDENCE_INVALID"):
+        EvaluationCaseResult(**values)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_error"),
+    [
+        ({"source_id": None}, "PROVIDER_SOURCE_ID_REQUIRED"),
+        ({"source_id": ""}, "EVALUATION_SOURCE_ID_INVALID"),
+        (
+            {"attempt_outcomes": (OutcomeCode.TIMEOUT,)},
+            "EVALUATION_SUCCESS_TRACE_INVALID",
+        ),
+        ({"used_template_fallback": True}, "EVALUATION_FALLBACK_INVARIANT_INVALID"),
+        (
+            {
+                "outcome_code": OutcomeCode.TIMEOUT,
+                "attempt_outcomes": (OutcomeCode.TIMEOUT,),
+                "used_template_fallback": False,
+            },
+            "EVALUATION_FALLBACK_INVARIANT_INVALID",
+        ),
+        (
+            {"attempts_used": 0, "attempt_outcomes": ()},
+            "EVALUATION_SUCCESS_TRACE_INVALID",
+        ),
+    ],
+)
+def test_provider_result_rejects_inconsistent_source_trace_or_fallback(
+    overrides: dict[str, object],
+    expected_error: str,
+) -> None:
+    values: dict[str, object] = {
+        "fixture_id": "T-01",
+        "repetition": 1,
+        "outcome_code": OutcomeCode.SUCCESS,
+        "attempts_used": 1,
+        "attempt_outcomes": (OutcomeCode.SUCCESS,),
+        "usage": TokenUsage(20, 0, 10),
+        "latency_ms": 10,
+        "source_id": "KB-MOVE-001",
+        "used_template_fallback": False,
+    }
+    values.update(overrides)
+
+    with pytest.raises(ValueError, match=expected_error):
+        EvaluationCaseResult(**values)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("code", [OutcomeCode.INPUT_LIMIT, OutcomeCode.ATTEMPT_CAP])
+def test_provider_preflight_result_accepts_empty_trace_with_official_source(
+    code: OutcomeCode,
+) -> None:
+    result = EvaluationCaseResult(
+        fixture_id="T-01",
+        repetition=1,
+        outcome_code=code,
+        attempts_used=0,
+        attempt_outcomes=(),
+        usage=TokenUsage(0, 0, 0),
+        latency_ms=0,
+        source_id="KB-MOVE-001",
+        used_template_fallback=True,
+    )
+
+    assert result.attempt_outcomes == ()
 
 
 @pytest.mark.asyncio
