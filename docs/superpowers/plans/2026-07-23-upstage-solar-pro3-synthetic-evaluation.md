@@ -18,7 +18,7 @@ aggregate metrics.
 existing Psycopg repository, standard-library `csv`, `decimal`, `json`, `asyncio`, `argparse`.
 
 - Plan ID: LLM-002-PLAN
-- Status: **In Progress — specification and execution plan approved; Tasks 1–4 review clean**
+- Status: **In Progress — specification and execution plan approved; Tasks 1–4.5 review clean**
 - Design:
   `docs/superpowers/specs/2026-07-23-upstage-solar-pro3-synthetic-evaluation-design.md`
 - ADR: `docs/adr/0022-upstage-solar-pro3-synthetic-evaluation.md`
@@ -914,20 +914,20 @@ GenerationOutcome.attempt_outcomes: tuple[OutcomeCode, ...]
 EvaluationCaseResult.attempt_outcomes: tuple[OutcomeCode, ...]
 ```
 
-- [ ] **Step 1: Write RED trace tests**
+- [x] **Step 1: Write RED trace tests**
 
 Prove retryable failure→SUCCESS preserves both content-free codes, timeout twice preserves two
 TIMEOUT codes, no-request preflight/cap and preparation failures preserve an empty tuple, and the
 evaluator copies the tuple without question/answer/body/exception content.
 
-- [ ] **Step 2: Enforce trace invariants**
+- [x] **Step 2: Enforce trace invariants**
 
 For every provider `GenerationOutcome`, `len(attempt_outcomes) == attempts_used`. Every reserved
 outbound request appends exactly one stable `OutcomeCode`; a successful outcome ends in SUCCESS.
 Preflight INPUT_LIMIT and cap-before-first-request have an empty trace. If a retryable failure is
 followed by ATTEMPT_CAP, preserve the prior attempt code and make final case code ATTEMPT_CAP.
 
-- [ ] **Step 3: Run focused/full LLM gates and independent review**
+- [x] **Step 3: Run focused/full LLM gates and independent review**
 
 Use frozen project uv for pytest, Ruff format/check and Mypy. The diff must not add loggers,
 strings from response/exception bodies, public routes, DB/data, dependencies, key or network use.
@@ -1051,7 +1051,7 @@ Patch all factories and assert:
 
 ```powershell
 & $uv run --project apps/api --frozen pytest apps/api/tests/llm/test_report.py -q
-python -B -m unittest scripts.tests.test_run_upstage_synthetic_evaluation -v
+& $uv run --project apps/api --frozen --offline python -B -m unittest scripts.tests.test_run_upstage_synthetic_evaluation -v
 ```
 
 Expected: import/script failures.
@@ -1164,18 +1164,11 @@ git commit -m "feat(llm): add safe synthetic evaluation runner"
 - [ ] **Step 1: Add architecture RED assertions**
 
 ```python
-from pathlib import Path
-
-
-def test_public_app_and_chat_do_not_import_llm_package() -> None:
-    for relative in (
-        "apps/api/src/sejong_ai_api/main.py",
-        "apps/api/src/sejong_ai_api/local.py",
-        "apps/api/src/sejong_ai_api/api/chat.py",
-        "apps/api/src/sejong_ai_api/chat/service.py",
-    ):
-        content = Path(relative).read_text(encoding="utf-8")
-        assert "sejong_ai_api.llm" not in content
+def test_public_app_import_does_not_transitively_load_llm_package() -> None:
+    # Run in an isolated subprocess like the existing architecture tests.
+    # Import default and local app modules, then assert no sys.modules key equals
+    # `sejong_ai_api.llm` or starts with `sejong_ai_api.llm.`.
+    ...
 
 
 def test_no_llm_http_router_exists() -> None:
@@ -1204,11 +1197,14 @@ Run with provider environment explicitly disabled:
 $env:LLM_PROVIDER = "disabled"
 $env:UPSTAGE_SYNTHETIC_EVALUATION_MODE = "false"
 try {
-  & $uv run --project apps/api --frozen pytest apps/api/tests -q
-  & $uv run --project apps/api --frozen ruff format --check apps/api/src apps/api/tests
-  & $uv run --project apps/api --frozen ruff check apps/api/src apps/api/tests
-  & $uv run --project apps/api --frozen mypy apps/api/src apps/api/tests
-  python -B -m unittest discover -s scripts/tests -p "test_*.py" -v
+  Remove-Item Env:SEJONG_DB_TEST_URL -ErrorAction SilentlyContinue
+  Remove-Item Env:SEJONG_ADMIN_DATABASE_URL -ErrorAction SilentlyContinue
+  Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+  & $uv run --project apps/api --frozen --offline pytest apps/api/tests -q -p no:cacheprovider
+  & $uv run --project apps/api --frozen --offline ruff format --check apps/api/src apps/api/tests
+  & $uv run --project apps/api --frozen --offline ruff check apps/api/src apps/api/tests
+  & $uv run --project apps/api --frozen --offline mypy apps/api/src apps/api/tests
+  & $uv run --project apps/api --frozen --offline python -B -m unittest discover -s scripts/tests -p "test_*.py" -v
 } finally {
   Remove-Item Env:LLM_PROVIDER -ErrorAction SilentlyContinue
   Remove-Item Env:UPSTAGE_SYNTHETIC_EVALUATION_MODE -ErrorAction SilentlyContinue
@@ -1221,13 +1217,21 @@ Expected: all relevant tests PASS; approved environment-specific skips are count
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check_secret_patterns.ps1 -RepositoryRoot .
-python -B scripts/check_repository_docs.py
+& $uv run --project apps/api --frozen --offline python -B scripts/check_repository_docs.py --repository-root .
+$env:COREPACK_ENABLE_NETWORK = "0"
+$env:COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"
+$env:PNPM_CONFIG_OFFLINE = "true"
+corepack.cmd pnpm install --frozen-lockfile --ignore-scripts --offline
 node scripts/check_web_prod_dependency_boundary.mjs
-git diff -- pnpm-lock.yaml apps/api/uv.lock contracts database supabase data
-git diff --check
+git diff --exit-code b318375 -- pnpm-lock.yaml package.json pnpm-workspace.yaml apps/web apps/api/pyproject.toml apps/api/uv.lock contracts database supabase data
+git diff --check b318375 --
 ```
 
-Expected: secret clean, docs PASS, dependency boundary PASS, protected diff empty, whitespace error 0.
+Also fail if any `apps/api/src` path differs from `b318375` outside
+`apps/api/src/sejong_ai_api/llm/`. Expected: secret clean, docs PASS, dependency boundary PASS,
+protected diff empty, whitespace error 0. Resolve `$uv` from Git common-dir; never fall back to the
+system Python 3.14 or a network install. Snapshot/restore prior environment values without printing
+them.
 
 - [ ] **Step 5: Update implementation versions**
 
@@ -1245,7 +1249,7 @@ evaluator is versioned through the application/prompt/test/documentation axes in
 - [ ] **Step 6: Review and commit**
 
 ```powershell
-git add apps/api/tests versions/manifest.json CHANGELOG.md README.md apps/api/README.md TASKS.md docs
+git add <exact Task 6 files only>
 git commit -m "test(llm): lock synthetic provider boundaries"
 ```
 
@@ -1525,6 +1529,8 @@ Still not approved:
   unchanged.
 - 2026-07-24: Task 4 commits `968fdbb` and `4ab5277`; focused 15/full LLM 61 and independent
   re-review clean after per-repetition ACTIVE/OFFICIAL grounding freshness fix.
+- 2026-07-24: Task 4.5 commits `0e04901` and `b8e32ae`; full LLM 93 and independent re-review
+  clean after strict preparation/provider evidence invariant fix.
 
 ## Result and Retrospective
 
@@ -1541,4 +1547,7 @@ Still not approved:
 - Task 5 preflight correction: design §6.2 attempt-level counts require a content-free attempt trace;
   Windows selector policy, readiness-before-provider, exact ten-score completeness and safe argument
   errors are explicit gates. Added Task 4.5 before report/runner implementation.
-- Next step: Task 4.5 content-free per-attempt evidence.
+- Task 6 preflight correction: use common-dir uv/Python 3.12.13 offline, compare protected paths from
+  execution base `b318375`, bootstrap Web dependencies offline, and assert transitive public import
+  isolation through `sys.modules`.
+- Next step: Task 5 text-free aggregate report and safe local runner.

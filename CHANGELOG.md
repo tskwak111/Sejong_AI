@@ -28,8 +28,11 @@
   ACTIVE-only retrieval/grounding path before every generation. Independent review caught and
   closed stale grounding reuse between repetitions. Task 5 preflight added a required content-free
   attempt trace and local runner/report integrity gates before actual use.
+- Task 4.5 preserves one content-free enum per outbound attempt and strictly reconciles preparation
+  and provider evidence. Independent review caught and closed mutable aggregate evidence that could
+  corrupt cost/source/fallback metrics; full LLM 93 tests passed.
 - Versions: product spec `2.4.0`, prompt selection
-  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.5`.
+  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.6`.
 
 ### Changed — MVP-001 local/private closeout
 
