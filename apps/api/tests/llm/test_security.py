@@ -42,7 +42,9 @@ OFFICIAL_KB_PATH = (
 RUNNER_PATH = REPOSITORY_ROOT / "scripts" / "run_upstage_synthetic_evaluation.py"
 RAW_PHONE = "010-1234-5678"
 KEY_SENTINEL = "task6-header-only-key-sentinel"
+PROMPT_CONTENT_SENTINEL = "task6-prompt-content-sentinel"
 PROVIDER_CONTENT_SENTINEL = "task6-provider-content-sentinel"
+_BASE_LOG_RECORD_KEYS = frozenset(logging.LogRecord("", 0, "", 0, "", (), None).__dict__)
 
 
 class _Repository:
@@ -162,6 +164,23 @@ def _fixture(*, question: str = "이사했는데 전입신고 어떻게 해요?"
     )
 
 
+def _log_record_representations(record: logging.LogRecord) -> tuple[str, ...]:
+    extras = tuple(
+        f"{key}={value!r}"
+        for key, value in record.__dict__.items()
+        if key not in _BASE_LOG_RECORD_KEYS
+    )
+    return (
+        record.getMessage(),
+        repr(record.msg),
+        repr(record.args),
+        repr(record.exc_info),
+        repr(record.exc_text),
+        repr(record.stack_info),
+        *extras,
+    )
+
+
 @pytest.mark.asyncio
 async def test_api_key_is_header_only_and_absent_from_outcome_report_repr_and_logs(
     grounded_fixture: GroundedFixture,
@@ -205,8 +224,15 @@ async def test_api_key_is_header_only_and_absent_from_outcome_report_repr_and_lo
     )
 
     assert len(seen) == 1
-    assert seen[0].headers["Authorization"] == f"Bearer {KEY_SENTINEL}"
-    assert KEY_SENTINEL.encode() not in seen[0].content
+    request = seen[0]
+    assert request.headers.get_list("Authorization") == [f"Bearer {KEY_SENTINEL}"]
+    assert KEY_SENTINEL not in str(request.url)
+    assert KEY_SENTINEL.encode() not in request.content
+    assert all(
+        KEY_SENTINEL not in value
+        for name, value in request.headers.multi_items()
+        if name.casefold() != "authorization"
+    )
     safe_evidence = "\n".join(
         (
             repr(settings),
@@ -242,7 +268,16 @@ async def test_provider_body_and_content_never_reach_python_logs(
     exact_settings: UpstageSyntheticSettings,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    def handler(_request: httpx.Request) -> httpx.Response:
+    prompt_fixture = GroundedFixture(
+        fixture_id=grounded_fixture.fixture_id,
+        masked_question=f"{grounded_fixture.masked_question} {PROMPT_CONTENT_SENTINEL}",
+        intent=grounded_fixture.intent,
+        record=grounded_fixture.record,
+    )
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
         return _provider_response(
             content=_answer_json(
                 summary=PROVIDER_CONTENT_SENTINEL,
@@ -259,14 +294,18 @@ async def test_provider_body_and_content_never_reach_python_logs(
             settings=exact_settings,
             client=client,
             budget=AttemptBudget(cap=30, concurrency=1),
-        ).generate(grounded_fixture)
+        ).generate(prompt_fixture)
 
     assert outcome.code is OutcomeCode.SCHEMA_INVALID
-    assert PROVIDER_CONTENT_SENTINEL not in caplog.text
+    assert len(seen) == 2
+    assert all(PROMPT_CONTENT_SENTINEL.encode() in request.content for request in seen)
+    forbidden_content = (PROMPT_CONTENT_SENTINEL, PROVIDER_CONTENT_SENTINEL)
+    assert all(sentinel not in caplog.text for sentinel in forbidden_content)
     assert all(
-        PROVIDER_CONTENT_SENTINEL not in str(value)
+        sentinel not in representation
         for record in caplog.records
-        for value in record.__dict__.values()
+        for representation in _log_record_representations(record)
+        for sentinel in forbidden_content
     )
 
 
@@ -316,7 +355,7 @@ async def test_t11_through_t20_have_zero_provider_calls() -> None:
     assert sum(fixture.fixture_id in excluded_ids for fixture in provider.fixtures) == 0
 
 
-def test_modified_t01_projection_fails_before_any_provider_call(tmp_path: Path) -> None:
+def test_modified_t01_projection_fails_before_provider_construction(tmp_path: Path) -> None:
     modified_path = tmp_path / "modified-sample.csv"
     original = SAMPLE_PATH.read_text(encoding="utf-8-sig")
     modified_path.write_text(
@@ -327,12 +366,17 @@ def test_modified_t01_projection_fails_before_any_provider_call(tmp_path: Path) 
         ),
         encoding="utf-8-sig",
     )
-    provider = _CaptureProvider()
+    provider_factory_calls = 0
+
+    def construct_provider(_fixtures: tuple[SyntheticFixture, ...]) -> _CaptureProvider:
+        nonlocal provider_factory_calls
+        provider_factory_calls += 1
+        return _CaptureProvider()
 
     with pytest.raises(ValueError, match="SYNTHETIC_FIXTURE_SET_INVALID"):
-        load_allowed_fixtures(modified_path)
+        construct_provider(load_allowed_fixtures(modified_path))
 
-    assert provider.fixtures == []
+    assert provider_factory_calls == 0
 
 
 def test_prompt_and_model_schema_exclude_server_owned_source_metadata(
@@ -449,7 +493,7 @@ def test_default_health_readiness_and_chat_never_construct_provider_transport(
     with TestClient(create_app()) as client:
         health = client.get("/health")
         ready = client.get("/ready")
-        chat = client.post(
+        invalid_override_chat = client.post(
             "/api/v1/chat",
             json={
                 "question": "전입신고는 어떻게 하나요?",
@@ -459,8 +503,13 @@ def test_default_health_readiness_and_chat_never_construct_provider_transport(
                 "attempt_cap": 999,
             },
         )
+        valid_default_chat = client.post(
+            "/api/v1/chat",
+            json={"question": "전입신고는 어떻게 하나요?"},
+        )
 
     assert health.status_code == 200
     assert ready.status_code == 503
-    assert chat.status_code == 422
+    assert invalid_override_chat.status_code == 422
+    assert valid_default_chat.status_code == 503
     assert async_client_constructions == 0
