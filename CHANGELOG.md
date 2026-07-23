@@ -14,8 +14,12 @@
 - D-066 records the user's written-specification approval and publishes the TDD execution plan for
   Review. The plan adds fail-closed input/output/attempt/cost limits and keeps implementation gated on
   a separate plan approval.
+- D-067 records execution approval. Task 1 adds the disabled-by-default exact Upstage settings gate;
+  focused 6 tests, Ruff, Mypy and independent re-review passed after malformed dotenv and non-string
+  runtime values were proven RED then fixed. No key, network, public route, DB/data, dependency or
+  lockfile was used or changed.
 - Versions: product spec `2.4.0`, prompt selection
-  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.1`.
+  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.2`.
 
 ### Changed — MVP-001 local/private closeout
 

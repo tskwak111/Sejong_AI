@@ -18,11 +18,11 @@ aggregate metrics.
 existing Psycopg repository, standard-library `csv`, `decimal`, `json`, `asyncio`, `argparse`.
 
 - Plan ID: LLM-002-PLAN
-- Status: **Review — written specification approved; execution approval pending**
+- Status: **In Progress — specification and execution plan approved; Task 1 review clean**
 - Design:
   `docs/superpowers/specs/2026-07-23-upstage-solar-pro3-synthetic-evaluation-design.md`
 - ADR: `docs/adr/0022-upstage-solar-pro3-synthetic-evaluation.md`
-- Decision: Q-LLM-005=A / D-065 / D-066
+- Decision: Q-LLM-005=A / D-065 / D-066 / D-067
 - Base: `b318375` on `codex/LLM-002-upstage-synthetic-evaluation`
 
 ## Global Constraints
@@ -109,7 +109,7 @@ or import `sejong_ai_api.llm` from `main.py`, `local.py`, `api/chat.py` or `chat
   env_path: Path | None = None) -> UpstageSyntheticSettings | None`
 - Produces: immutable `UpstageSyntheticSettings` with redacted `repr`
 
-- [ ] **Step 1: Write the settings RED tests**
+- [x] **Step 1: Write the settings RED tests**
 
 ```python
 from pathlib import Path
@@ -167,7 +167,7 @@ def test_disabled_or_non_exact_values_fail_closed() -> None:
         assert load_upstage_synthetic_settings(environ=candidate, env_path=Path("missing")) is None
 ```
 
-- [ ] **Step 2: Run the tests and verify RED**
+- [x] **Step 2: Run the tests and verify RED**
 
 Run:
 
@@ -177,7 +177,7 @@ Run:
 
 Expected: collection/import failure because `sejong_ai_api.llm.settings` does not exist.
 
-- [ ] **Step 3: Implement exact immutable settings**
+- [x] **Step 3: Implement exact immutable settings**
 
 Use this public shape and constants:
 
@@ -247,7 +247,7 @@ UPSTAGE_SYNTHETIC_EVALUATION_MODE=false
 Remove the two obsolete `DEEPSEEK_*` example assignments and `LLM_THINKING_ENABLED`; do not touch
 the ignored real `.env`.
 
-- [ ] **Step 4: Run focused and static gates**
+- [x] **Step 4: Run focused and static gates**
 
 Run:
 
@@ -259,7 +259,7 @@ Run:
 
 Expected: all tests PASS, Ruff exit 0, Mypy exit 0.
 
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
 
 Verify `git diff -- apps/api/.env.example apps/api/src/sejong_ai_api/llm apps/api/tests/llm` contains
 no key value, route or dependency change.
@@ -1402,9 +1402,9 @@ Already approved:
 - Upstage direct `solar-pro3` synthetic-first boundary
 - no new production dependency
 
-Required before implementation:
+Approved before implementation:
 
-- this execution plan
+- this execution plan — D-067
 
 Required during execution:
 
@@ -1439,9 +1439,14 @@ Still not approved:
 - 2026-07-23: PR #6 merge `c3fd2ee` verified.
 - 2026-07-23: Q-LLM-005=A recorded as D-065; written design committed at `b318375`.
 - 2026-07-23: user approved the written specification; D-066 and this Review plan created.
+- 2026-07-23~24: user approved execution by consecutive continue instructions; D-067.
+- 2026-07-24: Task 1 commits `9318f7f` and `4bdc68d`; focused 6/Ruff/Mypy and independent
+  re-review clean after malformed-dotenv/non-string fail-closed fixes.
 
 ## Result and Retrospective
 
-- Actual result: not executed; product code/key/network call remain zero at plan publication.
-- Plan deviation: none at publication.
-- Next step: user reviews and approves this plan, then implementation starts with Task 1 RED tests.
+- Actual provider result: not executed; API key/network call remain zero.
+- Plan deviation: linked-worktree `uv` lookup was corrected through Git common-dir discovery; Task 1
+  independent review found and closed one Important malformed-dotenv gap plus a controller-found
+  non-string fail-closed gap.
+- Next step: Task 2 strict output, source-free prompt, input upper-bound and Decimal cost contracts.
