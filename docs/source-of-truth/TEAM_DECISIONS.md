@@ -76,7 +76,8 @@
 - 마스킹 성공은 저장·합성 fixture provider 호출의 필요조건일 뿐 충분조건이 아니며 실제 시민 질문의 외부 LLM 전송 금지는 유지한다.
 - Q-LLM-005=A: 외부 합성 평가 공급자는 Upstage exact `solar-pro3`다. local/private의 서버
   검증 canonical `T-01`~`T-10`만 최대 30 outbound attempt로 평가하며 실제 시민·PII·민감정보·
-  자유 입력·공개 운영은 금지한다. 평가 통과 뒤에도 실제 시민 연결은 선택지 B의 별도 승인 대상이다.
+  자유 입력·공개 운영은 금지한다. D-066으로 written specification은 승인됐고 실행계획은 Review다.
+  평가 통과 뒤에도 실제 시민 연결은 선택지 B의 별도 승인 대상이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 
 ## 기술
@@ -180,7 +181,8 @@
   deterministic sample T-01~T-20 20/20을 PASS했다.
 - MVP-001은 local/private AI scope complete의 **Review**다. PR #6은 2026-07-23 병합됐고 manual
   demo와 accessibility는 인간 Pending이다. Upstage actual 합성 평가는 LLM-002의 승인된
-  명세·계획 뒤 별도이며 100-user, automated backup, advanced UI,
+  명세와 별도 승인된 실행계획 뒤에만 가능하며 현재 실행계획은 Review다. 100-user,
+  automated backup, advanced UI,
   public/remote deploy와 `00700`은 deferred다. local role selector는 production authentication이 아니다.
 
 ## 제출 정보

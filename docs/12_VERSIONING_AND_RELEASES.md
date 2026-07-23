@@ -62,7 +62,7 @@ database_schema: 0.4.0-local
 official_data: 0.1.0-initial.2
 prompt_set: 0.0.3-upstage-solar-pro3-synthetic-selected
 test_suite: 1.2.1-core-loop-closeout
-documentation: 2.13.0
+documentation: 2.13.1
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -78,9 +78,9 @@ manual demo·accessibility와 public/remote/provider/`00700` readiness를 뜻하
 구현·검증은 계속 별도 public blocker다.
 
 Q-LLM-005=A/D-065/ADR-0022로 product spec `2.4.0`, prompt selection
-`0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.0`을 기록했다. 이는
-Upstage 합성 평가의 승인된 설계일 뿐 adapter, prompt, key, network call 또는 실제 시민 provider
-연결이 구현됐다는 뜻이 아니다.
+`0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했고, D-066의 명세 승인과 Review 실행계획
+발행으로 documentation을 `2.13.1`로 올렸다. 이는 Upstage 합성 평가의 승인된 명세와 실행계획일
+뿐 adapter, prompt, key, network call 또는 실제 시민 provider 연결이 구현됐다는 뜻이 아니다.
 
 ## 릴리스 체크
 

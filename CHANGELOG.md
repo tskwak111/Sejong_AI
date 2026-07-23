@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-### Changed — LLM-002 Upstage synthetic evaluation design
+### Changed — LLM-002 Upstage synthetic evaluation design and plan
 
 - Q-LLM-005=A/D-065/ADR-0022 supersedes the unimplemented DeepSeek provider/model choice with
   Upstage exact `solar-pro3` for a local/private, server-allowlisted synthetic evaluation only.
@@ -11,8 +11,11 @@
   deterministic fallback and no-content logging remain mandatory.
 - Product code, API/DB/data, dependencies, secrets and network calls remain unchanged. Actual citizen,
   free-input, public or remote provider use requires separate option B approval after evidence review.
+- D-066 records the user's written-specification approval and publishes the TDD execution plan for
+  Review. The plan adds fail-closed input/output/attempt/cost limits and keeps implementation gated on
+  a separate plan approval.
 - Versions: product spec `2.4.0`, prompt selection
-  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.0`.
+  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.1`.
 
 ### Changed — MVP-001 local/private closeout
 
