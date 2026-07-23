@@ -16,6 +16,8 @@ _CANDIDATE_ID = "20000000-0000-4000-8000-000000000001"
 _SOURCE_URL = "https://www.sjwaste.kr/wasteApp/appCategoryPopup.do?menuId=MENU00305"
 _SECRET = "synthetic-context-secret-value-000000"
 _DSN = "postgresql://sejong_local_login:" + "synthetic@127.0.0.1:54322/postgres"
+_PERSONAL_QUESTION = "내 자동차세 체납액 알려줘."
+_PERSONAL_IDEMPOTENCY_KEY = "67000000-0000-4000-8000-000000000000"
 
 
 def _runner() -> ModuleType:
@@ -47,14 +49,17 @@ class FakeRuntime:
         self,
         responses: list[FakeResponse],
         projections: list[Mapping[str, tuple[str, ...]]],
+        persistence_counts: list[Mapping[str, int]] | None = None,
         events: list[str] | None = None,
     ) -> None:
         self.responses = list(responses)
         self.projections = list(projections)
+        self.persistence_counts = list(persistence_counts or [])
         self.events = events if events is not None else []
         self.requests: list[
             tuple[str, str, Mapping[str, str] | None, Mapping[str, object] | None]
         ] = []
+        self.persistence_count_request_positions: list[int] = []
 
     def __enter__(self) -> FakeRuntime:
         self.events.append("enter")
@@ -86,6 +91,12 @@ class FakeRuntime:
             raise AssertionError("unexpected ACTIVE projection read")
         return self.projections.pop(0)
 
+    def read_persistence_counts(self) -> Mapping[str, int]:
+        self.persistence_count_request_positions.append(len(self.requests))
+        if not self.persistence_counts:
+            raise AssertionError("unexpected persistence count read")
+        return self.persistence_counts.pop(0)
+
 
 def _fallback(request_id: str) -> FakeResponse:
     return FakeResponse(
@@ -97,6 +108,29 @@ def _fallback(request_id: str) -> FakeResponse:
             "fallback": {
                 "reason": "INSUFFICIENT_GROUNDING",
                 "candidate_eligible": True,
+            },
+            "sources": [],
+        },
+    )
+
+
+def _personal_fallback(
+    *,
+    status_code: int = 200,
+    answer_status: str = "FALLBACK",
+    intent: str = "UNKNOWN",
+    reason: str = "PERSONAL_LOOKUP",
+    candidate_eligible: bool = False,
+) -> FakeResponse:
+    return FakeResponse(
+        status_code,
+        {
+            "request_id": "10000000-0000-4000-8000-000000000010",
+            "answer_status": answer_status,
+            "intent": intent,
+            "fallback": {
+                "reason": reason,
+                "candidate_eligible": candidate_eligible,
             },
             "sources": [],
         },
@@ -141,10 +175,16 @@ def _final_projection() -> dict[str, tuple[str, ...]]:
     return projection
 
 
-def _success_runtime(events: list[str] | None = None) -> FakeRuntime:
+def _success_runtime(
+    events: list[str] | None = None,
+    *,
+    personal_response: FakeResponse | None = None,
+    persistence_counts: list[Mapping[str, int]] | None = None,
+) -> FakeRuntime:
     return FakeRuntime(
         responses=[
             FakeResponse(200, {"status": "ready"}),
+            personal_response or _personal_fallback(),
             _fallback("10000000-0000-4000-8000-000000000011"),
             _fallback("10000000-0000-4000-8000-000000000012"),
             FakeResponse(
@@ -170,6 +210,11 @@ def _success_runtime(events: list[str] | None = None) -> FakeRuntime:
             _fallback("10000000-0000-4000-8000-000000000013"),
         ],
         projections=[_initial_projection(), _final_projection()],
+        persistence_counts=persistence_counts
+        or [
+            {"interaction_events": 8, "failed_questions": 3},
+            {"interaction_events": 8, "failed_questions": 3},
+        ],
         events=events,
     )
 
@@ -183,6 +228,7 @@ def test_full_actual_http_workflow_is_exact_and_outputs_only_stable_evidence() -
     assert lines == (
         "PASS ready",
         "PASS initial-active count=19",
+        "PASS personal-lookup no-storage",
         "PASS initial-fallback",
         "PASS business-replay",
         "PASS failed-new count=1",
@@ -198,10 +244,13 @@ def test_full_actual_http_workflow_is_exact_and_outputs_only_stable_evidence() -
     assert runtime.events == ["enter", "exit"]
     assert runtime.responses == []
     assert runtime.projections == []
+    assert runtime.persistence_counts == []
+    assert runtime.persistence_count_request_positions == [1, 2]
 
     calls = runtime.requests
     assert [(method, path) for method, path, _headers, _json in calls] == [
         ("GET", "/ready"),
+        ("POST", "/api/v1/chat"),
         ("POST", "/api/v1/chat"),
         ("POST", "/api/v1/chat"),
         (
@@ -241,25 +290,30 @@ def test_full_actual_http_workflow_is_exact_and_outputs_only_stable_evidence() -
             "매트리스 포함 가격이나 실제 규격을 단정하지 않습니다."
         ),
     }
-    assert calls[5][3] == expected_candidate
-    assert "public_id" not in calls[5][3]
-    assert calls[7][2] == {
+    assert calls[6][3] == expected_candidate
+    assert "public_id" not in calls[6][3]
+    assert calls[8][2] == {
         "X-Demo-Actor-Id": "OPERATOR-LOCAL-001",
         "X-Demo-Role": "APPROVER",
     }
-    assert calls[8][2] == {
+    assert calls[9][2] == {
         "X-Demo-Actor-Id": "PM-LOCAL-001",
         "X-Demo-Role": "APPROVER",
     }
-    assert calls[1][2] == calls[2][2] == calls[10][2]
-    assert calls[9][2] != calls[1][2]
+    assert calls[1][2] == {"Idempotency-Key": _PERSONAL_IDEMPOTENCY_KEY}
+    assert calls[2][2] == calls[3][2] == calls[11][2]
+    assert calls[10][2] != calls[2][2]
+    assert calls[1][3] == {"question": _PERSONAL_QUESTION}
     expected_chat_body = {"question": "침대 2인용 프레임 수수료가 얼마예요?"}
-    for index in (1, 2, 9, 10):
+    for index in (2, 3, 10, 11):
         assert calls[index][3] == expected_chat_body
 
     output = "\n".join(lines)
     for forbidden in (
         runner._RESERVED_QUESTION,
+        _PERSONAL_QUESTION,
+        _PERSONAL_IDEMPOTENCY_KEY,
+        "10000000-0000-4000-8000-000000000010",
         _SOURCE_URL,
         _FAILURE_ID,
         _CANDIDATE_ID,
@@ -267,6 +321,62 @@ def test_full_actual_http_workflow_is_exact_and_outputs_only_stable_evidence() -
         _DSN,
     ):
         assert forbidden not in output
+
+
+@pytest.mark.parametrize(
+    ("personal_response", "expected_step"),
+    [
+        (_personal_fallback(status_code=503), "PERSONAL_LOOKUP"),
+        (_personal_fallback(answer_status="SUCCESS"), "PERSONAL_LOOKUP"),
+        (_personal_fallback(intent="LOCAL_TAX_GENERAL"), "PERSONAL_LOOKUP"),
+        (_personal_fallback(reason="INSUFFICIENT_GROUNDING"), "PERSONAL_LOOKUP"),
+        (_personal_fallback(candidate_eligible=True), "PERSONAL_LOOKUP"),
+    ],
+)
+def test_personal_lookup_contract_is_checked_before_insufficient_grounding(
+    personal_response: FakeResponse,
+    expected_step: str,
+) -> None:
+    runner = _runner()
+    runtime = _success_runtime(personal_response=personal_response)
+
+    with pytest.raises(runner._RegressionFailed, match=f"^{expected_step}$"):
+        runner.run_regression(runtime)
+
+    assert runtime.persistence_count_request_positions == [1]
+    assert [(method, path) for method, path, _headers, _json in runtime.requests] == [
+        ("GET", "/ready"),
+        ("POST", "/api/v1/chat"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "after_counts",
+    [
+        {"interaction_events": 9, "failed_questions": 3},
+        {"interaction_events": 8, "failed_questions": 4},
+    ],
+)
+def test_personal_lookup_persistence_delta_stops_before_improvement_workflow(
+    after_counts: Mapping[str, int],
+) -> None:
+    runner = _runner()
+    runtime = _success_runtime(
+        persistence_counts=[
+            {"interaction_events": 8, "failed_questions": 3},
+            after_counts,
+        ]
+    )
+
+    with pytest.raises(runner._RegressionFailed, match="^PERSONAL_STORAGE$"):
+        runner.run_regression(runtime)
+
+    assert runtime.persistence_counts == []
+    assert runtime.persistence_count_request_positions == [1, 2]
+    assert [(method, path) for method, path, _headers, _json in runtime.requests] == [
+        ("GET", "/ready"),
+        ("POST", "/api/v1/chat"),
+    ]
 
 
 @pytest.mark.parametrize(
