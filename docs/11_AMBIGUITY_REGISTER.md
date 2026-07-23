@@ -47,7 +47,7 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-041 | B / High | 범위 밖 개인조회·법적판단 표현 | Resolved / Q-MVP-002=A | 공개 응답은 `intent=UNKNOWN`+정확한 정책 reason, 후보 false; local MVP에서 text/event/failed row 0 | D-059/ADR-0021; sample T-16~T-18 실행 승인 |
 | A-042 | A / Blocker | 관리자 DB read capability | Resolved / Q-DB-004=A | local/private 전용 `00650` migration+rollback+pgTAP+repository adapter 승인 | D-060/ADR-0021; public admin/remote/00700 불변 |
 | A-043 | B / High | chat 재시도 idempotency | Resolved / Q-API-002=A | optional UUID header, Web retry key 유지, correlation 분리, `00660` durable dedupe 승인 | D-061/ADR-0021; raw question 저장 0, local 24h TTL |
-| A-044 | A / Blocker | LLM 공급자 전환·실사용 경계 | Resolved plan / implementation In Progress | Q-LLM-005=A, 명세·계획 승인: Upstage exact `solar-pro3`를 canonical `T-01`~`T-10` local/private 합성 평가에만 사용해 한국어·strict JSON·비용을 먼저 판정 | D-065~D-067/ADR-0022/LLM-002 plan. Task 1 settings complete; key/network call 0. actual 시민/free-input/public/remote 연결은 선택지 B 별도 승인 |
+| A-044 | A / Blocker | LLM 공급자 전환·실사용 경계 | Resolved plan / offline implementation complete | Q-LLM-005=A, 명세·계획 승인: Upstage exact `solar-pro3`를 canonical `T-01`~`T-10` local/private 합성 평가에만 사용해 한국어·strict JSON·비용을 먼저 판정 | D-065~D-067/ADR-0022/LLM-002 plan. offline Tasks 1~6 review clean; key/network call 0. Task 7 local human actual과 시민/free-input/public/remote 선택지 B는 별도 |
 
 ## 우선도 정의
 

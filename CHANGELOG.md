@@ -34,8 +34,13 @@
 - Task 5 adds the explicit text-free aggregate and a Windows-safe, readiness-before-provider local
   runner. Independent review caught and closed human FAIL, per-case trace and forged token PASS
   paths; report 30, runner 14 and full LLM 123 tests passed with actual DB/key/network use zero.
-- Versions: product spec `2.4.0`, prompt selection
-  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.7`.
+- Task 6 locks public-import isolation, provider-key/log/PII/source boundaries, strict attempt caps and
+  safe `/api/v1/chat` failure behavior. The focused security/architecture slice passed 23 tests plus
+  5 subtests, full API passed 1,782 with 8 approved local-DB skips plus 5 subtests, and independent
+  review found no remaining issue. Actual provider/key/network/model-quality evidence remains pending.
+- Versions: application `0.7.0-local-synthetic-evaluator`, prompt
+  `0.1.0-upstage-solar-pro3-synthetic`, tests `1.3.0-upstage-synthetic-evaluator`, documentation
+  `2.14.0`; public API, DB, official data and Web remain unchanged.
 
 ### Changed — MVP-001 local/private closeout
 

@@ -18,7 +18,7 @@ aggregate metrics.
 existing Psycopg repository, standard-library `csv`, `decimal`, `json`, `asyncio`, `argparse`.
 
 - Plan ID: LLM-002-PLAN
-- Status: **In Progress — specification and execution plan approved; Tasks 1–5 review clean**
+- Status: **In Progress — specification and execution plan approved; offline Tasks 1–6 review clean**
 - Design:
   `docs/superpowers/specs/2026-07-23-upstage-solar-pro3-synthetic-evaluation-design.md`
 - ADR: `docs/adr/0022-upstage-solar-pro3-synthetic-evaluation.md`
@@ -1161,7 +1161,7 @@ git commit -m "feat(llm): add safe synthetic evaluation runner"
 - Consumes: Tasks 1–5
 - Produces: offline-verified evaluator with provider disabled by default
 
-- [ ] **Step 1: Add architecture RED assertions**
+- [x] **Step 1: Add architecture RED assertions**
 
 ```python
 def test_public_app_import_does_not_transitively_load_llm_package() -> None:
@@ -1175,7 +1175,7 @@ def test_no_llm_http_router_exists() -> None:
     assert not Path("apps/api/src/sejong_ai_api/api/llm.py").exists()
 ```
 
-- [ ] **Step 2: Add security matrix**
+- [x] **Step 2: Add security matrix**
 
 Use `httpx.MockTransport` and sentinel strings to prove:
 
@@ -1189,7 +1189,7 @@ Use `httpx.MockTransport` and sentinel strings to prove:
 - 30th attempt may execute and 31st cannot reach transport
 - calling health/readiness and constructing/importing the default app causes zero transport calls
 
-- [ ] **Step 3: Run the entire API and root focused suite offline**
+- [x] **Step 3: Run the entire API and root focused suite offline**
 
 Run with provider environment explicitly disabled:
 
@@ -1213,7 +1213,7 @@ try {
 
 Expected: all relevant tests PASS; approved environment-specific skips are counted and recorded.
 
-- [ ] **Step 4: Run secret/dependency/contract drift gates**
+- [x] **Step 4: Run secret/dependency/contract drift gates**
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check_secret_patterns.ps1 -RepositoryRoot .
@@ -1233,7 +1233,7 @@ protected diff empty, whitespace error 0. Resolve `$uv` from Git common-dir; nev
 system Python 3.14 or a network install. Snapshot/restore prior environment values without printing
 them.
 
-- [ ] **Step 5: Update implementation versions**
+- [x] **Step 5: Update implementation versions**
 
 Set:
 
@@ -1246,7 +1246,7 @@ Keep the internal API package `0.4.0`, public `api=3.1.0-draft`, shared contract
 data and Web unchanged. Do not modify `apps/api/pyproject.toml` or regenerate `uv.lock`; the isolated
 evaluator is versioned through the application/prompt/test/documentation axes in the manifest.
 
-- [ ] **Step 6: Review and commit**
+- [x] **Step 6: Review and commit**
 
 ```powershell
 git add <exact Task 6 files only>
@@ -1552,4 +1552,10 @@ Still not approved:
 - Task 6 preflight correction: use common-dir uv/Python 3.12.13 offline, compare protected paths from
   execution base `b318375`, bootstrap Web dependencies offline, and assert transitive public import
   isolation through `sys.modules`.
-- Next step: Task 6 offline security, architecture and regression gates.
+- Task 6 result: security/architecture slice 23 passed plus 5 subtests; full API 1,782 passed with
+  8 approved local-DB skips and 5 subtests; Ruff/Mypy passed. Root 422-test run exposed one stale
+  DeepSeek environment expectation, fixed at `a249b50`; its 20-test security module then passed.
+  Two linked-worktree exact-runtime cases were environment-specific because the ignored Supabase
+  binary is not copied into worktrees; both exact tests passed in the primary checkout.
+- Actual key, provider network, remote/public route and model-quality verdict remain zero/pending.
+- Next step: Task 7 local-only human actual evaluation after the independent MVP demo evidence lane.

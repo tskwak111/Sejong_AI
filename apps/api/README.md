@@ -33,7 +33,9 @@
 local app factory는 `DATABASE_URL`과 최소 32-byte `CONTEXT_TOKEN_SECRET`만 allowlist로
 읽는다. 둘 중 하나라도 없거나 유효하지 않으면 `/ready`와 `/api/v1/chat`을 503으로 닫는다.
 외부 provider는 기본 비활성이고 현재 결정론적 MVP 경로에서 호출하지 않는다. Q-LLM-005=A의
-Upstage `solar-pro3` 합성 평가 adapter/runner는 승인된 LLM-002 실행계획 전까지 미구현이다.
+Upstage exact `solar-pro3` adapter/evaluator/runner는 local/private synthetic-only로 구현돼
+offline security/architecture review를 통과했지만 실제 key/network/model-quality 평가는 아직
+실행하지 않았다. 시민 자유입력·public/remote provider 연결은 별도 승인 전까지 금지한다.
 
 DB-001 `0.4.0-local`의 Docker-backed 검증 gate는 실제 single loopback binding을
 reset 전에 먼저 확인하고, 안전할 때만 로컬 DB reset 뒤

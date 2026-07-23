@@ -181,8 +181,9 @@
   1,640, Web 48/lint/type/build/E2E 15, contracts 89, clean DB pgTAP 9/356·integration 8/8, root offline과
   deterministic sample T-01~T-20 20/20을 PASS했다.
 - MVP-001은 local/private AI scope complete의 **Review**다. PR #6은 2026-07-23 병합됐고 manual
-  demo와 accessibility는 인간 Pending이다. Upstage actual 합성 평가는 LLM-002의 승인된
-  명세와 실행계획으로 offline 구현 중이며 actual call은 Tasks 1~6과 local human gate 뒤다. 100-user,
+  demo와 accessibility는 인간 Pending이다. Upstage 합성 평가는 LLM-002의 승인된 명세와
+  실행계획으로 offline Tasks 1~6 review clean이며 key/network/model-quality actual은 0이다.
+  actual call은 local human Task 7 gate 뒤다. 100-user,
   automated backup, advanced UI,
   public/remote deploy와 `00700`은 deferred다. local role selector는 production authentication이 아니다.
 

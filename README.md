@@ -85,8 +85,11 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
   HTTPS 전용 공식 링크와 local/private admin envelope를 판별 union으로 동결했다. DB executable authority는 timestamp
   migrations이며 `database/`의 `0.4.0-local` projection은 실제 검증된 local 기준선의 읽기용
   투영이다. 공개·원격 DB 기준선이나 production readiness를 뜻하지 않는다.
-- Q-LLM-005=A로 외부 합성 평가 공급자는 Upstage exact `solar-pro3`다. 구현·actual call 전
-  명세/계획 승인이 필요하며, 실제 시민·공개 경로는 계속 deterministic disabled/template provider다.
+- Q-LLM-005=A로 외부 합성 평가 공급자는 Upstage exact `solar-pro3`다. 승인된 offline Tasks
+  1~6은 fail-closed 설정, strict source-free JSON, bounded HTTPX, grounded evaluator,
+  content-free report/runner와 security/architecture gate까지 review clean이다. key/network/model
+  quality actual은 아직 0이며 Task 7 local human gate 전에는 실행하지 않는다. 실제 시민·공개
+  경로는 계속 deterministic disabled/template provider다.
 - 권장 배포는 Vercel + Render + Supabase이며 실제 계정·리전·비밀값은 별도 확인이 필요함.
 - Q-SEC-003=A/D-046으로 exact privileged function 22 signatures의 property-only `00700`
   hardening 방향은 확정됐지만 public 준비까지 구현을 보류했다. 그전에는 local/private 전용이며
