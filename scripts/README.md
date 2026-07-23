@@ -12,6 +12,26 @@ python -B scripts/validate_data_staging.py validate --draft-dir data/staging/dat
 
 위 Python 유틸리티와 `scripts/tests/`의 저장소 경계 검사는 Python 표준 라이브러리만 사용한다.
 
+## Upstage 합성 평가 runner
+
+```powershell
+python -B scripts/run_upstage_synthetic_evaluation.py
+python -B scripts/run_upstage_synthetic_evaluation.py --review
+```
+
+이 runner는 local/private 환경의 exact Upstage `solar-pro3` 설정과 canonical
+`data/evaluation/sample_questions_20.csv`의 `T-01`~`T-10`만 사용한다. local DB readiness가
+PASS한 뒤에만 client/provider를 만들며, 모델·URL·key·fixture·출력 경로·cap·질문은 CLI로 받을 수
+없다. `--review`는 stdin/stdout이 모두 TTY인 경우에만 첫 valid 합성 결과 10건을 메모리에서
+검수하고 1~5점과 closed reason code만 받는다.
+
+본문 없는 aggregate JSON은 고정 ignored 경로
+`artifacts/llm-002/upstage-synthetic-evaluation.json`에 원자적으로 기록된다. 정상 종료는
+`LLM_EVALUATION_COMPLETE`, 고정 `REPORT`, `OVERALL_PASS` 세 줄만 출력한다. 설정/인수/TTY 오류는
+exit `2`, local DB/readiness 오류는 exit `3`, 실행·무결성 오류는 exit `4`이며 오류 상세·key·DSN·
+질문·답변은 출력하지 않는다. 이 도구는 실제 시민/free-input/public/remote provider 연결을
+활성화하지 않는다.
+
 ## 협업 전환 검사기
 
 ### 전체 reachable Git history 비밀 검사
