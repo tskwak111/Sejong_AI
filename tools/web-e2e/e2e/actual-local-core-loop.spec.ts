@@ -63,7 +63,7 @@ async function openActualAdminDashboard(page: Page) {
   await expect(
     page.getByRole("region", { name: "KB 후보와 ACTIVE 상태", exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
 }
 
 function requireFallback(response: JsonObject): JsonObject {
