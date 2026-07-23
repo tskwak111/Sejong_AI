@@ -1,4 +1,6 @@
+from collections.abc import Mapping
 from pathlib import Path
+from typing import cast
 
 from sejong_ai_api.llm.settings import UpstageSyntheticSettings, load_upstage_synthetic_settings
 
@@ -95,3 +97,19 @@ def test_duplicate_allowlisted_dotenv_assignment_fails_closed(tmp_path: Path) ->
     )
 
     assert load_upstage_synthetic_settings(environ={}, env_path=env_path) is None
+
+
+def test_malformed_allowlisted_dotenv_assignments_fail_closed(
+    tmp_path: Path,
+) -> None:
+    for assignment in ("LLM_PROVIDER", "LLM_PROVIDER =upstage", "=upstage"):
+        env_path = tmp_path / ".env"
+        env_path.write_text(assignment, encoding="utf-8")
+
+        assert load_upstage_synthetic_settings(environ=VALID, env_path=env_path) is None
+
+
+def test_non_string_runtime_value_fails_closed() -> None:
+    malformed = cast(Mapping[str, str], {**VALID, "LLM_PROVIDER": 1})
+
+    assert load_upstage_synthetic_settings(environ=malformed, env_path=Path("missing")) is None

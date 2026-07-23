@@ -98,16 +98,22 @@ def _load_dotenv(path: Path) -> dict[str, str] | None:
         if not line or line.startswith("#"):
             continue
         key, separator, value = line.partition("=")
-        if separator and key in _SETTINGS_KEYS:
+        normalized_key = key.strip()
+        if not key:
+            return None
+        if normalized_key in _SETTINGS_KEYS:
+            if not separator or key != normalized_key:
+                return None
             if key in values or not _is_safe_value(value):
                 return None
             values[key] = value
     return values
 
 
-def _is_safe_value(value: str) -> bool:
+def _is_safe_value(value: object) -> bool:
     return (
-        value == value.strip()
+        isinstance(value, str)
+        and value == value.strip()
         and "\x00" not in value
         and "\r" not in value
         and "\n" not in value
