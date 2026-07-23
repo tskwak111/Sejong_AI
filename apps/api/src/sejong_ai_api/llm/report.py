@@ -11,6 +11,7 @@ from sejong_ai_api.llm.evaluation import (
     EvaluationRun,
     ReviewSample,
 )
+from sejong_ai_api.llm.fixtures import PreparationCode
 from sejong_ai_api.llm.prompt import PROMPT_VERSION
 from sejong_ai_api.llm.settings import UPSTAGE_MODEL, UPSTAGE_PROVIDER
 
@@ -46,6 +47,17 @@ _RUN_BLOCKING_CODES = frozenset(
     {
         OutcomeCode.INPUT_LIMIT,
         OutcomeCode.ATTEMPT_CAP,
+    }
+)
+_RETRYABLE_ATTEMPT_CODES = frozenset(
+    {
+        OutcomeCode.TIMEOUT,
+        OutcomeCode.TRANSPORT,
+        OutcomeCode.RATE_LIMIT,
+        OutcomeCode.HTTP_ERROR,
+        OutcomeCode.EMPTY,
+        OutcomeCode.TRUNCATED,
+        OutcomeCode.SCHEMA_INVALID,
     }
 )
 
@@ -251,8 +263,12 @@ def _build_acceptance(
     every_review_sample_has_success = all(
         sample.fixture_id in successful_fixture_ids for sample in run.review_samples
     )
+    every_case_attempt_evidence_valid = all(_attempt_evidence_is_valid(case) for case in run.cases)
     decisions_are_derived = all(
         score.decision == ("PASS" if score.reason_code == "OK" else "FAIL") for score in scores
+    )
+    every_score_passed = score_complete and all(
+        score.decision == "PASS" and score.reason_code == "OK" for score in scores
     )
 
     overall_pass = all(
@@ -268,7 +284,9 @@ def _build_acceptance(
             no_preparation_or_terminal,
             every_provider_failure_fell_back,
             every_review_sample_has_success,
+            every_case_attempt_evidence_valid,
             decisions_are_derived,
+            every_score_passed,
         )
     )
     return {
@@ -279,6 +297,28 @@ def _build_acceptance(
         "cost_within_cap": cost_within_cap,
         "overall_pass": overall_pass,
     }
+
+
+def _attempt_evidence_is_valid(case: EvaluationCaseResult) -> bool:
+    if case.attempts_used > 2 or len(case.attempt_outcomes) != case.attempts_used:
+        return False
+    if type(case.outcome_code) is PreparationCode:
+        return case.attempts_used == 0 and not case.attempt_outcomes
+
+    outcome = case.outcome_code
+    trace = case.attempt_outcomes
+    if outcome is OutcomeCode.ATTEMPT_CAP:
+        return (not trace and case.attempts_used == 0) or (
+            len(trace) == 1 and trace[0] in _RETRYABLE_ATTEMPT_CODES
+        )
+    if outcome is OutcomeCode.INPUT_LIMIT:
+        return (not trace and case.attempts_used == 0) or (
+            trace[-1] is OutcomeCode.INPUT_LIMIT
+            and all(code in _RETRYABLE_ATTEMPT_CODES for code in trace[:-1])
+        )
+    if not trace or trace[-1] is not outcome:
+        return False
+    return all(code in _RETRYABLE_ATTEMPT_CODES for code in trace[:-1])
 
 
 def _serialize_score(score: HumanFixtureScore) -> dict[str, int | str]:

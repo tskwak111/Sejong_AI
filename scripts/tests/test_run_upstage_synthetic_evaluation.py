@@ -6,7 +6,9 @@ import json
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
@@ -98,21 +100,27 @@ class _FakePool:
     def __init__(self, events: list[str], *, open_error: bool = False) -> None:
         self._events = events
         self._open_error = open_error
+        self.open_calls = 0
+        self.close_calls = 0
 
     async def open(self, *, wait: bool = False) -> None:
+        self.open_calls += 1
         self._events.append(f"pool-open:{wait}")
         if self._open_error:
             raise RuntimeError(f"must not leak {_DSN}")
 
     async def close(self) -> None:
+        self.close_calls += 1
         self._events.append("pool-close")
 
 
 class _FakeClient:
     def __init__(self, events: list[str]) -> None:
         self._events = events
+        self.close_calls = 0
 
     async def aclose(self) -> None:
+        self.close_calls += 1
         self._events.append("client-close")
 
 
@@ -151,6 +159,14 @@ class _FakeService:
         return self._run
 
 
+@dataclass(frozen=True, slots=True)
+class _PatchedResources:
+    pool: _FakePool
+    client: _FakeClient
+    budget: _FakeBudget
+    writes: list[tuple[Path, dict[str, object]]]
+
+
 class RunnerTests(unittest.TestCase):
     def _capture_main(self, argv: list[str]) -> tuple[int, str, str]:
         runner = _runner()
@@ -160,7 +176,8 @@ class RunnerTests(unittest.TestCase):
             result = runner.main(argv)
         return result, stdout.getvalue(), stderr.getvalue()
 
-    def _patch_happy_dependencies(
+    @contextmanager
+    def _patched_dependencies(
         self,
         events: list[str],
         *,
@@ -168,7 +185,10 @@ class RunnerTests(unittest.TestCase):
         run: EvaluationRun | None = None,
         run_error: bool = False,
         writes: list[tuple[Path, dict[str, object]]] | None = None,
-    ) -> tuple[object, ...]:
+        pool_open_error: bool = False,
+        client_construction_error: bool = False,
+        budget_attempts: int | None = None,
+    ) -> Iterator[_PatchedResources]:
         runner = _runner()
         local_settings = SimpleNamespace(database_url=_DSN)
         provider_settings = SimpleNamespace(
@@ -177,13 +197,17 @@ class RunnerTests(unittest.TestCase):
             max_concurrency=1,
         )
         selected_run = _one_case_run() if run is None else run
-        pool = _FakePool(events)
+        pool = _FakePool(events, open_error=pool_open_error)
         client = _FakeClient(events)
         fixture = object()
         fixtures = (fixture,)
         budget = _FakeBudget(
             events,
-            attempts_used=sum(case.attempts_used for case in selected_run.cases),
+            attempts_used=(
+                sum(case.attempts_used for case in selected_run.cases)
+                if budget_attempts is None
+                else budget_attempts
+            ),
         )
         output = writes if writes is not None else []
 
@@ -216,6 +240,8 @@ class RunnerTests(unittest.TestCase):
         def create_client(settings: object) -> _FakeClient:
             self.assertIs(settings, provider_settings)
             events.append("client")
+            if client_construction_error:
+                raise RuntimeError(f"must not leak {_SECRET}")
             return client
 
         def create_budget(settings: object) -> _FakeBudget:
@@ -249,19 +275,40 @@ class RunnerTests(unittest.TestCase):
             events.append("write")
             output.append((path, report))
 
-        return (
-            patch.object(runner, "_load_local_settings", load_local),
-            patch.object(runner, "_load_provider_settings", load_provider),
-            patch.object(runner, "_load_canonical_fixtures", load_fixtures),
-            patch.object(runner, "_create_local_pool", create_pool),
-            patch.object(runner, "_create_repository", create_repository),
-            patch.object(runner, "_create_readiness_probe", create_probe),
-            patch.object(runner, "_create_provider_client", create_client),
-            patch.object(runner, "_create_attempt_budget", create_budget),
-            patch.object(runner, "_create_provider", create_provider),
-            patch.object(runner, "_create_evaluator", create_service),
-            patch.object(runner, "_atomic_write_report", write_report),
-        )
+        resources = _PatchedResources(pool, client, budget, output)
+        with ExitStack() as stack:
+            stack.enter_context(
+                patch.object(runner, "_load_local_settings", load_local)
+            )
+            stack.enter_context(
+                patch.object(runner, "_load_provider_settings", load_provider)
+            )
+            stack.enter_context(
+                patch.object(runner, "_load_canonical_fixtures", load_fixtures)
+            )
+            stack.enter_context(patch.object(runner, "_create_local_pool", create_pool))
+            stack.enter_context(
+                patch.object(runner, "_create_repository", create_repository)
+            )
+            stack.enter_context(
+                patch.object(runner, "_create_readiness_probe", create_probe)
+            )
+            stack.enter_context(
+                patch.object(runner, "_create_provider_client", create_client)
+            )
+            stack.enter_context(
+                patch.object(runner, "_create_attempt_budget", create_budget)
+            )
+            stack.enter_context(
+                patch.object(runner, "_create_provider", create_provider)
+            )
+            stack.enter_context(
+                patch.object(runner, "_create_evaluator", create_service)
+            )
+            stack.enter_context(
+                patch.object(runner, "_atomic_write_report", write_report)
+            )
+            yield resources
 
     def test_missing_provider_configuration_exits_two_with_one_bounded_line(
         self,
@@ -334,24 +381,11 @@ class RunnerTests(unittest.TestCase):
     def test_readiness_failure_closes_pool_without_provider_construction(self) -> None:
         events: list[str] = []
         writes: list[tuple[Path, dict[str, object]]] = []
-        patches = self._patch_happy_dependencies(
+        with self._patched_dependencies(
             events,
             ready=False,
             writes=writes,
-        )
-        with (
-            patches[0],
-            patches[1],
-            patches[2],
-            patches[3],
-            patches[4],
-            patches[5],
-            patch.object(
-                _runner(),
-                "_create_provider_client",
-                side_effect=AssertionError("client must not be constructed"),
-            ),
-        ):
+        ) as resources:
             result, stdout, stderr = self._capture_main([])
 
         self.assertEqual(result, 3)
@@ -372,6 +406,9 @@ class RunnerTests(unittest.TestCase):
             ],
         )
         self.assertEqual(writes, [])
+        self.assertEqual(resources.pool.open_calls, 1)
+        self.assertEqual(resources.pool.close_calls, 1)
+        self.assertEqual(resources.client.close_calls, 0)
 
     def test_success_orders_lifecycle_reconciles_budget_and_writes_fixed_report(
         self,
@@ -379,19 +416,8 @@ class RunnerTests(unittest.TestCase):
         runner = _runner()
         events: list[str] = []
         writes: list[tuple[Path, dict[str, object]]] = []
-        patches = self._patch_happy_dependencies(events, writes=writes)
         with (
-            patches[0],
-            patches[1],
-            patches[2],
-            patches[3],
-            patches[4],
-            patches[5],
-            patches[6],
-            patches[7],
-            patches[8],
-            patches[9],
-            patches[10],
+            self._patched_dependencies(events, writes=writes) as resources,
             patch.object(
                 runner,
                 "_configure_event_loop_policy",
@@ -436,23 +462,12 @@ class RunnerTests(unittest.TestCase):
         serialized = json.dumps(writes[0][1], ensure_ascii=False, allow_nan=False)
         for forbidden in (_SECRET, _DSN, _QUESTION, _ANSWER):
             self.assertNotIn(forbidden, serialized)
+        self.assertEqual(resources.pool.close_calls, 1)
+        self.assertEqual(resources.client.close_calls, 1)
 
     def test_runtime_failure_closes_client_and_pool_and_emits_no_details(self) -> None:
         events: list[str] = []
-        patches = self._patch_happy_dependencies(events, run_error=True)
-        with (
-            patches[0],
-            patches[1],
-            patches[2],
-            patches[3],
-            patches[4],
-            patches[5],
-            patches[6],
-            patches[7],
-            patches[8],
-            patches[9],
-            patches[10],
-        ):
+        with self._patched_dependencies(events, run_error=True) as resources:
             result, stdout, stderr = self._capture_main([])
 
         self.assertEqual(result, 4)
@@ -461,38 +476,17 @@ class RunnerTests(unittest.TestCase):
         for forbidden in (_SECRET, _DSN, _QUESTION, _ANSWER):
             self.assertNotIn(forbidden, stderr)
         self.assertEqual(events[-2:], ["client-close", "pool-close"])
+        self.assertEqual(resources.pool.close_calls, 1)
+        self.assertEqual(resources.client.close_calls, 1)
 
     def test_budget_case_and_trace_mismatch_fails_before_report_write(self) -> None:
-        runner = _runner()
         events: list[str] = []
         writes: list[tuple[Path, dict[str, object]]] = []
-        patches = self._patch_happy_dependencies(events, writes=writes)
-
-        def mismatched_budget(_settings: object) -> _FakeBudget:
-            events.append("budget")
-            return _FakeBudget(events, attempts_used=0)
-
-        def provider_with_mismatched_budget(
-            _settings: object,
-            _client: object,
-            _budget: object,
-        ) -> object:
-            events.append("provider")
-            return object()
-
-        with (
-            patches[0],
-            patches[1],
-            patches[2],
-            patches[3],
-            patches[4],
-            patches[5],
-            patches[6],
-            patch.object(runner, "_create_attempt_budget", mismatched_budget),
-            patch.object(runner, "_create_provider", provider_with_mismatched_budget),
-            patches[9],
-            patches[10],
-        ):
+        with self._patched_dependencies(
+            events,
+            writes=writes,
+            budget_attempts=0,
+        ) as resources:
             result, stdout, stderr = self._capture_main([])
 
         self.assertEqual(result, 4)
@@ -500,6 +494,94 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(stderr, "LLM_EVALUATION_RUNTIME_FAILED\n")
         self.assertEqual(writes, [])
         self.assertEqual(events[-2:], ["client-close", "pool-close"])
+        self.assertEqual(resources.pool.close_calls, 1)
+        self.assertEqual(resources.client.close_calls, 1)
+
+    def test_forged_report_token_totals_are_rejected_even_when_cost_matches(
+        self,
+    ) -> None:
+        runner = _runner()
+        run = _one_case_run()
+        report = runner.build_aggregate_report(run, ())
+        report["input_tokens"] = 0
+        report["cached_input_tokens"] = 0
+        report["output_tokens"] = 0
+        report["estimated_cost_usd_including_vat"] = "0"
+
+        with self.assertRaises(runner._ReportIntegrityInvalid):
+            runner._require_reconciled_report(
+                run=run,
+                report=report,
+                budget=_FakeBudget([], attempts_used=1),
+                provider_settings=SimpleNamespace(run_attempt_cap=30),
+            )
+
+    def test_pool_open_failure_closes_pool_once_before_repository_or_provider(
+        self,
+    ) -> None:
+        events: list[str] = []
+        with self._patched_dependencies(
+            events,
+            pool_open_error=True,
+        ) as resources:
+            result, stdout, stderr = self._capture_main([])
+
+        self.assertEqual(result, 3)
+        self.assertEqual(stdout, "")
+        self.assertEqual(stderr, "LLM_EVALUATION_DATABASE_UNAVAILABLE\n")
+        self.assertEqual(
+            events,
+            [
+                "local-settings",
+                "provider-settings",
+                "canonical-fixtures",
+                "pool",
+                "pool-open:True",
+                "pool-close",
+            ],
+        )
+        self.assertEqual(resources.pool.open_calls, 1)
+        self.assertEqual(resources.pool.close_calls, 1)
+        self.assertEqual(resources.client.close_calls, 0)
+
+    def test_client_construction_failure_closes_only_the_open_pool(self) -> None:
+        events: list[str] = []
+        with self._patched_dependencies(
+            events,
+            client_construction_error=True,
+        ) as resources:
+            result, stdout, stderr = self._capture_main([])
+
+        self.assertEqual(result, 4)
+        self.assertEqual(stdout, "")
+        self.assertEqual(stderr, "LLM_EVALUATION_RUNTIME_FAILED\n")
+        self.assertNotIn("provider", events)
+        self.assertNotIn("evaluator", events)
+        self.assertEqual(events[-2:], ["client", "pool-close"])
+        self.assertEqual(resources.pool.close_calls, 1)
+        self.assertEqual(resources.client.close_calls, 0)
+
+    def test_invalid_review_input_closes_client_and_pool_once(self) -> None:
+        runner = _runner()
+        events: list[str] = []
+        writes: list[tuple[Path, dict[str, object]]] = []
+        with (
+            self._patched_dependencies(events, writes=writes) as resources,
+            patch.object(runner, "_review_tty_available", return_value=True),
+            patch("builtins.input", return_value="invalid"),
+        ):
+            result, stdout, stderr = self._capture_main(["--review"])
+
+        self.assertEqual(result, 2)
+        self.assertIn(_QUESTION, stdout)
+        self.assertIn(_ANSWER, stdout)
+        self.assertEqual(stderr, "LLM_EVALUATION_REVIEW_INVALID\n")
+        self.assertEqual(writes, [])
+        self.assertIn("provider", events)
+        self.assertIn("evaluation:3", events)
+        self.assertEqual(events[-2:], ["client-close", "pool-close"])
+        self.assertEqual(resources.pool.close_calls, 1)
+        self.assertEqual(resources.client.close_calls, 1)
 
     def test_atomic_json_is_deterministic_utf8_and_leaves_no_temporary_file(
         self,

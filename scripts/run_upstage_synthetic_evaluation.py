@@ -304,11 +304,17 @@ def _require_reconciled_report(
     cached_input_tokens = report.get("cached_input_tokens")
     output_tokens = report.get("output_tokens")
     cost_text = report.get("estimated_cost_usd_including_vat")
+    case_input_tokens = sum(case.usage.input_tokens for case in run.cases)
+    case_cached_input_tokens = sum(case.usage.cached_input_tokens for case in run.cases)
+    case_output_tokens = sum(case.usage.output_tokens for case in run.cases)
     if (
         type(input_tokens) is not int
         or type(cached_input_tokens) is not int
         or type(output_tokens) is not int
         or type(cost_text) is not str
+        or input_tokens != case_input_tokens
+        or cached_input_tokens != case_cached_input_tokens
+        or output_tokens != case_output_tokens
     ):
         raise _ReportIntegrityInvalid
     try:

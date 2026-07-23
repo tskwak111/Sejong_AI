@@ -10,7 +10,11 @@ from sejong_ai_api.llm.evaluation import (
     ReviewSample,
 )
 from sejong_ai_api.llm.fixtures import PreparationCode
-from sejong_ai_api.llm.report import HumanFixtureScore, build_aggregate_report
+from sejong_ai_api.llm.report import (
+    HumanFixtureScore,
+    _attempt_evidence_is_valid,
+    build_aggregate_report,
+)
 
 EXPECTED_REPORT_KEYS = {
     "schema_version",
@@ -107,6 +111,23 @@ def _completed_run(
 
 def _approved_scores() -> tuple[HumanFixtureScore, ...]:
     return tuple(_score(f"T-{number:02d}") for number in range(1, 11))
+
+
+def _provider_case(
+    code: OutcomeCode,
+    trace: tuple[OutcomeCode, ...],
+) -> EvaluationCaseResult:
+    return EvaluationCaseResult(
+        fixture_id="T-01",
+        repetition=1,
+        outcome_code=code,
+        attempts_used=len(trace),
+        attempt_outcomes=trace,
+        usage=TokenUsage(0, 0, 0),
+        latency_ms=10,
+        source_id="KB-01",
+        used_template_fallback=code is not OutcomeCode.SUCCESS,
+    )
 
 
 def test_human_fixture_score_has_exact_closed_fields_and_rejects_bool() -> None:
@@ -273,6 +294,172 @@ def test_content_invalid_attempt_and_incomplete_scores_fail_acceptance() -> None
     acceptance = report["acceptance"]
     assert acceptance["json_schema_100_percent"] is False  # type: ignore[index]
     assert acceptance["overall_pass"] is False  # type: ignore[index]
+
+
+def test_high_scores_with_closed_fail_reason_cannot_pass() -> None:
+    scores = list(_approved_scores())
+    scores[0] = _score(
+        "T-01",
+        value=5,
+        reason_code="UNSUPPORTED_CLAIM",
+    )
+
+    report = build_aggregate_report(_completed_run(), tuple(scores))
+
+    human_review = report["human_review"]
+    assert human_review["mean_score"] == "5"  # type: ignore[index]
+    assert human_review["minimum_dimension_score"] == 5  # type: ignore[index]
+    assert human_review["decision_counts"] == {"FAIL": 1, "PASS": 9}  # type: ignore[index]
+    assert report["acceptance"]["overall_pass"] is False  # type: ignore[index]
+
+
+@pytest.mark.parametrize(
+    "malformed_case",
+    [
+        EvaluationCaseResult(
+            fixture_id="T-01",
+            repetition=1,
+            outcome_code=OutcomeCode.TIMEOUT,
+            attempts_used=1,
+            attempt_outcomes=(OutcomeCode.RATE_LIMIT,),
+            usage=TokenUsage(0, 0, 0),
+            latency_ms=10,
+            source_id="KB-01",
+            used_template_fallback=True,
+        ),
+        EvaluationCaseResult(
+            fixture_id="T-01",
+            repetition=1,
+            outcome_code=OutcomeCode.TIMEOUT,
+            attempts_used=0,
+            attempt_outcomes=(),
+            usage=TokenUsage(0, 0, 0),
+            latency_ms=10,
+            source_id="KB-01",
+            used_template_fallback=True,
+        ),
+    ],
+)
+def test_malformed_per_case_attempt_evidence_cannot_pass(
+    malformed_case: EvaluationCaseResult,
+) -> None:
+    report = build_aggregate_report(
+        _completed_run(replacement=malformed_case),
+        _approved_scores(),
+    )
+
+    assert report["acceptance"]["overall_pass"] is False  # type: ignore[index]
+
+
+def test_exact_provider_failure_trace_with_fallback_remains_eligible() -> None:
+    timeout = EvaluationCaseResult(
+        fixture_id="T-01",
+        repetition=1,
+        outcome_code=OutcomeCode.TIMEOUT,
+        attempts_used=1,
+        attempt_outcomes=(OutcomeCode.TIMEOUT,),
+        usage=TokenUsage(0, 0, 0),
+        latency_ms=10,
+        source_id="KB-01",
+        used_template_fallback=True,
+    )
+
+    report = build_aggregate_report(
+        _completed_run(replacement=timeout),
+        _approved_scores(),
+    )
+
+    assert report["acceptance"]["overall_pass"] is True  # type: ignore[index]
+
+
+@pytest.mark.parametrize(
+    ("case", "expected"),
+    [
+        (_provider_case(OutcomeCode.SUCCESS, (OutcomeCode.SUCCESS,)), True),
+        (
+            _provider_case(
+                OutcomeCode.SUCCESS,
+                (OutcomeCode.RATE_LIMIT, OutcomeCode.SUCCESS),
+            ),
+            True,
+        ),
+        (
+            _provider_case(
+                OutcomeCode.TIMEOUT,
+                (OutcomeCode.RATE_LIMIT, OutcomeCode.TIMEOUT),
+            ),
+            True,
+        ),
+        (_provider_case(OutcomeCode.INPUT_LIMIT, ()), True),
+        (
+            _provider_case(
+                OutcomeCode.INPUT_LIMIT,
+                (OutcomeCode.RATE_LIMIT, OutcomeCode.INPUT_LIMIT),
+            ),
+            True,
+        ),
+        (_provider_case(OutcomeCode.ATTEMPT_CAP, ()), True),
+        (
+            _provider_case(
+                OutcomeCode.ATTEMPT_CAP,
+                (OutcomeCode.RATE_LIMIT,),
+            ),
+            True,
+        ),
+        (
+            _provider_case(
+                OutcomeCode.TIMEOUT,
+                (OutcomeCode.RATE_LIMIT,),
+            ),
+            False,
+        ),
+        (_provider_case(OutcomeCode.TIMEOUT, ()), False),
+        (
+            _provider_case(
+                OutcomeCode.SUCCESS,
+                (
+                    OutcomeCode.RATE_LIMIT,
+                    OutcomeCode.TIMEOUT,
+                    OutcomeCode.SUCCESS,
+                ),
+            ),
+            False,
+        ),
+        (
+            _provider_case(
+                OutcomeCode.SUCCESS,
+                (OutcomeCode.AUTH, OutcomeCode.SUCCESS),
+            ),
+            False,
+        ),
+        (
+            _provider_case(
+                OutcomeCode.INPUT_LIMIT,
+                (OutcomeCode.AUTH, OutcomeCode.INPUT_LIMIT),
+            ),
+            False,
+        ),
+        (
+            _provider_case(
+                OutcomeCode.ATTEMPT_CAP,
+                (OutcomeCode.SUCCESS,),
+            ),
+            False,
+        ),
+        (
+            _provider_case(
+                OutcomeCode.ATTEMPT_CAP,
+                (OutcomeCode.RATE_LIMIT, OutcomeCode.TIMEOUT),
+            ),
+            False,
+        ),
+    ],
+)
+def test_per_case_attempt_evidence_state_machine(
+    case: EvaluationCaseResult,
+    expected: bool,
+) -> None:
+    assert _attempt_evidence_is_valid(case) is expected
 
 
 @pytest.mark.parametrize(
