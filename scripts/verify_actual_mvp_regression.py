@@ -19,10 +19,17 @@ _API_ENV_PATH = _REPOSITORY_ROOT / "apps" / "api" / ".env"
 
 _RESERVED_PUBLIC_ID = "KB-WASTE-03"
 _RESERVED_QUESTION = "침대 2인용 프레임 수수료가 얼마예요?"
+_PERSONAL_LOOKUP_QUESTION = "내 자동차세 체납액 알려줘."
 _SOURCE_URL = "https://www.sjwaste.kr/wasteApp/appCategoryPopup.do?menuId=MENU00305"
 _EXPECTED_FEE = "1인용침대 8,000원; 2인용침대 10,000원"
+_PERSONAL_IDEMPOTENCY_KEY = "67000000-0000-4000-8000-000000000000"
 _K1_IDEMPOTENCY_KEY = "67000000-0000-4000-8000-000000000001"
 _K2_IDEMPOTENCY_KEY = "67000000-0000-4000-8000-000000000002"
+_PERSISTENCE_COUNT_SQL = """
+SELECT
+  (SELECT count(*) FROM app_private.interaction_events) AS interaction_events,
+  (SELECT count(*) FROM app_private.failed_questions) AS failed_questions
+"""
 _SUPPORTED_CATEGORIES = (
     "MOVE_IN_RESIDENT_REGISTRATION",
     "CERTIFICATE_ISSUANCE",
@@ -125,9 +132,12 @@ class _RegressionRuntime(Protocol):
 
     def active_projection(self) -> Mapping[str, tuple[str, ...]]: ...
 
+    def read_persistence_counts(self) -> Mapping[str, int]: ...
+
 
 RuntimeFactory = Callable[[Mapping[str, str]], _RegressionRuntime]
 PolicyConfigurer = Callable[[str], None]
+PersistenceCountReader = Callable[[], Mapping[str, int]]
 
 
 def _fail(step: str) -> NoReturn:
@@ -179,6 +189,41 @@ def _require_fallback(response: _Response, step: str) -> dict[str, object]:
         _fail(step)
     _required_uuid(payload.get("request_id"), step)
     return payload
+
+
+def _require_personal_lookup(response: _Response, step: str) -> dict[str, object]:
+    payload = _mapping_response(response, 200, step)
+    fallback = payload.get("fallback")
+    if (
+        payload.get("answer_status") != "FALLBACK"
+        or payload.get("intent") != "UNKNOWN"
+        or payload.get("sources") != []
+        or type(fallback) is not dict
+        or fallback.get("reason") != "PERSONAL_LOOKUP"
+        or fallback.get("candidate_eligible") is not False
+    ):
+        _fail(step)
+    _required_uuid(payload.get("request_id"), step)
+    return payload
+
+
+def _persistence_counts(
+    counts: Mapping[str, int],
+    step: str,
+) -> tuple[int, int]:
+    expected_keys = {"interaction_events", "failed_questions"}
+    if type(counts) is not dict or set(counts) != expected_keys:
+        _fail(step)
+    interaction_events = counts.get("interaction_events")
+    failed_questions = counts.get("failed_questions")
+    if (
+        type(interaction_events) is not int
+        or interaction_events < 0
+        or type(failed_questions) is not int
+        or failed_questions < 0
+    ):
+        _fail(step)
+    return interaction_events, failed_questions
 
 
 def _require_success(response: _Response, step: str) -> dict[str, object]:
@@ -266,6 +311,26 @@ def run_regression(runtime: _RegressionRuntime) -> tuple[str, ...]:
         initial_ids = _projection_ids(initial_projection, "INITIAL_ACTIVE")
         if len(initial_ids) != 19 or _RESERVED_PUBLIC_ID in initial_ids:
             _fail("INITIAL_ACTIVE")
+
+        personal_before = _persistence_counts(
+            active.read_persistence_counts(),
+            "PERSONAL_STORAGE",
+        )
+        _require_personal_lookup(
+            active.request(
+                "POST",
+                "/api/v1/chat",
+                headers=_chat_headers(_PERSONAL_IDEMPOTENCY_KEY),
+                json={"question": _PERSONAL_LOOKUP_QUESTION},
+            ),
+            "PERSONAL_LOOKUP",
+        )
+        personal_after = _persistence_counts(
+            active.read_persistence_counts(),
+            "PERSONAL_STORAGE",
+        )
+        if personal_after != personal_before:
+            _fail("PERSONAL_STORAGE")
 
         first = _require_fallback(
             active.request(
@@ -435,6 +500,7 @@ def run_regression(runtime: _RegressionRuntime) -> tuple[str, ...]:
     return (
         "PASS ready",
         "PASS initial-active count=19",
+        "PASS personal-lookup no-storage",
         "PASS initial-fallback",
         "PASS business-replay",
         "PASS failed-new count=1",
@@ -458,11 +524,13 @@ class _ActualRuntime:
         client_type: Any,
         intent_type: Any,
         pool_owner: _PoolOwner,
+        persistence_count_reader: PersistenceCountReader | None = None,
     ) -> None:
         self._repository = repository
         self._intent_type = intent_type
         self._client = client_type(application)
         self._pool_owner = pool_owner
+        self._persistence_count_reader = persistence_count_reader
         self._active_client: Any | None = None
 
     def __enter__(self) -> _ActualRuntime:
@@ -519,6 +587,16 @@ class _ActualRuntime:
             projection[category] = tuple(record.public_id for record in records)
         return projection
 
+    def read_persistence_counts(self) -> Mapping[str, int]:
+        if self._active_client is None or self._persistence_count_reader is None:
+            _fail("RUNTIME")
+        try:
+            return self._persistence_count_reader()
+        except _RegressionFailed:
+            raise
+        except Exception:
+            raise _ConfigurationInvalid from None
+
 
 def _compose_actual_runtime(
     *,
@@ -529,6 +607,7 @@ def _compose_actual_runtime(
     create_local_app_fn: Callable[..., Any],
     client_loader: Callable[[], Any],
     intent_type: Any,
+    persistence_count_reader: PersistenceCountReader | None = None,
 ) -> _RegressionRuntime:
     owner: _PoolOwner | None = None
     try:
@@ -559,6 +638,7 @@ def _compose_actual_runtime(
             client_type,
             intent_type,
             owner,
+            persistence_count_reader,
         )
     except Exception:
         if owner is not None:
@@ -573,7 +653,10 @@ def _build_actual_runtime(environment: Mapping[str, str]) -> _RegressionRuntime:
     """Compose the existing local app; TestClient is intentionally imported lazily."""
 
     secret = environment.get("CONTEXT_TOKEN_SECRET")
+    admin_dsn = environment.get("SEJONG_ADMIN_DATABASE_URL")
     if type(secret) is not str or not secret:
+        raise _ConfigurationInvalid
+    if type(admin_dsn) is not str or not admin_dsn:
         raise _ConfigurationInvalid
     if not _API_SOURCE.is_dir() or not _API_ENV_PATH.is_file():
         raise _ConfigurationInvalid
@@ -585,6 +668,7 @@ def _build_actual_runtime(environment: Mapping[str, str]) -> _RegressionRuntime:
     from sejong_ai_api.db.pool import create_pool
     from sejong_ai_api.db.repository import PsycopgSejongRepository
     from sejong_ai_api.local import create_local_app, load_local_settings
+    import psycopg
 
     selected_environment = {"CONTEXT_TOKEN_SECRET": secret}
     settings = load_local_settings(
@@ -601,6 +685,28 @@ def _build_actual_runtime(environment: Mapping[str, str]) -> _RegressionRuntime:
 
         return TestClient
 
+    def read_persistence_counts() -> Mapping[str, int]:
+        try:
+            with (
+                psycopg.connect(admin_dsn, autocommit=True) as connection,
+                connection.cursor() as cursor,
+            ):
+                cursor.execute(_PERSISTENCE_COUNT_SQL)
+                row = cursor.fetchone()
+        except psycopg.Error:
+            raise _ConfigurationInvalid from None
+        if (
+            type(row) is not tuple
+            or len(row) != 2
+            or type(row[0]) is not int
+            or type(row[1]) is not int
+        ):
+            raise _ConfigurationInvalid
+        return {
+            "interaction_events": row[0],
+            "failed_questions": row[1],
+        }
+
     return _compose_actual_runtime(
         dsn=settings.database_url,
         selected_environment=selected_environment,
@@ -609,6 +715,7 @@ def _build_actual_runtime(environment: Mapping[str, str]) -> _RegressionRuntime:
         create_local_app_fn=create_local_app,
         client_loader=load_test_client,
         intent_type=Intent,
+        persistence_count_reader=read_persistence_counts,
     )
 
 
