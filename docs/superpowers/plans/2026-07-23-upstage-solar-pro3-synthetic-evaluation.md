@@ -18,7 +18,7 @@ aggregate metrics.
 existing Psycopg repository, standard-library `csv`, `decimal`, `json`, `asyncio`, `argparse`.
 
 - Plan ID: LLM-002-PLAN
-- Status: **In Progress — specification and execution plan approved; Task 1 review clean**
+- Status: **In Progress — specification and execution plan approved; Tasks 1–2 review clean**
 - Design:
   `docs/superpowers/specs/2026-07-23-upstage-solar-pro3-synthetic-evaluation-design.md`
 - ADR: `docs/adr/0022-upstage-solar-pro3-synthetic-evaluation.md`
@@ -291,7 +291,7 @@ git commit -m "feat(llm): add fail-closed Upstage settings"
   `estimate_input_token_upper_bound(messages: tuple[dict[str, str], ...]) -> int`
 - Produces: `estimate_cost_usd(usage: TokenUsage) -> Decimal`
 
-- [ ] **Step 1: Write strict contract RED tests**
+- [x] **Step 1: Write strict contract RED tests**
 
 ```python
 import json
@@ -324,6 +324,15 @@ def test_generated_answer_rejects_provider_owned_source_and_status() -> None:
 
 def test_cost_uses_decimal_snapshot_and_vat() -> None:
     usage = TokenUsage(input_tokens=4096, cached_input_tokens=0, output_tokens=1024)
+    assert estimate_cost_usd(usage) == Decimal("0.00135168")
+
+
+def test_cost_prices_30_attempt_worst_aggregate_below_run_cap() -> None:
+    usage = TokenUsage(
+        input_tokens=4096 * 30,
+        cached_input_tokens=0,
+        output_tokens=1024 * 30,
+    )
     assert estimate_cost_usd(usage) == Decimal("0.0405504")
 
 
@@ -378,7 +387,7 @@ def grounded_fixture() -> GroundedFixture:
     )
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -391,7 +400,7 @@ Run:
 
 Expected: import failure for the three new modules.
 
-- [ ] **Step 3: Implement the closed types**
+- [x] **Step 3: Implement the closed types**
 
 Use these exact public fields:
 
@@ -455,7 +464,7 @@ class GenerationOutcome:
 Each dataclass must reject negative tokens/attempts and invalid success/failure combinations in
 `__post_init__`.
 
-- [ ] **Step 4: Implement source-free prompt and Decimal cost**
+- [x] **Step 4: Implement source-free prompt and Decimal cost**
 
 Use `PROMPT_VERSION = "0.1.0-upstage-solar-pro3-synthetic"` and serialize only:
 
@@ -505,7 +514,11 @@ ONE_MILLION = Decimal("1000000")
 RUN_COST_CAP_USD = Decimal("0.05")
 ```
 
-- [ ] **Step 5: Run focused tests and commit**
+`estimate_cost_usd()` prices the supplied actual aggregate `TokenUsage` exactly once. It must not
+apply an internal attempt multiplier: one 4096/1024 usage is USD `0.00135168` including VAT, while
+the separately aggregated 30-attempt 122880/30720 usage is USD `0.0405504`.
+
+- [x] **Step 5: Run focused tests and commit**
 
 Run:
 
@@ -1442,6 +1455,8 @@ Still not approved:
 - 2026-07-23~24: user approved execution by consecutive continue instructions; D-067.
 - 2026-07-24: Task 1 commits `9318f7f` and `4bdc68d`; focused 6/Ruff/Mypy and independent
   re-review clean after malformed-dotenv/non-string fail-closed fixes.
+- 2026-07-24: Task 2 commits `12953a2` and `c59f0b3`; focused 17/Ruff/Mypy and independent
+  re-review clean after aggregate-cost-once and zero-attempt SUCCESS fixes.
 
 ## Result and Retrospective
 
@@ -1449,4 +1464,7 @@ Still not approved:
 - Plan deviation: linked-worktree `uv` lookup was corrected through Git common-dir discovery; Task 1
   independent review found and closed one Important malformed-dotenv gap plus a controller-found
   non-string fail-closed gap.
-- Next step: Task 2 strict output, source-free prompt, input upper-bound and Decimal cost contracts.
+- Plan correction: the original Task 2 single-usage cost snapshot accidentally contained the
+  30-attempt aggregate amount. Task 2 TDD and review fixed the contract to price supplied aggregate
+  usage once and test both single-attempt and separately aggregated 30-attempt values.
+- Next step: Task 3 atomic process-run attempt budget and HTTPX transport.

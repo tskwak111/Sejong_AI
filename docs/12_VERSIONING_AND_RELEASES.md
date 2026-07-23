@@ -62,7 +62,7 @@ database_schema: 0.4.0-local
 official_data: 0.1.0-initial.2
 prompt_set: 0.0.3-upstage-solar-pro3-synthetic-selected
 test_suite: 1.2.1-core-loop-closeout
-documentation: 2.13.2
+documentation: 2.13.3
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -79,9 +79,11 @@ manual demo·accessibility와 public/remote/provider/`00700` readiness를 뜻하
 
 Q-LLM-005=A/D-065/ADR-0022로 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했고, D-066의 명세 승인과 Review 실행계획
-발행 뒤 D-067 실행 승인과 Task 1 review-clean settings 기록으로 documentation을 `2.13.2`로
-올렸다. Application/prompt/test 축은 전체 offline evaluator gate인 Task 6 전까지 유지한다.
-현재는 provider 설정 gate만 구현됐고 key, network call 또는 실제 시민 provider 연결은 0이다.
+발행 뒤 D-067 실행 승인, Task 1 review-clean settings, Task 2 strict source-free
+prompt/output/outcome와 aggregate-once cost 계약 기록으로 documentation을 `2.13.3`으로 올렸다.
+Application/prompt/test 축은 전체 offline evaluator gate인 Task 6 전까지 유지한다. 현재는
+provider 설정과 offline contract gate만 구현됐고 key, network call 또는 실제 시민 provider
+연결은 0이다.
 
 ## 릴리스 체크
 

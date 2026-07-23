@@ -18,8 +18,11 @@
   focused 6 tests, Ruff, Mypy and independent re-review passed after malformed dotenv and non-string
   runtime values were proven RED then fixed. No key, network, public route, DB/data, dependency or
   lockfile was used or changed.
+- Task 2 adds strict source-free output/prompt/outcome contracts, canonical UTF-8 input preflight and
+  exact Decimal pricing. Independent review caught and closed aggregate-cost double multiplication
+  and zero-attempt SUCCESS; focused 17 tests, Ruff and Mypy passed with key/network use still zero.
 - Versions: product spec `2.4.0`, prompt selection
-  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.2`.
+  `0.0.3-upstage-solar-pro3-synthetic-selected`, documentation `2.13.3`.
 
 ### Changed — MVP-001 local/private closeout
 
