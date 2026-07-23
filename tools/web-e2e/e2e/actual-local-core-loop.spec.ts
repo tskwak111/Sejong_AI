@@ -34,6 +34,38 @@ async function submitAndReadChatResponse(page: Page, question: string): Promise<
   return requireObject(await response.json(), "chat response");
 }
 
+async function openActualAdminDashboard(page: Page) {
+  const failedQuestionsResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === "/api/v1/admin/failed-questions"
+      && response.request().method() === "GET";
+  });
+  const candidatesResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === "/api/v1/admin/kb-candidates"
+      && response.request().method() === "GET";
+  });
+
+  await page.goto("/admin");
+  const [failedQuestions, candidates] = await Promise.all([
+    failedQuestionsResponse,
+    candidatesResponse,
+  ]);
+  expect(failedQuestions.status()).toBe(200);
+  expect(candidates.status()).toBe(200);
+  await expect(
+    page.getByText("실제 local DB API 연결"),
+    "Run the web server with ADMIN_UI_MODE=actual for this opt-in test.",
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "실패 질문", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "KB 후보와 ACTIVE 상태", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+}
+
 function requireFallback(response: JsonObject): JsonObject {
   if (response.answer_status !== "FALLBACK") {
     throw new Error("Expected a contract-valid FALLBACK response.");
@@ -68,11 +100,7 @@ test.describe("opt-in actual local/private citizen-to-admin improvement loop", (
       "The state-changing 19-to-20 actual loop must run exactly once, not once per viewport project.",
     );
 
-    await page.goto("/admin");
-    await expect(
-      page.getByText("실제 local DB API 연결"),
-      "Run the web server with ADMIN_UI_MODE=actual for this opt-in test.",
-    ).toBeVisible();
+    await openActualAdminDashboard(page);
 
     await page.goto("/chat");
 
@@ -97,12 +125,18 @@ test.describe("opt-in actual local/private citizen-to-admin improvement loop", (
       "INSUFFICIENT_GROUNDING",
     );
 
-    await page.goto("/admin");
+    await openActualAdminDashboard(page);
     await page
       .getByRole("button", { name: INSUFFICIENT_GROUNDING_QUESTION })
       .click();
-    await page.getByRole("button", { name: "사유 확정" }).click();
-    await expect(page.getByText("사유 확인 완료")).toBeVisible();
+    const failureDetail = page.getByRole("region", {
+      name: "실패 질문 상세",
+      exact: true,
+    });
+    await failureDetail.getByRole("button", { name: "사유 확정" }).click();
+    await expect(
+      failureDetail.getByText("사유 확인 완료", { exact: true }),
+    ).toBeVisible();
 
     await page
       .getByRole("button", { name: "검수된 KB-WASTE-03 자료 불러오기" })
