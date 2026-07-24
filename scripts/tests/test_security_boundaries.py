@@ -177,12 +177,18 @@ class EnvironmentBoundaryTest(unittest.TestCase):
         parsed = assignments(path)
         self.assertEqual(
             set(parsed),
-            {"API_INTERNAL_BASE_URL", "ADMIN_UI_ENABLED", "ADMIN_UI_MODE"},
+            {
+                "API_INTERNAL_BASE_URL",
+                "CHAT_UI_MODE",
+                "ADMIN_UI_ENABLED",
+                "ADMIN_UI_MODE",
+            },
         )
         if parsed.get("API_INTERNAL_BASE_URL") != "http://127.0.0.1:8000":
             raise AssertionError("web API base URL does not match the approved local default")
+        self.assertEqual(parsed.get("CHAT_UI_MODE"), "actual")
         self.assertEqual(parsed.get("ADMIN_UI_ENABLED"), "false")
-        self.assertEqual(parsed.get("ADMIN_UI_MODE"), "fixture")
+        self.assertEqual(parsed.get("ADMIN_UI_MODE"), "actual")
         text = path.read_text(encoding="utf-8")
         self.assertNotIn("NEXT_PUBLIC_", text)
         for name in (

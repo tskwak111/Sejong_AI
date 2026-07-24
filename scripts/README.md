@@ -73,8 +73,26 @@ remote DB, Docker 외부 노출, public admin·배포를 사용하거나 승인�
 ### Opt-in actual desktop browser
 
 backend runner가 성공한 DB는 이미 ACTIVE 20이므로, browser evidence 전에 다시 disposable reset과
-immutable `.2` seed로 clean ACTIVE 19를 만든다. 첫 터미널에서 실제 secret을 출력하지 않고 local
-API를 시작한다.
+immutable `.2` seed로 clean ACTIVE 19를 만든다. `supabase/config.toml`의
+`[db.seed].enabled=false`는 그대로 유지하므로 `db reset --local`은 migration만 replay하며
+`supabase/seed.sql`을 자동 실행하지 않는다. patched CLI에서 얻은 local admin DSN을 값 출력 없이
+process-only `SEJONG_ADMIN_DATABASE_URL`에 둔 상태에서 아래 **별도 정식 seed 단계**를 순서대로
+실행한다. 하나라도 실패하면 API/E2E를 시작하지 않는다.
+
+```powershell
+$releaseVersion = "0.1.0-initial.2"
+.\.tools\supabase\v2.109.1-sejong-loopback\supabase.exe db reset --local
+apps/api/.venv/Scripts/python.exe -B scripts/verify_data_seed_db.py `
+  seed-cycle --release-version $releaseVersion
+apps/api/.venv/Scripts/python.exe -B scripts/verify_data_seed_db.py `
+  verify-final --release-version $releaseVersion
+apps/api/.venv/Scripts/python.exe -B scripts/provision_local_database_login.py
+```
+
+`seed-cycle`과 `verify-final`은 immutable `.2`의 exact ACTIVE 19/office 3/mapping 10을 확인한다.
+마지막 provision은 ignored `apps/api/.env`의 `DATABASE_URL`만 회전한다. admin DSN, 생성된 login
+password 또는 `.env` 내용을 출력·복사·커밋하지 않는다. 첫 터미널에서 실제 secret을 출력하지
+않고 local API를 시작한다.
 
 ```powershell
 $bytes = New-Object byte[] 48
@@ -88,19 +106,17 @@ try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
 apps/api/.venv/Scripts/python.exe -B scripts/run_local_api.py --port 8000
 ```
 
-`/ready=200`을 확인한 뒤 두 번째 터미널의 저장소 루트에서 actual Web env와 state-changing desktop
-spec을 정확히 한 번 실행한다. Playwright config가 `ADMIN_UI_ENABLED=true`를 Web server에도
-전달하지만 재현 경계를 명시하기 위해 process env에도 설정한다.
+`/ready=200`을 확인한 뒤 두 번째 터미널의 저장소 루트에서 actual opt-in과 state-changing desktop
+spec을 정확히 한 번 실행한다. Playwright config가 `E2E_ACTUAL=1`일 때만 `actual-desktop` project와
+`*.actual.spec.ts`를 수집하고, Web server에 actual admin transport를 전달한다.
 
 ```powershell
-$env:ADMIN_UI_ENABLED = "true"
-$env:ADMIN_UI_MODE = "actual"
+$env:E2E_ACTUAL = "1"
 $env:API_INTERNAL_BASE_URL = "http://127.0.0.1:8000"
-$env:SEJONG_ACTUAL_LOCAL_E2E = "true"
 $env:CI = "true"
 corepack pnpm --filter @sejong-ai/web build
-corepack pnpm --filter @sejong-ai/web-e2e test -- `
-  --project=desktop e2e/actual-local-core-loop.spec.ts
+corepack pnpm --dir tools/web-e2e test -- `
+  --project=actual-desktop e2e/admin-core-loop.actual.spec.ts
 ```
 
 PASS 뒤 DB는 final ACTIVE 20이다. 첫 터미널의 API를 `Ctrl+C`로 종료하고 두 터미널의 위 process

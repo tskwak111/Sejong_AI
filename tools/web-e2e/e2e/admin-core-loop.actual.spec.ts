@@ -231,7 +231,8 @@ test("actual browser keeps PERSONAL unpersisted and promotes a separate IG quest
       url: OFFICIAL_SOURCE_URL,
     }),
   );
+  await expect(page.getByText(OFFICIAL_SOURCE_TITLE, { exact: true }).last()).toBeVisible();
   await expect(
-    page.getByRole("link", { name: OFFICIAL_SOURCE_TITLE }).last(),
+    page.getByRole("link", { name: "원문 보기" }).last(),
   ).toHaveAttribute("href", OFFICIAL_SOURCE_URL);
 });

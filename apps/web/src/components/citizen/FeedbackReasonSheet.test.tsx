@@ -33,6 +33,9 @@ describe("FeedbackReasonSheet keyboard accessibility", () => {
     await waitFor(() =>
       expect(dialog).toContainElement(document.activeElement as HTMLElement | null),
     );
+    expect(
+      screen.getByRole("radio", { name: "전입·주민등록" }).closest("label"),
+    ).toHaveClass("focus-within:outline", "focus-within:outline-primary");
   });
 
   it("closes on Escape and restores focus to the opener", async () => {

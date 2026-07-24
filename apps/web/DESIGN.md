@@ -1,6 +1,18 @@
 # DESIGN.md (v3) — 세종 민원이음 디자인 사양 (확정 시안 기준)
 
-> 이 문서는 DESIGN.md(v2)를 **전면 대체**한다. CLAUDE.md와 함께 모든 UI 작업에 적용된다.
+> **권위 경계:** 이 문서는 Frontend 시각·상호작용 참고 사양이다. 제품 범위, 개인정보·
+> 보안, 데이터, API 계약 또는 배포의 source-of-truth가 아니다. 충돌 시
+> `../../AGENTS.md` → `../../docs/00_SOURCE_OF_TRUTH.md` →
+> `../../docs/source-of-truth/TEAM_DECISIONS.md`·`PROJECT_PLAN.md` → 활성 정책·ADR →
+> `../../contracts/` → 이 문서 순서로 판단한다.
+>
+> **Historical/superseded:** 본문의 제출 시안 서술 중 데모 #4→#5 연결, fixture 데모
+> 백업, 저장 사유 3종 전제는 역사적 기준선이다. 현재 구현에서는 부록 B와
+> `CLAUDE.md` §15가 그 부분을 대체하며, fixture는 MOCK UI 상태 확인 도구이고 actual
+> 검증 완료를 뜻하지 않는다. 이 문서의 “확정”·“변경 금지” 표현은 시각 참고 범위에만
+> 적용되며 상위 권위 문서나 활성 계약을 변경하지 않는다.
+>
+> 이 문서는 DESIGN.md(v2)를 **전면 대체**하는 Frontend 참고안이다.
 > 기준 시안: `design-ref/민원이음 디자인 시안.dc.html` + `design-ref/design-tokens.css` (2026-07 확정).
 > v3는 자기완결형이다 — v1/v2를 참조하지 않고 이 문서만으로 구현할 수 있어야 한다.
 
@@ -579,7 +591,7 @@ border-soft), 하단 sticky 입력바(입력 + 전송, 위에 개인정보 경�
 
 ---
 
-## 15. 최종 발표 데모 5문항 (전문 — 이 흐름은 반드시 무중단 동작)
+## 15. 최종 발표 데모 5문항 — 역사적 제출 기준선(부록 B가 현재 구현을 대체)
 
 프론트 개발 우선순위는 이 5개를 완주시키는 것이다.
 

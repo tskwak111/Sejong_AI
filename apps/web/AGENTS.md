@@ -6,7 +6,10 @@
 - Body contrast >= 4.5:1 and do not encode status by color only.
 - Render source metadata exactly as returned by API; never invent or rewrite URLs/dates.
 - Display official/event/evaluation/mock badges clearly.
-- Pages remain `/`, `/chat`, `/admin`; use tabs/cards/modals instead of new pages unless human approves.
+- Public product pages remain `/`, `/chat`, `/admin`. The human-merged PR #8 local/private admin
+  baseline may use `/admin/login`, `/admin/failures`, and `/admin/kb-candidates` only as internal
+  views of the `/admin` page family; they are not public activation approval. Use tabs/cards/modals
+  for other views, and require human approval before adding any further route.
 - P2 UI should not be silently added.
 - Keep API calls in a typed client generated/aligned from contracts.
 - Add component/E2E tests for every user-visible state.

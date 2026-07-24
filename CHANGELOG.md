@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+### Changed — Frontend PR #8 owner integration and current actual Web evidence
+
+- Integrated human-merged Frontend PR #8 at owner merge commit `c15f61b`, normalized its colliding
+  implementation-note IDs to `009`/`010`, and preserved contracts, API, DB migrations, official data,
+  provider prompt and dependencies unchanged.
+- Closed the critical actual/fixture draft regression: actual `/admin` can create the reserved
+  `KB-WASTE-03` candidate only from the exact PM-approved canonical question and OFFICIAL fields;
+  unrelated or unconfirmed failures fail closed instead of promoting demo fixture content.
+- The actual browser UI now requires different approver, OFFICIAL origin, non-empty review comment
+  and checklist 3/3 before it submits activation. The service/DB continue to enforce different
+  approver, OFFICIAL and comment; checklist evidence is not yet a public API/DB invariant. Added
+  feedback dialog initial focus, dynamic radio-aware focus trap, Escape close and opener focus
+  restoration.
+- Replaced the excluded stale browser scenario with the current `*.actual.spec.ts` path. A fresh
+  disposable `db reset` with automatic seed still disabled, separate immutable `.2`
+  `seed-cycle → verify-final → provision`, and current PR #8 UI passed PERSONAL zero persistence,
+  separate IG `+1`, reason/candidate/approval, same-query SUCCESS and exact server source. Final
+  read-only evidence is ACTIVE 20, `KB-WASTE-03` exactly once and `/ready=200`.
+- Web unit 48/48, lint, typecheck and production build passed; fixture Playwright passed 18/18 at
+  390/430/desktop and actual Playwright passed 1/1. The final repository-wide offline gate passed
+  root/data/Web/API/contracts/secret/bundle/package/diff through `verification=complete`.
+- Kept `ADMIN_UI_ENABLED=false` while synchronizing the root security test with PR #8's explicit
+  `CHAT_UI_MODE=actual` and `ADMIN_UI_MODE=actual` defaults. Hidden feedback radios now expose a
+  visible `focus-within` ring on their chip labels.
+- `supabase/config.toml` remains `[db.seed].enabled=false`; the runbook now separates migration reset
+  from the formal immutable seed stage. `allowedDevOrigins: ["127.0.0.1"]` remains a separate
+  Frontend PR task and is not part of this owner PR. Public admin, remote DB, provider actual,
+  deployment and auto-merge remain blocked.
+- Versions: application `0.8.0-pr8-frontend-baseline`, Web
+  `0.5.0-pr8-citizen-admin-baseline`, tests `1.5.0-pr8-web-baseline`, documentation `2.16.0`,
+  repository guidance `1.7.7`; API, contracts, DB, official/mock data and prompt are unchanged.
+
 ### Changed — Q-PM-DEMO-001 actual persistence and browser evidence
 
 - Q-PM-DEMO-001=B keeps the product policy unchanged while proving two separate local/private paths:
@@ -10,9 +42,10 @@
 - The actual backend runner starts at immutable `.2` ACTIVE 19, preserves idempotent fallback replay,
   confirms reason/candidate submit, blocks same-writer approval, accepts `PM-LOCAL-001`, re-queries to
   exact public source `KB-WASTE-03`, and ends at ACTIVE 20 with four categories × five.
-- The opt-in desktop browser separately passed the real Frontend→same-origin Web API→FastAPI→local
-  DB→actual `/admin`→same-query SUCCESS path. Candidate activation UUID remains internal; the public
-  ID, official title and URL are verified at the citizen chat source boundary.
+- Historical pre-`c15f61b` evidence: the former opt-in desktop browser passed the old
+  Frontend→same-origin Web API→FastAPI→local DB→actual `/admin`→same-query SUCCESS path. Candidate
+  activation UUID remains internal; the current PR #8 UI rerun is recorded in the newer section
+  above.
 - Final read-only evidence is ACTIVE 20, target once and `/ready=200`. The immutable `.2`, public API,
   DB schema/migrations, product runtime, dependencies and provider prompt are unchanged. Upstage
   key/network/provider, remote DB, public admin/deploy and auto-merge use is zero.

@@ -149,7 +149,7 @@ export default function FeedbackReasonSheet({
             {SUPPORTED_INTENTS.map((key) => (
               <label
                 key={key}
-                className={`flex min-h-11 cursor-pointer items-center gap-1.5 rounded-btn-s px-3 text-note ${chipClass(
+                className={`flex min-h-11 cursor-pointer items-center gap-1.5 rounded-btn-s px-3 text-note focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary ${chipClass(
                   category === key,
                   category !== null,
                 )}`}
@@ -179,7 +179,7 @@ export default function FeedbackReasonSheet({
             {REASON_CODES.map(({ code, label }) => (
               <label
                 key={code}
-                className={`flex min-h-11 cursor-pointer items-center gap-1.5 rounded-btn-s px-3 text-note ${chipClass(
+                className={`flex min-h-11 cursor-pointer items-center gap-1.5 rounded-btn-s px-3 text-note focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary ${chipClass(
                   reason === code,
                   reason !== null,
                 )}`}

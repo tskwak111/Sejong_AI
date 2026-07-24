@@ -169,7 +169,13 @@ process/container 0을 확인했다. immutable `.2`는 변경하지 않았고 `o
 `KB-WASTE-03` SUCCESS, final ACTIVE 20/four fields×5를 PASS했으며 `.2` artifact는 그대로다.
 final API/Web/contracts/E2E/scanner, clean disposable DB와 root `verify.ps1 -Offline`은 PASS했다.
 deterministic sample T-01~T-20도 20/20이며 별도 보고서가 수치를 소유한다. local/private AI scope는
-Review이고 Draft PR review/merge와 manual demo/accessibility는 인간 Pending이다.
+Review다. 사람이 병합한 Frontend PR #8의 current UI는 owner 후속에서 PERSONAL 미저장→별도
+INSUFFICIENT_GROUNDING 저장→사유 확정→승인된 OFFICIAL 후보→작성자와 다른 승인자·checklist
+3/3→20번째 ACTIVE→동일 질문 SUCCESS·서버 결합 공식 출처를 actual desktop browser 1/1로
+재검증했다. feedback dialog keyboard focus gate와 Web 390/430/desktop fixture 18/18도 통과했다.
+`[db.seed].enabled=false`는 유지하고 reset 뒤 immutable `.2`의 정식 seed 단계를 별도로 실행한다.
+`allowedDevOrigins: ["127.0.0.1"]`는 현재 owner PR이 아닌 별도 Frontend PR 과제다. Draft PR
+review/merge와 manual demo는 인간 Pending이다.
 
 ## 7. 시스템 설계
 

@@ -92,8 +92,17 @@
   provider adapter와 disabled/template fallback 필수. 실제 구현·actual call은 승인된 명세와
   후속 실행계획 뒤에만 수행한다.
 - 초기 실행: local-first, 외부 인프라 예산 0원
-- 현재 웹 진입: `/`의 CTA는 입력·저장·API 호출 없는 정적 `/chat` 준비 화면으로 연결한다.
-  실제 질문 입력·공식 KB 답변은 API-CHAT/WEB-CHAT/READY gate 이후에만 활성화한다.
+- 현재 웹 기준선: 사람이 병합한 Frontend PR #8과 owner 통합 commit `c15f61b`부터 local/private
+  `/chat`과 `/admin`은 typed actual transport가 기본이고 fixture는 명시적 개발·테스트 mode에서만
+  사용한다. public 관리자·remote DB·공개 배포 승인은 여전히 없으며 서버 gate 없이 활성화하지 않는다.
+  PR #8의 `/admin/*` 하위 경로는 local/private 관리자 view이며 공개 제품 페이지 범위 확장으로
+  해석하지 않는다. `/`, `/chat`, `/admin`의 공개 3페이지 범위는 그대로다. 하위 경로를 영구
+  구조로 유지할지는 `WEB-ROUTE-SCOPE-001`의 인간 범위 검토 전까지 Pending이다.
+- local Web 개발 origin: `allowedDevOrigins: ["127.0.0.1"]`는 사용자 지시에 따라 별도 Frontend
+  PR에서만 반영한다. 현재 owner 통합 PR에 섞지 않으며 public CORS·배포 allowlist 승인이 아니다.
+- local seed 실행: `supabase/config.toml`의 `[db.seed].enabled=false`를 유지한다. `db reset`은
+  migration만 재현하며, 승인된 immutable `.2`는 별도 정식 `seed-cycle → verify-final →
+  provision_local_database_login` 단계로만 적용한다. 자동 seed 또는 임의 SQL 적용은 금지한다.
 - 향후 배포 추천: Vercel(Frontend) + Render(Backend) + Supabase(DB); 공개 배포는 계정·리전·로그·CORS·예산 별도 승인 후
 - 관리자: 초기 local/private 전용, public 환경에서는 서버측 gate 없이는 `/admin`과 관리자 API 비활성
 - chat 재시도: optional UUID `Idempotency-Key`를 logical 질문 단위로 유지하고 correlation request ID와 분리한다. local DB에는 HMAC request digest, 독립 opaque claim token·5분 lease와 안전 응답만 논리 TTL 24시간 동안 보관하며 원문·마스킹 질문·correlation ID는 저장하지 않는다. startup과 60초 주기 purge를 사용하고 public retention은 재승인한다.
@@ -184,8 +193,11 @@
   exact-string-only 변환으로 보정했고, 전역 strictness와 public admin 금지는 유지했다. final API
   1,640, Web 48/lint/type/build/E2E 15, contracts 89, clean DB pgTAP 9/356·integration 8/8, root offline과
   deterministic sample T-01~T-20 20/20을 PASS했다.
-- MVP-001은 local/private AI scope complete의 **Review**다. PR #6은 2026-07-23 병합됐고 manual
-  demo와 accessibility는 인간 Pending이다. Upstage 합성 평가는 LLM-002의 승인된 명세와
+- MVP-001은 local/private AI scope complete의 **Review**다. PR #6과 Frontend PR #8은 사람이
+  병합했고, owner 후속은 current PR #8 UI로 PERSONAL 미저장→별도 IG→사유 확정→OFFICIAL
+  후보→별도 승인자·checklist 3/3→20번째 ACTIVE→동일 질문 SUCCESS·정확한 공식 출처를 actual
+  browser 1/1로 재검증했다. feedback dialog의 focus 이동·trap·Escape·focus restore도 Web
+  unit gate를 통과했다. Draft PR 검토와 manual demo는 인간 Pending이다. Upstage 합성 평가는 LLM-002의 승인된 명세와
   실행계획으로 offline Tasks 1~6 review clean이며 key/network/model-quality actual은 0이다.
   actual call은 local human Task 7 gate 뒤다. 100-user,
   automated backup, advanced UI,

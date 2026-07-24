@@ -1,13 +1,28 @@
 # MISMATCH_REPORT — 프론트엔드 ↔ 계약·백엔드 전면 대조 감사
 
+> **권위·상태 경계:** 이 문서는 PR #8 수정 전후를 이해하기 위한 2026-07-24 시점의
+> 역사적 감사 스냅샷이며 source-of-truth나 현재 미해결 목록이 아니다. 저장소 권위는
+> `AGENTS.md` → `docs/00_SOURCE_OF_TRUTH.md` → `docs/source-of-truth/TEAM_DECISIONS.md`·
+> `PROJECT_PLAN.md` → 활성 정책·ADR → `contracts/` 순서를 따른다.
+>
+> **Superseded:** 아래 C1/D1/E1의 PERSONAL_LOOKUP·LEGAL_JUDGMENT 저장 범위와
+> fixture 데모 전제는 D-059/D-068 및 Q-PM-DEMO-001, PR #8 후속 구현으로 해결됐다.
+> 현재 local/private 정책은 두 사유의 질문 text·event·failed row·후보를 만들지 않고,
+> `INSUFFICIENT_GROUNDING`만 개선 루프에 저장한다. fixture는 MOCK UI 상태 확인 도구이며
+> 승인·반려·ACTIVE 전환을 수행하지 않는다. 현재 상태는 source-of-truth와
+> [IMP-20260724-010](../implementation-notes/IMP-20260724-010-q-pm-demo-001-반영-pl-lj-미저장과-fixture-강등.md)을
+> 확인한다.
+
 - 감사일: 2026-07-24 / 브랜치: `feat/web-p1-complete`
-- 기준(우선순위 순): `contracts/openapi-v1.yaml` → `contracts/chat-response.schema.json`·`kb-record.schema.json` → `contracts/fixtures/**`(valid·invalid 전체) → `packages/shared-contracts/src/generated/api.ts` → `apps/web/src/lib/chat-api.ts`·`admin-api.ts` → `apps/api/src/sejong_ai_api/contracts/`·`api/`·`chat/`·`admin/`
+- 감사 내부 계약 대조 순서(저장소 전체 권위 순서가 아님): `contracts/openapi-v1.yaml` → `contracts/chat-response.schema.json`·`kb-record.schema.json` → `contracts/fixtures/**`(valid·invalid 전체) → `packages/shared-contracts/src/generated/api.ts` → `apps/web/src/lib/chat-api.ts`·`admin-api.ts` → `apps/api/src/sejong_ai_api/contracts/`·`api/`·`chat/`·`admin/`
 - 대조 대상: **`apps/web/src` 전체** (시민 화면·이음센터·데이터 계층·fixture).
   `frontend/` 폴더는 커밋 `096ef48`에서 삭제되어 현재 **빈 폴더**다. IDE에 열린
   `frontend/types/api.ts`는 삭제 전 버퍼이며 감사 대상이 아니다.
 - 이 세션에서는 어떤 코드도 수정하지 않았다. 보고서만 작성.
 
-표기: 심각도 = 상 / 중 / 소. "actual"은 `CHAT_UI_MODE=actual`·`ADMIN_UI_MODE=actual`(실 API 경유), "fixture"는 로컬 시연 버전(demo-fixtures)을 뜻한다.
+당시 표기(현재 의미가 아님): 심각도 = 상 / 중 / 소. "actual"은
+`CHAT_UI_MODE=actual`·`ADMIN_UI_MODE=actual`(실 API 경유), "fixture"는 당시 감사에서
+로컬 시연 버전(demo-fixtures)을 뜻했다. 현재 fixture 경계는 위 Superseded 배너를 따른다.
 
 ---
 

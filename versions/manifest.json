@@ -1,19 +1,19 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-24T11:03:11+09:00",
+  "updated_at": "2026-07-24T14:02:42+09:00",
   "versions": {
     "product_spec": "2.4.0",
-    "repo_guidance": "1.7.6",
-    "application": "0.7.0-local-synthetic-evaluator",
-    "web": "0.4.0-chat-admin-local-integration",
+    "repo_guidance": "1.7.7",
+    "application": "0.8.0-pr8-frontend-baseline",
+    "web": "0.5.0-pr8-citizen-admin-baseline",
     "api": "3.1.0-draft",
     "shared_contracts": "0.4.0",
     "database_schema": "0.4.0-local",
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.1.0-upstage-solar-pro3-synthetic",
-    "test_suite": "1.4.0-q-pm-actual-evidence",
-    "documentation": "2.15.0"
+    "test_suite": "1.5.0-pr8-web-baseline",
+    "documentation": "2.16.0"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }
