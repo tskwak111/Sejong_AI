@@ -41,10 +41,11 @@
 
 ## Task 5. 게시
 
-- [ ] 의도한 파일만 stage하고 commit한다.
-- [ ] owner 브랜치를 private origin에 push한다.
-- [ ] `main` 대상 Draft PR을 만들고 자동 merge하지 않는다.
-- [ ] 기존 팀원 PR #10은 자동 merge/close하지 않고 대체 관계를 사용자에게 알린다.
+- [x] 의도한 파일만 stage하고 commit한다 (`887f150`).
+- [x] owner 브랜치를 private origin에 push한다.
+- [x] `main` 대상 [Draft PR #11](https://github.com/tskwak111/Sejong_AI/pull/11)을 만들고
+  자동 merge하지 않는다.
+- [x] 기존 팀원 PR #10은 자동 merge/close하지 않고 대체 관계를 사용자에게 알린다.
 
 ## 버전 계획
 

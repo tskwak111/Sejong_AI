@@ -3,10 +3,12 @@
 - Date/Time (KST): 2026-07-24T22:18:36+09:00
 - Task ID: POST-MVP-001
 - Type: implementation/platform
-- Status: Review — 검증·독립 리뷰 완료, owner Draft PR 게시 전
+- Status: Review — 검증·독립 리뷰 완료, owner Draft PR #11 게시
 - Author/Agent: 사용자(owner 결정) / Codex(설계·구현·검증)
 - Branch: `codex/POST-MVP-001-main-stabilization`
 - Base commit: `4cc2f4e5e478668e1d7216fddc08874c9285274b`
+- Implementation commit: `887f150`
+- Draft PR: [#11](https://github.com/tskwak111/Sejong_AI/pull/11)
 - Related plan/ADR/RFP:
   [설계](../superpowers/specs/2026-07-24-post-mvp-main-stabilization-design.md),
   [실행계획](../superpowers/plans/2026-07-24-post-mvp-main-stabilization.md),
@@ -139,7 +141,7 @@ probe로 교정했으며 제품 설정에는 추가 보정을 하지 않았다.
 | 첫 dev-origin Playwright harness | expected diagnostic FAIL | 120s readiness timeout | 본 노트 §6 |
 | direct dev server/network probe | root cause confirmed | Ready 538ms; `::1`; localhost 200; 127 connect fail | 본 노트 §6 |
 | corrected dev-origin Playwright | PASS | 1/1, 21.1s | `dev-origin.spec.ts` |
-| repository docs | PASS | active links/JSON | `scripts/check_repository_docs.py` |
+| repository docs | PASS | active links/JSON; 게시 전·후 실행 | `scripts/check_repository_docs.py` |
 | secret patterns | PASS | tracked secret match 0 | `scripts/check_secret_patterns.ps1` |
 | 독립 정본 리뷰 | CLEAN after fixes | MVP 상태 2곳, version current block, active handoff 제품명 보정 후 Critical/Important 0 | 본 노트 및 변경 diff |
 
@@ -206,7 +208,7 @@ Task 7 preflight에서 재개한다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- owner Draft PR human merge Pending.
+- owner Draft PR #11 human review/merge Pending.
 - 팀원 계정 MFA/recovery 확인 Pending.
 - LLM-002 actual synthetic evaluation/PM scoring Pending.
 - manual a11y, performance 100-user smoke, backup/recovery와 public 준비는 후속 P1/P2 gate.
