@@ -102,6 +102,7 @@ export default function KbCandidateReview({
     !reviewLocked;
   const canApprove = canReview && candidate.data_origin === "OFFICIAL";
   const hasComment = reviewComment.trim().length > 0;
+  const allChecksConfirmed = checked.size === CHECKLIST.length;
   const lockTooltip = reviewLocked ? REVIEW_LOCKED_REASON : undefined;
 
   /* ── 승인 직후 완료형 (§9-3) ── */
@@ -398,7 +399,9 @@ export default function KbCandidateReview({
                 <div className="flex flex-col gap-2.5 md:flex-row">
                   <button
                     type="button"
-                    disabled={busy || !canApprove || !hasComment}
+                    disabled={
+                      busy || !canApprove || !hasComment || !allChecksConfirmed
+                    }
                     title={lockTooltip}
                     onClick={() =>
                       onReview(candidate.id, "APPROVED", reviewComment.trim())

@@ -9,7 +9,7 @@
  * 계약(openapi-v1.yaml)에 피드백 엔드포인트가 없어 전송은 연결하지 않는다 -
  * 선택 결과는 탭 메모리에서만 소비된다 (계약 변경 필요 항목으로 보고됨).
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   INTENT_LABEL,
   SUPPORTED_INTENTS,
@@ -22,6 +22,15 @@ const REASON_CODES: { code: string; label: string }[] = [
   { code: "HARD_TO_UNDERSTAND", label: "안내가 이해하기 어려워요" },
   { code: "WRONG_CONTACT", label: "연결된 기관·링크가 잘못됐어요" },
 ];
+
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
 
 /** 선택 칩 스타일 (§11) - 선택 = primary 채움 + ✓ / 미선택 형제 opacity 0.45 */
 function chipClass(selected: boolean, anySelected: boolean) {
@@ -43,6 +52,76 @@ export default function FeedbackReasonSheet({
 }) {
   const [category, setCategory] = useState<SupportedIntent | null>(null);
   const [reason, setReason] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    openerRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    const focusableElements = () => {
+      const controls = Array.from(
+        dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      );
+      return controls.filter((control) => {
+        if (
+          !(control instanceof HTMLInputElement) ||
+          control.type !== "radio" ||
+          !control.name
+        ) {
+          return true;
+        }
+        const group = controls.filter(
+          (candidate): candidate is HTMLInputElement =>
+            candidate instanceof HTMLInputElement &&
+            candidate.type === "radio" &&
+            candidate.name === control.name,
+        );
+        return control === (group.find((candidate) => candidate.checked) ?? group[0]);
+      });
+    };
+
+    focusableElements()[0]?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const controls = focusableElements();
+      if (controls.length === 0) return;
+      const first = controls[0];
+      const last = controls.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      openerRef.current?.focus();
+      openerRef.current = null;
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -50,6 +129,7 @@ export default function FeedbackReasonSheet({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="불만족 사유 선택"
