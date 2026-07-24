@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { components } from "../../../../../../packages/shared-contracts/src/generated/api";
+import { buildActualCandidateDraft } from "@/lib/admin-candidate-draft";
 import { STORED_REASON_LABEL, type StoredFailureReason } from "@/lib/labels";
 import { buildCandidateDraft } from "@/lib/demo-fixtures";
 import { useAdmin } from "@/components/admin/AdminShell";
@@ -39,7 +40,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 let knownFailureIds: Set<string> | null = null;
 
 export default function AdminFailuresPage() {
-  const { transport, actor, role, notifyDataChanged } = useAdmin();
+  const { transport, actor, role, mode, notifyDataChanged } = useAdmin();
   const [items, setItems] = useState<FailedQuestion[] | null>(null);
   const [candidates, setCandidates] = useState<KBCandidateSummary[]>([]);
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -118,7 +119,10 @@ export default function AdminFailuresPage() {
     if (!target) return;
     setBusyId(id);
     try {
-      const draft = buildCandidateDraft(target);
+      const draft =
+        mode === "actual"
+          ? buildActualCandidateDraft(target)
+          : buildCandidateDraft(target);
       const created = await transport.createCandidate(actor, draft);
       await transport.submitCandidate(actor, created.id);
       setDraftBanner(draft.title);
