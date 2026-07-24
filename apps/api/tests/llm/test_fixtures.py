@@ -5,7 +5,8 @@ import pytest
 from sejong_ai_api.db.models import AnswerStatus, Intent
 from sejong_ai_api.llm.fixtures import load_allowed_fixtures
 
-CANONICAL_PATH = Path("data/evaluation/sample_questions_20.csv")
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+CANONICAL_PATH = REPOSITORY_ROOT / "data" / "evaluation" / "sample_questions_20.csv"
 
 
 def test_canonical_loader_returns_only_exact_success_ids() -> None:
