@@ -250,6 +250,13 @@ audit_logs
 | PRIVACY_UNRESOLVED | 불가 | 7/25 local은 질문 텍스트·실패 질문 행·DB event 모두 미생성 |
 | FOLLOWUP | 해당 없음 | 실패 질문 목록 미저장 |
 
+Q-PM-DEMO-001=B의 local/private 실제 시연에서는 먼저 `PERSONAL_LOOKUP` 전후
+`interaction_events`·`failed_questions` count 무변화를 확인하고, 별도의
+`INSUFFICIENT_GROUNDING` 질문만 실패 저장·후보·별도 승인·20번째 ACTIVE 개선 루프로 보낸다.
+backend runner stdout/stderr/log/report에는 질문·UUID·DSN·secret을 출력하지 않는다. actual
+browser는 승인된 비식별 고정 fixture를 현재 탭의 메모리 UI에만 표시하며, 실패 시 local
+gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 증거로 해석하지 않는다.
+
 ### 외부 AI
 
 - 외부 LLM 호출 전 백엔드에서 개인정보를 마스킹한다.

@@ -32,6 +32,81 @@ exit `2`, local DB/readiness 오류는 exit `3`, 실행·무결성 오류는 exi
 질문·답변은 출력하지 않는다. 이 도구는 실제 시민/free-input/public/remote provider 연결을
 활성화하지 않는다.
 
+## Q-PM local actual 개선 루프 runner
+
+```powershell
+python -B scripts/verify_actual_mvp_regression.py
+```
+
+이 runner는 **state-changing local/private 전용**이다. 인수를 받지 않으며 clean reset과 immutable
+`.2` seed로 ACTIVE 19를 확인하고 local login과 process-only `CONTEXT_TOKEN_SECRET`,
+`SEJONG_ADMIN_DATABASE_URL`을 준비한 뒤 정확히 한 번 실행한다. 성공 뒤 DB는 ACTIVE 20이므로
+같은 상태에서 재실행하지 말고 disposable local DB를 다시 reset+seed한다. 실패는
+`ACTUAL_MVP_REGRESSION_FAILED` 한 줄과 nonzero exit만 내며 질문·UUID·DSN·secret·provider
+payload를 출력하지 않는다.
+
+정상 성공 stdout은 아래 고정 15줄이다.
+
+```text
+PASS ready
+PASS initial-active count=19
+PASS personal-lookup persistence event_delta=0 failed_delta=0
+PASS initial-fallback
+PASS business-replay
+PASS insufficient-grounding event_delta=1 failed_delta=1
+PASS failed-new count=1
+PASS reason-confirmed
+PASS candidate-created
+PASS candidate-submitted
+PASS self-approval-blocked
+PASS candidate-approved
+PASS improved-requery public_id=KB-WASTE-03
+PASS old-replay
+PASS final-active total=20 categories=4 count_each=5
+```
+
+첫 delta는 `interaction_events`와 `failed_questions` 두 table에만 대한 무변화 증거다. 별도 근거
+부족 질문은 두 count를 정확히 1씩 늘린다. candidate `activated_kb_id`는 내부 UUID이며 public
+`KB-WASTE-03`은 최종 chat source에서 증명한다. 이 runner는 Upstage key/network/provider,
+remote DB, Docker 외부 노출, public admin·배포를 사용하거나 승인하지 않는다.
+
+### Opt-in actual desktop browser
+
+backend runner가 성공한 DB는 이미 ACTIVE 20이므로, browser evidence 전에 다시 disposable reset과
+immutable `.2` seed로 clean ACTIVE 19를 만든다. 첫 터미널에서 실제 secret을 출력하지 않고 local
+API를 시작한다.
+
+```powershell
+$bytes = New-Object byte[] 48
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+[Environment]::SetEnvironmentVariable(
+  "CONTEXT_TOKEN_SECRET",
+  [Convert]::ToBase64String($bytes),
+  "Process"
+)
+apps/api/.venv/Scripts/python.exe -B scripts/run_local_api.py --port 8000
+```
+
+`/ready=200`을 확인한 뒤 두 번째 터미널의 저장소 루트에서 actual Web env와 state-changing desktop
+spec을 정확히 한 번 실행한다. Playwright config가 `ADMIN_UI_ENABLED=true`를 Web server에도
+전달하지만 재현 경계를 명시하기 위해 process env에도 설정한다.
+
+```powershell
+$env:ADMIN_UI_ENABLED = "true"
+$env:ADMIN_UI_MODE = "actual"
+$env:API_INTERNAL_BASE_URL = "http://127.0.0.1:8000"
+$env:SEJONG_ACTUAL_LOCAL_E2E = "true"
+$env:CI = "true"
+corepack pnpm --filter @sejong-ai/web build
+corepack pnpm --filter @sejong-ai/web-e2e test -- `
+  --project=desktop e2e/actual-local-core-loop.spec.ts
+```
+
+PASS 뒤 DB는 final ACTIVE 20이다. 첫 터미널의 API를 `Ctrl+C`로 종료하고 두 터미널의 위 process
+env를 제거한다. 실제 질문·PII·provider key를 넣지 않으며, 실패 trace/screenshot은 local
+Git-ignored test artifact로만 취급한다. 다시 실행하려면 반드시 clean19부터 복구한다.
+
 ## 협업 전환 검사기
 
 ### 전체 reachable Git history 비밀 검사

@@ -49,3 +49,22 @@ use, a new official release, or an update to immutable `.2`.
 This runtime flow does not replace the fresh whole-repository closeout now rerunning. It also does
 not satisfy the final sample-20 report, 100-user smoke, automatic backup, DeepSeek, public deployment
 or reserved public `00700` gates.
+
+## 2026-07-24 Q-PM-DEMO-001=B append-only evidence
+
+This checkpoint preserves all 2026-07-22 evidence above and adds one clean local rehearsal from
+immutable `.2` initial ACTIVE 19. The backend runner proved `PERSONAL_LOOKUP` changed neither
+`interaction_events` nor `failed_questions`; this is a two-table count statement, not a claim that
+every database table was unchanged. A separate `INSUFFICIENT_GROUNDING` request increased those
+counts by exactly one, then completed reason confirmation, candidate submit, same-writer rejection,
+different PM approval, target activation and same-query SUCCESS.
+
+An opt-in desktop browser independently exercised actual `/chat`, same-origin Web transport, FastAPI,
+the local DB and actual `/admin`, ending with the exact server-bound public source ID, official title
+and URL. Candidate `activated_kb_id` remained the internal UUID identity; it was not treated as the
+public KB ID. A final read-only probe confirmed ACTIVE 20, target exactly once and `/ready=200`.
+
+The browser uses only approved non-PII fixed fixture text in in-memory UI. Local gitignored failure
+trace/screenshots may exist during diagnosis and are not the backend no-storage proof. Provider/key/
+network use, remote DB, public deployment, new official release and immutable `.2` modification were
+all zero.

@@ -174,6 +174,10 @@
   official/mock 분리, 390/430 keyboard/contrast 최소선은 완화하지 않는다.
 - local/private `/admin`의 role selector는 demo actor 선택일 뿐 인증/RBAC가 아니다. public
   mode에서는 server-side gate 없이 관리자 router와 UI를 노출하지 않는다.
+- Q-PM-DEMO-001=B/D-068로 PM 데모의 두 정책 질문을 분리한다. #4 개인조회는
+  `UNKNOWN/PERSONAL_LOOKUP/candidate=false` 정책 결과를 반환하고 질문 text·interaction event·failed row를
+  만들지 않는다. #5는 별도의 지원 범위 내 `INSUFFICIENT_GROUNDING` 질문으로 event와 eligible
+  failed row부터 별도 승인자에 의한 20번째 ACTIVE, 동일 질문 SUCCESS까지 시연한다.
 - 2026-07-22 actual continuation은 final local DB에서 one NEW failure→reason confirm→candidate
   submit→same-writer block→different approver→`KB-WASTE-03` SUCCESS와 `/ready=200`을 확인했다.
   FastAPI JSON pre-parse와 strict UUID/date의 canonical wire mismatch는 request field validator의

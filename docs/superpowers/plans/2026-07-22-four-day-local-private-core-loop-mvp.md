@@ -4,7 +4,7 @@
 > independent code tasks and `superpowers:test-driven-development` for every behavior change.
 
 - Plan ID: MVP-001-PLAN
-- Status: **Review — local/private AI scope complete; human Draft PR/manual demo·accessibility pending**
+- Status: **Review — Q-PM backend runner와 actual browser PASS; human manual demo·accessibility pending**
 - Window: 2026-07-22 02:10 KST ~ 2026-07-25
 - Goal: local/private 19→20 ACTIVE 개선 루프와 시민/admin 최소 UI 완주
 - Design: `docs/superpowers/specs/2026-07-22-four-day-local-private-core-loop-mvp-design.md`
@@ -153,7 +153,9 @@ Task 7 + Task 9 -> Task 10 sample/security/demo closeout
 - [x] RED tests for failed list/detail/expired text/filters and role gate.
 - [x] RED tests for reason confirm, candidate PII recheck, submit, self-approval rejection, approve/reject.
 - [x] Add typed repository read methods and minimal admin routes; public mode router disabled.
-- [x] Add local role switch UI with explicit demo-only label and audit metadata view. 현재 명시적 fixture transport.
+- [x] Add local role switch UI with explicit demo-only label and audit metadata view. default는 fixture이며
+  명시적 `ADMIN_UI_MODE=actual`에서 actual same-origin API를 사용한다. opt-in actual browser가
+  Frontend→API→DB 승인 루프를 PASS했다.
 - [x] Confirm OUT_OF_SCOPE/FOLLOWUP/PRIVACY failed row 0 and 30-day failed-question text purge behavior.
   Service/DB gates cover row-zero and clean disposable API DB integration 8/8 proves actual purge/FK behavior.
 
@@ -207,6 +209,18 @@ Task 7 + Task 9 -> Task 10 sample/security/demo closeout
 - DATA-SEED-002 historical fourth run은 concurrency B에서 중단됐으나 observer 수정 뒤 지원 actual
   continuation은 concurrency A/B·seed·replay·compensation·final 19/3/10·cleanup까지 PASS했다.
 - actual data blocker와 독립적인 API/DB migration/Web/admin transport 구현은 세 lane으로 계속한다.
+
+## 2026-07-24 Q-PM-DEMO-001=B actual evidence checkpoint
+
+- D-059의 제품 동작은 변경하지 않았다. backend actual runner가 데모 #4 PERSONAL_LOOKUP의
+  `UNKNOWN/PERSONAL_LOOKUP/candidate=false`와 interaction event/failed row delta 0을 증명했다.
+- 같은 runner가 별도 INSUFFICIENT_GROUNDING 질문의 event+failed delta 1, reason confirm,
+  candidate submit, same-writer block, PM-LOCAL-001 승인, 20번째 ACTIVE와 requery SUCCESS를 증명했다.
+- opt-in actual browser는 real `/chat`→same-origin API→local DB→actual `/admin`→PM 승인→동일 질문
+  SUCCESS와 서버 결합 공개 source ID·공식 출처 링크를 별도로 증명했다. 관리자 candidate의
+  `activated_kb_id`는 내부 UUID이며 공개 `KB-WASTE-03` 증거가 아니다.
+- 상세 실행·출력 안전 경계는
+  [Q-PM-DEMO-001 plan](2026-07-24-q-pm-demo-001-actual-evidence.md)이 소유한다.
 
 ## Daily stop conditions
 

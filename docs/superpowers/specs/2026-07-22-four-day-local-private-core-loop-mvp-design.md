@@ -44,6 +44,9 @@ ACTIVE 공식 KB 검색, 근거 판정, 구조화 답변 또는 정책 폴백을
   startup과 60초 주기 purge 실패 시 readiness를 닫는다.
 - DATA-SEED-002 actual 4차는 승인·실행됐으나 concurrency B의 bounded
   `CAPABILITY_WRITE_DID_NOT_BLOCK`에서 중단됐다. 19/3/10 projection과 official-data 승격은 미완료다.
+- 위 문장은 4차 시도의 역사적 중단 기록이다. observer 보정 뒤 승인된 supported continuation은
+  immutable `.2`를 바꾸지 않고 19/3/10과 `official_data=0.1.0-initial.2`를 PASS했으며,
+  2026-07-24 Q-PM actual 재실행은 최종 ACTIVE 20과 target 1을 확인했다.
 
 ## 3. 수직 흐름
 
@@ -117,11 +120,14 @@ INSUFFICIENT_GROUNDING event
 ```
 
 - FOLLOWUP, OUT_OF_SCOPE, PRIVACY_UNRESOLVED는 failed row 0.
-- PERSONAL_LOOKUP와 LEGAL_JUDGMENT는 masked 실패 row를 남길 수 있지만 candidate는 부적격이다.
+- Q-MVP-002=A/D-059의 좁은 local MVP 정책에 따라 PERSONAL_LOOKUP와 LEGAL_JUDGMENT는
+  질문 text·interaction event·failed row를 남기지 않고 candidate도 부적격이다.
 - 후보 대표 질문은 PII core를 다시 통과해야 한다. finding이 있거나 unresolved면 value-free 422로
   거부하고 입력을 echo/log하지 않는다.
 - 20번째 record는 `KB-WASTE-03`, official source를 기존 PM-approved staging에서 가져오며 author와
   reviewer identity가 달라야 한다.
+- Q-PM-DEMO-001=B/D-068에서 개인조회 무저장 시연(#4)과 별도의
+  INSUFFICIENT_GROUNDING 승인 루프(#5)를 분리한다.
 
 ## 8. 최소 API와 관리자 계약
 
@@ -136,7 +142,9 @@ INSUFFICIENT_GROUNDING event
 
 - Frontend 팀원은 `apps/web/src/**`, `tools/web-e2e/e2e/**`, 자신의 새 note와 INDEX append만 소유한다.
 - owner가 contract/generated package와 package/lockfile 변경을 맡는다.
-- fixture-first로 모든 화면 상태를 구현하고, contract freeze 뒤 typed client를 연결한다.
+- fixture-first로 모든 화면 상태를 구현한다. default는 fixture이며 명시적 `ADMIN_UI_MODE=actual`은
+  contract-frozen typed same-origin client를 사용한다. 2026-07-24 opt-in actual browser는
+  real `/chat`·`/admin`·local API/DB 19→20 흐름을 PASS했다.
 - transcript/context는 React memory만 사용하며 local/session storage, cookie, analytics에 쓰지 않는다.
 - 390/430/desktop, semantic labels, visible focus, contrast 4.5:1, status text+icon을 최소 gate로 둔다.
 
@@ -163,3 +171,7 @@ INSUFFICIENT_GROUNDING event
 Q-MVP-001=A는 이 문서와 실행계획, DATA-SEED-002 실행, 위 local/private public-contract draft
 변경을 승인한다. 팀원 계정 MFA/PR 병합, PM 역할의 20번째 source 검수, public/remote/DeepSeek
 citizen/새 dependency/데이터 삭제 권한은 포함하지 않는다.
+
+후속 D-068과 사용자의 PM source confirmation은 이 local/private Q-PM rehearsal의 기존 approved
+자료 사용과 별도 승인자 시연을 허용했다. 이는 public admin 인증/RBAC 또는 remote/public 배포
+승인이 아니다.

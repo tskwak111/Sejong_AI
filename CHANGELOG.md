@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Changed — Q-PM-DEMO-001 actual persistence and browser evidence
+
+- Q-PM-DEMO-001=B keeps the product policy unchanged while proving two separate local/private paths:
+  PERSONAL_LOOKUP returns the exact safe policy fallback with `interaction_events` and
+  `failed_questions` delta `0/0`; a distinct INSUFFICIENT_GROUNDING request produces delta `1/1`.
+- The actual backend runner starts at immutable `.2` ACTIVE 19, preserves idempotent fallback replay,
+  confirms reason/candidate submit, blocks same-writer approval, accepts `PM-LOCAL-001`, re-queries to
+  exact public source `KB-WASTE-03`, and ends at ACTIVE 20 with four categories × five.
+- The opt-in desktop browser separately passed the real Frontend→same-origin Web API→FastAPI→local
+  DB→actual `/admin`→same-query SUCCESS path. Candidate activation UUID remains internal; the public
+  ID, official title and URL are verified at the citizen chat source boundary.
+- Final read-only evidence is ACTIVE 20, target once and `/ready=200`. The immutable `.2`, public API,
+  DB schema/migrations, product runtime, dependencies and provider prompt are unchanged. Upstage
+  key/network/provider, remote DB, public admin/deploy and auto-merge use is zero.
+- Versions: tests `1.4.0-q-pm-actual-evidence`, documentation `2.15.0`; application, Web, API,
+  contracts, DB, official/mock data and prompt remain unchanged.
+
 ### Changed — LLM-002 Upstage synthetic evaluation design and plan
 
 - Q-LLM-005=A/D-065/ADR-0022 supersedes the unimplemented DeepSeek provider/model choice with
