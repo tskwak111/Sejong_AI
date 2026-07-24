@@ -3,7 +3,9 @@
 - Date/Time: 2026-07-24T13:12:35+09:00
 - Task/Request ID: WEB-PR8-INTEGRATION-001
 - Type: integration-test-documentation
-- Status: Done — actual Web/DB와 final root gate PASS, 인간 수동 검수·Draft PR review Pending
+- Status: Done — actual Web/DB·final root gate·push·Draft PR #9 PASS, 인간 수동 검수·merge Pending
+- Branch: `codex/LLM-002-upstage-synthetic-evaluation`
+- Publication: [Draft PR #9](https://github.com/tskwak111/Sejong_AI/pull/9), automatic merge disabled
 - Base commit: `f22bd00`
 - Related plan/ADR/RFP:
   - [`PROJECT_PLAN.md`](../source-of-truth/PROJECT_PLAN.md)
@@ -146,6 +148,7 @@ final20에서 같은 state-changing spec을 재실행하지 않고 clean19로 �
 | second `verify.ps1 -Offline` | FAIL — `TEST-ROOT` | PR #8 actual mode와 기존 fixture 기대 1건 drift | environment boundary test RED→GREEN |
 | environment boundary focused test | PASS | `1/1` | `EnvironmentBoundaryTest.test_web_template_has_only_the_approved_server_assignment` |
 | final `verify.ps1 -Offline` | PASS — `verification=complete` | root/data/Web/API/contracts/secret/bundle/package/diff 전체 | local terminal, 2026-07-24 KST |
+| owner commit·push·Draft PR | PASS | commit `8264185`, remote branch, Draft PR #9 MERGEABLE | private GitHub, 2026-07-24 KST |
 | `python -B scripts/check_repository_docs.py` | PASS — `repository documentation check passed` | 1 repository docs gate | local terminal, 2026-07-24 KST |
 | `git diff --check` | PASS — 출력 없음, exit 0 | current shared-worktree diff | local terminal, 2026-07-24 KST |
 
@@ -180,8 +183,8 @@ final20에서 같은 state-changing spec을 재실행하지 않고 clean19로 �
 - `allowedDevOrigins: ["127.0.0.1"]`은 이번 변경이 아니라 별도 Frontend PR에서 검토한다.
 - PR #8의 `/admin/login`, `/admin/failures`, `/admin/kb-candidates`는 local/private `/admin`
   내부 view로만 승인된 기준선이며 public route 활성화가 아니다.
-- 이 변경을 포함한 Draft PR은 Codex가 자동 merge하지 않는다. owner가 diff·CI·Pending을 확인한
-  뒤 명시적으로 병합한다.
+- [Draft PR #9](https://github.com/tskwak111/Sejong_AI/pull/9)은 MERGEABLE이며 Codex가 자동
+  merge하지 않는다. owner가 diff·hosted CI·Pending을 확인한 뒤 명시적으로 병합한다.
 - final20 DB에서 state-changing runner/spec을 다시 실행하면 안 된다. disposable reset 뒤
   `.2` clean19부터 재현한다.
 
@@ -224,6 +227,7 @@ final20에서 같은 state-changing spec을 재실행하지 않고 clean19로 �
 - screen reader·대비 실기·최종 수동 데모 Pending.
 - `allowedDevOrigins: ["127.0.0.1"]` 별도 Frontend PR Pending.
 - `/admin/*` 영구 route 구조와 checklist server/audit 승격은 public 준비 전 인간 검토 Pending.
+- Draft PR #9 hosted checks와 인간 review/merge Pending; automatic merge 금지.
 - current shared worktree의 다른 lane 변경과 통합 시 INDEX/version/source-of-truth는 owner lane이
   한 번만 갱신해야 한다.
 
