@@ -26,8 +26,8 @@ const successResponse = {
 };
 
 async function submit(page: Page, question: string) {
-  const textbox = page.getByRole("textbox", { name: "민원 질문" });
-  const submitButton = page.getByRole("button", { name: "질문 보내기" });
+  const textbox = page.getByRole("textbox", { name: "질문 입력" });
+  const submitButton = page.getByRole("button", { name: "전송" });
 
   await expect(async () => {
     await textbox.fill(question);
@@ -41,24 +41,54 @@ async function submit(page: Page, question: string) {
   await submitButton.click();
 }
 
-test("home CTA reaches chat by keyboard and renders a grounded source", async ({ page }) => {
+test("recommended question reaches chat via tab memory - exact /chat, empty search, no raw question in URL/history/storage", async ({ page }) => {
   await page.route("**/api/v1/chat", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(successResponse) }),
   );
   await page.goto("/");
-  const entry = page.getByRole("link", { name: "민원 안내 시작하기" });
-  await entry.focus();
-  await expect(entry).toBeFocused();
-  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("궁금한 민원을 물어보세요");
 
-  await expect(page).toHaveURL(/\/chat$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("민원을 물어보세요");
-  await submit(page, "전입신고 절차를 알려줘");
+  // 추천 질문 클릭 - 질문 원문은 탭 메모리(pending-question)로만 전달한다.
+  // 링크 href에도 쿼리가 없다 (태성 리뷰 1: /chat?q= 폐지).
+  const chipQuestion = "전입신고는 언제까지 해야 하나요?";
+  const chip = page.getByRole("link", { name: chipQuestion });
+  await expect(chip).toHaveAttribute("href", "/chat");
+  await chip.click();
+
+  // URL pathname은 정확히 /chat, location.search는 빈 문자열
+  await page.waitForURL("**/chat");
+  const location = await page.evaluate(() => ({
+    pathname: window.location.pathname,
+    search: window.location.search,
+  }));
+  expect(location.pathname).toBe("/chat");
+  expect(location.search).toBe("");
+
+  // 탭 메모리로 넘어간 질문이 자동 전송되어 응답 카드가 렌더된다
   await expect(page.getByText(successResponse.summary)).toBeVisible();
-  await expect(page.getByRole("link", { name: successResponse.sources[0].title })).toHaveAttribute(
+  await expect(page.getByText(successResponse.sources[0].title)).toBeVisible();
+  await expect(page.getByText("공식 출처 확인")).toBeVisible();
+  await expect(page.getByRole("link", { name: /원문 보기/ })).toHaveAttribute(
     "href",
     successResponse.sources[0].url,
   );
+
+  // 질문 원문이 URL·히스토리 어디에도 남지 않는다 (현재 /chat + 뒤로가기 홈 모두)
+  expect(page.url()).not.toContain(chipQuestion);
+  expect(page.url()).not.toContain(encodeURIComponent(chipQuestion));
+  await page.goBack();
+  await page.waitForURL((url) => url.pathname === "/");
+  expect(page.url()).not.toContain(chipQuestion);
+  expect(page.url()).not.toContain(encodeURIComponent(chipQuestion));
+
+  // localStorage/sessionStorage/쿠키 미사용
+  expect(await page.context().cookies()).toEqual([]);
+  expect(
+    await page.evaluate(() => ({
+      localStorageCount: localStorage.length,
+      sessionStorageCount: sessionStorage.length,
+    })),
+  ).toEqual({ localStorageCount: 0, sessionStorageCount: 0 });
 });
 
 test("follow-up uses its signed in-memory context once and stores nothing", async ({ page }) => {
@@ -80,7 +110,7 @@ test("follow-up uses its signed in-memory context once and stores nothing", asyn
           department: null,
           sources: [],
           office: null,
-          followup_options: ["전입·주민등록", "증명서 발급"],
+          followup_options: ["전입신고는 언제까지 해야 하나요?", "주민등록등본은 어떻게 발급받나요?"],
           fallback: null,
           context_token: "signed-followup-context",
         }
@@ -90,13 +120,15 @@ test("follow-up uses its signed in-memory context once and stores nothing", asyn
 
   await page.goto("/chat");
   await submit(page, "신고하고 싶어요.");
-  const option = page.getByRole("button", { name: "전입·주민등록" });
+  const option = page.getByRole("button", { name: "전입신고는 언제까지 해야 하나요?" });
   await option.click();
   await expect(page.getByText(successResponse.summary)).toBeVisible();
 
   expect(requests).toHaveLength(2);
+  expect(requests[1].question).toBe("전입신고는 언제까지 해야 하나요?");
   expect(requests[1].context_token).toBe("signed-followup-context");
-  await expect(option).toBeDisabled();
+  // 선택 직후 카드는 요약형으로 전환 - 선택지 버튼은 사라진다
+  await expect(option).toHaveCount(0);
   expect(await page.context().cookies()).toEqual([]);
   expect(
     await page.evaluate(async () => ({
@@ -161,7 +193,9 @@ test("privacy and unavailable states stay value-free, accessible, and within the
   await expect(page.getByText("개인정보를 안전하게 처리하지 못했어요")).toBeVisible();
   await expect(page.getByText("이름, 주소, 전화번호, 접수번호 등을 적지 마세요.")).toBeVisible();
   await submit(page, "일시 오류 확인");
-  await expect(page.locator(".error-state")).toContainText("지금은 안전한 답변을 만들 수 없어요.");
+  await expect(
+    page.getByRole("alert").filter({ hasText: "연결 오류" }),
+  ).toContainText("지금은 안전한 답변을 만들 수 없어요.");
   await expect(page.getByRole("button", { name: "다시 시도" })).toBeVisible();
 
   expect(
@@ -169,7 +203,7 @@ test("privacy and unavailable states stay value-free, accessible, and within the
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
     ),
   ).toBe(true);
-  const question = page.getByRole("textbox", { name: "민원 질문" });
+  const question = page.getByRole("textbox", { name: "질문 입력" });
   await question.focus();
   await expect(question).toBeFocused();
   const focusStyle = await question.evaluate((element) => {
@@ -178,21 +212,25 @@ test("privacy and unavailable states stay value-free, accessible, and within the
   });
   expect(focusStyle.outlineStyle !== "none" || focusStyle.boxShadow !== "none").toBe(true);
 
-  const ratio = await page.locator(".privacy-note").evaluate((element) => {
-    const parse = (value: string) =>
-      value.match(/\d+/g)!.slice(0, 3).map(Number) as [number, number, number];
-    const color = parse(getComputedStyle(element).color);
-    const background = parse(getComputedStyle(document.body).backgroundColor);
-    const luminance = (rgb: [number, number, number]) => {
-      const linear = rgb.map((channel) => {
-        const value = channel / 255;
-        return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
-      });
-      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
-    };
-    const [lighter, darker] = [luminance(color), luminance(background)].sort((a, b) => b - a);
-    return (lighter + 0.05) / (darker + 0.05);
-  });
+  // 개인정보 경고 문구의 명도 대비 4.5:1 이상 (QUR-001)
+  const ratio = await page
+    .locator("p", { hasText: "개인정보는 입력하지 마세요" })
+    .last()
+    .evaluate((element) => {
+      const parse = (value: string) =>
+        value.match(/\d+/g)!.slice(0, 3).map(Number) as [number, number, number];
+      const color = parse(getComputedStyle(element).color);
+      const background = parse(getComputedStyle(document.body).backgroundColor);
+      const luminance = (rgb: [number, number, number]) => {
+        const linear = rgb.map((channel) => {
+          const value = channel / 255;
+          return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+      };
+      const [lighter, darker] = [luminance(color), luminance(background)].sort((a, b) => b - a);
+      return (lighter + 0.05) / (darker + 0.05);
+    });
   expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
 
