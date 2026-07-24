@@ -43,12 +43,14 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-037 | A | Codex Cloud merge·secret | Resolved policy | Q-CLOUD-001=A: Cloud는 branch+Draft PR만, 사람이 merge; secret·external LLM·Docker actual 없음 | D-051 / ADR-0019 |
 | A-038 | A | Collaboration operating model | Resolved spec / In Progress execution | Tasks 1~4 완료, Task 5 partial, Task 6 partial, Task 7 pending. App scope·PR #1 merge/post-merge CI·secret-free Cloud environment 저장은 확인됐고 teammate MFA/recovery·첫 PR-only rehearsal, Cloud docs-only task/Draft PR/manual merge와 나머지 Task 7 rehearsal이 남았다 | D-052~D-057 / collaboration design and plan |
 | A-039 | A / Blocker | Git author identity privacy | Resolved | Q-GIT-004=A: 해당 email이 사용자 본인 것이며 private Frontend collaborator에게 보여도 괜찮음을 확인. 현재 history와 모든 SHA를 보존하고 noreply rewrite를 하지 않음 | D-053/D-054 / ADR-0019; 승인된 pre-push gate를 통과한 뒤에만 private push |
-| A-040 | A / Blocker | 7/25 MVP scope·schedule | Resolved / Review — local-private AI scope complete | Q-MVP-001=A: final local 19→20, sample 20/20, full root/DB/API/Web gate PASS | D-058/ADR-0020. PR #6 merged; manual demo·a11y Pending. external provider·100명·backup·advanced UI·public deploy는 별도 |
+| A-040 | A / Blocker | 7/25 MVP scope·schedule | Resolved / Done — local/private scope integrated by PR #9 | Q-MVP-001=A: final local 19→20, sample 20/20, full root/DB/API/Web gate PASS | D-058/ADR-0020. PR #9 merged; manual demo·a11y Pending. external provider·100명·backup·advanced UI·public deploy는 별도 |
 | A-041 | B / High | 범위 밖 개인조회·법적판단 표현 | Resolved / Q-MVP-002=A | 공개 응답은 `intent=UNKNOWN`+정확한 정책 reason, 후보 false; local MVP에서 text/event/failed row 0 | D-059/ADR-0021; sample T-16~T-18 실행 승인 |
 | A-042 | A / Blocker | 관리자 DB read capability | Resolved / Q-DB-004=A | local/private 전용 `00650` migration+rollback+pgTAP+repository adapter 승인 | D-060/ADR-0021; public admin/remote/00700 불변 |
 | A-043 | B / High | chat 재시도 idempotency | Resolved / Q-API-002=A | optional UUID header, Web retry key 유지, correlation 분리, `00660` durable dedupe 승인 | D-061/ADR-0021; raw question 저장 0, local 24h TTL |
 | A-044 | A / Blocker | LLM 공급자 전환·실사용 경계 | Resolved plan / offline implementation complete | Q-LLM-005=A, 명세·계획 승인: Upstage exact `solar-pro3`를 canonical `T-01`~`T-10` local/private 합성 평가에만 사용해 한국어·strict JSON·비용을 먼저 판정 | D-065~D-067/ADR-0022/LLM-002 plan. offline Tasks 1~6 review clean; key/network call 0. Task 7 local human actual과 시민/free-input/public/remote 선택지 B는 별도 |
 | A-045 | B / High | PM 데모의 개인조회와 개선 질문 분리 | Resolved / local actual PASS | #4 PERSONAL_LOOKUP은 interaction event/failed row delta 0, #5 별도 INSUFFICIENT_GROUNDING은 delta 1/1 뒤 19→20 승인 루프와 재질의 SUCCESS | D-068/D-059, Q-PM-DEMO-001 plan; backend runner와 actual browser evidence PASS |
+| A-046 | B / High | 공식 서비스명 | Resolved | 공식 서비스명은 `세종 민원이음`; 옛 작업명은 활성 문서에서 교정하고 역사 증거는 보존 | D-069 / POST-MVP-001 |
+| A-047 | B / High | local dev config 소유 경계 | Resolved / owner review | PR #10의 exact `127.0.0.1` 개발 origin은 owner가 인계하고 팀원 config 권한과 public CORS 범위는 넓히지 않음 | D-070 / WEB-DEV-ORIGIN-001 |
 
 ## 우선도 정의
 
@@ -83,8 +85,8 @@ Q-MVP-001=A/D-058에 따라 corrected immutable `.2` successor도 게시·검증
 `CAPABILITY_WRITE_DID_NOT_BLOCK`이었다. 이후 observer 교정과 지원 actual continuation이
 baseline·identity·rollback·A/B concurrency·19/3/10·replay/compensation·final projection·cleanup을
 PASS하여 `official_data=0.1.0-initial.2`로 승격했다. 별도 final local application rehearsal도
-`/ready=200`과 20번째 ACTIVE를 PASS했다. fresh whole-repository와 sample 20 closeout도 PASS해
-MVP-001은 local/private AI scope complete의 Review로 이동했다.
+`/ready=200`과 20번째 ACTIVE를 PASS했다. fresh whole-repository와 sample 20 closeout도 PASS했고,
+PR #9 병합으로 MVP-001의 local/private scope는 Done으로 이동했다.
   Q-SEC-002와 Q-WF-001은 2026-07-16에
 해결됐고, Q-DB-003은 D-028/ADR-0012, Q-SEC-004는 D-029, Q-SEC-005는 D-030으로 2026-07-17에 해결됐다. Task 9의 역사적 RED는
 real DB 6 pass/2 approval fail이었고 `00600` 구현 뒤 historical full pgTAP 282, integration 8/8,

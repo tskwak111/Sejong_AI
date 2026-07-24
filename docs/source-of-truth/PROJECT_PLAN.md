@@ -1,14 +1,14 @@
-# 세종 민원 AI 길잡이 전체 프로젝트 계획서
+# 세종 민원이음 전체 프로젝트 계획서
 
 > **최종 제품**: 시민용 민원 AI 플랫폼 + 관리자용 AI 민원 운영센터  
 > **프로젝트 기간**: 2026-07-06 ~ 2026-07-31  
 > **책임 역할**: PM·Frontend·Backend·AI/Data 4개; 현재 실제 개발 협업은 사용자 owner + Frontend 팀원 1명
-> **문서 버전**: v2.4.0
+> **문서 버전**: v2.4.1
 > **팀명·팀원·연락처·제출일**: 제출 전 직접 입력
 
 ## 1. 프로젝트 정의
 
-> 세종 민원 AI 길잡이는 시민의 일상어 질문을 공식 행정 지식과 연결하고, 근거가 있는 질문은 출처와 함께 끝까지 안내하며, 근거가 부족한 질문은 개인정보를 제거한 뒤 사람이 검수·승인할 수 있는 KB 개선 후보로 전환하는 운영형 공공 AI 플랫폼이다.
+> 세종 민원이음은 시민의 일상어 질문을 공식 행정 지식과 연결하고, 근거가 있는 질문은 출처와 함께 끝까지 안내하며, 근거가 부족한 질문은 개인정보를 제거한 뒤 사람이 검수·승인할 수 있는 KB 개선 후보로 전환하는 운영형 공공 AI 플랫폼이다.
 
 ### 핵심 원칙
 
@@ -169,13 +169,13 @@ process/container 0을 확인했다. immutable `.2`는 변경하지 않았고 `o
 `KB-WASTE-03` SUCCESS, final ACTIVE 20/four fields×5를 PASS했으며 `.2` artifact는 그대로다.
 final API/Web/contracts/E2E/scanner, clean disposable DB와 root `verify.ps1 -Offline`은 PASS했다.
 deterministic sample T-01~T-20도 20/20이며 별도 보고서가 수치를 소유한다. local/private AI scope는
-Review다. 사람이 병합한 Frontend PR #8의 current UI는 owner 후속에서 PERSONAL 미저장→별도
+PR #9 병합으로 Done이다. 사람이 병합한 Frontend PR #8의 current UI는 owner 후속에서 PERSONAL 미저장→별도
 INSUFFICIENT_GROUNDING 저장→사유 확정→승인된 OFFICIAL 후보→작성자와 다른 승인자·checklist
 3/3→20번째 ACTIVE→동일 질문 SUCCESS·서버 결합 공식 출처를 actual desktop browser 1/1로
 재검증했다. feedback dialog keyboard focus gate와 Web 390/430/desktop fixture 18/18도 통과했다.
 `[db.seed].enabled=false`는 유지하고 reset 뒤 immutable `.2`의 정식 seed 단계를 별도로 실행한다.
-`allowedDevOrigins: ["127.0.0.1"]`는 현재 owner PR이 아닌 별도 Frontend PR 과제다. Draft PR
-review/merge와 manual demo는 인간 Pending이다.
+`allowedDevOrigins: ["127.0.0.1"]`는 team PR #10의 owner-reviewed config 경계를 유지한 별도
+owner PR 과제다. owner Draft PR review/merge와 manual demo는 인간 Pending이다.
 
 ## 7. 시스템 설계
 

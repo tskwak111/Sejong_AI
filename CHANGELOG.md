@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Changed — POST-MVP-001 private main stabilization
+
+- Adopted Frontend PR #10's exact `allowedDevOrigins: ["127.0.0.1"]` change on an owner-reviewed
+  branch without widening the collaborator config allowlist or public CORS/deployment scope.
+- Added an exact config regression and a Next development-server Playwright gate. The current main
+  failed RED with an undefined origin list; the owner change passed GREEN, Web 49/49, lint,
+  typecheck, production build and the hydrated 127-origin resource probe.
+- Synchronized the active product name to `세종 민원이음`, recorded PR #9 as merged, and kept
+  historical plans/implementation evidence unchanged. The formal local seed sequence and
+  `[db.seed].enabled=false` were rechecked and required no change.
+- Versions: product specification `2.4.1`, repository guidance `1.7.8`, application
+  `0.8.1-main-stabilization`, Web `0.5.1-local-dev-origin`, tests
+  `1.5.1-local-dev-origin`, documentation `2.17.0`; API, contracts, DB, official/mock data and
+  prompt set are unchanged.
+
 ### Changed — Frontend PR #8 owner integration and current actual Web evidence
 
 - Integrated human-merged Frontend PR #8 at owner merge commit `c15f61b`, normalized its colliding
