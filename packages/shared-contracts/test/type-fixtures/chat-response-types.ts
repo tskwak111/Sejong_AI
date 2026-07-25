@@ -12,6 +12,7 @@ type ValidSuccess = {
   sources: [{ source_id: string; title: string; url: string; last_verified_at: string }];
   office: null;
   context_token: string;
+  answer_mode: "TEMPLATE";
 };
 
 type InvalidSuccessWithPrivacy = {
@@ -120,4 +121,11 @@ type _SuccessWithoutOfficeRejected = AssertFalse<
 >;
 type _FollowupOfficeRejected = AssertFalse<
   IsAssignable<InvalidFollowupWithOffice, ChatResponse>
+>;
+type SuccessChatResponse = Extract<ChatResponse, { answer_status: "SUCCESS" }>;
+type _SuccessAnswerModeAcceptsGenerated = Assert<
+  IsAssignable<"GENERATED", SuccessChatResponse["answer_mode"]>
+>;
+type _SuccessAnswerModeAcceptsTemplate = Assert<
+  IsAssignable<"TEMPLATE", SuccessChatResponse["answer_mode"]>
 >;

@@ -40,6 +40,7 @@ type SupportedIntent = Literal[
     "BULKY_WASTE",
     "LOCAL_TAX_GENERAL",
 ]
+type AnswerMode = Literal["GENERATED", "TEMPLATE"]
 type Region = Literal["아름동", "도담동", "조치원읍"]
 type ContextToken = Annotated[str, Field(min_length=1, max_length=2048)]
 type HttpsUrl = Annotated[AnyUrl, UrlConstraints(allowed_schemes=["https"])]
@@ -113,6 +114,7 @@ class ChatResponseBase(StrictPublicModel):
 
 class SuccessResponse(ChatResponseBase):
     answer_status: Literal["SUCCESS"]
+    answer_mode: AnswerMode
     intent: SupportedIntent
     sources: Annotated[list[Source], Field(min_length=1)]
     office: Office | None
@@ -196,6 +198,7 @@ CHAT_RESPONSE_ADAPTER: TypeAdapter[ChatResponse] = TypeAdapter(ChatResponse)
 
 __all__ = [
     "CHAT_RESPONSE_ADAPTER",
+    "AnswerMode",
     "ChatRequest",
     "ChatResponse",
     "FallbackResponse",

@@ -90,6 +90,7 @@ def build_success_response(
     return SuccessResponse(
         request_id=request_id,
         answer_status="SUCCESS",
+        answer_mode="TEMPLATE",
         intent=cast(
             Literal[
                 "MOVE_IN_RESIDENT_REGISTRATION",

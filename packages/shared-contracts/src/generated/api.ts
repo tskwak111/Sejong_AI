@@ -1,6 +1,6 @@
 /**
  * source: contracts/openapi-v1.yaml
- * OpenAPI: 3.1.0-draft; generator: openapi-typescript 7.13.0
+ * OpenAPI: 3.2.0-draft; generator: openapi-typescript 7.13.0
  * Generated deterministically; do not edit by hand.
  */
 export interface paths {
@@ -566,6 +566,8 @@ export interface components {
          */
         StoredFailureReason: "INSUFFICIENT_GROUNDING" | "PERSONAL_LOOKUP" | "LEGAL_JUDGMENT";
         SuccessResponse: components["schemas"]["ChatResponseBase"] & {
+            /** @enum {unknown} */
+            answer_mode: "GENERATED" | "TEMPLATE";
             /** @constant */
             answer_status: "SUCCESS";
             fallback?: null;
