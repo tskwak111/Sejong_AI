@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-26T03:25:00+09:00
 - Task ID: LLM-003 / Task 8 documentation lane and final review fix wave
 - Type: implementation-documentation-closeout
-- Status: Done — offline implementation, final provider-disabled root gate, manifest/package/INDEX integration complete; local actual remains Pending human gate
+- Status: Done — offline implementation, final provider-disabled root gate, manifest/package/INDEX integration and Draft PR #12 publication complete; local actual and human merge remain Pending
 - Author/Agent: Codex Task 8 documentation lane
 - Branch: `codex/LLM-003-grounded-live-chat-design`
 - Base commit: D-074 execution base `de1ee096d6e27b0a326dfaa0c93f72baf0c5f1c0`
@@ -167,6 +167,8 @@ The final fix wave did not change any manifest axis.
 
 - Local provider actual requires human timing, ignored key handling and cost acceptance.
 - Public/remote/real-institution operation needs separate privacy, security, legal, cost and deployment approval.
+- [Draft PR #12](https://github.com/tskwak111/Sejong_AI/pull/12)은 자동 병합하지 않았다.
+  CI와 변경 내용을 검토한 뒤 사람이 merge 여부를 결정해야 한다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
 

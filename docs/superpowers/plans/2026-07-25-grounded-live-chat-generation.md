@@ -985,7 +985,10 @@ git add docs TASKS.md CHANGELOG.md versions/manifest.json CODEX_FILE_INDEX.md `
 git commit -m "docs(llm): close grounded local chat implementation"
 ```
 
-- [ ] **Step 6: Push and create a Draft PR only after the human has approved this plan**
+- [x] **Step 6: Push and create a Draft PR only after the human has approved this plan** —
+  branch `codex/LLM-003-grounded-live-chat-design` was pushed at `0c3830b` and
+  [Draft PR #12](https://github.com/tskwak111/Sejong_AI/pull/12) was created against current
+  private `main`. Automatic merge was not enabled; human review/merge remains Pending.
 
 ```powershell
 git push -u origin codex/LLM-003-grounded-live-chat-design
