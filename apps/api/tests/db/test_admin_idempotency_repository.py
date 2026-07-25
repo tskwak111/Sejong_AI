@@ -252,6 +252,10 @@ async def test_interaction_and_idempotency_completion_share_one_transaction() ->
         ("complete", "not-a-digest", {"answer_status": "SUCCESS"}),
         ("complete", DIGEST, {"question": "must-not-persist"}),
         ("complete", DIGEST, {"context_token": "must-not-persist"}),
+        ("complete", DIGEST, {"nested": {"correlation_id": "must-not-persist"}}),
+        ("complete", DIGEST, {"nested": {"provider_response": "must-not-persist"}}),
+        ("complete", DIGEST, {"nested": {"provider_error": "must-not-persist"}}),
+        ("complete", DIGEST, {"nested": {"draft": "must-not-persist"}}),
     ],
 )
 async def test_idempotency_rejects_invalid_digest_and_unsafe_response_before_db(

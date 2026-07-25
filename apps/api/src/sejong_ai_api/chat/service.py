@@ -18,7 +18,6 @@ from sejong_ai_api.chat.idempotency import (
     ChatIdempotencyRepository,
     IdempotencyClaimStatus,
     IdempotencyConflictError,
-    IdempotencyInProgressError,
     fingerprint_chat_request,
 )
 from sejong_ai_api.chat.response import (
@@ -29,6 +28,7 @@ from sejong_ai_api.chat.response import (
 from sejong_ai_api.chat.retrieval import RankedKnowledge, rank_active_knowledge
 from sejong_ai_api.contracts.chat import (
     CHAT_RESPONSE_ADAPTER,
+    AnswerMode,
     ChatRequest,
     FallbackResponse,
     FollowupResponse,
@@ -44,6 +44,16 @@ from sejong_ai_api.db.models import (
     KnowledgeRecord,
     OfficeRecord,
     Region,
+)
+from sejong_ai_api.llm.chat_contracts import (
+    GroundedAnswerGenerator,
+    GroundedChatOutcomeCode,
+    GroundedChatResult,
+    MaterializedChatAnswer,
+)
+from sejong_ai_api.llm.facts import (
+    build_grounded_chat_request,
+    materialize_grounded_answer,
 )
 from sejong_ai_api.privacy.redaction import redact_question
 
@@ -142,6 +152,7 @@ class ChatService:
         idempotency_repository: ChatIdempotencyRepository | None = None,
         idempotency_secret: bytes | None = None,
         idempotency_claim_factory: Callable[[], UUID] = uuid4,
+        answer_generator: GroundedAnswerGenerator | None = None,
     ) -> None:
         if not callable(request_id_factory) or not callable(monotonic_ns):
             raise TypeError("CHAT_SERVICE_DEPENDENCY_INVALID")
@@ -163,6 +174,7 @@ class ChatService:
         self._idempotency_repository = idempotency_repository
         self._idempotency_secret = idempotency_secret
         self._idempotency_claim_factory = idempotency_claim_factory
+        self._answer_generator = answer_generator
 
     async def answer(
         self,
@@ -196,6 +208,7 @@ class ChatService:
         request: ChatRequest,
         *,
         request_id: UUID | None = None,
+        allow_generation: bool = True,
     ) -> _ChatExecution:
         """Build one safe response and its optional persistence command."""
 
@@ -331,12 +344,38 @@ class ChatService:
             selected_region=selected_region,
             answer_status="SUCCESS",
         )
+        answer_mode: AnswerMode = "TEMPLATE"
+        materialized: MaterializedChatAnswer | None = None
+        if allow_generation and self._answer_generator is not None:
+            try:
+                grounded_request = build_grounded_chat_request(
+                    masked_question=safe_question.text,
+                    intent=intent,
+                    record=grounding.record,
+                )
+                result = await self._answer_generator.generate(grounded_request)
+                if (
+                    type(result) is GroundedChatResult
+                    and result.code is GroundedChatOutcomeCode.SUCCESS
+                    and result.draft is not None
+                ):
+                    materialized = materialize_grounded_answer(
+                        grounded_request,
+                        result.draft,
+                    )
+                    if materialized is not None:
+                        answer_mode = "GENERATED"
+            except Exception:
+                materialized = None
+                answer_mode = "TEMPLATE"
         success_response = build_success_response(
             request_id=selected_request_id,
             record=grounding.record,
             office=office,
             confidence=_confidence(top),
             context_token=token,
+            answer_mode=answer_mode,
+            answer=materialized,
         )
         interaction = self._build_interaction(
             request_id=selected_request_id,
@@ -378,7 +417,13 @@ class ChatService:
         if claim.status is IdempotencyClaimStatus.CONFLICT:
             raise IdempotencyConflictError()
         if claim.status is IdempotencyClaimStatus.IN_PROGRESS:
-            raise IdempotencyInProgressError()
+            return (
+                await self._execute_once(
+                    request,
+                    request_id=request_id,
+                    allow_generation=False,
+                )
+            ).response
         if claim.status is IdempotencyClaimStatus.COMPLETED:
             payload = dict(cast(dict[str, object], claim.response_payload))
             payload["request_id"] = str(request_id)

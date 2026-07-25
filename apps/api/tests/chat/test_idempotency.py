@@ -70,8 +70,22 @@ def test_completed_claim_requires_a_safe_response_payload() -> None:
     "payload",
     [
         {"request_id": "must-not-persist"},
+        {"correlation_id": "must-not-persist"},
+        {"correlation_request_id": "must-not-persist"},
         {"context_token": "must-not-persist"},
+        {"context": {"value": "must-not-persist"}},
         {"fallback": {"question": "must-not-persist"}},
+        {"fallback": {"masked_question": "must-not-persist"}},
+        {"fallback": {"raw_question": "must-not-persist"}},
+        {"fallback": {"request": "must-not-persist"}},
+        {"fallback": {"request_body": "must-not-persist"}},
+        {"fallback": {"provider_request": "must-not-persist"}},
+        {"fallback": {"provider_response": "must-not-persist"}},
+        {"fallback": {"provider_content": "must-not-persist"}},
+        {"fallback": {"provider_error": "must-not-persist"}},
+        {"fallback": {"provider_result": "must-not-persist"}},
+        {"fallback": {"draft": "must-not-persist"}},
+        {"fallback": {"prompt": "must-not-persist"}},
         {"sources": [{"transcript": "must-not-persist"}]},
     ],
 )
@@ -93,6 +107,7 @@ def test_completed_claim_accepts_only_safe_chat_response_fields() -> None:
             "intent": "UNKNOWN",
             "sources": [],
             "fallback": {"reason": "PERSONAL_LOOKUP"},
+            "answer_mode": "TEMPLATE",
         },
     )
 

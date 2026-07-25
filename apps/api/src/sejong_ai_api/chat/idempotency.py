@@ -16,12 +16,22 @@ from sejong_ai_api.db.models import InteractionWrite
 _FINGERPRINT_DOMAIN = b"sejong-ai:chat-idempotency:v1\x00"
 _FORBIDDEN_RESPONSE_KEYS = frozenset(
     {
+        "context",
         "context_token",
+        "correlation_id",
+        "correlation_request_id",
+        "draft",
         "masked_question",
         "prompt",
         "provider_body",
+        "provider_content",
+        "provider_error",
+        "provider_request",
+        "provider_response",
+        "provider_result",
         "question",
         "raw_question",
+        "request",
         "request_body",
         "request_id",
         "transcript",

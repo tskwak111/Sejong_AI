@@ -83,12 +83,22 @@ _ADMIN_FAILURE_STATUSES = frozenset({"NEW", "REASON_CONFIRMED"})
 _IDEMPOTENCY_DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$", re.ASCII)
 _FORBIDDEN_IDEMPOTENCY_RESPONSE_KEYS = frozenset(
     {
+        "context",
         "context_token",
+        "correlation_id",
+        "correlation_request_id",
+        "draft",
         "masked_question",
         "prompt",
         "provider_body",
+        "provider_content",
+        "provider_error",
+        "provider_request",
+        "provider_response",
+        "provider_result",
         "question",
         "raw_question",
+        "request",
         "request_body",
         "request_id",
         "transcript",

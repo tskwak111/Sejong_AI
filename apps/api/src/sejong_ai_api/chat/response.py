@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import AnyUrl
 
 from sejong_ai_api.contracts.chat import (
+    AnswerMode,
     Fallback,
     FallbackResponse,
     FollowupResponse,
@@ -16,6 +17,7 @@ from sejong_ai_api.contracts.chat import (
     SuccessResponse,
 )
 from sejong_ai_api.db.models import Intent, KnowledgeRecord, OfficeRecord
+from sejong_ai_api.llm.chat_contracts import MaterializedChatAnswer
 
 type FollowupOptionId = Literal[
     "intent.move-in",
@@ -73,24 +75,47 @@ def build_success_response(
     office: OfficeRecord | None,
     confidence: float,
     context_token: str | None,
+    answer_mode: AnswerMode = "TEMPLATE",
+    answer: MaterializedChatAnswer | None = None,
 ) -> SuccessResponse:
     """Build SUCCESS without inventing facts or source metadata."""
 
+    if answer_mode == "TEMPLATE":
+        if answer is not None:
+            raise ValueError("SUCCESS_ANSWER_INVALID")
+        summary = record.answer_summary
+        procedure_steps = record.procedure_steps
+        required_documents = record.required_documents
+        processing_time = record.processing_time
+        fee = record.fee
+        department = record.department
+    elif answer_mode == "GENERATED":
+        if type(answer) is not MaterializedChatAnswer:
+            raise ValueError("SUCCESS_ANSWER_INVALID")
+        summary = answer.summary
+        procedure_steps = answer.procedure_steps
+        required_documents = answer.required_documents
+        processing_time = answer.processing_time
+        fee = answer.fee
+        department = answer.department
+    else:
+        raise ValueError("SUCCESS_ANSWER_MODE_INVALID")
+
     used_fields = ["answer_summary"]
-    if record.procedure_steps:
+    if procedure_steps:
         used_fields.append("procedure_steps")
-    if record.required_documents:
+    if required_documents:
         used_fields.append("required_documents")
-    if record.processing_time is not None:
+    if processing_time is not None:
         used_fields.append("processing_time")
-    if record.fee is not None:
+    if fee is not None:
         used_fields.append("fee")
     used_fields.append("department")
 
     return SuccessResponse(
         request_id=request_id,
         answer_status="SUCCESS",
-        answer_mode="TEMPLATE",
+        answer_mode=answer_mode,
         intent=cast(
             Literal[
                 "MOVE_IN_RESIDENT_REGISTRATION",
@@ -101,12 +126,12 @@ def build_success_response(
             record.category.value,
         ),
         confidence=confidence,
-        summary=record.answer_summary,
-        procedure_steps=list(record.procedure_steps),
-        required_documents=list(record.required_documents),
-        processing_time=record.processing_time,
-        fee=record.fee,
-        department=record.department,
+        summary=summary,
+        procedure_steps=list(procedure_steps),
+        required_documents=list(required_documents),
+        processing_time=processing_time,
+        fee=fee,
+        department=department,
         sources=[
             Source(
                 source_id=record.public_id,
