@@ -6,6 +6,8 @@ import re
 import unicodedata
 from typing import Final
 
+from pydantic import ValidationError
+
 from sejong_ai_api.db.models import Intent, KnowledgeRecord
 from sejong_ai_api.llm.chat_contracts import (
     FactKind,
@@ -124,34 +126,82 @@ def materialize_grounded_answer(
     """Return a fully validated local answer or reject the entire draft."""
     if type(request) is not GroundedChatRequest or type(draft) is not GeneratedChatDraft:
         return None
-    summary = _validate_summary(request, draft.summary)
-    if summary is None:
+    try:
+        safe_request = _revalidate_request(request)
+        safe_draft = _revalidate_draft(draft)
+        if safe_request is None or safe_draft is None:
+            return None
+        summary = _validate_summary(safe_request, safe_draft.summary)
+        if summary is None:
+            return None
+
+        expected_steps = _fact_ids(safe_request.facts, FactKind.PROCEDURE_STEP)
+        expected_documents = _fact_ids(safe_request.facts, FactKind.REQUIRED_DOCUMENT)
+        if tuple(safe_draft.procedure_step_ids) != expected_steps:
+            return None
+        if tuple(safe_draft.required_document_ids) != expected_documents:
+            return None
+
+        processing_time = _optional_fact_text(
+            safe_request.facts, FactKind.PROCESSING_TIME, "TIME-01"
+        )
+        fee = _optional_fact_text(safe_request.facts, FactKind.FEE, "FEE-01")
+        if safe_draft.processing_time_id != ("TIME-01" if processing_time is not None else None):
+            return None
+        if safe_draft.fee_id != ("FEE-01" if fee is not None else None):
+            return None
+        if safe_draft.department_id != "DEPT-01":
+            return None
+
+        return MaterializedChatAnswer(
+            summary=summary,
+            procedure_steps=_fact_texts(safe_request.facts, FactKind.PROCEDURE_STEP),
+            required_documents=_fact_texts(safe_request.facts, FactKind.REQUIRED_DOCUMENT),
+            processing_time=processing_time,
+            fee=fee,
+            department=_required_fact_text(safe_request.facts, FactKind.DEPARTMENT, "DEPT-01"),
+        )
+    except (AttributeError, TypeError, ValidationError, ValueError):
         return None
 
-    expected_steps = _fact_ids(request.facts, FactKind.PROCEDURE_STEP)
-    expected_documents = _fact_ids(request.facts, FactKind.REQUIRED_DOCUMENT)
-    if tuple(draft.procedure_step_ids) != expected_steps:
-        return None
-    if tuple(draft.required_document_ids) != expected_documents:
+
+def _revalidate_request(request: GroundedChatRequest) -> GroundedChatRequest | None:
+    try:
+        return GroundedChatRequest(
+            masked_question=request.masked_question,
+            intent=request.intent,
+            service_name=request.service_name,
+            approved_summary=request.approved_summary,
+            facts=request.facts,
+        )
+    except (AttributeError, TypeError, ValueError):
         return None
 
-    processing_time = _optional_fact_text(request.facts, FactKind.PROCESSING_TIME, "TIME-01")
-    fee = _optional_fact_text(request.facts, FactKind.FEE, "FEE-01")
-    if draft.processing_time_id != ("TIME-01" if processing_time is not None else None):
-        return None
-    if draft.fee_id != ("FEE-01" if fee is not None else None):
-        return None
-    if draft.department_id != "DEPT-01":
-        return None
 
-    return MaterializedChatAnswer(
-        summary=summary,
-        procedure_steps=_fact_texts(request.facts, FactKind.PROCEDURE_STEP),
-        required_documents=_fact_texts(request.facts, FactKind.REQUIRED_DOCUMENT),
-        processing_time=processing_time,
-        fee=fee,
-        department=_required_fact_text(request.facts, FactKind.DEPARTMENT, "DEPT-01"),
-    )
+def _revalidate_draft(draft: GeneratedChatDraft) -> GeneratedChatDraft | None:
+    try:
+        values = {
+            "summary": draft.summary,
+            "procedure_step_ids": draft.procedure_step_ids,
+            "required_document_ids": draft.required_document_ids,
+            "processing_time_id": draft.processing_time_id,
+            "fee_id": draft.fee_id,
+            "department_id": draft.department_id,
+        }
+        if (
+            type(values["summary"]) is not str
+            or type(values["procedure_step_ids"]) is not list
+            or type(values["required_document_ids"]) is not list
+            or values["processing_time_id"] is not None
+            and type(values["processing_time_id"]) is not str
+            or values["fee_id"] is not None
+            and type(values["fee_id"]) is not str
+            or type(values["department_id"]) is not str
+        ):
+            return None
+        return GeneratedChatDraft.model_validate(values)
+    except (AttributeError, TypeError, ValidationError, ValueError):
+        return None
 
 
 def _fact_ids(facts: tuple[GroundedFact, ...], kind: FactKind) -> tuple[str, ...]:

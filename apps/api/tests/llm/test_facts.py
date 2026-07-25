@@ -5,7 +5,12 @@ from datetime import date
 import pytest
 
 from sejong_ai_api.db.models import Intent, KnowledgeRecord
-from sejong_ai_api.llm.chat_contracts import GeneratedChatDraft, GroundedChatRequest
+from sejong_ai_api.llm.chat_contracts import (
+    FactKind,
+    GeneratedChatDraft,
+    GroundedChatRequest,
+    GroundedFact,
+)
 from sejong_ai_api.llm.facts import build_grounded_chat_request, materialize_grounded_answer
 
 
@@ -64,6 +69,18 @@ def _draft(
     )
 
 
+def _unchecked_request(facts: object) -> GroundedChatRequest:
+    request = object.__new__(GroundedChatRequest)
+    object.__setattr__(request, "masked_question", "전입신고 방법을 알려 주세요.")
+    object.__setattr__(request, "intent", Intent.MOVE_IN_RESIDENT_REGISTRATION)
+    object.__setattr__(request, "service_name", "전입신고")
+    object.__setattr__(
+        request, "approved_summary", "전입신고는 전입한 날부터 14일 이내에 신고합니다."
+    )
+    object.__setattr__(request, "facts", facts)
+    return request
+
+
 def test_build_request_issues_only_request_local_facts() -> None:
     request = _request()
 
@@ -108,6 +125,171 @@ def test_materializes_complete_valid_draft_byte_for_byte() -> None:
 @pytest.mark.parametrize(
     "draft",
     [
+        GeneratedChatDraft.model_construct(
+            summary="전입신고입니다.",
+            procedure_step_ids=None,
+            required_document_ids=["DOC-01"],
+            processing_time_id="TIME-01",
+            fee_id="FEE-01",
+            department_id="DEPT-01",
+        ),
+        GeneratedChatDraft.model_construct(
+            summary="전입신고입니다.",
+            procedure_step_ids=["STEP-01", "STEP-02"],
+            required_document_ids=["DOC-01"],
+            processing_time_id="TIME-01",
+            fee_id="FEE-01",
+        ),
+    ],
+)
+def test_model_constructed_malformed_draft_fails_closed_without_raising(
+    draft: GeneratedChatDraft,
+) -> None:
+    assert materialize_grounded_answer(_request(), draft) is None
+
+
+@pytest.mark.parametrize(
+    "facts",
+    [
+        (
+            GroundedFact(
+                "STEP-99", FactKind.PROCEDURE_STEP, "정부24 또는 주민센터에서 신고합니다."
+            ),
+            GroundedFact("STEP-02", FactKind.PROCEDURE_STEP, "신분증을 준비합니다."),
+            GroundedFact("DOC-01", FactKind.REQUIRED_DOCUMENT, "신분증"),
+            GroundedFact("TIME-01", FactKind.PROCESSING_TIME, "즉시"),
+            GroundedFact("FEE-01", FactKind.FEE, "수수료 3,000원"),
+            GroundedFact("DEPT-01", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+        ),
+        (
+            GroundedFact("STEP-02", FactKind.PROCEDURE_STEP, "신분증을 준비합니다."),
+            GroundedFact(
+                "STEP-01", FactKind.PROCEDURE_STEP, "정부24 또는 주민센터에서 신고합니다."
+            ),
+            GroundedFact("DOC-01", FactKind.REQUIRED_DOCUMENT, "신분증"),
+            GroundedFact("TIME-01", FactKind.PROCESSING_TIME, "즉시"),
+            GroundedFact("FEE-01", FactKind.FEE, "수수료 3,000원"),
+            GroundedFact("DEPT-01", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+        ),
+        (
+            GroundedFact(
+                "STEP-01", FactKind.PROCEDURE_STEP, "정부24 또는 주민센터에서 신고합니다."
+            ),
+            GroundedFact("STEP-02", FactKind.PROCEDURE_STEP, "신분증을 준비합니다."),
+            GroundedFact("DOC-01", FactKind.REQUIRED_DOCUMENT, "신분증"),
+            GroundedFact("TIME-01", FactKind.PROCESSING_TIME, "즉시"),
+            GroundedFact("FEE-01", FactKind.FEE, "수수료 3,000원"),
+        ),
+        (
+            GroundedFact(
+                "STEP-01", FactKind.PROCEDURE_STEP, "정부24 또는 주민센터에서 신고합니다."
+            ),
+            GroundedFact("STEP-02", FactKind.PROCEDURE_STEP, "신분증을 준비합니다."),
+            GroundedFact("DOC-01", FactKind.REQUIRED_DOCUMENT, "신분증"),
+            GroundedFact("TIME-01", FactKind.PROCESSING_TIME, "즉시"),
+            GroundedFact("FEE-01", FactKind.FEE, "수수료 3,000원"),
+            GroundedFact("DEPT-01", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+            GroundedFact("DEPT-02", FactKind.DEPARTMENT, "다른 부서"),
+        ),
+        (
+            GroundedFact(
+                "STEP-01", FactKind.PROCEDURE_STEP, "정부24 또는 주민센터에서 신고합니다."
+            ),
+            GroundedFact("STEP-02", FactKind.PROCEDURE_STEP, "신분증을 준비합니다."),
+            GroundedFact("DOC-01", FactKind.REQUIRED_DOCUMENT, "신분증"),
+            GroundedFact("TIME-01", FactKind.PROCESSING_TIME, "즉시"),
+            GroundedFact("FEE-01", FactKind.FEE, "수수료 3,000원"),
+            GroundedFact("DEPT-02", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+        ),
+        None,
+    ],
+)
+def test_manually_constructed_noncanonical_request_fails_closed_without_raising(
+    facts: object,
+) -> None:
+    assert materialize_grounded_answer(_unchecked_request(facts), _draft()) is None
+
+
+@pytest.mark.parametrize(
+    ("facts", "draft"),
+    [
+        (
+            (
+                GroundedFact(
+                    "STEP-99",
+                    FactKind.PROCEDURE_STEP,
+                    "정부24 또는 주민센터에서 신고합니다.",
+                ),
+                GroundedFact("STEP-02", FactKind.PROCEDURE_STEP, "신분증을 준비합니다."),
+                GroundedFact("DOC-01", FactKind.REQUIRED_DOCUMENT, "신분증"),
+                GroundedFact("TIME-01", FactKind.PROCESSING_TIME, "즉시"),
+                GroundedFact("FEE-01", FactKind.FEE, "수수료 3,000원"),
+                GroundedFact("DEPT-01", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+            ),
+            _draft(procedure_step_ids=["STEP-99", "STEP-02"]),
+        ),
+        (
+            (
+                GroundedFact("STEP-02", FactKind.PROCEDURE_STEP, "신분증을 준비합니다."),
+                GroundedFact(
+                    "STEP-01",
+                    FactKind.PROCEDURE_STEP,
+                    "정부24 또는 주민센터에서 신고합니다.",
+                ),
+                GroundedFact("DOC-01", FactKind.REQUIRED_DOCUMENT, "신분증"),
+                GroundedFact("TIME-01", FactKind.PROCESSING_TIME, "즉시"),
+                GroundedFact("FEE-01", FactKind.FEE, "수수료 3,000원"),
+                GroundedFact("DEPT-01", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+            ),
+            _draft(procedure_step_ids=["STEP-02", "STEP-01"]),
+        ),
+    ],
+)
+def test_manually_constructed_noncanonical_request_cannot_materialize_matching_ids(
+    facts: tuple[GroundedFact, ...], draft: GeneratedChatDraft
+) -> None:
+    assert materialize_grounded_answer(_unchecked_request(facts), draft) is None
+
+
+@pytest.mark.parametrize(
+    "facts",
+    [
+        (
+            GroundedFact(
+                "STEP-99", FactKind.PROCEDURE_STEP, "정부24 또는 주민센터에서 신고합니다."
+            ),
+            GroundedFact("DEPT-01", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+        ),
+        (
+            GroundedFact("DEPT-01", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+            GroundedFact(
+                "STEP-01", FactKind.PROCEDURE_STEP, "정부24 또는 주민센터에서 신고합니다."
+            ),
+        ),
+        (GroundedFact("STEP-01", FactKind.PROCEDURE_STEP, "정부24 또는 주민센터에서 신고합니다."),),
+        (
+            GroundedFact("DEPT-01", FactKind.DEPARTMENT, "주민등록 담당 부서"),
+            GroundedFact("DEPT-02", FactKind.DEPARTMENT, "다른 부서"),
+        ),
+        (GroundedFact("DEPT-02", FactKind.DEPARTMENT, "주민등록 담당 부서"),),
+    ],
+)
+def test_request_constructor_rejects_noncanonical_fact_sequence(
+    facts: tuple[GroundedFact, ...],
+) -> None:
+    with pytest.raises(ValueError, match="GROUNDED_CHAT_REQUEST_INVALID"):
+        GroundedChatRequest(
+            masked_question="전입신고 방법을 알려 주세요.",
+            intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+            service_name="전입신고",
+            approved_summary="전입신고는 전입한 날부터 14일 이내에 신고합니다.",
+            facts=facts,
+        )
+
+
+@pytest.mark.parametrize(
+    "draft",
+    [
         _draft(procedure_step_ids=["STEP-01", "STEP-99"]),
         _draft(procedure_step_ids=["STEP-01", "STEP-01"]),
         _draft(procedure_step_ids=["STEP-01"]),
@@ -144,6 +326,11 @@ def test_rejects_optional_fact_presence_mismatch(
         "전입신고는 2027-01-01에 신고합니다.",
         "전입신고 수수료는 4,000원입니다.",
         "전입신고 [전화번호] 안내입니다.",
+        "전입신고 test@example.invalid 안내입니다.",
+        "전입신고 010-1234-5678 안내입니다.",
+        "전입신고 +82 10 1234 5678 안내입니다.",
+        "전입신고\u0000 안내입니다.",
+        "전입신고\u3000입니다.",
         "전입신고 마법 안내입니다.",
         "공식 안내를 쉽게 정리해 드려요.",
     ],

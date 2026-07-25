@@ -43,6 +43,51 @@ class GroundedFact:
             raise ValueError("GROUNDED_FACT_INVALID")
 
 
+def _is_canonical_fact_sequence(facts: object) -> bool:
+    if type(facts) is not tuple or not facts:
+        return False
+    try:
+        if any(
+            type(fact) is not GroundedFact
+            or type(fact.fact_id) is not str
+            or type(fact.kind) is not FactKind
+            or type(fact.text) is not str
+            or not fact.text
+            or fact.text.strip() != fact.text
+            for fact in facts
+        ):
+            return False
+
+        cursor = 0
+        for kind, prefix in (
+            (FactKind.PROCEDURE_STEP, "STEP"),
+            (FactKind.REQUIRED_DOCUMENT, "DOC"),
+        ):
+            index = 1
+            while cursor < len(facts) and facts[cursor].kind is kind:
+                if index > 12 or facts[cursor].fact_id != f"{prefix}-{index:02d}":
+                    return False
+                cursor += 1
+                index += 1
+
+        for kind, fact_id in (
+            (FactKind.PROCESSING_TIME, "TIME-01"),
+            (FactKind.FEE, "FEE-01"),
+        ):
+            if cursor < len(facts) and facts[cursor].kind is kind:
+                if facts[cursor].fact_id != fact_id:
+                    return False
+                cursor += 1
+
+        return (
+            cursor + 1 == len(facts)
+            and facts[cursor].kind is FactKind.DEPARTMENT
+            and facts[cursor].fact_id == "DEPT-01"
+        )
+    except (AttributeError, TypeError):
+        return False
+
+
 @dataclass(frozen=True, slots=True)
 class GroundedChatRequest:
     """Provider-safe facts derived from exactly one grounded knowledge record."""
@@ -66,9 +111,7 @@ class GroundedChatRequest:
             or not self.approved_summary
             or self.approved_summary.strip() != self.approved_summary
             or type(self.facts) is not tuple
-            or not self.facts
-            or any(type(fact) is not GroundedFact for fact in self.facts)
-            or len({fact.fact_id for fact in self.facts}) != len(self.facts)
+            or not _is_canonical_fact_sequence(self.facts)
         ):
             raise ValueError("GROUNDED_CHAT_REQUEST_INVALID")
 
