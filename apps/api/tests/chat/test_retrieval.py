@@ -102,8 +102,9 @@ def test_service_then_procedure_document_overlap_and_public_id_break_ties() -> N
 
 
 @dataclass(frozen=True)
-class NonActiveRecord:
+class UntrustedKnowledgeProjection:
     status: str
+    data_origin: str
     record: KnowledgeRecord
 
 
@@ -113,12 +114,26 @@ def test_only_active_official_projection_records_for_the_requested_intent_are_ra
         public_id="KB-TAX-ACTIVE",
         category=Intent.LOCAL_TAX_GENERAL,
     )
-    draft = NonActiveRecord("DRAFT", knowledge(public_id="KB-WASTE-DRAFT"))
+    draft = UntrustedKnowledgeProjection(
+        "DRAFT",
+        "OFFICIAL",
+        knowledge(public_id="KB-WASTE-DRAFT"),
+    )
+    candidate = UntrustedKnowledgeProjection(
+        "CANDIDATE",
+        "OFFICIAL",
+        knowledge(public_id="KB-WASTE-CANDIDATE"),
+    )
+    mock = UntrustedKnowledgeProjection(
+        "ACTIVE",
+        "MOCK",
+        knowledge(public_id="KB-WASTE-MOCK"),
+    )
 
     ranked = rank_active_knowledge(
         safe_question("대형폐기물 배출 신고"),
         Intent.BULKY_WASTE,
-        (draft, other_intent, active),  # type: ignore[arg-type]
+        (draft, candidate, mock, other_intent, active),  # type: ignore[arg-type]
     )
 
     assert tuple(item.record.public_id for item in ranked) == ("KB-WASTE-ACTIVE",)

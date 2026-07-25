@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import cast
 from uuid import UUID
 
@@ -80,9 +80,25 @@ class RetainingIdempotencyRepository(FakeIdempotencyRepository):
 @pytest.mark.asyncio
 async def test_grounded_supported_request_uses_one_generated_answer_with_server_metadata() -> None:
     raw_phone = "010-1234-5678"
-    record = knowledge_record()
+    record = replace(
+        knowledge_record(required_documents=("승인된 서류를 준비하세요.",)),
+        processing_time="승인된 처리 시간",
+        fee="승인된 수수료",
+    )
     repository = FakeRepository(records=(record,), offices=(office_record(),))
-    generator = CountingGenerator()
+    generator = CountingGenerator(
+        result=GroundedChatResult(
+            code=GroundedChatOutcomeCode.SUCCESS,
+            draft=GeneratedChatDraft(
+                summary="승인된 안내 요약을 쉽게 정리",
+                procedure_step_ids=["STEP-01"],
+                required_document_ids=["DOC-01"],
+                processing_time_id="TIME-01",
+                fee_id="FEE-01",
+                department_id="DEPT-01",
+            ),
+        )
+    )
 
     response = await service(repository, answer_generator=generator).answer(
         ChatRequest(
@@ -94,12 +110,24 @@ async def test_grounded_supported_request_uses_one_generated_answer_with_server_
     assert response.answer_status == "SUCCESS"
     assert response.answer_mode == "GENERATED"
     assert response.summary == "승인된 안내 요약을 쉽게 정리"
-    assert response.procedure_steps == ["승인된 절차를 확인하세요."]
-    assert response.required_documents == []
-    assert response.processing_time is None
-    assert response.fee is None
-    assert response.department == "민원 담당 부서"
-    assert response.sources[0].source_id == record.public_id
+    assert response.procedure_steps == list(record.procedure_steps)
+    assert response.required_documents == list(record.required_documents)
+    assert response.processing_time == record.processing_time
+    assert response.fee == record.fee
+    assert response.department == record.department
+    source = response.sources[0]
+    assert source.source_id == record.public_id
+    assert source.title == record.source_title
+    assert str(source.url) == record.source_url
+    assert source.last_verified_at == record.last_verified_at
+    assert source.used_fields == [
+        "answer_summary",
+        "procedure_steps",
+        "required_documents",
+        "processing_time",
+        "fee",
+        "department",
+    ]
     assert response.office is not None
     assert response.office.id == "OFFICE-TEST-01"
     assert len(generator.requests) == 1
