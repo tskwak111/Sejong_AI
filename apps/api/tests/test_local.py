@@ -5,12 +5,14 @@ import time
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+import sejong_ai_api.local as local_module
 from sejong_ai_api.chat.idempotency import IdempotencyClaim, IdempotencyClaimStatus
 from sejong_ai_api.chat.readiness import INITIAL_ACTIVE_KB_IDS, REQUIRED_OFFICE_PROJECTIONS
 from sejong_ai_api.contracts.admin import FailedQuestion, KBCandidateSummary
@@ -25,6 +27,11 @@ from sejong_ai_api.db.models import (
     OfficeRecord,
     PurgeResult,
     Region,
+)
+from sejong_ai_api.llm.chat_contracts import (
+    GroundedChatOutcomeCode,
+    GroundedChatRequest,
+    GroundedChatResult,
 )
 from sejong_ai_api.local import create_local_app, load_local_settings
 
@@ -95,8 +102,14 @@ def _intent_for(public_id: str) -> Intent:
 
 
 class FakePool:
-    def __init__(self, *, open_error: BaseException | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        open_error: BaseException | None = None,
+        close_error: BaseException | None = None,
+    ) -> None:
         self.open_error = open_error
+        self.close_error = close_error
         self.open_calls: list[bool] = []
         self.close_count = 0
 
@@ -107,6 +120,29 @@ class FakePool:
 
     async def close(self) -> None:
         self.close_count += 1
+        if self.close_error is not None:
+            raise self.close_error
+
+
+class FakeGroundedGenerator:
+    def __init__(self) -> None:
+        self.requests: list[GroundedChatRequest] = []
+
+    async def generate(self, request: GroundedChatRequest) -> GroundedChatResult:
+        self.requests.append(request)
+        return GroundedChatResult(code=GroundedChatOutcomeCode.TRANSPORT)
+
+
+class FakeGroundedRuntime:
+    def __init__(self, *, close_error: BaseException | None = None) -> None:
+        self.generator = FakeGroundedGenerator()
+        self.close_error = close_error
+        self.close_count = 0
+
+    async def aclose(self) -> None:
+        self.close_count += 1
+        if self.close_error is not None:
+            raise self.close_error
 
 
 class FakeRepository:
@@ -277,6 +313,24 @@ def _config() -> dict[str, str]:
     }
 
 
+def _grounded_chat_config() -> dict[str, str]:
+    return {
+        **_config(),
+        "LLM_PROVIDER": "upstage",
+        "LLM_MODEL": "solar-pro3",
+        "LLM_API_KEY": "test-only-sentinel",
+        "LLM_BASE_URL": "https://api.upstage.ai/v1",
+        "LLM_TIMEOUT_SECONDS": "8",
+        "LLM_MAX_RETRIES": "0",
+        "LLM_MAX_CONCURRENCY": "1",
+        "LLM_MAX_INPUT_TOKENS": "4096",
+        "LLM_MAX_OUTPUT_TOKENS": "1024",
+        "LLM_RUN_ATTEMPT_CAP": "30",
+        "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
+        "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+    }
+
+
 def test_process_environment_wins_over_the_known_env_file(tmp_path: Path) -> None:
     env_path = tmp_path / ".env"
     env_path.write_text(
@@ -292,6 +346,39 @@ def test_process_environment_wins_over_the_known_env_file(tmp_path: Path) -> Non
     assert settings.database_url == _PROVISIONED_DATABASE_URL
     assert settings.context_token_secret == b"x" * 32
     assert not hasattr(settings, "llm_api_key")
+
+
+def test_db_context_loader_discards_unknown_provider_key_without_materializing_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    sentinel = "PROVIDER-KEY-VALUE-MUST-NOT-BE-MATERIALIZED-BY-DB-LOADER"
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        f"DATABASE_URL={_FILE_DATABASE_URL}\n"
+        f"LLM_API_KEY={sentinel}\n"
+        f"CONTEXT_TOKEN_SECRET={'s' * 32}\n",
+        encoding="utf-8",
+    )
+    materialized_values: list[str] = []
+    original_reader = local_module._read_env_line_value
+
+    def observe_allowlisted_value(stream: Any) -> str:
+        value = original_reader(stream)
+        materialized_values.append(value)
+        return value
+
+    monkeypatch.setattr(local_module, "_read_env_line_value", observe_allowlisted_value)
+
+    settings = load_local_settings(environ={}, env_path=env_path)
+
+    assert settings is not None
+    assert settings.database_url == _FILE_DATABASE_URL
+    assert settings.context_token_secret == b"s" * 32
+    assert sentinel not in materialized_values
+    assert sentinel not in repr(settings)
+    assert sentinel not in caplog.text
 
 
 def test_known_env_file_is_a_fallback_for_each_missing_allowlisted_value(tmp_path: Path) -> None:
@@ -482,6 +569,7 @@ def test_valid_configuration_creates_one_lazy_pool_and_opens_and_closes_it_once(
         )
         assert chat.status_code == 200
         assert chat.json()["answer_status"] == "SUCCESS"
+        assert chat.json()["answer_mode"] == "TEMPLATE"
         admin = client.get(
             "/api/v1/admin/failed-questions",
             headers={
@@ -496,6 +584,153 @@ def test_valid_configuration_creates_one_lazy_pool_and_opens_and_closes_it_once(
     assert len(repositories[0].events) == 1
     assert repositories[0].failed_text_purge_count == 2
     assert repositories[0].idempotency_purge_count == 1
+
+
+def test_exact_grounded_profile_injects_generator_without_startup_or_probe_calls(
+    tmp_path: Path,
+) -> None:
+    pool = FakePool()
+    runtime = FakeGroundedRuntime()
+    factory_settings: list[object] = []
+
+    def runtime_factory(settings: object) -> FakeGroundedRuntime:
+        factory_settings.append(settings)
+        return runtime
+
+    app = create_local_app(
+        environ=_grounded_chat_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+        grounded_chat_runtime_factory=cast(Any, runtime_factory),
+    )
+
+    assert len(factory_settings) == 1
+    assert "test-only-sentinel" not in repr(factory_settings[0])
+    assert runtime.generator.requests == []
+    with TestClient(app) as client:
+        assert runtime.generator.requests == []
+        assert client.get("/health").status_code == 200
+        assert client.get("/ready").status_code == 200
+        assert runtime.generator.requests == []
+        chat = client.post(
+            "/api/v1/chat",
+            json={"question": "이사했는데 전입신고는 어떻게 하나요?"},
+        )
+        assert chat.status_code == 200
+        assert chat.json()["answer_mode"] == "TEMPLATE"
+        assert len(runtime.generator.requests) == 1
+
+    assert runtime.close_count == 1
+    assert pool.close_count == 1
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"UPSTAGE_GROUNDED_CHAT_MODE": "false"},
+        {"LLM_TIMEOUT_SECONDS": "9"},
+    ],
+    ids=["disabled", "invalid"],
+)
+def test_disabled_or_invalid_grounded_profile_keeps_real_local_app_in_template_mode(
+    tmp_path: Path,
+    overrides: dict[str, str],
+) -> None:
+    pool = FakePool()
+    runtime_factory_calls: list[object] = []
+
+    def unexpected_runtime_factory(settings: object) -> FakeGroundedRuntime:
+        runtime_factory_calls.append(settings)
+        return FakeGroundedRuntime()
+
+    app = create_local_app(
+        environ={**_grounded_chat_config(), **overrides},
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+        grounded_chat_runtime_factory=cast(Any, unexpected_runtime_factory),
+    )
+
+    with TestClient(app) as client:
+        assert client.get("/ready").status_code == 200
+        response = client.post(
+            "/api/v1/chat",
+            json={"question": "이사했는데 전입신고는 어떻게 하나요?"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer_mode"] == "TEMPLATE"
+    assert runtime_factory_calls == []
+    assert pool.close_count == 1
+
+
+def test_grounded_runtime_and_pool_close_independently_when_runtime_close_fails(
+    tmp_path: Path,
+) -> None:
+    pool = FakePool()
+    runtime = FakeGroundedRuntime(
+        close_error=RuntimeError("RUNTIME-CLOSE-DIAGNOSTIC-MUST-NOT-ESCAPE")
+    )
+
+    app = create_local_app(
+        environ=_grounded_chat_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+        grounded_chat_runtime_factory=cast(Any, lambda _settings: runtime),
+    )
+
+    with TestClient(app) as client:
+        assert client.get("/ready").status_code == 200
+        assert runtime.generator.requests == []
+
+    assert runtime.close_count == 1
+    assert pool.close_count == 1
+
+
+def test_exact_profile_default_runtime_makes_zero_probe_requests_and_closes_client_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pool = FakePool()
+    post_calls = 0
+    close_calls = 0
+    original_close = httpx.AsyncClient.aclose
+
+    async def unexpected_post(
+        _client: httpx.AsyncClient,
+        *_args: object,
+        **_kwargs: object,
+    ) -> httpx.Response:
+        nonlocal post_calls
+        post_calls += 1
+        raise AssertionError("PROVIDER_REQUEST_DURING_STARTUP_OR_PROBE")
+
+    async def observe_close(client: httpx.AsyncClient) -> None:
+        nonlocal close_calls
+        close_calls += 1
+        await original_close(client)
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", unexpected_post)
+    monkeypatch.setattr(httpx.AsyncClient, "aclose", observe_close)
+
+    app = create_local_app(
+        environ=_grounded_chat_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    assert post_calls == 0
+    with TestClient(app) as client:
+        assert client.get("/health").status_code == 200
+        assert client.get("/ready").status_code == 200
+        assert post_calls == 0
+
+    assert post_calls == 0
+    assert close_calls == 1
+    assert pool.close_count == 1
 
 
 def test_local_chat_replays_same_logical_request_without_duplicate_event(

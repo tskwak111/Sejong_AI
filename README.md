@@ -63,8 +63,9 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
 - 역사적 pre-import 기준선에서는 공식/mock DB row 0과 `/ready=503`이 의도한 상태였다. 이는 당시
   검증 기록이며 현재 상태가 아니다. 이후 supported actual seed와 application rehearsal이 local DB
   19→20 ACTIVE 및 `/ready=200`을 별도 증명했다.
-- 공유 계약 package는 OpenAPI 3.1.0-draft, standalone JSON Schema·strict Pydantic과 생성 TypeScript의
-  drift를 검증한다. optional UUID `Idempotency-Key`는 correlation request ID와 분리한다.
+- 공유 계약 package는 OpenAPI 3.2.0-draft, standalone JSON Schema·strict Pydantic과 생성
+  TypeScript의 drift를 검증한다. SUCCESS는 `answer_mode=GENERATED|TEMPLATE`를 필수로 제공하며
+  optional UUID `Idempotency-Key`는 correlation request ID와 분리한다.
 - DB-001 disposable local/private 기준선은 patched Supabase CLI 2.109.1, PostgreSQL 17.6,
   현재 9개 forward/rollback, forced RLS/capability, pgTAP 9 files/356 assertions와 backend
   integration·rollback·absence·reset/replay 증거를 갖췄다. 실행 권위는 `supabase/migrations/`, 논리 projection은
@@ -81,15 +82,18 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
 - canonical T-01~T-20 deterministic pure-service 평가는 20/20(SUCCESS 10/10, FOLLOWUP 2/2,
   FALLBACK 8/8)이다. provider/remote/public 또는 HTTP source-card QA로 일반화하지 않는다.
 - 기존 FastAPI·CSV·정적 HTML 스타터는 `legacy/`에 보존됨.
-- `contracts/`의 API spec revision은 3.1.0-draft다. SUCCESS/FOLLOWUP/5개 정책 폴백,
+- `contracts/`의 API spec revision은 3.2.0-draft다. SUCCESS/FOLLOWUP/5개 정책 폴백,
   HTTPS 전용 공식 링크와 local/private admin envelope를 판별 union으로 동결했다. DB executable authority는 timestamp
   migrations이며 `database/`의 `0.4.0-local` projection은 실제 검증된 local 기준선의 읽기용
   투영이다. 공개·원격 DB 기준선이나 production readiness를 뜻하지 않는다.
-- Q-LLM-005=A로 외부 합성 평가 공급자는 Upstage exact `solar-pro3`다. 승인된 offline Tasks
-  1~6은 fail-closed 설정, strict source-free JSON, bounded HTTPX, grounded evaluator,
-  content-free report/runner와 security/architecture gate까지 review clean이다. key/network/model
-  quality actual은 아직 0이며 Task 7 local human gate 전에는 실행하지 않는다. 실제 시민·공개
-  경로는 계속 deterministic disabled/template provider다.
+- Q-LLM-005=A의 합성 평가 actual은 strict JSON 27/30으로 FAIL한 역사적 증거를 유지한다.
+  이후 Q-LLM-006~012/D-072~074가 local/private 입찰 시연에 한해 Upstage exact `solar-pro3`
+  근거 제한형 시민 답변 생성을 승인했다. exact local profile에서만 optional runtime을
+  조립하고 startup·health·ready는 provider를 호출하지 않는다. disabled·오류·schema/fact 검증
+  실패는 공식 TEMPLATE로 복구하며 source·office·공식 fact는 서버가 결합한다. actual network는
+  offline 전체 gate 뒤 별도 local 인간 단계이고 public/remote/실제 기관 운영은 계속 금지한다.
+  운영 순서는 [LLM-003 local grounded chat runbook](docs/runbooks/LLM-003-LOCAL-GROUNDED-CHAT.md)을
+  따른다.
 - 권장 배포는 Vercel + Render + Supabase이며 실제 계정·리전·비밀값은 별도 확인이 필요함.
 - Q-SEC-003=A/D-046으로 exact privileged function 22 signatures의 property-only `00700`
   hardening 방향은 확정됐지만 public 준비까지 구현을 보류했다. 그전에는 local/private 전용이며

@@ -209,7 +209,7 @@ class ApiArchitectureTest(unittest.TestCase):
         self.assertEqual(completed.stdout.strip(), "isolated-import-safe")
         self.assertEqual(completed.stderr, "")
 
-    def test_public_app_import_does_not_transitively_load_llm_package(self) -> None:
+    def test_public_app_import_loads_only_provider_neutral_llm_modules(self) -> None:
         source_root = API_ROOT / "src"
         probe = textwrap.dedent(
             f"""
@@ -225,13 +225,25 @@ class ApiArchitectureTest(unittest.TestCase):
             sejong_ai_api.main.create_app()
             sejong_ai_api.local.create_local_app(environ={{}}, env_path=missing_env)
 
-            loaded = tuple(
+            loaded = {{
                 name
                 for name in sys.modules
                 if name == "sejong_ai_api.llm" or name.startswith("sejong_ai_api.llm.")
-            )
-            assert not loaded, loaded
-            print("public-import-llm-isolated")
+            }}
+            assert {{
+                "sejong_ai_api.llm",
+                "sejong_ai_api.llm.chat_contracts",
+                "sejong_ai_api.llm.facts",
+            }} <= loaded, loaded
+            forbidden = {{
+                "sejong_ai_api.llm.chat_prompt",
+                "sejong_ai_api.llm.limits",
+                "sejong_ai_api.llm.settings",
+                "sejong_ai_api.llm.upstage_chat",
+            }}
+            assert not (forbidden & loaded), loaded
+            assert "httpx" not in sys.modules
+            print("public-import-provider-isolated")
             """
         )
 
@@ -244,7 +256,7 @@ class ApiArchitectureTest(unittest.TestCase):
         )
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertEqual(completed.stdout.strip(), "public-import-llm-isolated")
+        self.assertEqual(completed.stdout.strip(), "public-import-provider-isolated")
         self.assertEqual(completed.stderr, "")
 
 
