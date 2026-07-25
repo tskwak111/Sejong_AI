@@ -67,7 +67,7 @@ test("recommended question reaches chat via tab memory - exact /chat, empty sear
 
   // 탭 메모리로 넘어간 질문이 자동 전송되어 응답 카드가 렌더된다
   await expect(page.getByText(successResponse.summary)).toBeVisible();
-  await expect(page.getByText("공식 안내")).toBeVisible();
+  await expect(page.getByText("공식 안내", { exact: true })).toBeVisible();
   await expect(
     page.getByText(
       "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.",
