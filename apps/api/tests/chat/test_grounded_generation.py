@@ -346,7 +346,7 @@ async def test_post_generation_local_failure_keeps_claim_and_prevents_duplicate_
     assert "POST-GENERATION-LOCAL-SENTINEL" not in repr(captured.value)
     assert idempotency.claim.status is IdempotencyClaimStatus.IN_PROGRESS
     assert retry.answer_status == "SUCCESS"
-    assert cast(SuccessResponse, retry).answer_mode == "TEMPLATE"
+    assert retry.answer_mode == "TEMPLATE"
     assert len(generator.requests) == 1
     assert repository.events == []
     assert idempotency.completions == []
@@ -397,7 +397,7 @@ async def test_in_progress_same_key_returns_template_without_generation_or_write
     )
 
     assert response.answer_status == "SUCCESS"
-    assert cast(SuccessResponse, response).answer_mode == "TEMPLATE"
+    assert response.answer_mode == "TEMPLATE"
     assert response.summary == record.answer_summary
     assert generator.requests == []
     assert repository.events == []
