@@ -1,6 +1,7 @@
 # ADR-0023: local/private 근거 제한형 Upstage 시민 답변 생성
 
-- Status: Accepted / implementation In Progress under D-074
+- Status: Accepted / offline implementation, task-scoped review, and provider-disabled final root
+  gate complete under D-074; local actual Pending human gate
 - Date: 2026-07-25
 - Supersedes: ADR-0022의 local/private 실제 시민 입력 금지와 actual 통과 선행조건
 - Preserves: ADR-0022의 public/remote 금지, provider abstraction, ACTIVE/OFFICIAL gate,

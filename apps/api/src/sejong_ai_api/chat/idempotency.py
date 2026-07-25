@@ -15,12 +15,20 @@ from sejong_ai_api.db.models import InteractionWrite
 
 _FINGERPRINT_DOMAIN = b"sejong-ai:chat-idempotency:v1\x00"
 _VALIDATION_REQUEST_ID = "00000000-0000-4000-8000-000000000000"
+
+
+def _canonical_response_key(value: str) -> str:
+    return "".join(character for character in value.casefold() if character.isalnum())
+
+
 _FORBIDDEN_RESPONSE_KEYS = frozenset(
-    {
+    _canonical_response_key(key)
+    for key in {
         "access_token",
         "api_key",
         "api_secret",
         "authorization",
+        "authorization_header",
         "bearer_token",
         "client_secret",
         "context",
@@ -130,7 +138,7 @@ def fingerprint_chat_request(request: ChatRequest, *, secret: bytes) -> str:
 def _contains_forbidden_key(value: object) -> bool:
     if type(value) is dict:
         for key, nested in value.items():
-            if type(key) is not str or key.casefold() in _FORBIDDEN_RESPONSE_KEYS:
+            if type(key) is not str or _canonical_response_key(key) in _FORBIDDEN_RESPONSE_KEYS:
                 return True
             if _contains_forbidden_key(nested):
                 return True

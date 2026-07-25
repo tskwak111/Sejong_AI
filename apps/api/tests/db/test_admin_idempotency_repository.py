@@ -45,6 +45,58 @@ def safe_fallback_payload() -> dict[str, object]:
     }
 
 
+def safe_success_payload() -> dict[str, object]:
+    return {
+        "intent": "MOVE_IN_RESIDENT_REGISTRATION",
+        "confidence": 0.99,
+        "summary": "전입신고 공식 안내입니다.",
+        "procedure_steps": ["전입신고를 신청합니다."],
+        "required_documents": [],
+        "processing_time": None,
+        "fee": None,
+        "department": "아름동 행정복지센터",
+        "followup_options": [],
+        "fallback": None,
+        "answer_status": "SUCCESS",
+        "answer_mode": "TEMPLATE",
+        "sources": [
+            {
+                "source_id": "SOURCE-TEST-01",
+                "title": "승인된 공식 출처",
+                "url": "https://example.invalid/official/source",
+                "last_verified_at": "2026-07-20",
+                "used_fields": [],
+            }
+        ],
+        "office": None,
+    }
+
+
+def response_with_office_extra(
+    payload_kind: str,
+    unsafe_key: str,
+) -> dict[str, object]:
+    response = safe_success_payload() if payload_kind == "success" else safe_fallback_payload()
+    office: dict[str, object] = {
+        "id": "OFFICE-TEST-01",
+        "region": "아름동",
+        "office_name": "아름동 행정복지센터",
+        "address": "세종특별자치시 시연용 주소",
+        "phone": "044-000-0000",
+        "opening_hours": "평일 09:00~18:00",
+        "map_url": None,
+        "source_title": "승인된 기관 출처",
+        "last_verified_at": "2026-07-20",
+        unsafe_key: "must-not-persist",
+    }
+    if payload_kind == "success":
+        response["office"] = office
+    else:
+        fallback = cast(dict[str, object], response["fallback"])
+        fallback["office"] = office
+    return response
+
+
 def failed_row() -> dict[str, object]:
     return {
         "id": FAILED_ID,
@@ -346,6 +398,52 @@ async def test_idempotency_writes_reject_nested_provider_credential_keys_before_
         "last_verified_at": "2026-07-20",
         credential_key: "provider-credential-must-not-persist",
     }
+
+    with pytest.raises(ValueError, match="^IDEMPOTENCY_RESPONSE_UNSAFE$"):
+        if operation == "complete":
+            await adapter.complete_chat_idempotency(
+                idempotency_key=IDEMPOTENCY_KEY,
+                request_fingerprint=DIGEST,
+                claim_token=CLAIM_TOKEN,
+                response_payload=response,
+            )
+        else:
+            await adapter.commit_chat_idempotency(
+                idempotency_key=IDEMPOTENCY_KEY,
+                request_fingerprint=DIGEST,
+                claim_token=CLAIM_TOKEN,
+                response_payload=response,
+                interaction=None,
+            )
+
+    assert pool.connection_calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["complete", "commit"])
+@pytest.mark.parametrize("payload_kind", ["fallback", "success"])
+@pytest.mark.parametrize(
+    "unsafe_key",
+    [
+        "apiKey",
+        "api-key",
+        "rawQuestion",
+        "raw.question",
+        "maskedQuestion",
+        "contextToken",
+        "providerResponse",
+        "provider-secret",
+        "authorizationHeader",
+    ],
+)
+async def test_idempotency_writes_reject_canonicalized_forbidden_office_aliases_before_db(
+    operation: str,
+    payload_kind: str,
+    unsafe_key: str,
+) -> None:
+    pool = FakePool()
+    adapter: PsycopgSejongRepository = repository(pool)
+    response = response_with_office_extra(payload_kind, unsafe_key)
 
     with pytest.raises(ValueError, match="^IDEMPOTENCY_RESPONSE_UNSAFE$"):
         if operation == "complete":

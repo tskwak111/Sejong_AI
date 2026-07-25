@@ -1,7 +1,7 @@
 # IMP-20260725-005 — LLM-003 grounded live chat implementation
 
-- Date/Time (KST): 2026-07-26T02:55:00+09:00
-- Task ID: LLM-003 / Task 8 documentation lane
+- Date/Time (KST): 2026-07-26T03:25:00+09:00
+- Task ID: LLM-003 / Task 8 documentation lane and final review fix wave
 - Type: implementation-documentation-closeout
 - Status: Done — offline implementation, final provider-disabled root gate, manifest/package/INDEX integration complete; local actual remains Pending human gate
 - Author/Agent: Codex Task 8 documentation lane
@@ -15,7 +15,9 @@
 
 Synchronize LLM-003 Task 8 documentation from actual implementation/reviews, repair identified
 source-of-truth contradictions, record the final provider-disabled root gate, and create reproducible
-report/note evidence while preserving the separate human provider-actual boundary.
+report/note evidence while preserving the separate human provider-actual boundary. The final
+whole-branch review at `1c32c1c` additionally required canonical alias rejection at both replay
+validators and final authority-status synchronization.
 
 ### Acceptance Criteria
 
@@ -23,6 +25,7 @@ report/note evidence while preserving the separate human provider-actual boundar
 - State offline task evidence separately from the final root gate and optional provider actual.
 - Record no migration, data, dependency or lockfile change.
 - Make public/remote/real-institution use remain prohibited.
+- Close final review findings I1/I2/M1 with focused RED/GREEN evidence and one bounded fix commit.
 
 ## 2. 육하원칙(6W1H)
 
@@ -41,7 +44,10 @@ report/note evidence while preserving the separate human provider-actual boundar
 - Related files: LLM-003 design/plan, ADR-0023, Task 1~7 reports/reviews and source-of-truth documents.
 - Existing behavior: D-074 start checkpoint still stated `Task 1 starting`; API and contract had already moved to `3.2.0-draft` in tracked implementation.
 - Found conflict: `PRIVACY_POLICY.md` described active `PRIVACY_UNRESOLVED` as future-only despite its active contract/route policy.
-- Git state: concurrent Task 8 controller work may modify API idempotency files/tests; this lane does not alter them.
+- Final review findings at `1c32c1c`: replay validators accepted camelCase/separator aliases in
+  permissive Office extras; source-of-truth/ADR status was stale; the human actual gate was duplicated.
+- Git state: final fix wave started from clean exact HEAD `1c32c1c` and changes only the two
+  independent validators, their focused tests, and closeout evidence/status documents.
 
 ## 4. 미지의 영역·가정·인터뷰
 
@@ -76,8 +82,9 @@ enabled local/private demo path.
 | Contract/response | SUCCESS-only `answer_mode=GENERATED|TEMPLATE`, API `3.2.0-draft` | disclose authorship mode without changing fallback branches |
 | LLM facts/settings/adapter | server-issued IDs, strict profile, one attempt/8s/cap 30 | bound model authority and provider use |
 | Chat/idempotency/local | post-grounding generator, durable same-key dedupe, lazy optional runtime | no duplicate call; startup/readiness call 0 |
+| Final replay hardening | canonicalized every recursive replay mapping key at the independent claim and repository boundaries | reject credential/conversation aliases before persistence or replay |
 | Web | visible generated/template label, static disclosure, strict source fail-closed guard | accessible explanation and source integrity |
-| Documentation | report, source-of-truth fixes and status synchronization | preserve evidence and the pending human provider boundary |
+| Documentation | report, source-of-truth/ADR completion status and final review evidence synchronization | preserve D-071 and the pending human provider boundary |
 
 ### 데이터 흐름/상태 변화
 
@@ -94,6 +101,7 @@ return to TEMPLATE-only behavior; code rollback is reverse Task 8→1 revert onl
 ## 7. 버전 전후
 
 Before/After values are actual manifest/package values after Task 8 integration.
+The final fix wave did not change any manifest axis.
 
 | 축 | Before | After | 변경 이유 |
 |---|---|---|---|
@@ -122,6 +130,12 @@ Before/After values are actual manifest/package values after Task 8 integration.
 | Task 6 full API | PASS | 1,923; 8 explicit DB skips; 5 subtests; 10.14s | `task-6-report.md` |
 | Task 7 Web | PASS | 12 files / 56 tests; lint/typecheck/build | `task-7-report.md` |
 | Independent reviews | PASS after fixes | final security re-review C0/I0/M0; focused 85, chat 202, DB 168 (8 DB-only skips), provenance 57, controller 115, retrieval/static 5; Ruff/Mypy PASS | task reports/reviews |
+| Final fix baseline | PASS | claim/repository validator files `85 passed in 0.48s` | `final-fix-wave-report.md` |
+| Final fix TDD RED | expected FAIL | new alias regressions `54 failed, 85 deselected in 0.96s`; each failure was `DID NOT RAISE` | `final-fix-wave-report.md` |
+| Final fix focused GREEN | PASS | new alias cases `54 passed, 85 deselected in 0.52s`; complete validator files `139 passed in 0.69s` | `final-fix-wave-report.md` |
+| Final fix area gates | PASS | chat `220`; repository `120`; security `19 passed, 1 skipped, 8 subtests passed` | `final-fix-wave-report.md` |
+| Final fix static gates | PASS | Ruff format/check and Mypy over 4 touched API/source test files | `final-fix-wave-report.md` |
+| Final fix repository gates | PASS | docs checker, secret scan and `git diff --check` | `final-fix-wave-report.md` |
 
 ### 미실행 검증과 이유
 
@@ -133,6 +147,8 @@ Before/After values are actual manifest/package values after Task 8 integration.
 
 - Privacy: raw/masked question, provider body, key, transcript/context and correlation data remain excluded; only safe idempotent final response is a narrow existing exception.
 - Security: provider disabled by default, local/private only, no startup/readiness request, no CANDIDATE/mock/non-official prompt data.
+- Replay safety: recursive mapping keys are case-folded and stripped of non-alphanumeric separators
+  before comparison with canonical credential/conversation aliases at both independent Python boundaries.
 - Accessibility: text labels and disclosure are not color-only; invalid source fields render the existing alert before answer content.
 - Performance/cost: maximum one 8-second attempt, no hidden retry, concurrency 1 and process cap 30; actual cost remains Pending.
 
@@ -145,7 +161,6 @@ Before/After values are actual manifest/package values after Task 8 integration.
 
 ## 11. 인간이 반드시 알아야 하거나 승인할 내용
 
-- Local provider actual timing, ignored key handling and cost acceptance remain human decisions.
 - Local provider actual requires human timing, ignored key handling and cost acceptance.
 - Public/remote/real-institution operation needs separate privacy, security, legal, cost and deployment approval.
 

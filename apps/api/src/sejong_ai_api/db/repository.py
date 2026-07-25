@@ -83,12 +83,20 @@ _ADMIN_FAILURE_REASONS = frozenset(reason.value for reason in _CONFIRMABLE_REASO
 _ADMIN_FAILURE_STATUSES = frozenset({"NEW", "REASON_CONFIRMED"})
 _IDEMPOTENCY_DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$", re.ASCII)
 _IDEMPOTENCY_VALIDATION_REQUEST_ID = "00000000-0000-4000-8000-000000000000"
+
+
+def _canonical_idempotency_response_key(value: str) -> str:
+    return "".join(character for character in value.casefold() if character.isalnum())
+
+
 _FORBIDDEN_IDEMPOTENCY_RESPONSE_KEYS = frozenset(
-    {
+    _canonical_idempotency_response_key(key)
+    for key in {
         "access_token",
         "api_key",
         "api_secret",
         "authorization",
+        "authorization_header",
         "bearer_token",
         "client_secret",
         "context",
@@ -253,7 +261,7 @@ def _response_has_forbidden_key(value: object) -> bool:
         for key, nested in value.items():
             if type(key) is not str:
                 return True
-            if key.casefold() in _FORBIDDEN_IDEMPOTENCY_RESPONSE_KEYS:
+            if _canonical_idempotency_response_key(key) in _FORBIDDEN_IDEMPOTENCY_RESPONSE_KEYS:
                 return True
             if _response_has_forbidden_key(nested):
                 return True

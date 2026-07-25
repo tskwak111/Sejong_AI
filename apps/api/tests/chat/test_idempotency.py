@@ -37,6 +37,58 @@ def _safe_fallback_payload() -> dict[str, object]:
     }
 
 
+def _safe_success_payload() -> dict[str, object]:
+    return {
+        "intent": "MOVE_IN_RESIDENT_REGISTRATION",
+        "confidence": 0.99,
+        "summary": "전입신고 공식 안내입니다.",
+        "procedure_steps": ["전입신고를 신청합니다."],
+        "required_documents": [],
+        "processing_time": None,
+        "fee": None,
+        "department": "아름동 행정복지센터",
+        "followup_options": [],
+        "fallback": None,
+        "answer_status": "SUCCESS",
+        "answer_mode": "TEMPLATE",
+        "sources": [
+            {
+                "source_id": "SOURCE-TEST-01",
+                "title": "승인된 공식 출처",
+                "url": "https://example.invalid/official/source",
+                "last_verified_at": "2026-07-20",
+                "used_fields": [],
+            }
+        ],
+        "office": None,
+    }
+
+
+def _payload_with_office_extra(
+    payload_kind: str,
+    unsafe_key: str,
+) -> dict[str, object]:
+    payload = _safe_success_payload() if payload_kind == "success" else _safe_fallback_payload()
+    office: dict[str, object] = {
+        "id": "OFFICE-TEST-01",
+        "region": "아름동",
+        "office_name": "아름동 행정복지센터",
+        "address": "세종특별자치시 시연용 주소",
+        "phone": "044-000-0000",
+        "opening_hours": "평일 09:00~18:00",
+        "map_url": None,
+        "source_title": "승인된 기관 출처",
+        "last_verified_at": "2026-07-20",
+        unsafe_key: "must-not-persist",
+    }
+    if payload_kind == "success":
+        payload["office"] = office
+    else:
+        fallback = cast(dict[str, object], payload["fallback"])
+        fallback["office"] = office
+    return payload
+
+
 def test_request_fingerprint_is_stable_hmac_and_contains_no_input() -> None:
     request = ChatRequest(
         question="RAW-QUESTION-MUST-NOT-BE-STORED",
@@ -180,6 +232,32 @@ def test_completed_claim_rejects_nested_provider_credential_keys(
         IdempotencyClaim(
             status=IdempotencyClaimStatus.COMPLETED,
             response_payload=payload,
+        )
+
+
+@pytest.mark.parametrize("payload_kind", ["fallback", "success"])
+@pytest.mark.parametrize(
+    "unsafe_key",
+    [
+        "apiKey",
+        "api-key",
+        "rawQuestion",
+        "raw.question",
+        "maskedQuestion",
+        "contextToken",
+        "providerResponse",
+        "provider-secret",
+        "authorizationHeader",
+    ],
+)
+def test_completed_claim_rejects_canonicalized_forbidden_office_aliases(
+    payload_kind: str,
+    unsafe_key: str,
+) -> None:
+    with pytest.raises(ValueError, match="^IDEMPOTENCY_CLAIM_INVALID$"):
+        IdempotencyClaim(
+            status=IdempotencyClaimStatus.COMPLETED,
+            response_payload=_payload_with_office_extra(payload_kind, unsafe_key),
         )
 
 

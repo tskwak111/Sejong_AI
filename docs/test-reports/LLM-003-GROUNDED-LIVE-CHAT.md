@@ -32,8 +32,11 @@ new dependency was added to silence it.
 ## Security and behavior evidence
 
 Task 8 security integration commits `767c2fc` and `3b13930` were independently re-reviewed with
-`C0/I0/M0`. The final focused gates passed: security `85`, chat `202`, DB `168` with `8` DB-only
-skips, provenance `57`, controller `115`, retrieval/static `5`; Ruff and Mypy also passed.
+`C0/I0/M0`. A later frozen whole-branch review at `1c32c1c` found that the two independent Python
+replay validators still accepted camelCase/separator credential and conversation aliases in
+forward-compatible Office extras. The final fix wave added focused RED tests, then canonicalized
+every recursive mapping key independently at the claim and repository boundaries before comparison.
+It also synchronized the stale authority status and removed the duplicated human actual-gate bullet.
 
 - Provider default remains disabled. Public import, startup, `/health` and `/ready` have no provider
   settings/prompt/transport/key use or outbound request.
@@ -47,8 +50,25 @@ skips, provenance `57`, controller `115`, retrieval/static `5`; Ruff and Mypy al
   Timeout, transport, schema, ID or fact drift discards the entire draft and returns `TEMPLATE`.
 - Existing idempotency is the sole persistence exception: with a caller-supplied key, a strictly
   validated final safe response may be replayed for the logical 24-hour TTL. Raw/masked question,
-  prompt/provider body, context/correlation ID and secret remain forbidden.
+  prompt/provider body, context/correlation ID and secret remain forbidden, including camelCase and
+  non-alphanumeric separator variants of the canonical aliases.
 - No DB migration, official/mock-data mutation, dependency or lockfile update belongs to LLM-003.
+
+## Final review fix wave
+
+| Gate | Exact result |
+|---|---|
+| Clean baseline | claim/repository validator test files `85 passed in 0.48s` |
+| TDD RED | canonical-alias regressions `54 failed, 85 deselected in 0.96s`; failures were the expected missing exceptions |
+| Focused GREEN | new regressions `54 passed, 85 deselected in 0.52s`; both complete validator files `139 passed in 0.69s` |
+| Chat | final fresh run `220 passed in 0.81s` |
+| Repository | final fresh run `120 passed in 0.74s` |
+| Security | final fresh run `19 passed, 1 skipped, 8 subtests passed in 21.87s`; the skip is the existing environment-only gate |
+| Static | Ruff format/check and Mypy passed for the four touched Python source/test files |
+| Repository hygiene | documentation checker, secret scan and `git diff --check` passed |
+
+No provider key, provider network, DB actual, dependency, lockfile, migration or official/mock data
+was used or changed in this wave. The immutable `00660` migration was not edited.
 
 ## Recorded commands and results
 
@@ -59,6 +79,7 @@ These are the actual task report results, not an inferred aggregate rerun.
 | Contract | `pnpm --filter @sejong-ai/shared-contracts generate`, `generate:check`, and test passed; focused API pytest passed `76` tests. |
 | API/runtime | `uv run --project apps/api --frozen pytest apps/api/tests -q` passed `1,923`, with `8` explicit local-DB-only skips and `5` subtests in `10.14s`; Task 6 Ruff, Mypy, docs check, secret scan and diff checks passed. |
 | LLM service | `pytest apps/api/tests/chat -q` passed `189`; relevant fact/prompt/adapter/DB validator tests passed `96`; full API strict Mypy/Ruff/secret/diff gates passed in the Task 5 report. |
+| Final replay fix | Focused claim/repository RED→GREEN passed as recorded above; final chat `220`, repository `120`, security `19 + 1 skip + 8 subtests`, Ruff and Mypy passed. |
 | Web | `corepack pnpm --filter @sejong-ai/web lint`, `typecheck`, `test`, and `build` passed; final Vitest result was `12 files / 56 tests`. |
 | Web browser | Initial focused run was 9/12 with three failures solely from strict locator ambiguity at `home-chat-shell.spec.ts:70`; commit `7dd74f0` changed the locator to exact. Rerun `corepack pnpm --dir tools/web-e2e exec playwright test e2e/home-chat-shell.spec.ts` passed `12/12` across 390px/430px/desktop. |
 
