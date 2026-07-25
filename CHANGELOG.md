@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Changed — LLM-003 grounded local/private chat generation design
+
+- Approved Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C and Q-LLM-012=B
+  for a local/private-only Upstage `solar-pro3` chat path. Q-LLM-008=A summary-only is
+  superseded by the later full structured-answer attempt decision.
+- Provider calls are limited to safe-masked, supported-intent, ACTIVE/OFFICIAL and sufficiently
+  grounded requests. Policy/follow-up/insufficient-grounding paths make zero provider calls.
+- The model may propose a bounded summary and server-issued fact IDs only. The server materializes
+  official facts and binds sources/offices; timeout, schema, unknown ID or fact drift discards the
+  entire model result and uses the deterministic template.
+- Fixed the design limits at 8 seconds, one logical attempt, zero hidden retry, concurrency one and
+  30 outbound attempts per process. The approved response draft adds
+  `answer_mode=GENERATED|TEMPLATE` and accessible Web labels.
+- This is an approved design with written specification under review. Product code, API/contracts,
+  DB schema/data, dependencies, prompt runtime and provider actual calls remain unchanged until
+  written-specification and execution-plan approval. Public/remote/real institutional operation
+  remains prohibited.
+- Product specification `2.4.1→2.5.0`; documentation `2.18.0→2.19.0`; all other version axes are
+  unchanged.
+
 ### Changed — LLM-002 Upstage local actual evaluation
 
 - Ran the approved local/private canonical `T-01`~`T-10` Upstage exact `solar-pro3` evaluation

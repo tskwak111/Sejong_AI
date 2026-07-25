@@ -43,6 +43,15 @@
 평균 4.8444·최저 4와 VAT 포함 USD 0.004654815는 통과했지만 JSON 100% 기준을 충족하지
 못했으므로 D-071에서 선택지 B 미승인과 provider-disabled/template 시민 경로 유지를 확정했다.
 
+이후 사용자는 2026-07-25 Q-LLM-006~012/D-072/ADR-0023으로 **local/private 입찰 시연
+MVP에 한해** 근거 제한형 Upstage 시민 답변 생성을 새로 승인했다. 보수적 마스킹, deterministic
+supported intent, ACTIVE/OFFICIAL 검색과 근거 gate를 모두 통과한 요청만 마스킹 질문과 최소
+KB를 보낸다. 모델은 summary와 server-issued fact ID만 제안하고, 공식 fact text·출처·기관·정책
+결과는 서버가 결합한다. 8초·1 attempt·hidden retry 0이며 검증이나 호출 실패 시 모델 결과 전체를
+버리고 기존 공식 template로 답한다. LLM-002 actual FAIL 증거는 그대로이며 public/remote/실제
+기관 운영은 별도 개인정보·보안·비용·배포 승인 전까지 계속 금지한다. 현재 상태는 설계 승인,
+written specification Review이고 후속 계획 승인 전 product code·공개 계약·actual call 변경은 0이다.
+
 ## 4. 변경 절차
 
 제품 범위, 공개 계약, DB, 개인정보, 외부 공급자, 배포 아키텍처가 바뀌면:

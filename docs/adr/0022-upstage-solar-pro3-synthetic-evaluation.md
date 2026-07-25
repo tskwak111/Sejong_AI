@@ -1,9 +1,14 @@
 # ADR-0022: Upstage Solar Pro 3 합성 평가와 실제 시민 경로 분리
 
-- Status: Accepted design / implementation pending plan approval
+- Status: Partially superseded by ADR-0023 for local/private citizen chat; LLM-002 historical
+  evaluation boundary and evidence retained
 - Date: 2026-07-23
 - Supersedes: ADR-0005의 DeepSeek provider/model 선택
 - Preserves: ADR-0005의 provider abstraction, 합성 전용, cap, fallback, 출처 서버 결합 원칙
+
+> 2026-07-25 D-072/ADR-0023은 더 좁은 server-issued fact ID 검증과 전체 template fallback을
+> 전제로 local/private 시민 chat을 새로 승인했다. 이 ADR의 LLM-002 합성 평가 설계와 actual
+> FAIL 증거는 변경하지 않으며 public/remote/실제 기관 운영 금지는 계속 유효하다.
 
 ## Context
 

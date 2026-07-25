@@ -6,6 +6,8 @@
 > 2026-07-23 Q-LLM-005=A로 실제 구현 전 공급자를 Upstage `solar-pro3` 합성 평가로
 > 변경했다. 아래 내용은 DeepSeek 선택의 역사 기록이며, provider abstraction·합성 전용·cap·
 > deterministic fallback·서버 출처 결합 원칙은 ADR-0022가 승계한다.
+> 2026-07-25 D-072/ADR-0023은 local/private 시민 chat을 더 좁은 call gate와 server-issued
+> fact ID 검증으로 새로 승인했다. public/remote 금지와 provider abstraction은 계속 유지한다.
 
 ## Decision
 
