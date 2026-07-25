@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import cast
 
@@ -150,8 +150,9 @@ def test_exact_dotenv_profile_extracts_file_key_only_in_phase_two(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    extractor = getattr(settings_module, "_extract_dotenv_api_key", None)
-    assert callable(extractor), "two-phase dotenv key extraction seam is required"
+    extractor_value = getattr(settings_module, "_extract_dotenv_api_key", None)
+    assert callable(extractor_value), "two-phase dotenv key extraction seam is required"
+    extractor = cast(Callable[[Path], str | None], extractor_value)
     env_path = tmp_path / ".env"
     env_path.write_text(
         "\n".join(f"{key}={value}" for key, value in CHAT_VALID.items()),

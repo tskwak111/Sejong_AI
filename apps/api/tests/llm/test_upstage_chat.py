@@ -208,6 +208,38 @@ async def test_transport_failure_makes_one_request_without_raising_or_logging_ex
 
 
 @pytest.mark.asyncio
+async def test_unexpected_transport_exception_is_content_free_and_never_retried(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = UpstageChatSettings(api_key=SECRET)
+    question_marker = "QUESTION-MARKER"
+    requests = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal requests
+        requests += 1
+        raise RuntimeError(f"{question_marker} {SECRET}")
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        result = await UpstageChatGenerator(
+            settings=settings,
+            client=client,
+            budget=AttemptBudget(cap=30, concurrency=1),
+        ).generate(_request(question=question_marker))
+
+    assert result.code is GroundedChatOutcomeCode.TRANSPORT
+    assert result.draft is None
+    assert requests == 1
+    assert question_marker not in repr(result)
+    assert SECRET not in repr(result)
+    assert question_marker not in caplog.text
+    assert SECRET not in caplog.text
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("response_factory", "expected_code"),
     [
@@ -263,6 +295,62 @@ async def test_malformed_or_truncated_output_fails_closed_after_one_request(
     assert result.code is expected_code
     assert result.draft is None
     assert requests == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("usage", "include_usage", "expected_code"),
+    [
+        (None, False, GroundedChatOutcomeCode.SCHEMA_INVALID),
+        ([], True, GroundedChatOutcomeCode.SCHEMA_INVALID),
+        ({}, True, GroundedChatOutcomeCode.SCHEMA_INVALID),
+        ({"prompt_tokens": True}, True, GroundedChatOutcomeCode.SCHEMA_INVALID),
+        ({"prompt_tokens": 1.0}, True, GroundedChatOutcomeCode.SCHEMA_INVALID),
+        ({"prompt_tokens": -1}, True, GroundedChatOutcomeCode.SCHEMA_INVALID),
+        ({"prompt_tokens": 0}, True, GroundedChatOutcomeCode.SUCCESS),
+        ({"prompt_tokens": 4096}, True, GroundedChatOutcomeCode.SUCCESS),
+        ({"prompt_tokens": 4097}, True, GroundedChatOutcomeCode.INPUT_LIMIT),
+    ],
+)
+async def test_provider_usage_is_strict_and_fails_closed_after_one_request(
+    usage: object,
+    include_usage: bool,
+    expected_code: GroundedChatOutcomeCode,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = UpstageChatSettings(api_key=SECRET)
+    requests = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal requests
+        requests += 1
+        envelope: dict[str, object] = {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {"content": _draft_json()},
+                }
+            ],
+            "provider_private_error": "PRIVATE-USAGE-BODY-SENTINEL",
+        }
+        if include_usage:
+            envelope["usage"] = usage
+        return httpx.Response(200, json=envelope)
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        result = await UpstageChatGenerator(
+            settings=settings,
+            client=client,
+            budget=AttemptBudget(cap=30, concurrency=1),
+        ).generate(_request())
+
+    assert result.code is expected_code
+    assert requests == 1
+    assert "PRIVATE-USAGE-BODY-SENTINEL" not in repr(result)
+    assert "PRIVATE-USAGE-BODY-SENTINEL" not in caplog.text
 
 
 @pytest.mark.asyncio

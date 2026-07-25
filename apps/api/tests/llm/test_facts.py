@@ -37,7 +37,11 @@ def _record(
     )
 
 
-def _request(*, processing_time: str | None = "즉시", fee: str | None = "수수료 3,000원"):
+def _request(
+    *,
+    processing_time: str | None = "즉시",
+    fee: str | None = "수수료 3,000원",
+) -> GroundedChatRequest:
     record = _record(processing_time=processing_time, fee=fee)
     return build_grounded_chat_request(
         masked_question="전입신고 방법을 알려 주세요.",

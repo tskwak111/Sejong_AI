@@ -97,6 +97,10 @@ class UpstageChatGenerator:
             return _failure(GroundedChatOutcomeCode.TIMEOUT)
         except httpx.TransportError:
             return _failure(GroundedChatOutcomeCode.TRANSPORT)
+        except Exception:
+            # Provider/transport failures cross this boundary only as a content-free enum.
+            # Cancellation and other BaseException subclasses intentionally remain unhandled.
+            return _failure(GroundedChatOutcomeCode.TRANSPORT)
         return _parse_response(response, max_input_tokens=self._settings.max_input_tokens)
 
 
@@ -145,7 +149,10 @@ def _parse_response(
     if type(envelope) is not dict:
         return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
 
-    if _reported_input_tokens(envelope.get("usage")) > max_input_tokens:
+    reported_input_tokens = _reported_input_tokens(envelope.get("usage"))
+    if reported_input_tokens is None:
+        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
+    if reported_input_tokens > max_input_tokens:
         return _failure(GroundedChatOutcomeCode.INPUT_LIMIT)
 
     choice = _first_choice(envelope.get("choices"))
@@ -180,11 +187,11 @@ def _first_choice(value: object) -> dict[str, Any] | None:
     return choice if type(choice) is dict else None
 
 
-def _reported_input_tokens(value: object) -> int:
+def _reported_input_tokens(value: object) -> int | None:
     if type(value) is not dict:
-        return 0
+        return None
     prompt_tokens = value.get("prompt_tokens")
-    return prompt_tokens if type(prompt_tokens) is int and prompt_tokens >= 0 else 0
+    return prompt_tokens if type(prompt_tokens) is int and prompt_tokens >= 0 else None
 
 
 def _failure(code: GroundedChatOutcomeCode) -> GroundedChatResult:
