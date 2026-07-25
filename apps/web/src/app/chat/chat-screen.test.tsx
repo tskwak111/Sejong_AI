@@ -43,6 +43,7 @@ const OFFICE = {
 const SUCCESS_RESPONSE = {
   request_id: "11111111-1111-4111-8111-111111111111",
   answer_status: "SUCCESS",
+  answer_mode: "TEMPLATE",
   intent: "MOVE_IN_RESIDENT_REGISTRATION",
   confidence: 0.96,
   summary: "전입신고는 전입한 날부터 14일 이내에 해요.",
@@ -94,7 +95,7 @@ describe("citizen chat screen", () => {
     expect(window.location.search).toBe("");
   });
 
-  it("renders a successful answer with source, office metadata and the generated request shape", async () => {
+  it("renders a template official answer with its source, office metadata and generated request shape", async () => {
     const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
     render(
       <ChatScreen
@@ -112,6 +113,12 @@ describe("citizen chat screen", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("신분증")).toBeInTheDocument();
+    expect(screen.getByText("공식 안내")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.",
+      ),
+    ).toBeInTheDocument();
     const sourceLink = screen.getByRole("link", { name: /원문 보기/ });
     expect(sourceLink).toHaveAttribute("href", SUCCESS_RESPONSE.sources[0].url);
     expect(screen.getByText(SUCCESS_RESPONSE.sources[0].title)).toBeInTheDocument();
@@ -128,6 +135,29 @@ describe("citizen chat screen", () => {
       },
       { idempotencyKey: "99999999-9999-4999-8999-999999999999" },
     );
+  });
+
+  it("labels a generated official answer while keeping its verified source link available", async () => {
+    const generatedResponse = {
+      ...SUCCESS_RESPONSE,
+      answer_mode: "GENERATED",
+    } satisfies ChatResponse;
+    const send = vi.fn().mockResolvedValue(generatedResponse);
+    render(<ChatScreen transport={transportWith(send)} />);
+
+    ask("이사했는데 전입신고 어떻게 해요?");
+
+    expect(await screen.findByText("AI로 정리한 공식 안내")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.",
+      ),
+    ).toBeInTheDocument();
+    const sourceLink = screen.getByRole("link", { name: /원문 보기/ });
+    expect(sourceLink).toHaveAttribute("href", SUCCESS_RESPONSE.sources[0].url);
+    expect(sourceLink).toHaveAttribute("target", "_blank");
+    expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.queryByText(/Upstage|solar-pro3/i)).not.toBeInTheDocument();
   });
 
   it("keeps follow-up context only in React memory and sends it with the selected option", async () => {

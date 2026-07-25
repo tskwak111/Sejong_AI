@@ -29,14 +29,23 @@ describe("contract fixture rendering", () => {
 
     // summary가 없는 fixture는 기본 제목으로 렌더링하되 카드가 깨지지 않는다
     expect(screen.getByText("확인된 민원 안내")).toBeInTheDocument();
+    expect(screen.getByText("공식 안내")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.",
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("시연용 샘플 출처 — 공식 데이터 아님"),
     ).toBeInTheDocument();
     expect(screen.getByText("2026-07-15 확인 기준")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /원문 보기/ })).toHaveAttribute(
+    const sourceLink = screen.getByRole("link", { name: /원문 보기/ });
+    expect(sourceLink).toHaveAttribute(
       "href",
       "https://example.invalid/sources/001",
     );
+    expect(sourceLink).toHaveAttribute("target", "_blank");
+    expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer");
     expect(screen.getByText("시연용 샘플 행정복지센터")).toBeInTheDocument();
     expect(screen.getByText("시연용 샘플 주소")).toBeInTheDocument();
   });
