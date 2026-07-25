@@ -81,10 +81,10 @@ public/remote/provider/`00700` readiness 완료를 뜻하지 않는다.
 구현·검증은 계속 별도 public blocker다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
-`2.5.0`, D-073의 written specification 승인과 8-task TDD 실행계획은 documentation
-`2.19.1`이다. 이 문서 버전은 제품 코드·API `3.1.0-draft`·shared contracts·DB·공식 데이터·
-prompt runtime·test suite가 아직 변하지 않았다는 계획 단계다. 계획 승인과 구현 뒤에만 각
-축을 실행 결과에 맞춰 승격한다.
+`2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
+D-074의 plan 승인·Subagent-Driven 구현 시작 checkpoint는 documentation `2.19.2`다. 이
+checkpoint에서는 제품 코드·API `3.1.0-draft`·shared contracts·DB·공식 데이터·prompt runtime·
+test suite가 아직 변하지 않았다. 각 구현 task가 검증된 뒤에만 실행 결과에 맞춰 축을 승격한다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

@@ -22,14 +22,14 @@ before generation, so concurrent/same-key replays do not start a second provider
 16.2.10, React 19.2.7, TypeScript 5.9.3, Vitest 4.1.10.
 
 - Plan ID: LLM-003-PLAN
-- Status: **Review — written specification approved; implementation approval pending**
+- Status: **In Progress — D-074 implementation approved; Task 1 starting**
 - Design:
   `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md`
 - ADR: `docs/adr/0023-grounded-upstage-local-chat-generation.md`
-- Decisions: Q-LLM-006~Q-LLM-012 / D-072 / D-073
+- Decisions: Q-LLM-006~Q-LLM-012 / D-072 / D-073 / D-074
 - Execution base: `de1ee096d6e27b0a326dfaa0c93f72baf0c5f1c0`
-- No implementation, API mutation, provider call, key read, DB migration, push or PR is authorized by
-  this plan-writing commit.
+- D-074 authorizes implementation and the additive API mutation in this plan. Actual provider call,
+  key read, DB migration, push, PR and merge remain separately gated as stated below.
 
 ## Global Constraints
 
@@ -875,7 +875,7 @@ git commit -m "feat(web): explain generated official answers"
 
 **Files:**
 - Create: `docs/test-reports/LLM-003-GROUNDED-LIVE-CHAT.md`
-- Create: `docs/implementation-notes/IMP-20260725-004-llm-003-grounded-live-chat-implementation.md`
+- Create: `docs/implementation-notes/IMP-20260725-005-llm-003-grounded-live-chat-implementation.md`
 - Modify: `docs/implementation-notes/INDEX.md`
 - Modify: `docs/superpowers/plans/2026-07-25-grounded-live-chat-generation.md`
 - Modify: `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md`

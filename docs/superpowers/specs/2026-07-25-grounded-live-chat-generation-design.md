@@ -1,12 +1,12 @@
 # LLM-003 근거 제한형 Upstage 시민 답변 생성 설계
 
-- 상태: Approved written specification / implementation plan Review
+- 상태: Approved / D-074 implementation In Progress
 - 작성일: 2026-07-25 KST
 - 결정: Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C, Q-LLM-012=B
 - 관련 결정: D-024, D-045, D-059, D-061, D-065~D-067, D-071, D-072
 - 관련 ADR: ADR-0004, ADR-0005, ADR-0006, ADR-0010, ADR-0021, ADR-0022, ADR-0023
 - 구현 시작 조건: [후속 실행계획](../plans/2026-07-25-grounded-live-chat-generation.md)에 대한
-  사용자 승인
+  사용자 승인 — D-074로 충족
 
 ## 1. 배경과 목적
 

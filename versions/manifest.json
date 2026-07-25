@@ -1,6 +1,6 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-25T19:51:27+09:00",
+  "updated_at": "2026-07-25T20:05:00+09:00",
   "versions": {
     "product_spec": "2.5.0",
     "repo_guidance": "1.7.8",
@@ -13,7 +13,7 @@
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.1.0-upstage-solar-pro3-synthetic",
     "test_suite": "1.5.1-local-dev-origin",
-    "documentation": "2.19.1"
+    "documentation": "2.19.2"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

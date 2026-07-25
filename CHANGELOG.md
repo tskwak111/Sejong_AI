@@ -18,13 +18,16 @@
 - D-073 records written-specification approval and publishes the eight-task TDD implementation plan.
   The plan maps contract, fact-ID validation, exact settings, one-attempt transport, ChatService
   idempotency, local lifecycle, Web accessibility and final security/actual gates.
+- D-074 approves the plan and starts Subagent-Driven implementation. Product/API changes inside the
+  plan are now authorized; actual provider network, public/remote use, new production dependency,
+  DB migration and automatic merge remain prohibited.
 - Clarified the pre-existing idempotency exception: only a caller-supplied key may retain the
   strictly validated final safe response for the existing logical 24-hour TTL. Raw/masked question,
   prompt/provider body, context/correlation and new DB migration remain prohibited.
-- Product code, API/contracts, DB schema/data, dependencies, prompt runtime and provider actual calls
-  remain unchanged until execution-plan approval. Public/remote/real institutional operation remains
-  prohibited.
-- Product specification `2.4.1→2.5.0`; documentation `2.18.0→2.19.1`; all other version axes are
+- At this approval checkpoint product code, API/contracts, DB schema/data, dependencies, prompt
+  runtime and provider actual calls remain unchanged. Public/remote/real institutional operation
+  remains prohibited.
+- Product specification `2.4.1→2.5.0`; documentation `2.18.0→2.19.2`; all other version axes are
   unchanged.
 
 ### Changed — LLM-002 Upstage local actual evaluation

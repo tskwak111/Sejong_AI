@@ -51,7 +51,7 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-045 | B / High | PM 데모의 개인조회와 개선 질문 분리 | Resolved / local actual PASS | #4 PERSONAL_LOOKUP은 interaction event/failed row delta 0, #5 별도 INSUFFICIENT_GROUNDING은 delta 1/1 뒤 19→20 승인 루프와 재질의 SUCCESS | D-068/D-059, Q-PM-DEMO-001 plan; backend runner와 actual browser evidence PASS |
 | A-046 | B / High | 공식 서비스명 | Resolved | 공식 서비스명은 `세종 민원이음`; 옛 작업명은 활성 문서에서 교정하고 역사 증거는 보존 | D-069 / POST-MVP-001 |
 | A-047 | B / High | local dev config 소유 경계 | Resolved / owner review | PR #10의 exact `127.0.0.1` 개발 origin은 owner가 인계하고 팀원 config 권한과 public CORS 범위는 넓히지 않음 | D-070 / WEB-DEV-ORIGIN-001 |
-| A-048 | A / Blocker | local 시민 chat 외부 LLM 경계 | Resolved specification / plan Review | Q-LLM-006=B·007=A·009=A·011=C·012=B와 D-073 명세 승인: supported+masked+ACTIVE/OFFICIAL+grounded만 masked question+최소 KB 전송, `solar-pro3` 8초 1 attempt, server-issued fact ID·server-bound source, 검증 실패 전체 template fallback, `answer_mode` 배지 | D-072/D-073/ADR-0023/LLM-003 spec+plan. public/remote/실제 기관 운영 금지; 계획 승인 전 코드/계약/actual call 0 |
+| A-048 | A / Blocker | local 시민 chat 외부 LLM 경계 | Resolved / implementation In Progress | Q-LLM-006=B·007=A·009=A·011=C·012=B와 D-073 명세·D-074 계획 승인: supported+masked+ACTIVE/OFFICIAL+grounded만 masked question+최소 KB 전송, `solar-pro3` 8초 1 attempt, server-issued fact ID·server-bound source, 검증 실패 전체 template fallback, `answer_mode` 배지 | D-072~D-074/ADR-0023/LLM-003 spec+plan. local/private 구현만 허용; actual network·public/remote/실제 기관 운영 금지 |
 
 ## 우선도 정의
 
@@ -62,8 +62,9 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 
 현재 deterministic MVP를 막는 인터뷰 결정은 없다. A-044/Q-LLM-005의 합성 평가는
 D-071에서 actual FAIL로 종료했다. 이후 사용자가 A-048/Q-LLM-006~012/D-072로 local/private
-근거 제한형 시민 chat 생성을 승인했고 D-073에서 written specification까지 승인했다. 후속
-실행계획 승인 전에는 제품 코드·공개 계약 변경 또는 새 actual provider call을 하지 않는다. public/remote/실제 기관
+근거 제한형 시민 chat 생성을 승인했고 D-073에서 written specification, D-074에서 실행계획과
+Subagent-Driven 구현을 승인했다. actual provider call은 offline 전체 gate 뒤 별도 local 인간
+단계다. public/remote/실제 기관
 운영은 별도 개인정보·보안·비용·배포 승인 전까지 계속 금지한다.
 A-041~A-043은 2026-07-22 D-059~D-061로 해결됐다.
 T-16~T-18, local admin DB read와 durable chat 재시도는 승인 범위에서 구현·검증한다. DATA actual과
