@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import cast
+from uuid import UUID
 
 import pytest
 
@@ -56,6 +57,24 @@ class CountingGenerator:
         if self.result is None:
             raise AssertionError("test generator result required")
         return self.result
+
+
+class RetainingIdempotencyRepository(FakeIdempotencyRepository):
+    async def claim_chat_idempotency(
+        self,
+        *,
+        idempotency_key: UUID,
+        request_fingerprint: str,
+        claim_token: UUID,
+    ) -> IdempotencyClaim:
+        claim = await super().claim_chat_idempotency(
+            idempotency_key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+            claim_token=claim_token,
+        )
+        if claim.status is IdempotencyClaimStatus.ACQUIRED:
+            self.claim = IdempotencyClaim(status=IdempotencyClaimStatus.IN_PROGRESS)
+        return claim
 
 
 @pytest.mark.asyncio
@@ -285,6 +304,77 @@ async def test_commit_uncertainty_never_retries_or_abandons_generated_attempt() 
     assert len(idempotency.completions) == 1
     assert idempotency.abandons == []
     assert idempotency.committed_events == []
+
+
+@pytest.mark.asyncio
+async def test_post_generation_local_failure_keeps_claim_and_prevents_duplicate_attempt() -> None:
+    generator = CountingGenerator()
+    idempotency = RetainingIdempotencyRepository(
+        IdempotencyClaim(status=IdempotencyClaimStatus.ACQUIRED)
+    )
+    repository = FakeRepository(records=(knowledge_record(),))
+    clock_reads = 0
+
+    def post_generation_failure_clock() -> int:
+        nonlocal clock_reads
+        clock_reads += 1
+        if clock_reads == 2:
+            raise RuntimeError("POST-GENERATION-LOCAL-SENTINEL")
+        return clock_reads * 1_000_000
+
+    selected = service(
+        repository,
+        clock_ns=post_generation_failure_clock,
+        answer_generator=generator,
+        idempotency_repository=idempotency,
+    )
+    request = ChatRequest(question="대형폐기물은 어떻게 버려요?")
+
+    with pytest.raises(ChatUnavailableError, match="^CHAT_UNAVAILABLE$") as captured:
+        await selected.answer(
+            request,
+            request_id=REQUEST_ID,
+            idempotency_key=IDEMPOTENCY_KEY,
+        )
+
+    retry = await selected.answer(
+        request,
+        request_id=RETRY_REQUEST_ID,
+        idempotency_key=IDEMPOTENCY_KEY,
+    )
+
+    assert "POST-GENERATION-LOCAL-SENTINEL" not in repr(captured.value)
+    assert idempotency.claim.status is IdempotencyClaimStatus.IN_PROGRESS
+    assert retry.answer_status == "SUCCESS"
+    assert cast(SuccessResponse, retry).answer_mode == "TEMPLATE"
+    assert len(generator.requests) == 1
+    assert repository.events == []
+    assert idempotency.completions == []
+    assert idempotency.committed_events == []
+    assert idempotency.abandons == []
+
+
+@pytest.mark.asyncio
+async def test_pre_generation_failure_still_abandons_without_calling_generator() -> None:
+    generator = CountingGenerator()
+    idempotency = FakeIdempotencyRepository(
+        IdempotencyClaim(status=IdempotencyClaimStatus.ACQUIRED)
+    )
+
+    with pytest.raises(ChatUnavailableError, match="^CHAT_UNAVAILABLE$"):
+        await service(
+            FakeRepository(fail_reads=True),
+            answer_generator=generator,
+            idempotency_repository=idempotency,
+        ).answer(
+            ChatRequest(question="대형폐기물은 어떻게 버려요?"),
+            request_id=REQUEST_ID,
+            idempotency_key=IDEMPOTENCY_KEY,
+        )
+
+    assert generator.requests == []
+    assert len(idempotency.abandons) == 1
+    assert idempotency.completions == []
 
 
 @pytest.mark.asyncio

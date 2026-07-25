@@ -138,6 +138,19 @@ class _ChatExecution:
     interaction: InteractionWrite | None
 
 
+@dataclass(slots=True)
+class _GenerationAttemptState:
+    started: bool = False
+
+    def begin(self) -> bool:
+        """Atomically mark this request-local attempt before the generator await."""
+
+        if self.started:
+            return False
+        self.started = True
+        return True
+
+
 class ChatService:
     """Compose redaction, policy, retrieval, grounding, response and event gates."""
 
@@ -209,6 +222,7 @@ class ChatService:
         *,
         request_id: UUID | None = None,
         allow_generation: bool = True,
+        generation_attempt_state: _GenerationAttemptState | None = None,
     ) -> _ChatExecution:
         """Build one safe response and its optional persistence command."""
 
@@ -353,7 +367,10 @@ class ChatService:
                     intent=intent,
                     record=grounding.record,
                 )
-                result = await self._answer_generator.generate(grounded_request)
+                if generation_attempt_state is None or generation_attempt_state.begin():
+                    result = await self._answer_generator.generate(grounded_request)
+                else:
+                    result = None
                 if (
                     type(result) is GroundedChatResult
                     and result.code is GroundedChatOutcomeCode.SUCCESS
@@ -462,9 +479,16 @@ class ChatService:
         if claim.status is not IdempotencyClaimStatus.ACQUIRED:
             raise ChatUnavailableError()
 
+        generation_attempt_state = _GenerationAttemptState()
         try:
-            execution = await self._execute_once(request, request_id=request_id)
+            execution = await self._execute_once(
+                request,
+                request_id=request_id,
+                generation_attempt_state=generation_attempt_state,
+            )
         except Exception:
+            if generation_attempt_state.started:
+                raise ChatUnavailableError() from None
             with suppress(Exception):
                 await repository.abandon_chat_idempotency(
                     idempotency_key=idempotency_key,
