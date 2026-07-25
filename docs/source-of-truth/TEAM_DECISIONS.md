@@ -2,7 +2,7 @@
 
 ## 제품
 
-- 서비스명: 세종 민원 AI 길잡이
+- 서비스명: 세종 민원이음
 - 구조: 시민용 민원 AI 플랫폼 + 관리자용 AI 민원 운영센터
 - 기준 문장: **모르면 지어내지 않고, 알면 끝까지 안내한다.**
 - 차별점: 실패 질문을 공식 KB 후보로 전환하고 담당자가 승인하는 개선 루프
@@ -98,8 +98,9 @@
   PR #8의 `/admin/*` 하위 경로는 local/private 관리자 view이며 공개 제품 페이지 범위 확장으로
   해석하지 않는다. `/`, `/chat`, `/admin`의 공개 3페이지 범위는 그대로다. 하위 경로를 영구
   구조로 유지할지는 `WEB-ROUTE-SCOPE-001`의 인간 범위 검토 전까지 Pending이다.
-- local Web 개발 origin: `allowedDevOrigins: ["127.0.0.1"]`는 사용자 지시에 따라 별도 Frontend
-  PR에서만 반영한다. 현재 owner 통합 PR에 섞지 않으며 public CORS·배포 allowlist 승인이 아니다.
+- local Web 개발 origin: `allowedDevOrigins: ["127.0.0.1"]`는 owner-reviewed config
+  PR에서만 반영한다. Frontend 팀원 PR #10은 Web CI를 통과했지만 config 소유 경계 때문에 owner가
+  인계하며, 이는 public CORS·배포 allowlist 승인이 아니다.
 - local seed 실행: `supabase/config.toml`의 `[db.seed].enabled=false`를 유지한다. `db reset`은
   migration만 재현하며, 승인된 immutable `.2`는 별도 정식 `seed-cycle → verify-final →
   provision_local_database_login` 단계로만 적용한다. 자동 seed 또는 임의 SQL 적용은 금지한다.
@@ -193,11 +194,11 @@
   exact-string-only 변환으로 보정했고, 전역 strictness와 public admin 금지는 유지했다. final API
   1,640, Web 48/lint/type/build/E2E 15, contracts 89, clean DB pgTAP 9/356·integration 8/8, root offline과
   deterministic sample T-01~T-20 20/20을 PASS했다.
-- MVP-001은 local/private AI scope complete의 **Review**다. PR #6과 Frontend PR #8은 사람이
+- MVP-001은 PR #9 병합으로 local/private AI scope **Done**이다. PR #6과 Frontend PR #8은 사람이
   병합했고, owner 후속은 current PR #8 UI로 PERSONAL 미저장→별도 IG→사유 확정→OFFICIAL
   후보→별도 승인자·checklist 3/3→20번째 ACTIVE→동일 질문 SUCCESS·정확한 공식 출처를 actual
   browser 1/1로 재검증했다. feedback dialog의 focus 이동·trap·Escape·focus restore도 Web
-  unit gate를 통과했다. Draft PR 검토와 manual demo는 인간 Pending이다. Upstage 합성 평가는 LLM-002의 승인된 명세와
+  unit gate를 통과했다. manual demo는 인간 Pending이다. Upstage 합성 평가는 LLM-002의 승인된 명세와
   실행계획으로 offline Tasks 1~6 review clean이며 key/network/model-quality actual은 0이다.
   actual call은 local human Task 7 gate 뒤다. 100-user,
   automated backup, advanced UI,
@@ -210,4 +211,4 @@
 - 대표 연락처: [직접 입력]
 - 제출일: [직접 입력]
 - 최종 확인란: `팀 대표 확인`
-- 문서 버전: v2.4.0
+- 문서 버전: v2.4.1

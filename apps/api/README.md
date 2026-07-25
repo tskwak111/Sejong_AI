@@ -1,6 +1,6 @@
 # apps/api
 
-세종 민원 AI 길잡이의 FastAPI 서비스다. health/readiness와 local/private `/api/v1/chat`
+세종 민원이음의 FastAPI 서비스다. health/readiness와 local/private `/api/v1/chat`
 수직 흐름, DB-001 lazy typed repository boundary를 제공한다.
 
 ## 현재 동작

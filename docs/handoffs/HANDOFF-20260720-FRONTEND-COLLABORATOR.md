@@ -12,7 +12,7 @@
   configured repository variable match. `sejong-ai-cloud-docs` is saved with agent internet Off and
   no env/secret. MFA/recovery, Cloud task/Draft PR, human clone/baseline, first PR-only/self-merge and
   forbidden-scope rehearsal are pending.
-- Product: 세종 민원 AI 길잡이
+- Product: 세종 민원이음
 - Scope owner: Frontend 팀원
 - Architecture/contract/data/security owner: 사용자
 
@@ -22,7 +22,7 @@
 `.env` 내용은 보내지 않는다.
 
 ~~~text
-세종 민원 AI 길잡이의 Frontend 담당으로 참여해줘.
+세종 민원이음의 Frontend 담당으로 참여해줘.
 
 오늘 첫 작업은 제품 화면 코딩이 아니라 COLLAB-ONBOARDING 리허설이야. 아래 절차가 모두 끝나고 내가
 확인하기 전에는 apps/web 제품 코드를 수정하지 말아줘.
