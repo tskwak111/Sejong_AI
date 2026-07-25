@@ -1,11 +1,12 @@
 # LLM-003 근거 제한형 Upstage 시민 답변 생성 설계
 
-- 상태: Approved design / written specification Review
+- 상태: Approved written specification / implementation plan Review
 - 작성일: 2026-07-25 KST
 - 결정: Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C, Q-LLM-012=B
 - 관련 결정: D-024, D-045, D-059, D-061, D-065~D-067, D-071, D-072
 - 관련 ADR: ADR-0004, ADR-0005, ADR-0006, ADR-0010, ADR-0021, ADR-0022, ADR-0023
-- 구현 시작 조건: 이 서면 명세와 후속 실행계획에 대한 사용자 승인
+- 구현 시작 조건: [후속 실행계획](../plans/2026-07-25-grounded-live-chat-generation.md)에 대한
+  사용자 승인
 
 ## 1. 배경과 목적
 
@@ -225,8 +226,12 @@ model list, balance, payment, top-up은 provider를 호출하지 않는다.
 - process outbound cap 30은 성공·실패·timeout을 모두 attempt 예약 시점에 계수한다.
 - cap reset endpoint, 자동 새 process 또는 목표 출력 수를 채우기 위한 재실행을 만들지 않는다.
 
-DB에는 기존 idempotency 계약이 허용한 digest와 안전 응답만 유지한다. raw/masked question이나
-provider payload/body를 새로 저장하지 않는다. DB migration은 이 설계에 포함하지 않는다.
+DB에는 기존 idempotency 계약이 허용한 digest와 안전 응답만 유지한다. 호출자가
+`Idempotency-Key`를 제공한 경우에는 엄격한 서버 검증을 통과한 최종 안전 응답이 기존 논리 TTL
+24시간 동안 저장될 수 있으며, 이 응답에는 `GENERATED` summary가 포함될 수 있다. 이는 중복
+provider 호출을 막고 같은 논리 응답을 재생하기 위한 기존 저장 계약의 명시적 예외다.
+raw/masked question, prompt, provider payload/body, context token, request/correlation ID를 새로
+저장하지 않는다. DB migration은 이 설계에 포함하지 않는다.
 
 ## 10. 오류와 fallback
 
@@ -259,8 +264,9 @@ provider payload/body를 새로 저장하지 않는다. DB migration은 이 설�
 - source/KB 전문, context token, idempotency key, request digest, 내부 UUID
 - key, DSN, balance, 계정 정보
 
-시민 질문과 생성 답변의 DB·파일·trace 저장을 새로 만들지 않는다. 기존 질문 저장 정책은
-deterministic policy 결과가 계속 소유한다.
+시민 질문과 생성 답변의 일반 DB·파일·trace 저장을 새로 만들지 않는다. 단, §9의 기존 durable
+idempotency 안전 응답 24시간 보관은 같은 논리 요청의 중복 실행 방지를 위한 제한된 예외다.
+기존 질문 저장 정책은 deterministic policy 결과가 계속 소유한다.
 
 ## 12. Web·접근성
 
@@ -307,7 +313,7 @@ deterministic policy 결과가 계속 소유한다.
 
 ### 활성화
 
-1. written specification 승인
+1. written specification 승인(D-073)
 2. 실행계획 승인
 3. TDD 구현과 독립 보안/계약 검토
 4. provider-disabled 전체 회귀

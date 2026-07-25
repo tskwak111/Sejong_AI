@@ -50,7 +50,8 @@ KB를 보낸다. 모델은 summary와 server-issued fact ID만 제안하고, 공
 결과는 서버가 결합한다. 8초·1 attempt·hidden retry 0이며 검증이나 호출 실패 시 모델 결과 전체를
 버리고 기존 공식 template로 답한다. LLM-002 actual FAIL 증거는 그대로이며 public/remote/실제
 기관 운영은 별도 개인정보·보안·비용·배포 승인 전까지 계속 금지한다. 현재 상태는 설계 승인,
-written specification Review이고 후속 계획 승인 전 product code·공개 계약·actual call 변경은 0이다.
+D-073 written specification 승인과 8-task 실행계획 Review이며 후속 계획 승인 전
+product code·공개 계약·actual call 변경은 0이다.
 
 ## 4. 변경 절차
 

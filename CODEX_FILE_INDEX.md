@@ -40,6 +40,8 @@
 | `docs/discovery/MVP_001_FOUR_DAY_LOCAL_PRIVATE_AUDIT.md` | 7월 25일 local/private 핵심 루프의 권위·현재 코드/데이터 gap과 통합 회귀 감사 |
 | `docs/superpowers/specs/2026-07-22-four-day-local-private-core-loop-mvp-design.md` | Q-MVP-001=A로 승인된 19→20 ACTIVE 시민·관리자 수직 흐름과 defer 경계 |
 | `docs/superpowers/plans/2026-07-22-four-day-local-private-core-loop-mvp.md` | 날짜별·역할별 4일 TDD 실행계획과 일일 exit gate |
+| `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md` | D-073으로 승인된 local/private Upstage fact-ID·server-bound source 서면 명세 |
+| `docs/superpowers/plans/2026-07-25-grounded-live-chat-generation.md` | LLM-003 계약→validator→transport→ChatService→local/Web→최종 gate 8-task TDD 계획; 승인 Pending |
 
 ## 모든 작업 후 갱신할 파일
 

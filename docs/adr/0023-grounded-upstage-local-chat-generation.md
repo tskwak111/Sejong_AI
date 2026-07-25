@@ -1,6 +1,6 @@
 # ADR-0023: local/private 근거 제한형 Upstage 시민 답변 생성
 
-- Status: Accepted design / implementation pending written-specification and plan approval
+- Status: Accepted written specification / implementation plan Review
 - Date: 2026-07-25
 - Supersedes: ADR-0022의 local/private 실제 시민 입력 금지와 actual 통과 선행조건
 - Preserves: ADR-0022의 public/remote 금지, provider abstraction, ACTIVE/OFFICIAL gate,
@@ -40,7 +40,10 @@ office card는 항상 서버 값이다. 검증 실패, timeout 또는 provider �
 
 한 요청은 timeout 8초, logical attempt 1회, hidden retry 0이다. concurrency 1과 process outbound
 attempt 30 상한을 유지한다. 기존 durable idempotency가 같은 key의 provider 중복 호출을 막아야
-한다. 질문·prompt·provider body·생성 답변은 DB, 파일 또는 로그에 저장하지 않는다.
+한다. 질문·prompt·provider body·생성 답변을 일반 DB, 파일 또는 로그에 저장하지 않는다. 단,
+호출자가 `Idempotency-Key`를 제공한 경우 엄격히 검증된 최종 안전 응답은 기존 논리 TTL
+24시간 저장·재생할 수 있고, 이 제한된 응답에는 `GENERATED` summary가 포함될 수 있다.
+raw/masked question, context/correlation과 provider payload는 계속 금지한다.
 
 SUCCESS 응답에는 `answer_mode=GENERATED|TEMPLATE`를 추가하고 Web은 각각
 `AI로 정리한 공식 안내`, `공식 안내`를 텍스트 배지로 표시한다. 공급자는 기본 disabled이며
@@ -72,8 +75,9 @@ SUCCESS 응답에는 `answer_mode=GENERATED|TEMPLATE`를 추가하고 Web은 각
 ## References
 
 - Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C, Q-LLM-012=B
-- D-071, D-072
+- D-071, D-072, D-073
 - `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md`
+- `docs/superpowers/plans/2026-07-25-grounded-live-chat-generation.md`
 - https://console.upstage.ai/api-keys?api=chat-reasoning
 - https://www.upstage.ai/pricing/api
 - https://www.upstage.ai/privacy-policy/updated-jun-01-2026

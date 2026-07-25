@@ -10,6 +10,9 @@
 - API spec revision은 `3.1.0-draft`다. SUCCESS/FOLLOWUP/5개 사유별 FALLBACK,
   `PRIVACY_UNRESOLVED` 고정 문구, HTTPS 전용 출처·기관 링크, local/private admin 성공·오류
   envelope를 OpenAPI·standalone schema·Pydantic·생성 TypeScript가 같은 fixture로 검증한다.
+- D-073에서 승인된 LLM-003 실행계획은 SUCCESS에 required
+  `answer_mode=GENERATED|TEMPLATE`를 추가하고 API를 `3.2.0-draft`로 올리는 additive target이다.
+  계획 승인·계약 동시 구현 전 current revision은 계속 `3.1.0-draft`다.
 
 ## 대화 문맥 계약
 
@@ -49,7 +52,10 @@ X-Demo-Role: OPERATOR | APPROVER
 ## Chat retry 경계
 
 - `POST /api/v1/chat`는 선택적 UUID `Idempotency-Key` header를 받는다. 같은 논리적 Web 재시도는 같은 key를 유지하며, 매 HTTP 요청의 correlation `request_id`와는 별개다.
-- local/private DB에는 domain-separated HMAC request digest, 독립 claim token, 5분 lease와 안전한 구조화 응답만 저장한다. 원문·마스킹 질문·correlation ID·IP·기기 식별자는 저장하지 않는다.
+- local/private DB에는 domain-separated HMAC request digest, 독립 claim token, 5분 lease와
+  엄격히 검증된 안전한 구조화 응답만 저장한다. LLM-003 구현 뒤 `GENERATED` summary도 이
+  제한된 24시간 중복 방지 응답에는 포함될 수 있으나 원문·마스킹 질문·prompt·provider body·
+  context token·correlation ID·IP·기기 식별자는 저장하지 않는다.
 - 동일 key/동일 digest의 완료 결과는 replay하며, digest 충돌은 값 없는 422, 유효 lease의 진행 중 요청은 retryable 503이다. 행의 논리 TTL은 24시간이고 startup 및 최대 60초 주기 purge 실패 시 readiness를 닫는다.
 
 ## 오류 모델

@@ -2,15 +2,18 @@
 
 ## 원칙
 
-- 합성 평가 공급자 모델은 정확히 Upstage `solar-pro3`이며 max output 1024, concurrency 1,
-  retry 최대 1회, process run당 outbound attempt 총 30으로 고정하고 도메인 코드와 분리한다.
+- 합성 평가와 승인된 local/private 시민 chat 목표 모델은 정확히 Upstage `solar-pro3`이며
+  서로 다른 명시적 mode로 분리한다. 합성 평가는 max output 1024, concurrency 1, retry 최대
+  1회, process run당 outbound attempt 30이고 D-071 actual FAIL로 종료했다. 시민 chat 목표는
+  timeout 8초, logical attempt 1, hidden retry 0, concurrency 1, process cap 30이다.
 - 프롬프트는 파일/모듈로 버전 관리하고 코드에 장문 문자열로 흩뜨리지 않는다.
 - 구조화 출력은 JSON Schema/Pydantic validation을 통과해야 한다.
 - 모델이 source title/url/verified date를 만들지 않는다.
 - 모델의 confidence는 근거 충족 판정의 유일한 기준이 아니다.
 - 낮은 temperature/생성 자유도와 명확한 context boundary를 사용한다.
-- local/private의 server-owned canonical `T-01`~`T-10`만 외부 provider에 허용하고 자유
-  입력·실제 시민 질문은 disabled/template 경로로 처리한다.
+- D-072/D-073의 local/private 시민 chat은 supported intent·안전 마스킹·ACTIVE/OFFICIAL
+  검색·근거 gate를 모두 통과한 현재 질문만 허용한다. public/remote/실제 기관 운영은
+  disabled/template 경로다.
 
 ## 입력 허용
 
@@ -31,9 +34,9 @@
 
 ## 출력 검증 실패
 
-1. schema repair/retry 최대 1회
-2. KB가 충분하면 서버 템플릿 응답
-3. 근거가 없으면 안전 폴백
+1. 시민 chat에서는 생성 결과 전체 폐기, provider retry 0
+2. KB가 충분하면 서버 템플릿 SUCCESS
+3. 근거가 없으면 provider call 0과 안전 폴백
 4. 질문 원문 없이 provider/error metric 기록
 
 ## Upstage 합성 평가 adapter 기준
@@ -55,8 +58,18 @@
   정책 FALLBACK은 독립적으로 유지한다.
 - 출처명·URL·확인일, intent/status/candidate eligibility는 provider 결과를 버리고 서버가
   deterministic policy와 KB metadata로 결합한다.
-- actual 시민/free-input/public/remote provider 연결은 합성 평가 통과 후에도 선택지 B의
-  별도 승인이 필요하다.
+- D-072/D-073은 local/private 시민 chat만 별도로 승인했고 상세 TDD 계획은 Review다.
+  public/remote/실제 기관 운영은 여전히 별도 승인이 필요하다.
+
+## Upstage local/private 시민 chat 목표 기준
+
+- 마스킹된 현재 질문, 서버 확정 intent, 답변에 필요한 최소 ACTIVE/OFFICIAL fact와
+  server-issued ID만 전달한다.
+- 모델은 최대 500자 summary와 procedure/document/time/fee/department ID만 제안한다.
+- 서버는 ID를 공식 KB text로 치환하고 source/office/status/policy를 직접 결합한다.
+- unknown/duplicate/missing ID, PII, 새 URL·번호·날짜·금액·행정 단정은 전체 TEMPLATE로 닫는다.
+- `Idempotency-Key`가 있으면 엄격히 검증된 최종 안전 응답만 기존 논리 TTL 24시간 재생용으로
+  저장할 수 있다. 질문·prompt·provider body·context/correlation 저장은 금지한다.
 
 ## 버전
 
@@ -69,5 +82,5 @@ prompt set의 모든 변경은 다음을 기록한다.
 - known regression
 - rollback template
 
-Upstage 공식 model/API·가격·개인정보 처리방침 기준일은 2026-07-23이며 구현 시작과 actual
-합성 평가 전에 재확인한다.
+Upstage 공식 model/API·가격 기준은 구현 시작과 actual 직전에 재확인한다. 개인정보 처리방침
+페이지는 2026-07-25 확인했고 `Last Revised: May 21, 2026`로 표시됐다.

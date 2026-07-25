@@ -21,6 +21,8 @@
 - retention expiration
 - context token sign/verify, exact 900-second TTL, closed claims, current request precedence
 - Upstage synthetic evaluator outbound cap/retry/concurrency state machine
+- grounded 시민 draft의 fact ID complete/order/allowlist, summary PII·URL·번호·날짜·금액·
+  unsupported-token fail-closed materialization
 
 ### Contract
 
@@ -41,6 +43,10 @@
   unresolved 결과의 provider 호출 0건과 질문-text row 생성 0건을 함께 검증
 - provider timeout/empty/schema invalid의 200 안전 대체 또는 503 분기
 - Upstage exact `solar-pro3`/max 1024, hidden retry off, concurrency 1, run cap 28/29/30 경계
+- local citizen exact 8초·1 attempt·retry 0, supported+masked+ACTIVE/OFFICIAL+grounded 호출 1,
+  그 외 정책·근거 경로 호출 0, idempotency 동시/완료 replay 호출 1 이하
+- `GENERATED`의 공식 fact/source/office byte equality와 모든 provider/schema/fact 오류의
+  완전한 `TEMPLATE` 전환
 - tampered/expired/unknown context token의 silent new-conversation 처리와 token/secret DB·로그 0건
 - Supabase empty DB reset/replay와 명시적 보상 rollback/replay
 - office mapping
@@ -72,6 +78,7 @@ patched tooling 24/24(262.368s), AST error 0·secret·protected gate와 독립 r
 ### E2E
 
 - 정상 답변과 출처
+- `GENERATED|TEMPLATE` 텍스트 배지와 두 mode 모두 동일한 공식 출처
 - 모호 질문 FOLLOWUP
 - PERSONAL_LOOKUP
 - 지역·기관 카드

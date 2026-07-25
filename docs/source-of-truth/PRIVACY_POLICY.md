@@ -158,7 +158,7 @@ Console/Studio API logging이 별도 동의에서
 | 실패 질문 비텍스트 메타데이터·후보 연결 | 텍스트 파기 후에도 프로젝트 산출물 범위에서 유지 |
 | 지원 범위 밖 질문 텍스트 | 저장하지 않음 |
 | 대화 transcript·context token | 서버에 저장하지 않음; 현재 탭 메모리에서만 15분 이내 사용 |
-| local chat idempotency | UUID key, HMAC request digest, correlation과 분리된 임시 claim token·5분 lease, 안전 응답과 상태만 논리 TTL 24시간; 원문·마스킹 질문·correlation ID는 저장하지 않고 startup+60초 주기로 만료 행 purge |
+| local chat idempotency | UUID key, HMAC request digest, correlation과 분리된 임시 claim token·5분 lease, 엄격한 서버 검증을 통과한 최종 안전 응답과 상태만 논리 TTL 24시간. `GENERATED` summary도 이 제한된 중복 방지 응답에는 포함될 수 있으나 원문·마스킹 질문·prompt·provider body·context token·correlation ID는 저장하지 않고 startup+60초 주기로 만료 행 purge |
 | KB 후보·승인 이력 | 프로젝트 산출물 범위에서 유지 |
 | 승인 KB | 출처·버전·승인자와 함께 유지 |
 | 감사 이력 | 질문·답변 전문 없이 상태 변경 정보만 유지 |
