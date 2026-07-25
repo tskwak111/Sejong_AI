@@ -2,6 +2,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
+import pytest
+
+from sejong_ai_api.llm import settings as settings_module
 from sejong_ai_api.llm.settings import (
     UpstageChatSettings,
     UpstageSyntheticSettings,
@@ -116,6 +119,117 @@ def test_invalid_non_secret_chat_configuration_does_not_read_key() -> None:
     invalid = _KeyReadFailsMapping({**CHAT_VALID, "LLM_TIMEOUT_SECONDS": "15"})
 
     assert load_upstage_chat_settings(environ=invalid, env_path=Path("missing")) is None
+
+
+def test_invalid_dotenv_profile_never_enters_file_key_extraction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = getattr(settings_module, "_extract_dotenv_api_key", None)
+    assert callable(extractor), "two-phase dotenv key extraction seam is required"
+    env_path = tmp_path / ".env"
+    invalid = {**CHAT_VALID, "LLM_TIMEOUT_SECONDS": "15"}
+    env_path.write_text(
+        "\n".join(f"{key}={value}" for key, value in invalid.items()),
+        encoding="utf-8",
+    )
+
+    def fail_if_called(_path: Path) -> str:
+        raise AssertionError("file key must not be extracted before exact profile validation")
+
+    monkeypatch.setattr(
+        settings_module,
+        "_extract_dotenv_api_key",
+        fail_if_called,
+    )
+
+    assert load_upstage_chat_settings(environ={}, env_path=env_path) is None
+
+
+def test_exact_dotenv_profile_extracts_file_key_only_in_phase_two(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = getattr(settings_module, "_extract_dotenv_api_key", None)
+    assert callable(extractor), "two-phase dotenv key extraction seam is required"
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        "\n".join(f"{key}={value}" for key, value in CHAT_VALID.items()),
+        encoding="utf-8",
+    )
+    calls: list[Path] = []
+
+    def observed_extract(path: Path) -> str | None:
+        calls.append(path)
+        return extractor(path)
+
+    monkeypatch.setattr(
+        settings_module,
+        "_extract_dotenv_api_key",
+        observed_extract,
+    )
+
+    settings = load_upstage_chat_settings(environ={}, env_path=env_path)
+
+    assert isinstance(settings, UpstageChatSettings)
+    assert calls == [env_path]
+
+
+def test_process_key_wins_without_extracting_valid_file_fallback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = getattr(settings_module, "_extract_dotenv_api_key", None)
+    assert callable(extractor), "two-phase dotenv key extraction seam is required"
+    env_path = tmp_path / ".env"
+    file_profile = {**CHAT_VALID, "LLM_API_KEY": "file-fallback-key-not-a-real-secret"}
+    env_path.write_text(
+        "\n".join(f"{key}={value}" for key, value in file_profile.items()),
+        encoding="utf-8",
+    )
+
+    def fail_if_called(_path: Path) -> str:
+        raise AssertionError("process key must win without file key extraction")
+
+    monkeypatch.setattr(
+        settings_module,
+        "_extract_dotenv_api_key",
+        fail_if_called,
+    )
+
+    settings = load_upstage_chat_settings(environ=CHAT_VALID, env_path=env_path)
+
+    assert isinstance(settings, UpstageChatSettings)
+    assert settings.api_key == CHAT_VALID["LLM_API_KEY"]
+
+
+def test_duplicate_file_key_fails_before_extraction_phase(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = getattr(settings_module, "_extract_dotenv_api_key", None)
+    assert callable(extractor), "two-phase dotenv key extraction seam is required"
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        "\n".join(
+            [
+                *(f"{key}={value}" for key, value in CHAT_VALID.items()),
+                "LLM_API_KEY=duplicate-key-not-a-real-secret",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    def fail_if_called(_path: Path) -> str:
+        raise AssertionError("duplicate key must fail before file key extraction")
+
+    monkeypatch.setattr(
+        settings_module,
+        "_extract_dotenv_api_key",
+        fail_if_called,
+    )
+
+    assert load_upstage_chat_settings(environ={}, env_path=env_path) is None
 
 
 def test_process_values_override_file_and_preserve_synthetic_profile(tmp_path: Path) -> None:

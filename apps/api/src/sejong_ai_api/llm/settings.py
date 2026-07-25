@@ -4,6 +4,7 @@ import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TextIO
 
 UPSTAGE_PROVIDER = "upstage"
 UPSTAGE_MODEL = "solar-pro3"
@@ -85,6 +86,12 @@ class UpstageChatSettings:
     run_attempt_cap: int = UPSTAGE_RUN_ATTEMPT_CAP
 
 
+@dataclass(frozen=True, slots=True)
+class _DotenvNonSecretProfile:
+    values: Mapping[str, str]
+    api_key_assignments: int
+
+
 def load_upstage_synthetic_settings(
     *,
     environ: Mapping[str, str] | None = None,
@@ -120,21 +127,27 @@ def _load_profile_api_key(
     env_path: Path | None,
 ) -> str | None:
     process_values = os.environ if environ is None else environ
-    dotenv_values = _load_dotenv(
-        env_path if env_path is not None else Path(__file__).parents[3] / ".env"
-    )
-    if dotenv_values is None:
+    selected_env_path = env_path if env_path is not None else Path(__file__).parents[3] / ".env"
+    dotenv_profile = _scan_dotenv_non_secret(selected_env_path)
+    if dotenv_profile is None:
         return None
 
     non_secret_values = {
-        key: _merged_value(key, process_values, dotenv_values) for key in _NON_SECRET_SETTINGS_KEYS
+        key: _merged_value(key, process_values, dotenv_profile.values)
+        for key in _NON_SECRET_SETTINGS_KEYS
     }
     if any(value is None or not _is_safe_value(value) for value in non_secret_values.values()):
         return None
     if any(non_secret_values[key] != expected for key, expected in expected_values.items()):
         return None
 
-    api_key = _merged_value(_KEY_NAME, process_values, dotenv_values)
+    api_key: str | None
+    if _KEY_NAME in process_values:
+        api_key = process_values[_KEY_NAME]
+    else:
+        if dotenv_profile.api_key_assignments != 1:
+            return None
+        api_key = _extract_dotenv_api_key(selected_env_path)
     if not _is_safe_value(api_key) or not api_key:
         return None
     return api_key
@@ -148,30 +161,92 @@ def _merged_value(
     return process_values[key] if key in process_values else dotenv_values.get(key)
 
 
-def _load_dotenv(path: Path) -> dict[str, str] | None:
+def _scan_dotenv_non_secret(path: Path) -> _DotenvNonSecretProfile | None:
     if not path.is_file():
-        return {}
+        return _DotenvNonSecretProfile(values={}, api_key_assignments=0)
 
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        with path.open("r", encoding="utf-8", newline=None) as stream:
+            values: dict[str, str] = {}
+            api_key_assignments = 0
+            while (assignment := _read_assignment_name(stream)) is not None:
+                key, has_separator = assignment
+                normalized_key = key.strip()
+                if not key:
+                    if has_separator:
+                        return None
+                    continue
+                if normalized_key not in _SETTINGS_KEYS:
+                    if has_separator:
+                        _discard_line(stream)
+                    continue
+                if not has_separator or key != normalized_key:
+                    return None
+                if key == _KEY_NAME:
+                    api_key_assignments += 1
+                    if api_key_assignments > 1:
+                        return None
+                    _discard_line(stream)
+                    continue
+                value = _read_line_value(stream)
+                if key in values or not _is_safe_value(value):
+                    return None
+                values[key] = value
     except (OSError, UnicodeDecodeError):
         return None
+    return _DotenvNonSecretProfile(
+        values=values,
+        api_key_assignments=api_key_assignments,
+    )
 
-    values: dict[str, str] = {}
-    for line in lines:
-        if not line or line.startswith("#"):
-            continue
-        key, separator, value = line.partition("=")
-        normalized_key = key.strip()
-        if not key:
-            return None
-        if normalized_key in _SETTINGS_KEYS:
-            if not separator or key != normalized_key:
-                return None
-            if key in values or not _is_safe_value(value):
-                return None
-            values[key] = value
-    return values
+
+def _extract_dotenv_api_key(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+
+    try:
+        with path.open("r", encoding="utf-8", newline=None) as stream:
+            api_key: str | None = None
+            while (assignment := _read_assignment_name(stream)) is not None:
+                key, has_separator = assignment
+                if not has_separator:
+                    continue
+                if key == _KEY_NAME:
+                    if api_key is not None:
+                        return None
+                    api_key = _read_line_value(stream)
+                else:
+                    _discard_line(stream)
+    except (OSError, UnicodeDecodeError):
+        return None
+    return api_key
+
+
+def _read_assignment_name(stream: TextIO) -> tuple[str, bool] | None:
+    characters: list[str] = []
+    while True:
+        character = stream.read(1)
+        if character == "":
+            return ("".join(characters), False) if characters else None
+        if character == "\n":
+            return ("".join(characters), False)
+        if character == "=":
+            return ("".join(characters), True)
+        characters.append(character)
+
+
+def _read_line_value(stream: TextIO) -> str:
+    characters: list[str] = []
+    while True:
+        character = stream.read(1)
+        if character in ("", "\n"):
+            return "".join(characters)
+        characters.append(character)
+
+
+def _discard_line(stream: TextIO) -> None:
+    while stream.read(1) not in ("", "\n"):
+        pass
 
 
 def _is_safe_value(value: object) -> bool:
