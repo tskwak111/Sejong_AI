@@ -50,6 +50,32 @@ describe("contract fixture rendering", () => {
     expect(screen.getByText("시연용 샘플 주소")).toBeInTheDocument();
   });
 
+  it.each([
+    ["blank source id", { source_id: "   " }],
+    ["blank source title", { title: "   " }],
+    ["blank verified date", { last_verified_at: "   " }],
+    ["missing source URL", { url: undefined }],
+    ["non-HTTPS source URL", { url: "http://example.invalid/sources/001" }],
+    ["unparseable HTTPS source URL", { url: "https://" }],
+  ])("fails closed for a SUCCESS response with %s", (_, sourceOverride) => {
+    const validResponse = validSuccess as unknown as SuccessResponse;
+    const response = {
+      ...validResponse,
+      sources: [{ ...validResponse.sources[0], ...sourceOverride }],
+    } as unknown as SuccessResponse;
+
+    render(<AnswerCard response={response} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("일시적인 오류");
+    expect(screen.queryByText("공식 안내")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /원문 보기/ })).not.toBeInTheDocument();
+  });
+
   it("renders valid-followup.json options as selectable chips", () => {
     render(
       <FollowupCard
