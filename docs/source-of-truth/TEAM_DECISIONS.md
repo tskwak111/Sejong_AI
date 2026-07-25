@@ -77,8 +77,9 @@
 - Q-LLM-005=A: 외부 합성 평가 공급자는 Upstage exact `solar-pro3`다. local/private의 서버
   검증 canonical `T-01`~`T-10`만 최대 30 outbound attempt로 평가하며 실제 시민·PII·민감정보·
   자유 입력·공개 운영은 금지한다. D-066/D-067로 written specification과 실행계획이 승인돼
-  구현 중이며 Task 1 fail-closed settings는 review clean이다. key/network call은 아직 0이다.
-  평가 통과 뒤에도 실제 시민 연결은 선택지 B의 별도 승인 대상이다.
+  offline 구현·리뷰를 완료했고 D-071의 local actual은 strict-schema 27/30으로 FAIL했다.
+  인간 검토 9개 평균 4.8444·최저 4와 비용 cap은 통과했지만 option B는 승인되지 않았다.
+  provider-disabled/template 시민 경로와 실제 시민 외부 전송 금지를 유지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 
 ## 기술
@@ -199,8 +200,10 @@
   후보→별도 승인자·checklist 3/3→20번째 ACTIVE→동일 질문 SUCCESS·정확한 공식 출처를 actual
   browser 1/1로 재검증했다. feedback dialog의 focus 이동·trap·Escape·focus restore도 Web
   unit gate를 통과했다. manual demo는 인간 Pending이다. Upstage 합성 평가는 LLM-002의 승인된 명세와
-  실행계획으로 offline Tasks 1~6 review clean이며 key/network/model-quality actual은 0이다.
-  actual call은 local human Task 7 gate 뒤다. 100-user,
+  실행계획으로 offline Tasks 1~6 review clean 뒤 2026-07-25 local actual을 수행했다. outbound
+  30회에서 strict-schema 27/30, 인간 검토 9개 평균 4.8444·최저 4, VAT 포함
+  USD 0.004654815로 JSON 100% 기준을 충족하지 못해 전체 FAIL이다. 선택지 B는 승인되지
+  않았고 provider-disabled/template 시민 경로를 유지한다. 100-user,
   automated backup, advanced UI,
   public/remote deploy와 `00700`은 deferred다. local role selector는 production authentication이 아니다.
 

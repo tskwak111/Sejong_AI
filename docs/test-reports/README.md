@@ -6,6 +6,9 @@
 
 - [MVP-001 표본 20 deterministic 평가](MVP-001-SAMPLE-20-RESULT.md) — canonical T-01~T-20,
   20/20 outcome과 exact-matrix meta를 포함한 pytest 21 PASS/skip 0; provider·public·HTTP UI QA 아님
+- [LLM-002 Upstage `solar-pro3` 합성 평가 — local FAIL / 시민 연결 미승인](LLM-002-UPSTAGE-SYNTHETIC-EVALUATION.md)
+  — 30 outbound attempts, strict-schema 27/30, 인간 검토 9개 평균 4.8444, 비용
+  USD 0.004654815(VAT 포함); option B/public/free-input은 계속 금지
 - [DB-001 local baseline — local verified / public blocked](DB-001-LOCAL-BASELINE.md) — Supabase/PostgreSQL 환경,
   6+6 lineage hash, 과거 pgTAP 282·integration 8/8·rollback/replay와 현재 D-031 구현 local/
   D-046 deferred `00700` public-release block

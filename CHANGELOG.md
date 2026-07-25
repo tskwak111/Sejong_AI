@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Changed — LLM-002 Upstage local actual evaluation
+
+- Ran the approved local/private canonical `T-01`~`T-10` Upstage exact `solar-pro3` evaluation
+  once after a fail-closed local configuration repair. The initial configuration-only exit made
+  zero provider calls and no artifact.
+- The actual run consumed 30 outbound attempts: 27 strict-schema successes and three
+  `SCHEMA_INVALID` attempt outcomes. It completed 29 generation cases, produced two deterministic
+  fallbacks, and failed the mandatory 30/30 JSON criterion.
+- Human PM review covered the nine fixtures with a valid first result: mean
+  `4.844444444444444444444444444`, minimum dimension 4, `OK=9`, critical fact errors 0. Estimated
+  cost was USD 0.004654815 including VAT against the USD 0.05 cap.
+- Overall verdict is FAIL. Upstage citizen/free-input/public/remote option B is not approved;
+  provider-disabled ACTIVE-KB template behavior remains authoritative. No product/API/DB schema,
+  official data, dependency, lockfile or public behavior changed.
+- Documentation `2.17.0→2.18.0`; all other version axes are unchanged.
+
 ### Changed — POST-MVP-001 private main stabilization
 
 - Adopted Frontend PR #10's exact `allowedDevOrigins: ["127.0.0.1"]` change on an owner-reviewed
