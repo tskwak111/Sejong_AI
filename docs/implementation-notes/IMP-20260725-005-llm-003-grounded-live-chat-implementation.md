@@ -136,10 +136,14 @@ The final fix wave did not change any manifest axis.
 | Final fix area gates | PASS | chat `220`; repository `120`; security `19 passed, 1 skipped, 8 subtests passed` | `final-fix-wave-report.md` |
 | Final fix static gates | PASS | Ruff format/check and Mypy over 4 touched API/source test files | `final-fix-wave-report.md` |
 | Final fix repository gates | PASS | docs checker, secret scan and `git diff --check` | `final-fix-wave-report.md` |
+| Post-fix full offline gate | PASS | exact HEAD `aaf67fe`; exit `0`; `728.7s`; all verify steps PASS | controller tool output |
 
-### 미실행 검증과 이유
+### 최종 및 미실행 검증
 
-- Final `scripts/verify.ps1 -Offline`: PASS; provider-disabled/unset-key, `2026-07-26T02:39:05+09:00`→`02:49:42+09:00`, 637.7s, stdout 2006 bytes, stderr 0; all listed gates PASS.
+- Final `scripts/verify.ps1 -Offline`: first provider-disabled/unset-key integration run PASS
+  (`2026-07-26T02:39:05+09:00`→`02:49:42+09:00`, 637.7s, stdout 2006 bytes, stderr 0).
+  After the final security fix, the same command was rerun at exact HEAD `aaf67fe`: exit 0 after
+  728.7s with every PREFLIGHT/root/data/seed/Web/API/contracts/secrets/bundle/package/diff step PASS.
 - Optional local actual provider: Pending human gate; no key read, no provider network request.
 - Playwright 390/430/desktop: initial 9/12 strict-locator ambiguity only; `7dd74f0` exact locator fix, rerun 12/12 PASS.
 

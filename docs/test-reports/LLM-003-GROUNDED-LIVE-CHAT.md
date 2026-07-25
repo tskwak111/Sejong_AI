@@ -97,6 +97,12 @@ contracts, secrets, bundle, package and diff. The stale environment-template ass
 in `scripts/tests/test_security_boundaries.py`; its exact targeted test PASSed and the root gate was
 run afterward.
 
+Final review then found and closed the replay-key canonicalization gap in commit `aaf67fe`. At that
+exact HEAD, the controller reran the same provider-disabled/unset-key command from a clean worktree:
+exit `0` after `728.7s`. PREFLIGHT, package/API sync, root/data/seed, Web lint/typecheck/test/build,
+API format/lint/typecheck/test, generated contracts, repository secret scan, Web bundle scan,
+package validation and diff verification all PASSed. This post-fix run is the publication gate.
+
 ## Local actual — Pending human gate
 
 No key was read and no provider network request was made while preparing this evidence. If a human

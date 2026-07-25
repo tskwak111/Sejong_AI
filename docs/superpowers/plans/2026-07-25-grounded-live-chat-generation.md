@@ -924,7 +924,7 @@ Assert:
 - provider-disabled sample T-01~T-20 is 20/20 with skip 0
 - no provider import/use in default app, startup, health or readiness
 
-- [x] **Step 2: Run the final offline repository gate once** — provider-disabled/unset-key run started `2026-07-26T02:39:05+09:00`, completed `2026-07-26T02:49:42+09:00` (637.7s; stdout 2006 bytes; stderr 0); every listed root/data/seed/Web/API/contracts/secrets/bundle/package/diff step PASSed.
+- [x] **Step 2: Run the final offline repository gate once** — provider-disabled/unset-key run started `2026-07-26T02:39:05+09:00`, completed `2026-07-26T02:49:42+09:00` (637.7s; stdout 2006 bytes; stderr 0); every listed root/data/seed/Web/API/contracts/secrets/bundle/package/diff step PASSed. After final review fix commit `aaf67fe`, the controller reran the same full gate at the exact publication HEAD: exit `0` after `728.7s`, with every listed step PASS.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 -Offline
@@ -939,7 +939,7 @@ Expected: full root verification PASS, docs PASS, secret scan exit 0, diff check
 pre-existing environment-only DB/Browser gate cannot run, record the exact bounded reason and run
 its approved focused substitute; do not claim it passed.
 
-- [x] **Step 3: Perform independent reviews** — final security re-review C0/I0/M0; focused 85, chat 202, DB 168 with 8 DB-only skips, provenance 57, controller 115 and retrieval/static 5 passed; Ruff and Mypy passed.
+- [x] **Step 3: Perform independent reviews** — task security re-review C0/I0/M0; whole-branch review later found C0/I2/M1. Commit `aaf67fe` closed replay-key canonicalization, stale SOT/ADR status and duplicate note text; scoped re-review verdicted all three ADDRESSED with no new Critical/Important breakage. Final focused results were claim/repository 139, chat 220, repository 120, security 19 plus one existing environment-only skip and 8 subtests; Ruff and Mypy passed.
 
 Review the complete diff against:
 
