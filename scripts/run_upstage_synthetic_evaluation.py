@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the approved local/private Upstage synthetic evaluation."""
+"""Run the exact 15-second/one-retry local Upstage synthetic evaluation profile."""
 
 from __future__ import annotations
 
@@ -142,6 +142,7 @@ def _load_local_settings() -> object | None:
 
 
 def _load_provider_settings() -> object | None:
+    """Load only the synthetic profile, never the grounded-chat profile."""
     from sejong_ai_api.llm.settings import load_upstage_synthetic_settings
 
     return load_upstage_synthetic_settings()
