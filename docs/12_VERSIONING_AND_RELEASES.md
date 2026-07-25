@@ -55,16 +55,16 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.5.0
 repo_guidance: 1.7.8
-application: 0.8.1-main-stabilization
-web: 0.5.1-local-dev-origin
-api: 3.1.0-draft
-shared_contracts: 0.4.0
+application: 0.9.0-grounded-local-chat
+web: 0.6.0-answer-mode
+api: 3.2.0-draft
+shared_contracts: 0.5.0
 database_schema: 0.4.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.1.0-upstage-solar-pro3-synthetic
-test_suite: 1.5.1-local-dev-origin
-documentation: 2.19.1
+prompt_set: 0.2.0-grounded-live-chat
+test_suite: 1.6.0-grounded-live-chat
+documentation: 2.20.0
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -82,9 +82,13 @@ public/remote/provider/`00700` readiness 완료를 뜻하지 않는다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
-D-074의 plan 승인·Subagent-Driven 구현 시작 checkpoint는 documentation `2.19.2`다. 이
-checkpoint에서는 제품 코드·API `3.1.0-draft`·shared contracts·DB·공식 데이터·prompt runtime·
-test suite가 아직 변하지 않았다. 각 구현 task가 검증된 뒤에만 실행 결과에 맞춰 축을 승격한다.
+D-074의 plan 승인·Subagent-Driven 구현 시작 checkpoint는 documentation `2.19.2`다. Tasks 1~7은
+additive API `3.2.0-draft`, grounded prompt/profile, bounded fallback/idempotency, local composition과
+Web `answer_mode` disclosure를 offline으로 구현·task-scoped 검토했다. 위 closeout axes는
+`versions/manifest.json`, package metadata와 implementation-note INDEX에 통합됐고, final
+provider-disabled root offline gate도 PASS했다. DB schema, official data, mock data, dependency와
+lockfile은 변경하지 않았다. optional local provider actual은 인간 gate Pending이며
+`3.2.0-draft` offline 구현은 public/remote 사용 승인과 다르다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

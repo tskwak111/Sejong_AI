@@ -23,6 +23,8 @@
 - Upstage synthetic evaluator outbound cap/retry/concurrency state machine
 - grounded 시민 draft의 fact ID complete/order/allowlist, summary PII·URL·번호·날짜·금액·
   unsupported-token fail-closed materialization
+- default import/startup/health/readiness의 provider import·use·request 0, disabled `T-01`~`T-20`
+  20/20 skip 0, prompt/log/exception/idempotency payload의 question·provider body·key 0
 
 ### Contract
 
@@ -47,6 +49,8 @@
   그 외 정책·근거 경로 호출 0, idempotency 동시/완료 replay 호출 1 이하
 - `GENERATED`의 공식 fact/source/office byte equality와 모든 provider/schema/fact 오류의
   완전한 `TEMPLATE` 전환
+- same-key concurrent/replay/commit-uncertainty의 provider call 1 이하, idempotency final safe
+  response만 허용 및 recursive forbidden-content rejection
 - tampered/expired/unknown context token의 silent new-conversation 처리와 token/secret DB·로그 0건
 - Supabase empty DB reset/replay와 명시적 보상 rollback/replay
 - office mapping
@@ -79,6 +83,8 @@ patched tooling 24/24(262.368s), AST error 0·secret·protected gate와 독립 r
 
 - 정상 답변과 출처
 - `GENERATED|TEMPLATE` 텍스트 배지와 두 mode 모두 동일한 공식 출처
+- 두 mode의 source title·HTTPS URL·확인일이 불완전하면 answer card를 fail-closed error로 전환,
+  label/disclosure/source link를 렌더하지 않음
 - 모호 질문 FOLLOWUP
 - PERSONAL_LOOKUP
 - 지역·기관 카드
@@ -111,6 +117,12 @@ patched tooling 24/24(262.368s), AST error 0·secret·protected gate와 독립 r
 - 실패 로그의 안전한 요약
 - 화면 검증 이미지/경로
 - 미실행 항목과 이유
+
+LLM-003의 task-scoped 실제 결과는
+[`LLM-003-GROUNDED-LIVE-CHAT.md`](test-reports/LLM-003-GROUNDED-LIVE-CHAT.md)에만 기록한다.
+최종 provider-disabled root offline gate는 2026-07-26에 PASS했다(637.7초, stdout 2006 bytes,
+stderr 0; root/data/seed/Web/API/contracts/secrets/bundle/package/diff 포함). optional local actual은
+여전히 인간 gate Pending이며, offline PASS를 provider actual PASS로 간주하지 않는다.
 
 ## 금지
 

@@ -274,8 +274,9 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.
 - D-073에서 written specification, D-074에서 8-task TDD 실행계획과 Subagent-Driven 구현을
-  승인했다. 계획 범위 local/private product/API 구현은 진행하고, actual provider network는
-  offline 전체 gate 뒤 별도 local 인간 단계로 남긴다.
+  승인했다. local/private product/API/Web 구현, task-scoped 검토와 provider-disabled 최종 offline
+  repository gate는 완료됐으며 actual provider network만 별도 local 인간 단계로 남긴다. 이 상태는
+  public/remote/실제 기관 운영 승인이나 provider actual PASS가 아니다.
 - 시민 chat은 8초, logical attempt 1, hidden retry 0, concurrency 1, process outbound attempt
   30 이하를 강제한다. 한도 도달·429·잔액 부족은 자동 충전이나 재시도 없이 template로 전환한다.
 - 모델은 summary와 server-issued fact ID만 제안하고 서버가 공식 fact text·source·office를

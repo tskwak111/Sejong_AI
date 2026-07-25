@@ -22,7 +22,7 @@ before generation, so concurrent/same-key replays do not start a second provider
 16.2.10, React 19.2.7, TypeScript 5.9.3, Vitest 4.1.10.
 
 - Plan ID: LLM-003-PLAN
-- Status: **In Progress — D-074 implementation approved; Task 1 starting**
+- Status: **Offline implementation, Task 8 closeout and provider-disabled final root gate complete. Optional local actual remains Pending human gate.**
 - Design:
   `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md`
 - ADR: `docs/adr/0023-grounded-upstage-local-chat-generation.md`
@@ -153,7 +153,7 @@ not accept generated content or import the Task 2 types. Task 5 will extend this
 only after `MaterializedChatAnswer` exists. In all modes source and office remain built from
 `KnowledgeRecord` and `OfficeRecord`.
 
-- [ ] **Step 1: Write contract and response RED tests**
+- [x] **Step 1: Write contract and response RED tests**
 
 Add assertions that:
 
@@ -174,7 +174,7 @@ assert SuccessResponse.model_validate(
 Contract fixtures must reject a missing mode and any value outside `GENERATED|TEMPLATE`. Existing
 empty-source and fallback-on-SUCCESS fixtures remain invalid after receiving `answer_mode`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -185,13 +185,13 @@ corepack pnpm --filter @sejong-ai/shared-contracts test
 
 Expected: failures for the absent Pydantic/OpenAPI/JSON Schema field and stale TypeScript fixtures.
 
-- [ ] **Step 3: Add the minimal additive contract**
+- [x] **Step 3: Add the minimal additive contract**
 
 Set OpenAPI info/API app version to `3.2.0-draft`; require `answer_mode` only in the SUCCESS branch.
 Do not add the field to FOLLOWUP or FALLBACK. Add `answer_mode="TEMPLATE"` to all deterministic
 server response construction and fixtures.
 
-- [ ] **Step 4: Generate and verify**
+- [x] **Step 4: Generate and verify**
 
 ```powershell
 corepack pnpm --filter @sejong-ai/shared-contracts generate
@@ -206,7 +206,7 @@ git diff --check -- packages/shared-contracts/src/generated/api.ts
 
 Expected: all PASS and a clean post-generation diff check.
 
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
 
 Verify every SUCCESS fixture has one mode, sources remain non-empty, non-SUCCESS schemas have no
 mode, and no generated type was hand-edited.
@@ -325,13 +325,13 @@ Summary validation is fail-closed:
 
 False rejection is acceptable and produces TEMPLATE; false acceptance of a new fact is not.
 
-- [ ] **Step 1: Write pure RED tests**
+- [x] **Step 1: Write pure RED tests**
 
 Cover valid complete materialization and each rejection class: extra field, unknown ID, duplicate,
 missing/reordered ID, optional mismatch, PII, new URL/number/date/money, mask token, unsupported
 semantic token and no record overlap. Assert official field equality byte-for-byte.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -341,12 +341,12 @@ semantic token and no record overlap. Assert official field equality byte-for-by
 
 Expected: import failure for the two new modules.
 
-- [ ] **Step 3: Implement pure types and validator**
+- [x] **Step 3: Implement pure types and validator**
 
 Keep these modules free of HTTP, DB, environment and logging imports. Construct facts only from the
 single grounded record and never include `public_id`, question examples, caution, source or office.
 
-- [ ] **Step 4: Run focused static gates**
+- [x] **Step 4: Run focused static gates**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -360,7 +360,7 @@ single grounded record and never include `public_id`, question examples, caution
   apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 ```
 
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
 
 ```powershell
 git add apps/api/src/sejong_ai_api/llm apps/api/tests/llm
@@ -423,12 +423,12 @@ true/synthetic false. Both true, both provider modes active, non-exact values, m
 missing key return `None`. `.env.example` remains disabled and keyless, with grounded-chat values
 8/0 documented as the citizen profile; the synthetic runbook retains its explicit 15/1 override.
 
-- [ ] **Step 1: Write settings RED tests**
+- [x] **Step 1: Write settings RED tests**
 
 Test exact chat load, disabled default, exclusivity, every exact field, redacted repr, duplicate
 assignment, process-over-file precedence and preservation of the synthetic loader.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -436,12 +436,12 @@ assignment, process-over-file precedence and preservation of the synthetic loade
   scripts/tests/test_run_upstage_synthetic_evaluation.py -q
 ```
 
-- [ ] **Step 3: Implement one shared safe parser and two exact profile validators**
+- [x] **Step 3: Implement one shared safe parser and two exact profile validators**
 
 Do not read the key unless the selected mode and all non-secret exact values pass. Do not log or
 raise a value-bearing configuration error. Do not alter the ignored real `.env`.
 
-- [ ] **Step 4: Run focused gates**
+- [x] **Step 4: Run focused gates**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -457,7 +457,7 @@ raise a value-bearing configuration error. Do not alter the ignored real `.env`.
   apps/api/tests/llm/test_settings.py
 ```
 
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
 
 Verify no key value, dependency or lockfile changed.
 
@@ -539,14 +539,14 @@ identifier is present. The transport uses `httpx.AsyncHTTPTransport(retries=0)`,
 The request sets exact model, `stream=false`, `temperature=0.1`, `max_tokens=1024`. Every provider
 response is reduced to a typed content-free outcome; body/error text is never raised or logged.
 
-- [ ] **Step 1: Write prompt and transport RED tests**
+- [x] **Step 1: Write prompt and transport RED tests**
 
 Use `httpx.MockTransport`. Assert source/internal fields and sentinel secrets are absent from the
 serialized request. Cover success, timeout, transport, 401/403, 429, 5xx, other HTTP, empty,
 truncated, invalid JSON, strict schema invalid, input limit and cap. Assert request count is 0 or 1
 and never 2.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -554,12 +554,12 @@ and never 2.
   apps/api/tests/llm/test_upstage_chat.py -q
 ```
 
-- [ ] **Step 3: Implement prompt, parser, adapter and runtime**
+- [x] **Step 3: Implement prompt, parser, adapter and runtime**
 
 Reuse `AttemptBudget`; do not change the synthetic `UpstageProvider`. The new adapter must not
 import FastAPI, repository or Web modules.
 
-- [ ] **Step 4: Run focused gates**
+- [x] **Step 4: Run focused gates**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -575,7 +575,7 @@ import FastAPI, repository or Web modules.
   apps/api/src/sejong_ai_api/llm apps/api/tests/llm
 ```
 
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
 
 ```powershell
 git add apps/api/src/sejong_ai_api/llm apps/api/tests/llm
@@ -665,7 +665,7 @@ Idempotency behavior:
 The safe response validator allows `answer_mode` but continues to reject question, prompt,
 provider body, context token, request/correlation ID and related keys recursively.
 
-- [ ] **Step 1: Write integration RED tests**
+- [x] **Step 1: Write integration RED tests**
 
 Create a counting fake generator and assert:
 
@@ -680,7 +680,7 @@ Create a counting fake generator and assert:
 9. cap path → zero transport after cap and TEMPLATE
 10. sample 20/20 remains pass with generator disabled
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -689,12 +689,12 @@ Create a counting fake generator and assert:
   apps/api/tests/chat/test_sample_questions_20.py -q
 ```
 
-- [ ] **Step 3: Implement the minimal post-grounding gate**
+- [x] **Step 3: Implement the minimal post-grounding gate**
 
 Do not call the generator before grounding and do not add generation to fallback builders. Preserve
 `PERSONAL_LOOKUP`/`LEGAL_JUDGMENT` complete non-persistence.
 
-- [ ] **Step 4: Run the chat area gate**
+- [x] **Step 4: Run the chat area gate**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest apps/api/tests/chat -q
@@ -704,7 +704,7 @@ Do not call the generator before grounding and do not add generation to fallback
   apps/api/src/sejong_ai_api/chat apps/api/tests/chat
 ```
 
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
 
 Review specifically for pre-grounding imports/calls, content logging, source mutation, interaction
 payload changes and exception leakage.
@@ -750,14 +750,14 @@ Creating an HTTPX client is allowed during composition but makes no network requ
 lifespan closes the optional client and pool independently in `finally`. Startup, `/health` and
 `/ready` must not call Upstage.
 
-- [ ] **Step 1: Write local composition RED tests**
+- [x] **Step 1: Write local composition RED tests**
 
 Use a fake runtime/client and assert exact valid chat profile injects the generator, disabled or
 invalid profile injects `None`, app/ready still works in template mode, startup makes zero provider
 calls, shutdown closes the client once, pool shutdown still occurs when client close fails, and
 importing `sejong_ai_api.main` never imports provider modules.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -766,7 +766,7 @@ importing `sejong_ai_api.main` never imports provider modules.
   apps/api/tests/llm/test_architecture.py -q
 ```
 
-- [ ] **Step 3: Implement optional composition and the exact runbook**
+- [x] **Step 3: Implement optional composition and the exact runbook**
 
 Runbook order:
 
@@ -784,7 +784,7 @@ Runbook order:
 
 Never include an example real-looking key, DSN password or answer text.
 
-- [ ] **Step 4: Run local/API focused gates**
+- [x] **Step 4: Run local/API focused gates**
 
 ```powershell
 & $uv run --project apps/api --frozen pytest `
@@ -797,7 +797,7 @@ Never include an example real-looking key, DSN password or answer text.
 python -B scripts/check_repository_docs.py
 ```
 
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
 
 ```powershell
 git add apps/api/src/sejong_ai_api/local.py apps/api/tests/test_local.py `
@@ -830,13 +830,13 @@ git commit -m "feat(local): compose optional grounded chat runtime"
 The mode is text, not color-only; it is not a trust score. Existing source title/link/verified date
 remains visible in both modes.
 
-- [ ] **Step 1: Write Web RED tests**
+- [x] **Step 1: Write Web RED tests**
 
 Add generated/template SUCCESS fixtures and assert exact labels, disclosure, non-empty source strip,
 external source link safety and no provider/model name. Run axe-equivalent existing semantic checks,
 keyboard navigation and 390/430/desktop viewport expectations.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 corepack pnpm --filter @sejong-ai/web test -- `
@@ -847,12 +847,12 @@ corepack pnpm --filter @sejong-ai/web test -- `
 
 Expected: stale fixtures/types or missing label assertions fail.
 
-- [ ] **Step 3: Implement the minimal label/disclosure**
+- [x] **Step 3: Implement the minimal label/disclosure**
 
 Place the text label in the answer card header near the existing intent badge. Keep the disclosure
 static and concise; do not add loading animation, provider error copy or a new dependency.
 
-- [ ] **Step 4: Run the Web area once**
+- [x] **Step 4: Run the Web area once**
 
 ```powershell
 corepack pnpm --filter @sejong-ai/web lint
@@ -862,7 +862,7 @@ corepack pnpm --filter @sejong-ai/web build
 corepack pnpm --dir tools/web-e2e exec playwright test e2e/home-chat-shell.spec.ts
 ```
 
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
 
 ```powershell
 git add apps/web tools/web-e2e/e2e/home-chat-shell.spec.ts
@@ -872,6 +872,8 @@ git commit -m "feat(web): explain generated official answers"
 ---
 
 ### Task 8: Close security, regression, versions and optional local actual evidence
+
+- [x] **Preparation: synchronize task-scoped evidence, source-of-truth status and closeout report/note** — see [LLM-003 report](../../test-reports/LLM-003-GROUNDED-LIVE-CHAT.md) and [implementation note](../../implementation-notes/IMP-20260725-005-llm-003-grounded-live-chat-implementation.md).
 
 **Files:**
 - Create: `docs/test-reports/LLM-003-GROUNDED-LIVE-CHAT.md`
@@ -909,7 +911,7 @@ test_suite: 1.6.0-grounded-live-chat
 documentation: 2.20.0
 ```
 
-- [ ] **Step 1: Add offline security/regression assertions**
+- [x] **Step 1: Add offline security/regression assertions**
 
 Assert:
 
@@ -922,7 +924,7 @@ Assert:
 - provider-disabled sample T-01~T-20 is 20/20 with skip 0
 - no provider import/use in default app, startup, health or readiness
 
-- [ ] **Step 2: Run the final offline repository gate once**
+- [x] **Step 2: Run the final offline repository gate once** — provider-disabled/unset-key run started `2026-07-26T02:39:05+09:00`, completed `2026-07-26T02:49:42+09:00` (637.7s; stdout 2006 bytes; stderr 0); every listed root/data/seed/Web/API/contracts/secrets/bundle/package/diff step PASSed.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 -Offline
@@ -937,7 +939,7 @@ Expected: full root verification PASS, docs PASS, secret scan exit 0, diff check
 pre-existing environment-only DB/Browser gate cannot run, record the exact bounded reason and run
 its approved focused substitute; do not claim it passed.
 
-- [ ] **Step 3: Perform independent reviews**
+- [x] **Step 3: Perform independent reviews** — final security re-review C0/I0/M0; focused 85, chat 202, DB 168 with 8 DB-only skips, provenance 57, controller 115 and retrieval/static 5 passed; Ruff and Mypy passed.
 
 Review the complete diff against:
 
@@ -972,7 +974,7 @@ Acceptance is source 10/10, official mismatch 0, PII/secret persistence 0, outbo
 forced failure TEMPLATE, and no question/answer/provider body in output. This evidence is local demo
 quality only, not public deployment approval.
 
-- [ ] **Step 5: Finalize note, versions and commit**
+- [x] **Step 5: Finalize note, versions and commit** — manifest/package metadata `0.5.0`, INDEX and closeout documents are integrated; this plan's commit is prepared after the documented checks.
 
 Record actual commands and results, not expected results. Keep actual status `Pending` if the human
 does not run it.

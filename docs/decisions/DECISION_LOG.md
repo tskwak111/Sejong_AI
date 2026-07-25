@@ -76,6 +76,15 @@
 | D-073 | 2026-07-25 | 사용자는 `명세승인`으로 LLM-003 근거 제한형 시민 답변 생성의 서면 명세를 승인하고, 구현 전 상세 TDD 실행계획 작성을 허용했다. | 구현계획은 현재 API/provider/idempotency/Web 인터페이스와 대조해 8개 수직 task로 작성한다. 제품 코드·공개 계약·actual provider call은 계획 승인 전 0이다. 기존 privacy/idempotency 문장의 충돌은 새 저장을 추가하지 않고, 호출자가 `Idempotency-Key`를 준 경우 엄격히 검증된 최종 안전 응답만 기존 논리 TTL 24시간 보관할 수 있다는 제한된 예외로 명시한다. raw/masked question, prompt, provider body, context/correlation은 계속 금지하고 DB migration은 만들지 않는다. | D-061/D-072, ADR-0021/0023, LLM-003 written spec and plan | 사용자 |
 | D-074 | 2026-07-25 | 사용자는 `계획 승인, Subagent-Driven으로 구현 시작`으로 LLM-003 8-task TDD 실행계획과 agent-driven 구현 시작을 승인했다. | fresh implementer→task-scoped spec/quality review→필요 시 bounded fix loop 순서로 실행한다. 메인 모델은 공유 계약·버전·통합·보안·Git 판정을 소유한다. 계획 범위의 local/private product code와 additive API contract 구현은 허용하지만, actual Upstage network는 offline 전체 gate 뒤 별도 local 인간 실행 단계이고 public/remote/실제 기관 운영·새 production dependency·DB migration·자동 merge는 계속 금지한다. | D-072/D-073, ADR-0023, LLM-003 TDD plan | 사용자 |
 
+### LLM-003 execution evidence (non-decision)
+
+Tasks 1~7의 offline 구현과 task-scoped 독립 검토는
+[`LLM-003 grounded live chat report`](../test-reports/LLM-003-GROUNDED-LIVE-CHAT.md) 및
+[`IMP-20260725-005`](../implementation-notes/IMP-20260725-005-llm-003-grounded-live-chat-implementation.md)에
+기록한다. 이는 새 사용자 결정이 아니며 D-071의 historical FAIL 또는 D-072~D-074의 문구·경계를
+변경하지 않는다. provider-disabled final offline gate와 manifest/INDEX integration은 완료됐고,
+optional local actual은 Pending이며 public/remote/실제 기관 운영은 계속 금지한다.
+
 새 결정은 기존 값을 덮어쓰지 않고 새 행과 ADR/노트 링크를 추가한다.
 Q-SEC-004/A-022와 Q-SEC-005/A-023은 각각 D-029/D-030으로 결정됐지만 실제 보정이 불충분했다.
 A-024/Q-SEC-006은 D-031/ADR-0013, A-025/Q-TOOL-001은 D-032/ADR-0014로 해결됐고 사용자의

@@ -7,12 +7,14 @@
 - 계약 변경은 영향 분석, 테스트, 버전, 구현 노트를 동반한다.
 - breaking change는 인간 승인과 ADR이 필요하다.
 - source metadata는 서버가 결합한다.
-- API spec revision은 `3.1.0-draft`다. SUCCESS/FOLLOWUP/5개 사유별 FALLBACK,
+- API spec revision은 `3.2.0-draft`다. SUCCESS/FOLLOWUP/5개 사유별 FALLBACK,
   `PRIVACY_UNRESOLVED` 고정 문구, HTTPS 전용 출처·기관 링크, local/private admin 성공·오류
   envelope를 OpenAPI·standalone schema·Pydantic·생성 TypeScript가 같은 fixture로 검증한다.
-- D-073에서 승인된 LLM-003 실행계획은 SUCCESS에 required
-  `answer_mode=GENERATED|TEMPLATE`를 추가하고 API를 `3.2.0-draft`로 올리는 additive target이다.
-  계획 승인·계약 동시 구현 전 current revision은 계속 `3.1.0-draft`다.
+- SUCCESS에만 required `answer_mode=GENERATED|TEMPLATE`가 있다. `GENERATED`는 provider draft를
+  strict 검증한 뒤 서버가 ACTIVE/OFFICIAL record의 공식 fact·source·office를 materialize한 결과이고,
+  `TEMPLATE`은 disabled/default, timeout, transport, schema, ID 또는 fact-drift 실패 때의 전체
+  결정론적 공식 template이다. 두 mode 모두 서버 결합 출처를 유지하며 provider는 source/office/fact를
+  생성하거나 변경할 수 없다.
 
 ## 대화 문맥 계약
 
@@ -53,7 +55,7 @@ X-Demo-Role: OPERATOR | APPROVER
 
 - `POST /api/v1/chat`는 선택적 UUID `Idempotency-Key` header를 받는다. 같은 논리적 Web 재시도는 같은 key를 유지하며, 매 HTTP 요청의 correlation `request_id`와는 별개다.
 - local/private DB에는 domain-separated HMAC request digest, 독립 claim token, 5분 lease와
-  엄격히 검증된 안전한 구조화 응답만 저장한다. LLM-003 구현 뒤 `GENERATED` summary도 이
+  엄격히 검증된 안전한 구조화 응답만 저장한다. LLM-003의 `GENERATED` summary도 이
   제한된 24시간 중복 방지 응답에는 포함될 수 있으나 원문·마스킹 질문·prompt·provider body·
   context token·correlation ID·IP·기기 식별자는 저장하지 않는다.
 - 동일 key/동일 digest의 완료 결과는 replay하며, digest 충돌은 값 없는 422, 유효 lease의 진행 중 요청은 retryable 503이다. 행의 논리 TTL은 24시간이고 startup 및 최대 60초 주기 purge 실패 시 readiness를 닫는다.

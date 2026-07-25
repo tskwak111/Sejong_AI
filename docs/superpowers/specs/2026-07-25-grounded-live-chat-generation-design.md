@@ -1,6 +1,6 @@
 # LLM-003 근거 제한형 Upstage 시민 답변 생성 설계
 
-- 상태: Approved / D-074 implementation In Progress
+- 상태: Approved / offline implementation and provider-disabled final root gate complete; local actual Pending human gate
 - 작성일: 2026-07-25 KST
 - 결정: Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C, Q-LLM-012=B
 - 관련 결정: D-024, D-045, D-059, D-061, D-065~D-067, D-071, D-072
@@ -301,6 +301,12 @@ idempotency 안전 응답 24시간 보관은 같은 논리 요청의 중복 실�
 - provider-disabled 전체 sample 20/20과 개선 회귀 유지
 - repository docs, secret/current-tree, root offline gate
 
+Tasks 1~7의 focused evidence와 independent review, 그리고 provider-disabled final root gate는
+[`LLM-003 offline report`](../../test-reports/LLM-003-GROUNDED-LIVE-CHAT.md) 및
+[`implementation note`](../../implementation-notes/IMP-20260725-005-llm-003-grounded-live-chat-implementation.md)에
+정리했다. final `verify.ps1 -Offline`은 PASS했지만, 그 결과는 provider actual 또는 public/remote
+운영 승인으로 해석하지 않는다.
+
 ### local actual acceptance
 
 - 지원 질문 10개를 local/private에서 실행한다.
@@ -319,6 +325,10 @@ idempotency 안전 응답 24시간 보관은 같은 논리 요청의 중복 실�
 4. provider-disabled 전체 회귀
 5. 사용자가 ignored local env에서만 chat mode를 활성화
 6. local actual acceptance
+
+1~4는 offline Tasks 1~7 증거와 검토로 완료됐다. 5~6은 인간이 ignored local 환경에서 수행할
+별도 gate이며, 현재 provider 기본 disabled 상태를 바꾸지 않았다. local actual Pending은 public/remote
+또는 실제 기관 운영 승인으로 해석하지 않는다.
 
 ### 롤백
 

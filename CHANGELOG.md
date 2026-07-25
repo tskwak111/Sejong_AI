@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-### Changed — LLM-003 grounded local/private chat generation design
+### Changed — LLM-003 grounded local/private chat generation offline implementation
 
 - Approved Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C and Q-LLM-012=B
   for a local/private-only Upstage `solar-pro3` chat path. Q-LLM-008=A summary-only is
@@ -15,20 +15,30 @@
 - Fixed the design limits at 8 seconds, one logical attempt, zero hidden retry, concurrency one and
   30 outbound attempts per process. The approved response draft adds
   `answer_mode=GENERATED|TEMPLATE` and accessible Web labels.
-- D-073 records written-specification approval and publishes the eight-task TDD implementation plan.
-  The plan maps contract, fact-ID validation, exact settings, one-attempt transport, ChatService
-  idempotency, local lifecycle, Web accessibility and final security/actual gates.
-- D-074 approves the plan and starts Subagent-Driven implementation. Product/API changes inside the
-  plan are now authorized; actual provider network, public/remote use, new production dependency,
-  DB migration and automatic merge remain prohibited.
+- D-073 records written-specification approval and D-074 authorizes the eight-task TDD plan. Tasks
+  1~7 now implement the additive SUCCESS `answer_mode`, source-free bounded fact materialization,
+  exact disabled-by-default local profile, one-attempt fallback, durable idempotency boundary,
+  optional local lifecycle and accessible Web disclosure.
+- The provider can only propose a summary and request-scoped fact IDs. The server validates and
+  materializes every official fact, source and office; disabled/default, timeout, transport, schema,
+  ID or fact-drift failure returns the entire official template rather than a mixed response.
+- Same-key concurrency/replay uses the existing safe-response idempotency path so it cannot start a
+  duplicate provider call. Only a caller-supplied key can retain the strict final safe response for
+  the logical 24-hour TTL.
+- Task-scoped offline evidence and independent reviews are recorded in
+  `docs/test-reports/LLM-003-GROUNDED-LIVE-CHAT.md`. The final provider-disabled root
+  `scripts/verify.ps1 -Offline` PASSed on 2026-07-26 (637.7s, stdout 2006 bytes, stderr 0),
+  including root/data/seed/Web/API/contracts/secrets/bundle/package/diff gates. Optional actual
+  provider use remains a separate human gate with no recorded result.
+- Public/remote use, real-institution operation, new production dependencies, DB migration, data
+  mutation, push, PR and automatic merge remain prohibited or Pending under their existing gates.
 - Clarified the pre-existing idempotency exception: only a caller-supplied key may retain the
   strictly validated final safe response for the existing logical 24-hour TTL. Raw/masked question,
   prompt/provider body, context/correlation and new DB migration remain prohibited.
-- At this approval checkpoint product code, API/contracts, DB schema/data, dependencies, prompt
-  runtime and provider actual calls remain unchanged. Public/remote/real institutional operation
-  remains prohibited.
-- Product specification `2.4.1→2.5.0`; documentation `2.18.0→2.19.2`; all other version axes are
-  unchanged.
+- Closeout axes are application `0.9.0-grounded-local-chat`, Web `0.6.0-answer-mode`, API
+  `3.2.0-draft`, shared contracts `0.5.0`, prompt `0.2.0-grounded-live-chat`, tests
+  `1.6.0-grounded-live-chat`, documentation `2.20.0`. DB `0.4.0-local`, official data
+  `0.1.0-initial.2`, mock data `0.0.0-not-populated`, dependencies and lockfiles are unchanged.
 
 ### Changed — LLM-002 Upstage local actual evaluation
 

@@ -20,8 +20,10 @@
 12. 시민 입력의 “공식 대표번호” 표시는 신뢰 근거가 아니다. 입력 안의 모든 phone-shaped value를 마스킹하고, 공식 기관 연락처는 승인된 KB·기관 메타데이터를 서버가 결합한 카드에서만 제공한다.
 13. 안전한 마스킹 문자열을 만들 수 없는 요청은 `PRIVACY_UNRESOLVED`로 분리해 HTTP 200 안전 재질문을 제공한다. 이 outcome에는 질문 text, source/context/office, provider 호출, 실패 질문 row와 후보를 만들지 않고 질문 없는 interaction metadata만 허용한다.
 
-13번은 D-045로 확정된 후속 consumer 정책 목표다. 현재 active API 계약·DB enum·route에는 아직
-적용되지 않았으며 별도 consumer 명세, 공개 계약과 forward migration 승인 뒤에만 활성화한다.
+위 `PRIVACY_UNRESOLVED` 동작은 D-045와 Q-MVP-001 consumer 구현으로 local/private 활성 계약·route에
+적용됐다. 질문 text·source/context/office·provider·failed-question row·candidate·DB event는 모두 0이며,
+persistent metadata migration과 public route는 reserved `00700` 및 별도 승인 전까지 비활성이다. 이전의
+“아직 적용되지 않았다” 문장은 consumer 구현 전의 역사적 checkpoint였으며 현행 정책이 아니다.
 
 ## 3. 저장 금지 정보
 
@@ -131,6 +133,9 @@ exact `solar-pro3`의 근거 제한형 시민 chat 사용을 승인했다. API k
   추적에 남기지 않는다.
 - 허용 metric은 질문 없는 outcome, latency, attempt, token usage와 aggregate cost뿐이다.
 - provider 장애·정책 변경·cap 소진 시 disabled/template 경로를 유지한다.
+- provider-disabled final root offline gate는 2026-07-26 PASS했지만, provider key·network·actual
+  output은 이 gate에서 사용하지 않았다. local actual은 인간이 ignored 환경에서 별도로 승인·실행할
+  때까지 Pending이며 Cloud/CI·public/remote/실제 기관 운영 호출은 계속 0이다.
 
 Upstage 공식 페이지가 `Last Revised: May 21, 2026`로 표시하는 개인정보 처리방침은
 Console/Studio API logging이 별도 동의에서

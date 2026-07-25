@@ -41,7 +41,10 @@
 | `docs/superpowers/specs/2026-07-22-four-day-local-private-core-loop-mvp-design.md` | Q-MVP-001=A로 승인된 19→20 ACTIVE 시민·관리자 수직 흐름과 defer 경계 |
 | `docs/superpowers/plans/2026-07-22-four-day-local-private-core-loop-mvp.md` | 날짜별·역할별 4일 TDD 실행계획과 일일 exit gate |
 | `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md` | D-073으로 승인된 local/private Upstage fact-ID·server-bound source 서면 명세 |
-| `docs/superpowers/plans/2026-07-25-grounded-live-chat-generation.md` | LLM-003 계약→validator→transport→ChatService→local/Web→최종 gate 8-task TDD 계획; 승인 Pending |
+| `docs/superpowers/plans/2026-07-25-grounded-live-chat-generation.md` | LLM-003 계약→validator→transport→ChatService→local/Web→최종 gate 8-task TDD 계획; offline 구현·final root gate 완료, local actual만 human Pending |
+| `docs/test-reports/LLM-003-GROUNDED-LIVE-CHAT.md` | LLM-003 task-scoped 명령·검토·보안 경계와 final provider-disabled root gate PASS, human local actual gate |
+| `docs/implementation-notes/IMP-20260725-005-llm-003-grounded-live-chat-implementation.md` | LLM-003 6W1H 구현·실제 버전·rollback·인수인계; local provider actual human Pending |
+| `docs/runbooks/LLM-003-LOCAL-GROUNDED-CHAT.md` | disabled-first local/private grounded chat 실행·actual human gate·rollback runbook |
 
 ## 모든 작업 후 갱신할 파일
 
@@ -56,9 +59,9 @@
 
 | 위치 | 목적 |
 |---|---|
-| `contracts/` | OpenAPI 2.0.1-draft와 동기화 JSON Schema |
+| `contracts/` | OpenAPI 3.2.0-draft와 동기화 JSON Schema |
 | `supabase/migrations/`, `supabase/tests/database/` | DB-001 timestamp 실행 권위와 pgTAP |
-| `database/` | verified `0.3.0-local` 논리 projection, 역순 disposable-local 보상, absence proof; 실행 권위는 timestamp migration |
+| `database/` | verified `0.4.0-local` 논리 projection, 역순 disposable-local 보상, absence proof; 실행 권위는 timestamp migration |
 | `docs/test-reports/DB-001-LOCAL-BASELINE.md` | patched-only runtime의 fresh exact loopback·pgTAP 282·integration 8/8·cleanup local 검증 보고서 |
 | `docs/handoffs/HANDOFF-20260717-DB-001-LOCAL-BASELINE.md` | 완료된 local/private DB 기준선의 재현·rollback/recovery와 별도 public-release blocker 인수인계 |
 | `docs/handoffs/HANDOFF-20260720-FRONTEND-COLLABORATOR.md` | Frontend 전체 수직 흐름의 허용 경로·작업 순서·검증·자가 병합 인수인계 |
