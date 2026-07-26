@@ -1,6 +1,10 @@
 import type { components } from "../../../../packages/shared-contracts/src/generated/api";
 
 type CandidateReviewRequest = components["schemas"]["CandidateReviewRequest"];
+type CivicScopeGapListResponse = components["schemas"]["CivicScopeGapListResponse"];
+type CivicScopeGapReviewRequest = components["schemas"]["CivicScopeGapReviewRequest"];
+type CivicScopeGapReviewResponse = components["schemas"]["CivicScopeGapReviewResponse"];
+type CivicScopeGapStatus = components["schemas"]["CivicScopeGapStatus"];
 type FailedQuestionDetailResponse = components["schemas"]["FailedQuestionDetailResponse"];
 type FailedQuestionListResponse = components["schemas"]["FailedQuestionListResponse"];
 type KBCandidateCreate = components["schemas"]["KBCandidateCreate"];
@@ -26,6 +30,15 @@ export interface AdminTransport {
     id: string,
     request: ReasonConfirmationRequest,
   ): Promise<ReasonConfirmationResponse>;
+  listCivicScopeGaps(
+    actor: AdminActor,
+    status?: CivicScopeGapStatus,
+  ): Promise<CivicScopeGapListResponse>;
+  reviewCivicScopeGap(
+    actor: AdminActor,
+    id: string,
+    request: CivicScopeGapReviewRequest,
+  ): Promise<CivicScopeGapReviewResponse>;
   listCandidates(actor: AdminActor): Promise<KBCandidateListResponse>;
   createCandidate(actor: AdminActor, request: KBCandidateCreate): Promise<KBCandidateCreateResponse>;
   submitCandidate(actor: AdminActor, id: string): Promise<KBCandidateSubmitResponse>;
@@ -96,6 +109,25 @@ export function createAdminTransport(fetcher: Fetcher = fetch): AdminTransport {
       return fetchJson<ReasonConfirmationResponse>(
         fetcher,
         `/api/v1/admin/failed-questions/${encodeURIComponent(id)}/reason`,
+        {
+          method: "PATCH",
+          headers: jsonHeadersFor(actor),
+          body: JSON.stringify(request),
+        },
+      );
+    },
+    listCivicScopeGaps(actor, status) {
+      const query = status === undefined ? "" : `?status=${encodeURIComponent(status)}`;
+      return fetchJson<CivicScopeGapListResponse>(
+        fetcher,
+        `/api/v1/admin/civic-scope-gaps${query}`,
+        { method: "GET", headers: headersFor(actor) },
+      );
+    },
+    reviewCivicScopeGap(actor, id, request) {
+      return fetchJson<CivicScopeGapReviewResponse>(
+        fetcher,
+        `/api/v1/admin/civic-scope-gaps/${encodeURIComponent(id)}/review`,
         {
           method: "PATCH",
           headers: jsonHeadersFor(actor),

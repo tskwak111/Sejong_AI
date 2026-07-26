@@ -116,9 +116,37 @@ describe("failures screen (fixture)", () => {
     });
     fireEvent.click(createButtons[0]);
 
+    expect(
+      await screen.findByRole("heading", { name: "공식 KB 후보 작성" }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("제목"), {
+      target: { value: "침대 프레임 배출 수수료" },
+    });
+    fireEvent.change(screen.getByLabelText("답변 요약"), {
+      target: { value: "공식 품목표의 수수료를 안내합니다." },
+    });
+    fireEvent.change(screen.getByLabelText("처리 절차 (한 줄에 한 단계)"), {
+      target: { value: "공식 품목표를 확인합니다.\n배출 절차를 진행합니다." },
+    });
+    fireEvent.change(screen.getByLabelText("담당 부서"), {
+      target: { value: "세종특별자치시시설관리공단" },
+    });
+    fireEvent.change(screen.getByLabelText("공식 출처명"), {
+      target: { value: "배출항목선택" },
+    });
+    fireEvent.change(screen.getByLabelText("공식 출처 URL"), {
+      target: { value: "https://www.sjwaste.kr/wasteApp/appCategoryPopup.do" },
+    });
+    fireEvent.change(screen.getByLabelText("출처 확인일"), {
+      target: { value: "2026-07-27" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "후보 저장 후 승인 요청" }),
+    );
+
     await waitFor(() =>
       expect(
-        screen.getAllByText(/KB 후보 초안이 생성되었습니다/).length,
+        screen.getAllByText(/운영자가 작성한 KB 후보가 승인 요청되었습니다/).length,
       ).toBeGreaterThan(0),
     );
     // 승인 화면 이동 배너

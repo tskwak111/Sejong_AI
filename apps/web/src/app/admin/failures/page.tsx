@@ -11,10 +11,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { components } from "../../../../../../packages/shared-contracts/src/generated/api";
-import { buildActualCandidateDraft } from "@/lib/admin-candidate-draft";
 import { STORED_REASON_LABEL, type StoredFailureReason } from "@/lib/labels";
-import { buildCandidateDraft } from "@/lib/demo-fixtures";
 import { useAdmin } from "@/components/admin/AdminShell";
+import CandidateAuthoringForm from "@/components/admin/CandidateAuthoringForm";
+import CivicScopeGapPanel from "@/components/admin/CivicScopeGapPanel";
 import FailureTable from "@/components/admin/FailureTable";
 import EmptyState from "@/components/admin/EmptyState";
 import PageHeader from "@/components/admin/PageHeader";
@@ -22,6 +22,9 @@ import Toast from "@/components/common/Toast";
 
 type FailedQuestion = components["schemas"]["FailedQuestion"];
 type KBCandidateSummary = components["schemas"]["KBCandidateSummary"];
+type KBCandidateCreate = components["schemas"]["KBCandidateCreate"];
+type CivicScopeGapSummary = components["schemas"]["CivicScopeGapSummary"];
+type CivicScopeGapDecision = components["schemas"]["CivicScopeGapReviewRequest"]["decision"];
 
 type Filter = "ALL" | StoredFailureReason;
 
@@ -40,9 +43,10 @@ const FILTERS: { key: Filter; label: string }[] = [
 let knownFailureIds: Set<string> | null = null;
 
 export default function AdminFailuresPage() {
-  const { transport, actor, role, mode, notifyDataChanged } = useAdmin();
+  const { transport, actor, role, notifyDataChanged } = useAdmin();
   const [items, setItems] = useState<FailedQuestion[] | null>(null);
   const [candidates, setCandidates] = useState<KBCandidateSummary[]>([]);
+  const [scopeGaps, setScopeGaps] = useState<CivicScopeGapSummary[]>([]);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,6 +55,8 @@ export default function AdminFailuresPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [highlightIds, setHighlightIds] = useState<Set<string>>(new Set());
+  const [editingFailure, setEditingFailure] = useState<FailedQuestion | null>(null);
+  const [scopeBusyId, setScopeBusyId] = useState<string | null>(null);
 
   // setState는 조회 완료 콜백에서만 - 이펙트 본문 동기 setState 금지 규칙 준수
   const fetchData = useCallback(
@@ -58,8 +64,9 @@ export default function AdminFailuresPage() {
       Promise.all([
         transport.listFailedQuestions(actor),
         transport.listCandidates(actor),
+        transport.listCivicScopeGaps(actor),
       ])
-        .then(([failureResponse, candidateResponse]) => {
+        .then(([failureResponse, candidateResponse, scopeResponse]) => {
           const failures = failureResponse.items;
           // 최초 로드는 하이라이트 없음, 이후엔 새로 등장한 id만 1회성 하이라이트.
           if (knownFailureIds !== null) {
@@ -71,6 +78,7 @@ export default function AdminFailuresPage() {
           knownFailureIds = new Set(failures.map((f) => f.id));
           setItems(failures);
           setCandidates(candidateResponse.items);
+          setScopeGaps(scopeResponse.items);
           setLastUpdated(new Date());
           setError(null);
         })
@@ -113,26 +121,46 @@ export default function AdminFailuresPage() {
     }
   };
 
-  /** 근거 부족 건 → KB 후보 초안 생성(자동 구성) + 승인 요청 (데모 #5) */
-  const createDraft = async (id: string) => {
-    const target = (items ?? []).find((f) => f.id === id);
-    if (!target) return;
-    setBusyId(id);
+  /** 운영자 작성 → 저장 → 별도 승인 요청. 공식 필드는 폼 값만 사용한다. */
+  const createDraft = async (draft: KBCandidateCreate) => {
+    setBusyId(draft.failed_question_id);
     try {
-      const draft =
-        mode === "actual"
-          ? buildActualCandidateDraft(target)
-          : buildCandidateDraft(target);
       const created = await transport.createCandidate(actor, draft);
       await transport.submitCandidate(actor, created.id);
       setDraftBanner(draft.title);
-      setToast("KB 후보 초안이 생성되었습니다");
+      setEditingFailure(null);
+      setToast("운영자가 작성한 KB 후보가 승인 요청되었습니다");
       await load();
       notifyDataChanged();
     } catch {
       setToast("KB 후보를 생성하지 못했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const reviewScopeGap = async (
+    id: string,
+    decision: CivicScopeGapDecision,
+    reviewComment: string,
+  ) => {
+    setScopeBusyId(id);
+    try {
+      await transport.reviewCivicScopeGap(actor, id, {
+        decision,
+        review_comment: reviewComment,
+      });
+      await load();
+      notifyDataChanged();
+      setToast(
+        decision === "PLANNED"
+          ? "다음 지원 범위 검토 대상으로 표시했습니다"
+          : "지원 범위 검토 목록에서 제외했습니다",
+      );
+    } catch {
+      setToast("지원 범위 검토 결과를 반영하지 못했어요.");
+    } finally {
+      setScopeBusyId(null);
     }
   };
 
@@ -272,10 +300,28 @@ export default function AdminFailuresPage() {
               highlightIds={highlightIds}
               canOperate={role === "OPERATOR"}
               onConfirmReason={(id) => void confirmReason(id)}
-              onCreateDraft={(id) => void createDraft(id)}
+              onCreateDraft={(id) =>
+                setEditingFailure((items ?? []).find((item) => item.id === id) ?? null)
+              }
             />
           )}
         </div>
+        {editingFailure && (
+          <CandidateAuthoringForm
+            failure={editingFailure}
+            busy={busyId === editingFailure.id}
+            onCancel={() => setEditingFailure(null)}
+            onSubmit={(draft) => void createDraft(draft)}
+          />
+        )}
+        <CivicScopeGapPanel
+          items={scopeGaps}
+          canReview={role === "APPROVER"}
+          busyId={scopeBusyId}
+          onReview={(id, decision, comment) =>
+            void reviewScopeGap(id, decision, comment)
+          }
+        />
       </div>
 
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}

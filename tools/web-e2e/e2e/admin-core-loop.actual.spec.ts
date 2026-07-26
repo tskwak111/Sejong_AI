@@ -18,6 +18,29 @@ const OPERATOR_HEADERS = {
 const PERSONAL_LOOKUP_QUESTION = "내 자동차세 체납액 알려줘.";
 const INSUFFICIENT_GROUNDING_QUESTION = "침대 2인용 프레임 수수료가 얼마예요?";
 const CANDIDATE_TITLE = "침대 프레임 배출 수수료";
+
+async function fillOfficialCandidate(page: Page) {
+  await page.getByLabel("제목").fill(CANDIDATE_TITLE);
+  await page.getByLabel("답변 요약").fill(
+    "공식 품목표의 침대 프레임 수수료는 1인용침대 8,000원, 2인용침대 10,000원으로 표시됩니다.",
+  );
+  await page.getByLabel("처리 절차 (한 줄에 한 단계)").fill(
+    "공식 품목표에서 침대 프레임의 1인용침대 또는 2인용침대 항목을 확인합니다.\n해당 수수료로 공식 배출 절차를 진행합니다.",
+  );
+  await page.getByLabel("수수료 (선택)").fill(
+    "1인용침대 8,000원; 2인용침대 10,000원",
+  );
+  await page.getByLabel("담당 부서").fill("세종특별자치시시설관리공단");
+  await page.getByLabel("공식 출처명").fill("배출항목선택");
+  await page.getByLabel("공식 출처 URL").fill(
+    "https://www.sjwaste.kr/wasteApp/appCategoryPopup.do?menuId=MENU00305",
+  );
+  await page.getByLabel("출처 확인일").fill("2026-07-18");
+  await page.getByLabel("주의사항 (선택)").fill(
+    "공식 품목표의 1인용침대·2인용침대 항목을 그대로 따릅니다. 매트리스 포함 가격이나 실제 규격을 단정하지 않습니다.",
+  );
+  await page.getByRole("button", { name: "후보 저장 후 승인 요청" }).click();
+}
 const OFFICIAL_SOURCE_TITLE = "배출항목선택";
 const OFFICIAL_SOURCE_URL =
   "https://www.sjwaste.kr/wasteApp/appCategoryPopup.do?menuId=MENU00305";
@@ -182,9 +205,10 @@ test("actual browser keeps PERSONAL unpersisted and promotes a separate IG quest
   ).toBeVisible();
 
   await targetRow().getByRole("button", { name: "KB 후보 생성" }).click();
+  await fillOfficialCandidate(page);
   await expect(
     page
-      .getByText(/KB 후보 초안이 생성되었습니다/)
+      .getByText(/운영자가 작성한 KB 후보가 승인 요청되었습니다/)
       .filter({ visible: true })
       .first(),
   ).toBeVisible();
