@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed — explicit local grounded-mode guidance
+
+- Confirmed without printing values that a missing `UPSTAGE_GROUNDED_CHAT_MODE` leaves the exact
+  local grounded profile disabled. The fail-closed loader returned `DISABLED`.
+- Recommended one explicit `UPSTAGE_GROUNDED_CHAT_MODE=false` assignment for human-readable local
+  intent. Environment, product, provider, DB, data and dependencies were not changed.
+- Advanced documentation only from `2.21.1` to `2.21.2`.
+
 ### Changed — post-PR #17 human action handoff
 
 - Recorded PR #17 merge authority `c945303` and separated the remaining human-only work from

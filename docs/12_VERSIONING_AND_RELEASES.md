@@ -169,6 +169,12 @@ manual demo/accessibility/presentation, A-052 Phase B DB 선택, teammate MFA/re
 Codex 후속은 DB-write-free PERF Phase A다. product/application/Web/API/shared/DB/data/prompt/test
 축과 실제 환경·DB·provider는 변경하지 않는다.
 
+Documentation `2.21.2`는 primary ignored `.env`에 `UPSTAGE_GROUNDED_CHAT_MODE`가 없는
+상태를 값 비노출로 진단한 기록이다. exact loader는 이 경우 grounded profile을 조립하지 않고
+`DISABLED`로 닫힌다. 사람이 의도를 명확히 볼 수 있도록 explicit `false` 한 줄을 권고하지만,
+product/application/Web/API/shared/DB/data/prompt/test와 actual environment/provider는
+변경하지 않았다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과
