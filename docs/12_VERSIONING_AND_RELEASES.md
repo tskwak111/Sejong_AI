@@ -224,6 +224,12 @@ Documentation `2.22.1`은 Q-SCOPE-001=A/D-085/ADR-0024를 기록한다. 네 분�
 exact wire enum·DB migration·admin workflow는 written specification/plan 승인 전 미구현이며
 product/application/API/DB/provider/test version은 유지한다.
 
+Documentation `2.22.6`은 CHAT-NATURAL-001 설계 2부 승인/D-090을 기록한다. public
+`CIVIC_SCOPE_GAP` reason과 별도 30일 masked queue, NON_CIVIC·policy/privacy 무저장,
+context v2의 closed topic/slot/dialog claim, v1 read-only TTL 전환과 Web 새 대화 reset을
+확정했다. exact contract/DB/runtime은 written spec 전 미구현이며 product/application/Web/API/
+contract/DB/data/prompt/test/provider actual은 변경하지 않는다.
+
 Documentation `2.22.5`는 사용자의 CHAT-NATURAL-001 설계 1부 승인/D-089를 기록한다.
 PII-first deterministic safety와 ambiguous-only classifier, server route, ACTIVE/OFFICIAL
 grounding, generated/template, server-owned source 순서와 raw transcript 없는 15분 structured

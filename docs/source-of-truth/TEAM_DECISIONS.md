@@ -63,9 +63,12 @@
 - OUT_OF_SCOPE: 후보 불가, 질문 텍스트 저장 금지
 - PRIVACY_UNRESOLVED: 안전한 마스킹 text 생성 불능 전용 HTTP 200 재질문; 후보·질문 text·실패 행·provider 호출 없음
 - CIVIC_SCOPE_GAP planned: 네 분야 밖 행정 민원은 기존 KB 후보와 분리된 범위확대 검토
-  queue에 PII-safe masked text만 30일 보관한다. 자동 KB/ACTIVE 전환은 금지하며 exact
-  contract·migration 구현 전 current OUT_OF_SCOPE 무저장 runtime을 유지한다.
-- NON_CIVIC planned: 날씨·맛집 등 민원과 무관한 질문은 text와 review row를 저장하지 않는다.
+  queue에 PII-safe masked text만 30일 보관한다. public 응답은 `intent=OUT_OF_SCOPE`,
+  `fallback.reason=CIVIC_SCOPE_GAP`, candidate false다. 기존 event/failed/candidate와 분리하고
+  자동 KB/ACTIVE 전환은 금지하며 exact contract·migration 구현 전 current OUT_OF_SCOPE
+  무저장 runtime을 유지한다.
+- NON_CIVIC planned: 날씨·맛집 등 민원과 무관한 질문은 기존 OUT_OF_SCOPE 시민 응답을
+  사용하고 text/event/failed/review row를 저장하지 않는다.
 - 2026-07-25 local/private MVP의 PERSONAL_LOOKUP·LEGAL_JUDGMENT: 공개 `intent=UNKNOWN`+정확한 reason, 후보 불가, 질문 text·event·실패 행 저장 없음
 - 모호 질문: FOLLOWUP, 실패 질문이 아님
 
@@ -112,6 +115,10 @@
   generation sub-cap 30과 합친 process cap은 40, local synthetic run 비용 stop line은
   VAT 포함 USD 0.05다. written spec·계획·별도 local actual 승인 전 current runtime call은 0이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
+- D-089/D-090 context v2 planned: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
+  pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
+  topic은 매 요청 ACTIVE/OFFICIAL 재검증한다. Web `새 대화`는 current-tab transcript와 token을
+  함께 초기화한다.
 
 ## 기술
 

@@ -79,6 +79,13 @@ actual 승인 전 current runtime/provider call은 0이며 public/remote 금지�
 제품이 처리 완료를 보장한다고 표현하지 않는다. 향후 실제 처리 플랫폼으로 바꾸려면 기관 API,
 본인인증, 법무·개인정보, transaction·감사·보상과 production 배포를 별도 discovery/승인한다.
 
+D-089/D-090의 CHAT-NATURAL 설계 1~2부는 privacy-first hybrid pipeline과 context v2를
+승인했다. `CIVIC_SCOPE_GAP`은 public `intent=OUT_OF_SCOPE`+새 fallback reason, candidate
+false이며 별도 queue에 마스킹 text만 30일 보관한다. NON_CIVIC·개인조회·법적판단·privacy
+unresolved는 text/event/failed/review row 0이다. context v2는 topic/pending-slot/dialog-act
+같은 closed server ID만 사용하고 raw transcript·프로필은 금지한다. exact contract/DB와
+runtime은 전체 written specification·계획 승인 전 변경하지 않는다.
+
 ## 4. 변경 절차
 
 제품 범위, 공개 계약, DB, 개인정보, 외부 공급자, 배포 아키텍처가 바뀌면:

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Approved — natural chat design section 2
+
+- Recorded D-090 approval of the `CIVIC_SCOPE_GAP` public reason and separate 30-day masked review
+  queue, with NON_CIVIC/policy/privacy no-row boundaries preserved.
+- Approved context v2 closed topic/slot/dialog claims, v1 read-only TTL transition and an explicit
+  Web new-conversation reset. Exact contract/DB/runtime work remains unimplemented.
+- Product/API/DB/provider behavior is unchanged. Advanced documentation from `2.22.5` to `2.22.6`.
+
 ### Approved — natural chat design section 1
 
 - Recorded D-089 approval of the privacy-first hybrid request pipeline and 15-minute

@@ -32,9 +32,21 @@ Q-SCOPE-001=A에 따라 안전하게 마스킹된 현재 지원 범위 밖 행�
 - PII unresolved, 개인 조회, 법적 판단도 이 queue에 들어가지 않는다.
 - 분류에 LLM을 사용할지는 Q-CLASS-001의 별도 결정이다. 이 ADR은 provider call을 승인하지 않는다.
 
-정확한 public fallback enum, DB table/function 이름, review status, admin endpoint/UI와 migration
-번호는 written specification에서 확정한다. 그 전까지 current runtime과 DB의 OUT_OF_SCOPE
-무저장 동작을 유지한다.
+D-090의 설계 2부 승인으로 공개·저장 경계를 다음처럼 고정한다.
+
+- 시민 응답은 `intent=OUT_OF_SCOPE`, `fallback.reason=CIVIC_SCOPE_GAP`,
+  `candidate_eligible=false`를 사용한다.
+- `CIVIC_SCOPE_GAP` row는 기존 interaction event, `failed_questions`, KB candidate와
+  중복 저장하거나 연결하지 않는다.
+- NON_CIVIC은 기존 `OUT_OF_SCOPE` 시민 reason을 사용하되 text/event/failed/review row를
+  모두 만들지 않는다.
+- FOLLOWUP은 실패·scope-gap row를 만들지 않는다.
+- PERSONAL_LOOKUP, LEGAL_JUDGMENT, PRIVACY_UNRESOLVED도 이 queue에 들어가지 않으며 기존
+  무저장 경계를 유지한다.
+
+정확한 DB table/function 이름, review status, admin endpoint/UI와 migration 번호는 written
+specification에서 확정한다. 그 전까지 current runtime과 DB의 OUT_OF_SCOPE 무저장 동작을
+유지한다.
 
 ## Consequences
 
@@ -54,6 +66,6 @@ Q-SCOPE-001=A에 따라 안전하게 마스킹된 현재 지원 범위 밖 행�
 
 ## References
 
-- Q-SCOPE-001=A / D-085 / A-059
+- Q-SCOPE-001=A / D-085/D-090 / A-059
 - ADR-0003, ADR-0004, ADR-0011, ADR-0020
 - `docs/discovery/CHAT_CLASSIFICATION_GAPS_DISCOVERY_REPORT.md`
