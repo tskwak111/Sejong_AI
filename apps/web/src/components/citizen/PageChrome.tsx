@@ -45,7 +45,13 @@ export function CitizenHeader() {
 }
 
 /** 대화 화면 헤더 - 뒤로가기 44px + 로고 심볼 + 워드마크 (§8 대화 프레임) */
-export function ChatHeader() {
+export function ChatHeader({
+  onNewConversation,
+  disabled = false,
+}: {
+  onNewConversation?: () => void;
+  disabled?: boolean;
+}) {
   return (
     <header className="sticky top-0 z-10 border-b border-border-soft bg-white">
       <div className="mx-auto flex w-full max-w-[680px] items-center gap-2.5 px-5 py-2.5">
@@ -71,9 +77,19 @@ export function ChatHeader() {
           <Logo className="h-6 w-6" />
         </span>
         {/* 워드마크 문법(볼드·검정 수정): 세종·민원 text 볼드 / 이음 primary */}
-        <h1 className="text-card-title font-extrabold text-text">
+        <h1 className="min-w-0 flex-1 truncate text-card-title font-extrabold text-text">
           세종 민원<span className="text-primary">이음</span>
         </h1>
+        {onNewConversation && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onNewConversation}
+            className="min-h-11 shrink-0 rounded-btn-s border border-border bg-white px-3 text-[15px] font-bold text-primary hover:border-primary hover:bg-hover-tint disabled:opacity-60"
+          >
+            새 대화
+          </button>
+        )}
       </div>
     </header>
   );

@@ -42,6 +42,45 @@ async function submit(page: Page, question: string) {
   await submitButton.click();
 }
 
+test("region choice is keyboard-operable and new conversation clears all tab memory", async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await page.route("**/api/v1/chat", async (route) => {
+    requests.push(route.request().postDataJSON() as Record<string, unknown>);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(successResponse),
+    });
+  });
+
+  await page.goto("/chat");
+  const regionGroup = page.getByRole("group", { name: "거주 지역" });
+  const dodam = regionGroup.getByRole("button", { name: "도담동" });
+  await dodam.focus();
+  await page.keyboard.press("Enter");
+  await expect(dodam).toHaveAttribute("aria-pressed", "true");
+
+  await submit(page, "전입신고 알려줘");
+  await expect(page.getByText(successResponse.sources[0].title)).toBeVisible();
+  expect(requests).toHaveLength(1);
+  expect(requests[0].selected_region).toBe("도담동");
+
+  await page.getByRole("button", { name: "새 대화" }).click();
+  await expect(page.getByText(successResponse.sources[0].title)).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "질문 입력" })).toBeFocused();
+  await expect(
+    page.getByRole("group", { name: "거주 지역" }).getByRole("button", {
+      name: "도담동",
+    }),
+  ).toHaveAttribute("aria-pressed", "false");
+  expect(requests).toHaveLength(1);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});
+
 test("recommended question reaches chat via tab memory - exact /chat, empty search, no raw question in URL/history/storage", async ({ page }) => {
   await page.route("**/api/v1/chat", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(successResponse) }),

@@ -79,6 +79,7 @@ describe("contract fixture rendering", () => {
   it("renders valid-followup.json options as selectable chips", () => {
     render(
       <FollowupCard
+        intent="UNKNOWN"
         options={(validFollowup as { followup_options: string[] }).followup_options}
         onSelect={() => {}}
       />,
