@@ -19,6 +19,8 @@
 - Local DB hardening, immutable `.2` seed/19→20 and actual Upstage classifier gates pass.
   Remote discovery found no configured application/DB target, credential, origin or saved version;
   migration, seed, deploy and smoke are recorded as `Not executed: target not configured`.
+- Final verification passed all 33 root stages, 24 browser scenarios across 390/430/desktop and 135
+  focused privacy/classification/followup/admin scenarios. Documentation advanced to `2.25.0`.
 
 ### Planned — natural dialogue implementation
 

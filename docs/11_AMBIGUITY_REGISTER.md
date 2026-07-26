@@ -61,11 +61,12 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-055 | B / High | 시민 최초 지역 선택 진입점 | Resolved / Implemented | 직접 읍·면·동 선택/변경과 official office card | D-093; Slice 2 Web/E2E PASS |
 | A-056 | C / Defaultable | 관리자 후보 상태 이력·문구 | Resolved / Implemented | DRAFTED/PENDING/APPROVED/REJECTED tabs+count와 운영자 작성 문구 | D-093; Web tests PASS |
 | A-057 | B / High | 일반 한국어를 이름으로 오탐하는 PII gate | Resolved / Implemented | positive fail-closed corpus를 보존하며 일반 의문·행정명사 negative 교정 | D-093; privacy tests PASS |
-| A-058 | A / Blocker | local/private 질문 분류의 LLM 경계 | Resolved / Implemented, actual evidence pending | deterministic safety 뒤 masked ambiguous-only bounded classifier, server authority 유지 | D-086/D-091~D-093/ADR-0025 |
+| A-058 | A / Blocker | local/private 질문 분류의 LLM 경계 | Resolved / Implemented / actual PASS | deterministic safety 뒤 masked ambiguous-only bounded classifier, server authority 유지 | D-086/D-091~D-093/D-095/ADR-0025; 60/60 |
 | A-059 | A / Blocker | 현재 네 분야 밖 행정 민원의 저장·검토 정책 | Resolved / Implemented | `CIVIC_SCOPE_GAP`, separate 30-day queue, event/failed/candidate·자동 ACTIVE 0 | D-085/D-090~D-093/ADR-0024; 00680 replay PASS |
-| A-060 | A / Blocker | hybrid 분류와 grounded generation의 provider 호출·비용 상한 | Resolved / Implemented, actual aggregate pending | classifier 3초/sub-cap20, generator 8초/sub-cap30, combined40, USD0.05 stop line | D-087/D-091~D-093/ADR-0025 |
+| A-060 | A / Blocker | hybrid 분류와 grounded generation의 provider 호출·비용 상한 | Resolved / Implemented / actual aggregate PASS | classifier 3초/sub-cap20, generator 8초/sub-cap30, combined40, USD0.05 stop line | D-087/D-091~D-093/D-095/ADR-0025; classifier cumulative USD0.003873210 |
 | A-061 | A / Blocker | “현실에서 사용 가능한 민원처리”의 목표 경계 | Resolved / Q-PROD-REAL-001=A | 현실형 안내·운영센터를 고도화한다. 실제 신청·상태조회·결제·기관 시스템 연계는 P2로 유지하고 처리 완료를 주장하지 않는다. | D-088. 자연 대화·공식 근거·기관 연결·scope-gap·사람 승인 운영을 우선하며 실제 처리 전환은 별도 discovery/승인 |
 | A-062 | D / Internal | Next dev tracked 생성물 안정성 | Investigated / no change | `next dev`가 tracked `next-env.d.ts`를 build-types import에서 dev-types import로 바꿔 정상 실행만으로 worktree가 dirty해진다. | 사용자 생성 변경을 보존하고 Next 권장 정책 조사 뒤 별도 내부 위생 수정 |
+| A-063 | B / High | controlled public 시민 demo의 공급자·계정·리전·origin·비용·DNS·saved rollback version | Pending / target not configured | 현재는 remote migration·seed·deploy·smoke 0; 구성 전까지 local/private와 code/runbook evidence만 유지 | D-092/D-095/ADR-0026; human infrastructure setup |
 
 ## 우선도 정의
 

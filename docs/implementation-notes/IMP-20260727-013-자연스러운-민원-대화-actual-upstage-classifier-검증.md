@@ -49,8 +49,8 @@
 
 | ID | 구분 | 내용 | 결정/기본값 | 영향 |
 |---|---|---|---|---|
-| A-057 | Resolved | primary `.env`에는 classifier exact non-secret profile이 없음 | key는 읽기 전용·process-only, exact profile도 process-only | tracked secret 0 |
-| A-058 | Resolved | 첫 actual 54/60 | 지원 분야 동의어·scope gap 경계를 prompt에 명시하고 corrective run | prompt patch bump |
+| A-058 | Resolved | hybrid classifier actual evidence pending | frozen 60 중 20 ambiguous-only actual, corrective 60/60 | classifier boundary actual |
+| A-060 | Resolved | provider 호출·비용 actual aggregate pending | 두 bounded run 누적 USD 0.003873210 < USD 0.05 | cost evidence |
 
 ## 5. 설계 결정과 대안
 

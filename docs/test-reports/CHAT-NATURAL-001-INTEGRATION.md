@@ -59,6 +59,25 @@ executed those integration boundaries against PostgreSQL.
   deployment; those are separate approved tasks.
 - Remote admin remains disabled until production authentication is separately designed and verified.
 
+## Final closeout verification
+
+The following fresh evidence was collected after the local DB actual, Upstage actual and remote
+discovery commits:
+
+| Gate | Final result |
+|---|---|
+| `scripts/verify.ps1` | exit `0`; 33 PASS stages, 0 FAIL, 668.1s |
+| Web Playwright | 24/24 across 390, 430 and desktop |
+| reported Korean/privacy/classification/followup/admin focus | 135/135 |
+| local DB actual | `.2` 19/3/10 → separate approval ACTIVE 20 PASS |
+| Upstage classifier actual | deterministic 40/provider 20, policy/privacy outbound 0, 60/60 PASS |
+| remote/public | `Not executed: target not configured`; remote writes/requests 0 |
+
+Final gate source before this documentation-only closeout was
+`e4b8257f5d8e5fc9f9cf481ec41bfc9bb58b1f3c`. The root gate included Web lint/typecheck/unit/build,
+API format/lint/typecheck/full tests, contracts generation/drift/tests, data/seed gates, package,
+repository secret scan, browser bundle scan and diff check.
+
 ## Reproduction
 
 ```powershell

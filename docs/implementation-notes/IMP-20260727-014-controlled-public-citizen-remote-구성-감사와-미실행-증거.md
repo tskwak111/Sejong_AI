@@ -44,8 +44,7 @@
 
 | ID | 구분 | 내용 | 결정/기본값 | 영향 |
 |---|---|---|---|---|
-| A-059 | Resolved | remote target이 구성됐는가 | 0; `Not executed: target not configured` | remote writes 0 |
-| A-060 | Pending-human | 향후 공급자·계정·리전·origin·비용·DNS | 현재 선택하지 않음 | 실제 deploy 전 인간 결정 |
+| A-063 | Pending-human | 향후 공급자·계정·리전·origin·비용·DNS·saved version | 현재 target 0, 추측하지 않음 | 실제 deploy 전 인간 결정 |
 
 ## 5. 설계 결정과 대안
 
@@ -158,7 +157,7 @@
 - Task 18 final gate와 Draft PR. 실제 target이 향후 구성되면 runbook Step 1부터 새 evidence run.
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- A-060: provider/account/region/origin/budget/domain/rollback target은 인간 구성 전 Pending.
+- A-063: provider/account/region/origin/budget/domain/rollback target은 인간 구성 전 Pending.
 
 ## 15. 자체 리뷰
 
