@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Audited — natural dialogue and realistic civic-service readiness
+
+- Recorded Q-CLASS-002=A: the classifier is limited to one 3-second attempt, no retry, 1,024 input
+  characters, 128 output tokens and process sub-cap 20; grounded generation keeps sub-cap 30 and
+  the combined process cap is 40 with a VAT-inclusive USD 0.05 local synthetic stop line.
+- Audited current chat, context, retrieval, feedback, admin, source lifecycle, authentication,
+  rate-limit, backup, load and accessibility boundaries against active code and source-of-truth.
+- Added a P0/P1/P2 roadmap that prioritizes PII false-positive correction, hybrid routing,
+  text-free structured context, scope-gap review and general candidate authoring before public
+  hardening. Actual application/status/payment integration remains a product-scope decision.
+- Product/runtime/API/DB/data/provider/dependency behavior and actual calls remain unchanged.
+  Advanced documentation from `2.22.2` to `2.22.3`.
+
 ### Decided — hybrid bounded LLM question classification
 
 - Recorded Q-CLASS-001=A and ADR-0025: deterministic PII/policy/high-confidence gates remain,

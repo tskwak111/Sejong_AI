@@ -224,6 +224,14 @@ Documentation `2.22.1`은 Q-SCOPE-001=A/D-085/ADR-0024를 기록한다. 네 분�
 exact wire enum·DB migration·admin workflow는 written specification/plan 승인 전 미구현이며
 product/application/API/DB/provider/test version은 유지한다.
 
+Documentation `2.22.3`은 Q-CLASS-002=A/D-087의 classifier 1회·3초·retry 0·입력 1,024자·
+출력 128 token·sub-cap 20, generation sub-cap 30, combined process cap 40과 VAT 포함
+USD 0.05 local synthetic stop line을 기록한다. 또한 active code와 권위 문서를 기준으로
+PII 오탐, taxonomy, 얕은 context, keyword 검색, feedback 무연결, 일반 후보 작성, scope-gap,
+인증·freshness·rate limit·backup·부하·접근성·실제 기관 연계 격차를 P0/P1/P2로 감사했다.
+제품 목표 Q-PROD-REAL-001과 written spec 승인 전 product/application/Web/API/contract/DB/data/
+prompt/test/provider actual은 변경하지 않는다.
+
 Documentation `2.22.2`는 Q-CLASS-001=A/D-086/ADR-0025의 future local/private hybrid
 classification 방향을 기록한다. deterministic PII·policy·명백한 분류 뒤 안전한 ambiguous
 질문만 Upstage closed enum 분류를 사용할 수 있으며 answer/source/KB/storage 권한은 서버에

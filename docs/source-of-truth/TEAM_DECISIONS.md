@@ -102,8 +102,10 @@
   public/remote/실제 기관 운영은 계속 금지한다.
 - Q-CLASS-001=A/D-086 planned: PII·policy·명백한 supported/NON_CIVIC은 deterministic으로
   유지하고 안전한 ambiguous 질문만 Upstage closed-enum classifier에 전달한다. 모델은
-  답변·출처·저장·candidate 여부를 결정하지 않는다. Q-CLASS-002 budget과 written spec 전
-  current runtime/actual call은 0이다.
+  답변·출처·저장·candidate 여부를 결정하지 않는다. Q-CLASS-002=A/D-087의 classifier
+  한도는 요청당 1회·3초·retry 0·입력 1,024자·출력 128 token·process sub-cap 20이며,
+  generation sub-cap 30과 합친 process cap은 40, local synthetic run 비용 stop line은
+  VAT 포함 USD 0.05다. written spec·계획·별도 local actual 승인 전 current runtime call은 0이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 
 ## 기술
@@ -116,7 +118,8 @@
   concurrency 1, retry 최대 1, run outbound attempt 30 경계를 유지한다. 후속 LLM-003 시민
   경로는 local/private에서 supported+masked+ACTIVE/OFFICIAL+grounded일 때만 8초·1 attempt·
   hidden retry 0·concurrency 1·process cap 30으로 호출하고, server-issued fact ID와
-  disabled/template fallback을 강제한다. public/remote/실제 기관 운영은 별도 승인 전 금지한다.
+  disabled/template fallback을 강제한다. future hybrid classifier는 3초·1 attempt·sub-cap 20,
+  generation과 합친 cap 40으로 제한한다. public/remote/실제 기관 운영은 별도 승인 전 금지한다.
 - 초기 실행: local-first, 외부 인프라 예산 0원
 - 현재 웹 기준선: 사람이 병합한 Frontend PR #8과 owner 통합 commit `c15f61b`부터 local/private
   `/chat`과 `/admin`은 typed actual transport가 기본이고 fixture는 명시적 개발·테스트 mode에서만

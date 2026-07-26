@@ -1,6 +1,6 @@
 # ADR-0025: deterministic safety gate와 bounded LLM의 hybrid 질문 분류
 
-- Status: Accepted direction / written specification and implementation pending
+- Status: Accepted direction and budget / written specification and implementation pending
 - Date: 2026-07-27
 - Amends: ADR-0023의 provider 전 deterministic supported-intent gate
 - Preserves: PII 마스킹 선행, policy gate, ACTIVE-only retrieval, server-owned source,
@@ -34,12 +34,24 @@ Q-CLASS-001=A에 따라 local/private MVP 질문 분류에 hybrid architecture�
    저장하지 않는 deterministic safe fallback으로 닫는다.
 
 planned closed route는 `SUPPORTED`, `CIVIC_SCOPE_GAP`, `NON_CIVIC`, `NEEDS_FOLLOWUP`이다.
-`SUPPORTED`만 네 existing supported intent 중 하나를 함께 가질 수 있다. exact wire schema,
-confidence 표현, timeout과 shared/separate attempt cap은 written specification에서 확정한다.
+`SUPPORTED`만 네 existing supported intent 중 하나를 함께 가질 수 있다. exact wire schema와
+confidence 표현은 written specification에서 확정한다.
 
 분류 호출과 기존 grounded answer generation은 서로 다른 목적이다. 한 시민 요청이 분류 후
-SUCCESS 생성까지 가면 최대 두 번의 provider 호출 가능성이 생기므로 Q-CLASS-002에서 전체
-호출 상한과 비용 gate를 승인받기 전 actual classifier call은 금지한다.
+SUCCESS 생성까지 가면 최대 두 번의 provider 호출 가능성이 생긴다. Q-CLASS-002=A에 따라
+다음 경계를 확정한다.
+
+- classifier: 요청당 최대 1 attempt, timeout 3초, retry 0, 입력 1,024자, 출력 128 token,
+  process sub-cap 20
+- grounded generation: 기존 timeout 8초, 1 attempt, retry 0, process sub-cap 30
+- combined provider process cap: classifier와 generation을 합쳐 최대 40 outbound attempt
+- local synthetic acceptance run cost stop line: VAT 포함 USD 0.05
+- 각 시민 요청의 최대 provider 호출: classifier 1 + grounded generation 1
+
+sub-cap 합계보다 combined cap이 작으므로 어느 경로도 전체 process budget을 독점할 수 없다.
+모든 cap은 fail closed이며 hidden retry와 process 내 counter reset은 금지한다. 이 결정은
+실행 상한만 승인한다. exact schema written specification, 실행계획과 별도 local actual 승인을
+마치기 전 classifier actual call은 계속 금지한다.
 
 ## Consequences
 
@@ -47,6 +59,8 @@ SUCCESS 생성까지 가면 최대 두 번의 provider 호출 가능성이 생�
 - 안전하게 마스킹된 질문이라도 기존보다 더 이른 단계에서 외부 provider로 전송될 수 있다.
 - ambiguous 요청에 network latency와 비용이 추가되고 provider 장애 경로가 늘어난다.
 - strict enum과 server validation으로 모델 권한을 분류 제안에만 제한한다.
+- 한 요청은 최악의 경우 3초 분류 뒤 8초 생성까지 걸릴 수 있으므로 UI는 단계별 기다림 문구와
+  전체 fail-closed 경로를 가져야 한다. 실제 latency acceptance 기준은 written spec에서 정한다.
 - PII false positive는 provider 이전 문제이므로 별도 deterministic TDD 수정이 계속 필요하다.
 - public/remote/실제 기관 운영은 별도 개인정보·법무·비용·배포 승인 전 call 0이다.
 
@@ -59,6 +73,6 @@ SUCCESS 생성까지 가면 최대 두 번의 provider 호출 가능성이 생�
 
 ## References
 
-- Q-CLASS-001=A / D-086 / A-058
+- Q-CLASS-001=A / Q-CLASS-002=A / D-086~D-087 / A-058/A-060
 - ADR-0004, ADR-0005, ADR-0023, ADR-0024
 - `docs/discovery/CHAT_CLASSIFICATION_GAPS_DISCOVERY_REPORT.md`
