@@ -63,8 +63,8 @@ database_schema: 0.4.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
-test_suite: 1.7.0-office-directory
-documentation: 2.20.8
+test_suite: 1.7.1-office-directory-review-fix
+documentation: 2.20.9
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -132,6 +132,19 @@ endpoint smoke는 secret environment와 local prerequisite가 없어 Pending이�
 integration은 PASS했다. product specification, repository guidance, Web, DB schema, official/mock
 data와 prompt 축은 정확히 유지했으며 migration·seed·data·provider·dependency·lockfile·
 public/remote 변경은 없다.
+
+Documentation `2.20.9`는 D-080에 따라 published OFFICE-API-001 실행계획 승인과
+Subagent-Driven 구현 완료, human-review Draft PR Pending을 기록한 final-review fix다. runtime
+OpenAPI의 office 503 `Retry-After` header schema를 tracked contract와 정렬하고,
+`versions/manifest.json`에서 API version을 읽어 active README, CODEX index, tracked OpenAPI,
+FastAPI metadata와 generated TypeScript banner를 함께 검증한다. test suite는
+`1.7.0-office-directory→1.7.1-office-directory-review-fix`로 승격하며 application/API/shared
+contracts/Web/DB/data/prompt 축은 유지한다. fresh constituent API 2,044 PASS·DB-only 8 skip·
+subtests 5 PASS, pinned root 431 PASS·2 skip, shared 90/90와 docs/secret/diff gate를 통과했다.
+aggregate `scripts/verify.ps1`은 기존
+`PREFLIGHT-UV reason=exception code=2` 때문에 **NOT PASS**이고, actual Docker/Supabase endpoint
+smoke도 `Pending — local prerequisite unavailable` 그대로다. public/remote/deploy/automatic
+merge는 승인되지 않았다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

@@ -62,7 +62,7 @@
 
 | 위치 | 목적 |
 |---|---|
-| `contracts/` | OpenAPI 3.2.0-draft와 동기화 JSON Schema |
+| `contracts/` | OpenAPI 3.3.0-draft와 동기화 JSON Schema |
 | `supabase/migrations/`, `supabase/tests/database/` | DB-001 timestamp 실행 권위와 pgTAP |
 | `database/` | verified `0.4.0-local` 논리 projection, 역순 disposable-local 보상, absence proof; 실행 권위는 timestamp migration |
 | `docs/test-reports/DB-001-LOCAL-BASELINE.md` | patched-only runtime의 fresh exact loopback·pgTAP 282·integration 8/8·cleanup local 검증 보고서 |

@@ -1,10 +1,10 @@
 # OFFICE-API-001 기존 기관 조회 계약의 FastAPI runtime 정합 설계
 
-- 상태: Written Specification Approved / Execution Plan Review
+- 상태: Written Specification Approved / Execution Plan Approved / Subagent-Driven implementation complete / human-review Draft PR pending
 - 작성일: 2026-07-26 KST
 - 인간 결정: `Q-API-OFFICES-001=A`
 - 기준 commit: `8ebc66b65a67f106b05976112de345a8c849b631`
-- 관련 결정: D-026, D-031, D-058, D-078
+- 관련 결정: D-026, D-031, D-058, D-078, D-079, D-080
 - 관련 ADR: ADR-0009, ADR-0011, ADR-0019, ADR-0020
 - 관련 계약: `contracts/openapi-v1.yaml`의 `GET /api/v1/offices`
 

@@ -1,14 +1,16 @@
 # IMP-20260726-012 — OFFICE API runtime parity 구현
 
 - Date/Time (KST): 2026-07-26T16:23:57+09:00
+- Final-review fix (KST): 2026-07-26T17:16:49+09:00
 - Task ID: OFFICE-API-001
 - Type: implementation
-- Status: Done — local closeout; controller Draft PR pending
-- Author/Agent: repository owner / Codex Task 6 worker
+- Status: Done — Subagent-Driven implementation complete; human-review Draft PR pending
+- Author/Agent: repository owner / Codex Task 6 worker / final-review fix worker
 - Branch: `codex/OFFICE-API-001-design`
 - Source baseline: private `origin/main` `8ebc66b65a67f106b05976112de345a8c849b631`
 - Task 6 base/HEAD at start: `a0cdf8340315b31f14f10a212611a36f36db8744`
-- Related plan/ADR/RFP: [approved specification](../superpowers/specs/2026-07-26-office-api-runtime-parity-design.md), [execution plan](../superpowers/plans/2026-07-26-office-api-runtime-parity.md), ADR-0009, ADR-0011, ADR-0019, ADR-0020, SFR-004, D-078/D-079
+- Final-review fix base: `a306be525d03a73e7a86724f4ba073b22c20d45b`
+- Related plan/ADR/RFP: [approved specification](../superpowers/specs/2026-07-26-office-api-runtime-parity-design.md), [approved execution plan](../superpowers/plans/2026-07-26-office-api-runtime-parity.md), ADR-0009, ADR-0011, ADR-0019, ADR-0020, SFR-004, D-078/D-079/D-080
 
 ## 1. 사용자 요청과 완료 기준
 
@@ -20,14 +22,25 @@ API/readme/release/task/changelog/version 문서를 실제 동작과 일치시�
 모든 constituent gate를 실행한다. local closeout commit까지만 만들고 push, Draft PR 생성,
 merge, deploy, remote/public 인프라는 controller에게 남긴다.
 
+Final whole-branch review 뒤에는 exact findings contract에 따라 runtime OpenAPI 503
+`Retry-After` schema, D-080 실행 승인 audit trail, manifest-derived active API-version drift test와
+세 stale current-state 문서를 한 bounded fix wave로 보정한다. 기존 aggregate와 actual-smoke
+evidence는 판정을 바꾸지 않고 유지한다.
+
 ### Acceptance Criteria
 
 - default/local `GET /api/v1/offices`의 match/valid-empty 200, invalid 422, closed/readiness/DB 503을
   active docs에 기록한다.
+- runtime-generated OpenAPI의 office 503에 tracked contract와 같은 exact `Retry-After`
+  description/integer/minimum schema를 선언한다.
 - OFFICIAL-only server mapping, deterministic `public_id` order와 public
   `department_label` 부재를 기록한다.
 - application `0.10.0-office-directory-runtime`, API `3.3.0-draft`, shared contracts `0.6.0`,
-  tests `1.7.0-office-directory`, docs `2.20.8`을 exact하게 맞춘다.
+  tests `1.7.1-office-directory-review-fix`, docs `2.20.9`를 exact하게 맞춘다.
+- D-080을 published plan approval과 Subagent-Driven implementation authority로 사용하고 D-079의
+  historical written-specification approval을 다시 쓰지 않는다.
+- manifest API version에서 expected 값을 파생해 active README/CODEX index/tracked OpenAPI/FastAPI
+  metadata/generated banner의 정합을 검증한다.
 - product/repository guidance/Web/DB schema/official·mock data/prompt 축을 유지한다.
 - DB/data/Web/LLM/provider/dependency/lockfile/public/remote mutation 0을 diff로 증명한다.
 - aggregate와 constituent gate 결과를 구분하고 actual endpoint smoke를 실행했는지 정직하게
@@ -38,13 +51,13 @@ merge, deploy, remote/public 인프라는 controller에게 남긴다.
 
 | 항목 | 기록 |
 |---|---|
-| Who — 누가 | 사용자가 Q-API-OFFICES-001=A와 D-078/D-079로 설계·명세·계획을 승인했고 Tasks 1~5 worker가 구현했다. Task 6 worker가 closeout 문서·검증·local commit을 담당하며 controller가 최종 review/push/Draft PR을 소유한다. |
-| When — 언제 | 2026-07-26 KST, Task 6 base `a0cdf83`에서 시작했다. |
+| Who — 누가 | 사용자가 Q-API-OFFICES-001=A/D-078로 설계, D-079로 written specification, exact `1번 구현 시작`/D-080으로 published plan과 Subagent-Driven start를 승인했다. Tasks 1~6 worker가 구현했고 final-review fix worker가 bounded correction·검증·local commit을 담당한다. controller와 사람이 scoped re-review/push/Draft PR/merge를 소유한다. |
+| When — 언제 | 2026-07-26 KST, Task 6 base `a0cdf83`에서 시작했고 final-review fix base `a306be5`에서 correction wave를 수행했다. |
 | Where — 어디서 | linked worktree `.worktrees/office-api-001-design`, FastAPI/docs/contracts/version/implementation-note 영역. local/remote DB와 public infrastructure는 작업하지 않았다. |
-| What — 무엇을 | existing office contract의 default/local FastAPI runtime parity를 문서화하고 exact release axes, test evidence, rollback과 handoff를 닫는다. |
+| What — 무엇을 | existing office contract의 default/local FastAPI runtime parity와 runtime 503 header schema, 승인 audit trail, active version drift coverage, exact release axes, test evidence, rollback과 handoff를 닫는다. |
 | Why — 왜 | tracked OpenAPI대로 호출할 때 404였던 drift를 제거하고, dependency 부재를 false empty로 위장하지 않는 OFFICIAL 기관 read surface를 제공하기 위해서다. |
-| How — 어떻게 | Tasks 1~5 commits 검토, forbidden-path/identifier diff, one aggregate attempt, complete constituent gates, active docs/manifest/note/INDEX sync, post-edit gates, local commit 순서로 수행한다. |
-| How much — 어느 정도 | product/contract/test commits 5개와 planning commits 2개를 소비한다. Task 6은 planned docs/version 8개만 변경하며 DB/data/Web/provider/dependency/public mutation과 외부 비용은 0이다. |
+| How — 어떻게 | Tasks 1~6 commits와 final findings를 검토하고, runtime-header RED→GREEN 뒤 active-version-consistency RED→GREEN, D-080/docs/version sync, full constituent/security/scope/diff gate, self-review와 단일 local fix commit 순서로 수행한다. |
+| How much — 어느 정도 | review fix는 one Python route declaration, two test files와 active docs/version evidence만 변경한다. DB/data/Web/provider/dependency/lockfile/public/remote mutation과 외부 비용은 0이다. |
 
 ## 3. 시작 전 상태
 
@@ -69,7 +82,7 @@ merge, deploy, remote/public 인프라는 controller에게 남긴다.
 
 | ID | 구분 | 내용 | 결정/기본값 | 영향 |
 |---|---|---|---|---|
-| A-051 | Resolved human decision | endpoint를 제거할지 runtime에 구현할지 | Q-API-OFFICES-001=A / 존치·구현 | API runtime/contract minor |
+| A-051 | Resolved human decision | endpoint를 제거할지 runtime에 구현하고 어떤 plan mode로 시작할지 | Q-API-OFFICES-001=A/D-078 존치·구현; `1번 구현 시작`/D-080 plan 승인·Subagent-Driven | API runtime/contract minor |
 | T6-ENV-001 | Environment | actual local endpoint smoke에 필요한 ignored environment가 현재 worktree/process에 있는지 | file/value를 읽지 않고 이름·존재만 확인; 둘 다 없어 Pending | actual Docker/Supabase smoke만 Pending |
 | T6-GATE-001 | Environment | aggregate verifier가 repo-local/PATH uv를 찾을 수 있는지 | 한 번 실행하고 failure를 그대로 기록; 설치나 rerun 없이 pinned uv로 constituents 실행 | aggregate FAIL과 constituent PASS를 분리 |
 | T6-PUBLISH-001 | Explicit ownership | 실행계획 Step 7의 push/Draft PR과 controller 지시의 경계 | 더 구체적인 controller 지시를 따라 local commit만 생성 | controller가 final review/push/PR 수행 |
@@ -114,9 +127,12 @@ metadata를 서버 소유로 유지해 시민에게 fabricated 기관 정보를 
 | `apps/api/src/sejong_ai_api/main.py`, `local.py` | default route always registered; local existing repository/probe injection | OpenAPI discovery와 local data path 분리 |
 | office/route/local/chat tests | match, empty, invalid, closed/readiness/DB error와 mapper regression | 모든 승인 public/safety case 자동 검증 |
 | `contracts/openapi-v1.yaml`, `packages/shared-contracts` | API 3.3 strict response/errors와 generated TS 0.6 | tracked/runtime/generated parity |
+| `apps/api/src/sejong_ai_api/api/offices.py`, `apps/api/tests/test_offices_route.py` | runtime-generated 503 `Retry-After` exact header schema와 RED→GREEN regression | tracked/runtime OpenAPI parity |
+| `scripts/tests/test_repository_scaffold.py`, `README.md`, `CODEX_FILE_INDEX.md` | manifest-derived active API-version consistency와 stale current-state marker 교정 | independent source of truth와 active artifact drift 방지 |
 | `apps/api/README.md`, `docs/05_API_AND_CONTRACTS.md` | request/response, 200/422/503, default/local, OFFICIAL-only, no internal field, smoke/rollback | 운영자와 consumer 재현 |
-| `docs/12_VERSIONING_AND_RELEASES.md`, `versions/manifest.json` | exact five-axis closeout와 unchanged axes/evidence | release 식별 |
-| `TASKS.md`, `CHANGELOG.md` | 완료 상태, behavior, gate truth, non-goals | active backlog/release sync |
+| `docs/decisions/DECISION_LOG.md`, ambiguity/spec/TASKS | D-080 plan authority와 implementation-complete/Draft-PR-pending status | 인간 승인 audit trail |
+| `docs/12_VERSIONING_AND_RELEASES.md`, `versions/manifest.json` | exact review-fix axes와 unchanged axes/evidence | release 식별 |
+| `TASKS.md`, `CHANGELOG.md` | 완료 상태, behavior, aggregate/smoke gate truth, non-goals | active backlog/release sync |
 | 이 note와 `INDEX.md` | command/security/data/rollback/handoff 증거와 exact one row | AGENTS 구현 노트 의무 |
 
 ### 데이터 흐름/상태 변화
@@ -160,8 +176,8 @@ required region + supported intent
 - official_data: 0.1.0-initial.2
 - mock_data: 0.0.0-not-populated
 - prompt_set: 0.2.0-grounded-live-chat
-- test_suite: 1.7.0-office-directory
-- documentation: 2.20.8
+- test_suite: 1.7.1-office-directory-review-fix
+- documentation: 2.20.9
 
 | 축 | Before | After | 변경 이유 |
 |---|---|---|---|
@@ -175,10 +191,17 @@ required region + supported intent
 | Official data | 0.1.0-initial.2 | unchanged | release/seed/row 변경 0 |
 | Mock data | 0.0.0-not-populated | unchanged | mock 생성/혼합 0 |
 | Prompt set | 0.2.0-grounded-live-chat | unchanged | LLM/provider/prompt 변경 0 |
-| Test suite | 1.6.1-grounded-actual | 1.7.0-office-directory | office contract/service/route/local regression |
-| Documentation | 2.20.7 | 2.20.8 | implementation closeout |
+| Test suite | 1.6.1-grounded-actual | 1.7.1-office-directory-review-fix | office contract/service/route/local regression과 final runtime/version drift coverage |
+| Documentation | 2.20.7 | 2.20.9 | implementation closeout와 D-080/final-review fix |
+
+Review-fix 자체의 exact before/after는 test suite
+`1.7.0-office-directory→1.7.1-office-directory-review-fix`, documentation
+`2.20.8→2.20.9`다. application, API, shared contracts, Web, DB schema, official/mock data,
+prompt, product와 repository guidance는 변경하지 않았다.
 
 ## 8. 명령과 테스트 증거
+
+### Task 6 historical closeout evidence
 
 | 명령/검증 | 결과 | 시간/개수 | 증거 경로 |
 |---|---|---|---|
@@ -202,6 +225,24 @@ required region + supported intent
 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check_secret_patterns.ps1 -RepositoryRoot .` | PASS — finding 0 | post-edit 1회 | terminal evidence |
 | `$env:PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN='false'`<br>`corepack pnpm --filter @sejong-ai/shared-contracts generate:check` | PASS — generated TypeScript unchanged | post-edit 1회 | terminal evidence |
 | `git diff --check`; `git status --short` | PASS — whitespace 0; exact planned closeout files 8 | post-edit 1회 | terminal evidence |
+
+### Final-review fix evidence
+
+| 명령/검증 | 결과 | 시간/개수 | 증거 경로 |
+|---|---|---|---|
+| repo uv `pytest tests/test_offices_route.py::test_generated_openapi_declares_the_office_retry_after_header -q -p no:cacheprovider` before production edit | expected **RED** — `KeyError: 'headers'`; 1 failed, pre-existing Starlette warning 1 | 0.75s | terminal evidence |
+| same focused runtime-header test after minimal route declaration | **GREEN** — 1 passed, pre-existing warning 1 | 0.57s | terminal evidence |
+| repo uv focused `ruff format --check`, `ruff check`, `mypy`, `pytest tests/test_offices_route.py` | PASS — 2 files formatted, Ruff clean, MyPy 2 files clean, route 11 passed with pre-existing warning 1 | 1 focused wave | terminal evidence |
+| `python -B -m unittest ...test_should_align_active_api_version_artifacts_with_manifest -v` before README/index edits | expected **RED** — manifest `3.3.0-draft`; only README current markers 2 and CODEX contract row 1 were `3.2.0-draft` | 0.008s | terminal evidence |
+| same manifest-derived active-version test after three bounded doc edits | **GREEN** — 1 test OK | 0.007s | terminal evidence |
+| repo uv `run --project apps/api --frozen python -B -m unittest scripts.tests.test_repository_scaffold -v` | PASS — pinned Python 3.12.13, 7/7 | 0.007s | terminal evidence |
+| repo uv full API `ruff format --check src tests`; `ruff check src tests`; `mypy src tests`; `pytest -q -p no:cacheprovider` | PASS — 105 files formatted, Ruff/MyPy clean, 2,044 passed, DB-only 8 skipped, 5 subtests passed, pre-existing warning 1 | pytest 17.75s | pinned Python 3.12.13 / uv 0.11.28 |
+| direct system `python -B -m unittest discover -s scripts/tests -p test_*.py -q` diagnostic attempt | **NOT PASS** — system Python was 3.14.0 and linked worktree lacked gitignored patched runtime; 431 ran, 3 failed, 2 skipped | 359.600s | superseded environment diagnosis, not PASS evidence |
+| shared local `.tools` runtime availability check | PASS — existing main-checkout Supabase binary present and SHA-256 equals tracked runtime manifest; gitignored worktree junction created, install/build/copy 0 | 1 check | no tracked diff |
+| repo uv `run --project apps/api --frozen python -B -m unittest discover -s scripts/tests -p test_*.py -q` | PASS — pinned Python 3.12.13, 431 tests OK, 2 skipped; printed `[FAIL] step=...` lines are expected negative-fixture diagnostics | 394.480s | terminal verdict exit 0 / `OK (skipped=2)` |
+| `$env:PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN='false'`; shared `generate:check`; shared `test` | PASS — fresh generated drift 0; shared contracts 90/90 | 4.7s | install/build approval 0 |
+| repo uv manifest JSON parse; repository docs checker; secret-pattern scanner | PASS — pinned Python 3.12.13, valid JSON, docs check passed, scanner exit 0/finding 0 | one final wave | terminal evidence |
+| forbidden diff from fix base across DB/Supabase/data/Web/LLM provider/GitHub/dependency/lock/env paths; `git diff --check` | PASS — forbidden diff 0, whitespace error 0, exact 14 bounded tracked files | one final wave | fix base `a306be5` |
 
 Aggregate PASS를 주장하지 않는다. bootstrap이 실패한 exact step과 모든 substitute constituent
 evidence를 분리한다. pnpm fallback은 dependency auto-verification을 false로 설정했고 install/build
@@ -244,12 +285,15 @@ approval을 실행하지 않았다. fallback 후 workspace/lock/dependency drift
 
 ## 11. 인간이 반드시 알아야 하거나 승인할 내용
 
+- exact `1번 구현 시작`은 D-080의 published execution-plan approval과 Subagent-Driven
+  implementation authority다. D-079는 historical written-specification approval로 보존했다.
 - aggregate verifier는 PASS하지 않았다. worktree에서 uv를 발견하지 못한 `PREFLIGHT-UV code=2`
   bootstrap failure이고, plan-listed constituent gates는 모두 PASS했다.
 - actual Docker/Supabase endpoint smoke는 Pending이다. 실제 local endpoint evidence가 필요하면
   owner가 준비한 non-secret-safe local environment에서 별도 실행해야 하며 reset/seed/data mutation은
   별도 승인 대상이다.
-- API/shared minor와 application/test/docs axes는 위 exact 값으로 변경된다. DB/data/Web/prompt와
+- API/shared/application은 구현 closeout 값을 유지하고 review fix에서 test suite만
+  `1.7.1-office-directory-review-fix`, documentation만 `2.20.9`로 올렸다. DB/data/Web/prompt와
   product/repository guidance는 유지된다.
 - push, Draft PR 생성, ready/merge, deploy는 수행하지 않는다. controller가 whole-branch review 뒤
   owner branch를 push하고 human-review Draft PR을 만들어야 한다.
@@ -260,17 +304,21 @@ approval을 실행하지 않았다. fallback 후 workspace/lock/dependency drift
 - `build_public_office` overload와 tuple conversion, dependency override, fake/repository call counter는
   public wire와 안전 경계 안의 내부 구현이다.
 - local composition은 chat과 같은 repository/pool/probe를 재사용하며 별도 lifecycle을 추가하지 않는다.
-- Task 6 closeout commit은 note 자체에 self-referential SHA를 넣을 수 없으므로 subject
-  `docs(api): close out office directory runtime parity`와 final SHA를 Task 6 report/controller handoff가
-  소유한다. predecessor commit SHA는 이 note에 고정했다.
+- active-version consistency test는 manifest의 API 값을 expected로 한 번만 읽고 README current
+  markers, CODEX contract row, tracked YAML metadata, FastAPI AST metadata와 generated banner의
+  실제 값을 독립적으로 추출한다. 별도 hardcoded expected version을 만들지 않는다.
+- final-review fix commit은 note 자체에 self-referential SHA를 넣지 않고 final fix report와
+  controller handoff가 SHA/subject를 소유한다. predecessor와 fix base SHA는 이 note에 고정했다.
 
 ## 13. 인수인계·재현·롤백
 
 ### 재현
 
-1. private source baseline `8ebc66b`, branch와 Task 6 base `a0cdf83`을 확인한다.
-2. approved specification과 execution plan, 이 note를 순서대로 읽는다.
-3. pre-closeout forbidden diff/identifier commands를 실행한다.
+1. private source baseline `8ebc66b`, branch, Task 6 base `a0cdf83`과 final-review fix base
+   `a306be5`를 확인한다.
+2. final-review findings, approved specification/plan과 이 note를 순서대로 읽고 D-080 authority를
+   확인한다.
+3. 두 RED→GREEN focused test와 final-review constituent/full scope/security/diff commands를 실행한다.
 4. aggregate는 이미 exactly once 실패했으므로 재실행해 과거 결과를 덮지 않는다. listed constituent
    API/shared/docs/secret/diff gates를 같은 pinned tool versions로 재현한다.
 5. local prerequisites가 owner-approved 상태로 이미 준비된 경우에만 records/DSN을 출력하지 않는
@@ -287,7 +335,7 @@ approval을 실행하지 않았다. fallback 후 workspace/lock/dependency drift
 
 ### 다음 개발자 시작점
 
-controller가 Task 6 report와 final diff를 review하고 branch를 push한 뒤 Draft PR을 생성한다.
+controller가 final fix report와 scoped re-review를 확인하고 branch를 push한 뒤 Draft PR을 생성한다.
 Draft PR에는 aggregate failure/constituent PASS와 exact Pending smoke line을 유지하고 사람이
 검토·merge한다. mark-ready/merge/delete/deploy는 별도 인간 결정 전 수행하지 않는다.
 
@@ -299,11 +347,13 @@ Draft PR에는 aggregate failure/constituent PASS와 exact Pending smoke line을
 - broad API baseline의 pre-existing Starlette deprecation warning 1건은 failure가 아니지만 dependency
   migration 시 별도 정리가 필요하다.
 - hosted backend CI와 public/remote readiness는 별도 backlog/승인 대상이다.
-- 다음 한 단계: controller whole-branch review → push → human-review Draft PR.
+- 다음 한 단계: controller scoped final-fix re-review → push → human-review Draft PR.
 
 ## 15. 자체 리뷰
 
-- Independent read-only Task 6 review: Approved; blocking Critical/Important finding 0.
+- Independent whole-branch review: Critical 0, Important 2, bounded Minor 1. 이 fix wave에서
+  runtime header parity, D-080 approval audit와 manifest-derived active version drift를 모두
+  보정했다.
 - [x] 요청 충족
 - [x] 테스트/검증
 - [x] source-of-truth/계약/버전 동기화

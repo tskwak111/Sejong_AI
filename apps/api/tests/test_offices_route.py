@@ -122,3 +122,12 @@ def test_generated_openapi_declares_the_office_route() -> None:
     assert {item["name"] for item in operation["parameters"]} == {"region", "intent"}
     assert all(item["required"] is True for item in operation["parameters"])
     assert set(operation["responses"]) >= {"200", "422", "503"}
+
+
+def test_generated_openapi_declares_the_office_retry_after_header() -> None:
+    operation = create_app().openapi()["paths"]["/api/v1/offices"]["get"]
+
+    assert operation["responses"]["503"]["headers"]["Retry-After"] == {
+        "description": "Suggested retry delay in seconds.",
+        "schema": {"type": "integer", "minimum": 1},
+    }

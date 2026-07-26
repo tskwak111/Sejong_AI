@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import re
 import tomllib
@@ -92,6 +93,75 @@ class RepositoryScaffoldContractTests(unittest.TestCase):
             "supabase/.branches/",
         }
         self.assertEqual(required - ignored, set())
+
+    def test_should_align_active_api_version_artifacts_with_manifest(self) -> None:
+        manifest = json.loads(self.read_required_text("versions/manifest.json"))
+        expected_api_version = manifest["versions"]["api"]
+
+        def required_version_match(relative_path: str, pattern: str) -> str:
+            matches = re.findall(pattern, self.read_required_text(relative_path), re.MULTILINE)
+            self.assertEqual(
+                len(matches),
+                1,
+                f"expected one active API version marker in {relative_path}",
+            )
+            return matches[0]
+
+        main_module = ast.parse(
+            self.read_required_text("apps/api/src/sejong_ai_api/main.py"),
+            filename="apps/api/src/sejong_ai_api/main.py",
+        )
+        fastapi_versions = [
+            keyword.value.value
+            for node in ast.walk(main_module)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "FastAPI"
+            for keyword in node.keywords
+            if keyword.arg == "version"
+            and isinstance(keyword.value, ast.Constant)
+            and isinstance(keyword.value.value, str)
+        ]
+        self.assertEqual(
+            len(fastapi_versions),
+            1,
+            "expected one literal FastAPI version metadata value",
+        )
+
+        actual_versions = {
+            "README shared-contract state": required_version_match(
+                "README.md",
+                r"공유 계약 package는 OpenAPI ([^,\s]+),",
+            ),
+            "README active contract revision": required_version_match(
+                "README.md",
+                r"`contracts/`의 API spec revision은 ([^\s]+?)다\.",
+            ),
+            "CODEX contract index": required_version_match(
+                "CODEX_FILE_INDEX.md",
+                r"^\| `contracts/` \| OpenAPI ([^\s]+)와 동기화 JSON Schema \|$",
+            ),
+            "tracked OpenAPI metadata": required_version_match(
+                "contracts/openapi-v1.yaml",
+                r"^  version:\s*([^\s]+)\s*$",
+            ),
+            "FastAPI metadata": fastapi_versions[0],
+            "generated TypeScript banner": required_version_match(
+                "packages/shared-contracts/src/generated/api.ts",
+                r"^\s*\* OpenAPI: ([^;]+); generator:",
+            ),
+        }
+
+        drift = {
+            artifact: actual
+            for artifact, actual in actual_versions.items()
+            if actual != expected_api_version
+        }
+        self.assertEqual(
+            drift,
+            {},
+            f"active API versions must match manifest value {expected_api_version}",
+        )
 
 
 if __name__ == "__main__":

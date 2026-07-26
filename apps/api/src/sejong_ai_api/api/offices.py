@@ -35,7 +35,16 @@ def get_office_directory() -> OfficeDirectory:
     response_model=OfficeListResponse,
     responses={
         422: {"model": ValidationErrorEnvelope, "description": "Invalid query"},
-        503: {"model": ServiceUnavailableEnvelope, "description": "Dependency unavailable"},
+        503: {
+            "model": ServiceUnavailableEnvelope,
+            "description": "Dependency unavailable",
+            "headers": {
+                "Retry-After": {
+                    "description": "Suggested retry delay in seconds.",
+                    "schema": {"type": "integer", "minimum": 1},
+                }
+            },
+        },
     },
 )
 async def list_offices(
