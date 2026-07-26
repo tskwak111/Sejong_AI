@@ -1,6 +1,6 @@
 # ADR-0025: deterministic safety gate와 bounded LLM의 hybrid 질문 분류
 
-- Status: Accepted direction and budget / written specification and implementation pending
+- Status: Accepted / integrated specification approved / implementation pending
 - Date: 2026-07-27
 - Amends: ADR-0023의 provider 전 deterministic supported-intent gate
 - Preserves: PII 마스킹 선행, policy gate, ACTIVE-only retrieval, server-owned source,
@@ -62,7 +62,9 @@ sub-cap 합계보다 combined cap이 작으므로 어느 경로도 전체 proces
 - 한 요청은 최악의 경우 3초 분류 뒤 8초 생성까지 걸릴 수 있으므로 UI는 단계별 기다림 문구와
   전체 fail-closed 경로를 가져야 한다. 실제 latency acceptance 기준은 written spec에서 정한다.
 - PII false positive는 provider 이전 문제이므로 별도 deterministic TDD 수정이 계속 필요하다.
-- public/remote/실제 기관 운영은 별도 개인정보·법무·비용·배포 승인 전 call 0이다.
+- D-092는 PII-free allowlisted actual classifier run을 승인했다. ADR-0026에 따라 remote 시민
+  검증은 provider-disabled가 기본이며, real citizen/free-input outbound와 실제 기관 운영은
+  개인정보·약관·법무 운영 gate 전까지 call 0이다.
 
 ## Rejected alternatives
 

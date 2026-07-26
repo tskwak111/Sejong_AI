@@ -1,5 +1,10 @@
 # Certificate Category Follow-up Implementation Plan
 
+> Status: Superseded before implementation by
+> `docs/superpowers/specs/2026-07-27-natural-civic-dialogue-and-operations-design.md`.
+> The approved behavior and tests are preserved in CHAT-NATURAL Slice 1; do not execute this
+> older plan independently because classifier/service/Web files are shared with the hybrid work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **Status:** Paused pending an integrated hybrid-taxonomy written specification.

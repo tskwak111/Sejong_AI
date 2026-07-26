@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Approved — integrated natural dialogue specification and actual execution
+
+- Recorded D-091/D-092: the three approved design sections are consolidated into one
+  implementation specification with exact routing, context v2, scope-gap DB/API/admin,
+  failure, performance, test, rollback and version boundaries.
+- Actual PII-free Upstage classification, clean local DB reset and immutable `.2` seed, public
+  `00700` hardening and configured remote citizen-route verification are approved. Remote admin
+  remains disabled without authentication.
+- Advanced product specification from `2.5.0` to `2.6.0` and documentation from `2.22.6` to
+  `2.23.0`. Product code, contracts, DB and provider runtime remain unchanged in this documentation
+  commit.
+
 ### Approved — natural chat design section 2
 
 - Recorded D-090 approval of the `CIVIC_SCOPE_GAP` public reason and separate 30-day masked review

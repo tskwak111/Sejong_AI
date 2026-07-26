@@ -131,7 +131,9 @@
   경로는 local/private에서 supported+masked+ACTIVE/OFFICIAL+grounded일 때만 8초·1 attempt·
   hidden retry 0·concurrency 1·process cap 30으로 호출하고, server-issued fact ID와
   disabled/template fallback을 강제한다. future hybrid classifier는 3초·1 attempt·sub-cap 20,
-  generation과 합친 cap 40으로 제한한다. public/remote/실제 기관 운영은 별도 승인 전 금지한다.
+  generation과 합친 cap 40으로 제한한다. D-092는 PII-free allowlisted classifier actual과
+  ADR-0026의 admin-disabled remote 시민 검증을 승인했지만 real citizen/free-input provider
+  outbound와 실제 기관 운영은 개인정보·약관·법무 운영 gate 전까지 금지한다.
 - 초기 실행: local-first, 외부 인프라 예산 0원
 - 현재 웹 기준선: 사람이 병합한 Frontend PR #8과 owner 통합 commit `c15f61b`부터 local/private
   `/chat`과 `/admin`은 typed actual transport가 기본이고 fixture는 명시적 개발·테스트 mode에서만
@@ -257,6 +259,19 @@
   automated backup, advanced UI,
   public/remote deploy와 `00700`은 deferred다. local role selector는 production authentication이 아니다.
 
+## 2026-07-27 자연스러운 민원 대화·운영 통합 결정
+
+- D-091로 설계 1~3부를 하나의
+  `docs/superpowers/specs/2026-07-27-natural-civic-dialogue-and-operations-design.md`에
+  통합한다. privacy-first hybrid classifier, context v2, `CIVIC_SCOPE_GAP` 별도 queue,
+  일반 후보 작성, 오류·성능·acceptance가 구현 권위다.
+- D-092로 PII-free actual Upstage, local DB reset·정식 `.2` seed, `00680` 뒤 `00700`
+  public hardening과 구성된 remote 시민 경로 검증을 승인한다.
+- public/remote에서도 인증 없는 `/admin`과 관리자 API는 비활성이다. 실제 신청·상태조회·결제는
+  P2이며 현재 시스템이 행정 처리를 완료한다고 표현하지 않는다.
+- remote target/credential이 없으면 코드·migration·runbook까지만 검증하고 target을 추측하거나
+  새 계정을 자동 생성하지 않는다.
+
 ## 제출 정보
 
 - 팀명: [직접 입력]
@@ -264,4 +279,4 @@
 - 대표 연락처: [직접 입력]
 - 제출일: [직접 입력]
 - 최종 확인란: `팀 대표 확인`
-- 문서 버전: v2.5.0
+- 문서 버전: v2.6.0

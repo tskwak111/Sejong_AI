@@ -38,7 +38,9 @@
 2026-07-23 Q-LLM-005=A/D-065/ADR-0022는 아직 구현되지 않은 DeepSeek 선택을 대체한다. 외부
 공급자는 Upstage exact `solar-pro3`이며, 먼저 local/private server-allowlisted 합성
 `T-01`~`T-10` 평가로 한국어 품질·strict JSON·비용을 검증한다. 결정론적 시민 경로는 계속
-기본이고 실제 시민/free-input/public/remote provider 사용은 선택지 B의 별도 승인 전 금지한다.
+기본이다. 당시 실제 시민/free-input/public/remote provider 사용 금지는 D-092에서
+PII-free allowlisted actual classifier 검증만 좁게 supersede됐고, real citizen/free-input
+outbound는 ADR-0026의 개인정보·약관·법무 운영 gate 전까지 금지한다.
 2026-07-25 actual은 outbound 30회에서 strict-schema 27/30으로 전체 FAIL했다. 인간 검토 9개
 평균 4.8444·최저 4와 VAT 포함 USD 0.004654815는 통과했지만 JSON 100% 기준을 충족하지
 못했으므로 D-071에서 선택지 B 미승인과 provider-disabled/template 시민 경로 유지를 확정했다.
@@ -71,7 +73,9 @@ corrective second 10-call run의 governance incident는 D-076에서 사용자가
 retry 0·입력 1,024자·출력 128 token·process sub-cap 20으로 제한하고, 기존 grounded
 generation의 8초·1회·sub-cap 30과 합친 process cap을 40, local synthetic run 비용 stop
 line을 VAT 포함 USD 0.05로 고정한다. exact schema written specification·실행계획·별도 local
-actual 승인 전 current runtime/provider call은 0이며 public/remote 금지를 유지한다.
+D-092가 PII-free allowlisted actual classifier 실행을 승인했다. public/remote 시민 검증은
+ADR-0026에 따라 provider-disabled와 admin-disabled가 기본이며 real citizen/free-input
+provider 전송은 계속 금지한다.
 
 2026-07-27 Q-PROD-REAL-001=A/D-088은 제품 목표를 **현실형 민원 안내·운영센터**로 확정한다.
 자연스러운 구조화 대화, 승인된 공식 근거, 기관 연결, 범위 확대 검토와 사람 승인 개선 루프를
@@ -84,7 +88,14 @@ D-089/D-090의 CHAT-NATURAL 설계 1~2부는 privacy-first hybrid pipeline과 co
 false이며 별도 queue에 마스킹 text만 30일 보관한다. NON_CIVIC·개인조회·법적판단·privacy
 unresolved는 text/event/failed/review row 0이다. context v2는 topic/pending-slot/dialog-act
 같은 closed server ID만 사용하고 raw transcript·프로필은 금지한다. exact contract/DB와
-runtime은 전체 written specification·계획 승인 전 변경하지 않는다.
+runtime은 D-091의 통합 written specification을 구현 권위로 사용한다.
+
+D-091은 classifier/generator 오류·성능·60개 분류/5개 후속/7개 장애 acceptance와 세 수직
+흐름을 확정했다. D-092는 PII-free allowlisted actual Upstage, local DB reset·immutable `.2`
+정식 seed, `00680` scope queue와 ADR-0018의 `00700` public hardening, 구성된 remote 시민 경로
+검증을 승인한다. secret·DSN·raw payload를 출력하지 않고 remote target을 추측하지 않는다.
+인증 없는 public 관리자 경로는 승인 범위가 아니며 계속 fail-closed로 비활성이다. actual provider,
+DB와 remote 작업은 unit/area gate 뒤 통합 명세의 비용·rollback·증거 경계를 따라 수행한다.
 
 ## 4. 변경 절차
 

@@ -5,8 +5,9 @@ Supabase CLI의 exact single `127.0.0.1:54322`, current 9 forward/9 matching rol
 pgTAP 9 files/356 assertions와 rollback absence/reapply 36/36을 검증했다. 이는
 production/public readiness를 뜻하지 않는다.
 Q-SEC-003=A/D-046으로 exact privileged function 22 signatures의 property-only `00700`
-보정 방향은 확정됐지만 public 준비까지 구현을 보류한다. `00700`·matching compensation·전체
-regression 전에는 remote/public 배포, public admin/API, public backend DB credential을 금지한다.
+보정 방향을 확정했고 D-092가 public 준비·실행을 승인했다. 먼저 `00680` scope-gap queue를
+추가한 뒤 `00700`·matching rollback·전체 regression을 수행한다. 완료 전 remote migration과
+배포를 금지하며, 완료 뒤에도 ADR-0026에 따라 인증 없는 public admin/API는 비활성이다.
 
 ## 권위와 계보
 
@@ -27,6 +28,9 @@ Forward migration과 matching compensation은 현재 각각 9개다. 적용·com
 수정하지 않고 보정이 필요하면 새 reviewed forward migration을 추가한다. 현재 local 전체
 보상 순서는 `00670 → 00660 → 00650 → 00600 → 00500 → 00400 → 00300 → 00200 → 00100`이며, 이어
 `database/verify_db001_absent.sql`로 DB-001 객체 부재를 증명한다.
+
+CHAT-NATURAL 구현 목표 순서는 `00700 → 00680 → 00670 → ... → 00100` rollback이다. 구현 전
+문서에 적힌 목표 순서를 current executable count로 오인하지 않는다.
 
 ## 로컬 실행과 검증 — patched repository gate만 허용
 
