@@ -681,11 +681,12 @@ SELECT is(
       AND NOT triggers.tgisinternal
       AND functions.proname = 'set_updated_at'
       AND tables.relname NOT IN (
-        'kb_documents', 'failed_questions', 'kb_candidates', 'chat_idempotency'
+        'kb_documents', 'failed_questions', 'kb_candidates', 'chat_idempotency',
+        'civic_scope_gaps'
       )
   ),
   0,
-  'set_updated_at is absent outside the four approved mutable tables'
+  'set_updated_at is absent outside the five approved mutable tables'
 );
 
 SELECT is(

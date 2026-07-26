@@ -287,10 +287,28 @@ CREATE TABLE app_private.chat_idempotency (
   expires_at timestamptz NOT NULL
 );
 
+-- Local/private out-of-scope civic review queue. The executable authority is
+-- `20260727000680_civic_scope_gap_queue.sql`; raw questions, answer/source
+-- snapshots, context tokens, interaction/failed-question/candidate/KB links and
+-- automatic activation are intentionally absent.
+CREATE TABLE app_private.civic_scope_gaps (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  masked_question text,
+  status text NOT NULL DEFAULT 'NEW',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  text_expires_at timestamptz NOT NULL DEFAULT (now() + interval '30 days'),
+  text_purged_at timestamptz,
+  reviewed_by text,
+  reviewed_at timestamptz,
+  review_comment text
+);
+
 -- `00650` adds four backend-only local admin read capabilities:
 -- app_api.list_failed_questions, app_api.get_failed_question,
 -- app_api.list_kb_candidates and app_api.get_kb_candidate.
 -- `00660` adds backend-only claim/complete/abandon/purge idempotency capabilities.
+-- `00680` adds backend-only record/list/review/purge scope-gap capabilities.
 -- Their SECURITY DEFINER, fixed search_path, revoke/grant posture and exact state
 -- machine are intentionally not duplicated in this non-executable projection.
 

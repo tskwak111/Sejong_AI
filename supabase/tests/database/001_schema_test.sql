@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(33);
+SELECT plan(34);
 
 SELECT has_schema('app_private', 'app_private schema exists');
 SELECT has_schema('app_api', 'app_api schema exists');
@@ -39,11 +39,15 @@ SELECT has_table('app_private', 'audit_logs', 'audit logs are private');
 SELECT has_table(
   'app_private', 'chat_idempotency', 'chat idempotency state is private'
 );
+SELECT has_table(
+  'app_private', 'civic_scope_gaps', 'civic scope-gap queue is private'
+);
 SELECT tables_are(
   'app_private',
   ARRAY[
     'audit_logs',
     'chat_idempotency',
+    'civic_scope_gaps',
     'failed_questions',
     'interaction_events',
     'kb_candidates',
@@ -52,7 +56,7 @@ SELECT tables_are(
     'office_service_mappings',
     'offices'
   ],
-  'app_private contains exactly the nine approved local/private tables'
+  'app_private contains exactly the ten approved local/private tables'
 );
 
 SELECT is(
@@ -104,7 +108,8 @@ SELECT is(
           'failed_questions',
           'kb_candidates',
           'audit_logs',
-          'chat_idempotency'
+          'chat_idempotency',
+          'civic_scope_gaps'
         ]
       )
       AND lower(columns.column_name) ~ '^(raw_question|question_text|answer_text|transcript|context_token|ip_address|device_id|secret|provider_payload)$'
@@ -135,11 +140,12 @@ SELECT ok(
           'failed_questions',
           'kb_candidates',
           'audit_logs',
-          'chat_idempotency'
+          'chat_idempotency',
+          'civic_scope_gaps'
         ]
       )
   ),
-  'public contains none of the nine approved local/private tables'
+  'public contains none of the ten approved local/private tables'
 );
 
 SELECT * FROM finish();
