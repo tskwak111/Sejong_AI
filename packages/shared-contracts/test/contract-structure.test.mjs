@@ -9,7 +9,7 @@ import {
 const { openApi } = loadContracts();
 
 test("health and readiness 200 responses use strict required body components", () => {
-  assert.equal(openApi.info.version, "3.2.0-draft");
+  assert.equal(openApi.info.version, "3.3.0-draft");
 
   for (const [path, componentName, status] of [
     ["/health", "HealthResponse", "ok"],
@@ -35,6 +35,39 @@ test("readiness and chat share the approved 503 response reference", () => {
     openApi.paths["/api/v1/chat"].post.responses["503"].$ref,
     expected,
   );
+});
+
+test("office directory uses a strict reusable list and explicit errors", () => {
+  const officeOperation = openApi.paths["/api/v1/offices"].get;
+  assert.equal(officeOperation.operationId, "listOffices");
+  assert.deepEqual(
+    officeOperation.parameters.map(({ name, required }) => ({ name, required })),
+    [
+      { name: "region", required: true },
+      { name: "intent", required: true },
+    ],
+  );
+  assert.deepEqual(
+    officeOperation.responses["200"].content["application/json"].schema,
+    { $ref: "#/components/schemas/OfficeListResponse" },
+  );
+  assert.deepEqual(officeOperation.responses["422"], {
+    $ref: "#/components/responses/ValidationError",
+  });
+  assert.deepEqual(officeOperation.responses["503"], {
+    $ref: "#/components/responses/ServiceUnavailable",
+  });
+  assert.deepEqual(openApi.components.schemas.OfficeListResponse, {
+    type: "object",
+    additionalProperties: false,
+    required: ["items"],
+    properties: {
+      items: {
+        type: "array",
+        items: { $ref: "#/components/schemas/Office" },
+      },
+    },
+  });
 });
 
 test("chat idempotency key is an optional UUID distinct from request_id", () => {

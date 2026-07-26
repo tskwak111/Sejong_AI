@@ -63,7 +63,7 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
 - 역사적 pre-import 기준선에서는 공식/mock DB row 0과 `/ready=503`이 의도한 상태였다. 이는 당시
   검증 기록이며 현재 상태가 아니다. 이후 supported actual seed와 application rehearsal이 local DB
   19→20 ACTIVE 및 `/ready=200`을 별도 증명했다.
-- 공유 계약 package는 OpenAPI 3.2.0-draft, standalone JSON Schema·strict Pydantic과 생성
+- 공유 계약 package는 OpenAPI 3.3.0-draft, standalone JSON Schema·strict Pydantic과 생성
   TypeScript의 drift를 검증한다. SUCCESS는 `answer_mode=GENERATED|TEMPLATE`를 필수로 제공하며
   optional UUID `Idempotency-Key`는 correlation request ID와 분리한다.
 - DB-001 disposable local/private 기준선은 patched Supabase CLI 2.109.1, PostgreSQL 17.6,
@@ -82,7 +82,7 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
 - canonical T-01~T-20 deterministic pure-service 평가는 20/20(SUCCESS 10/10, FOLLOWUP 2/2,
   FALLBACK 8/8)이다. provider/remote/public 또는 HTTP source-card QA로 일반화하지 않는다.
 - 기존 FastAPI·CSV·정적 HTML 스타터는 `legacy/`에 보존됨.
-- `contracts/`의 API spec revision은 3.2.0-draft다. SUCCESS/FOLLOWUP/5개 정책 폴백,
+- `contracts/`의 API spec revision은 3.3.0-draft다. SUCCESS/FOLLOWUP/5개 정책 폴백,
   HTTPS 전용 공식 링크와 local/private admin envelope를 판별 union으로 동결했다. DB executable authority는 timestamp
   migrations이며 `database/`의 `0.4.0-local` projection은 실제 검증된 local 기준선의 읽기용
   투영이다. 공개·원격 DB 기준선이나 production readiness를 뜻하지 않는다.

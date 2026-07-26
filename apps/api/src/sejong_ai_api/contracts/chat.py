@@ -207,5 +207,6 @@ __all__ = [
     "Office",
     "ServiceUnavailableEnvelope",
     "Source",
+    "SupportedIntent",
     "SuccessResponse",
 ]

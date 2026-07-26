@@ -6,7 +6,7 @@
 
 - product_spec
 - repo_guidance
-- application/web/api
+- application/web/api/shared_contracts
 - database_schema
 - official_data/mock_data
 - prompt_set
@@ -55,16 +55,16 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.5.0
 repo_guidance: 1.7.8
-application: 0.9.1-grounded-local-chat-evidence
+application: 0.10.0-office-directory-runtime
 web: 0.6.0-answer-mode
-api: 3.2.0-draft
-shared_contracts: 0.5.0
+api: 3.3.0-draft
+shared_contracts: 0.6.0
 database_schema: 0.4.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
-test_suite: 1.6.1-grounded-actual
-documentation: 2.20.5
+test_suite: 1.7.1-office-directory-review-fix
+documentation: 2.20.9
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -107,6 +107,44 @@ gap과 hosted backend CI 부재를 다음 P1 후보로 기록한다. 제품/API 
 Documentation `2.20.5`는 위 결정·상태 문서를 Draft PR #14로 게시하고, active contract의
 OFFICE API를 존치·runtime에 구현할지 인간이 승인하기 전 제품 구현을 시작하지 않는 설계 gate를 기록한다.
 제품/API contract/DB/data/provider/prompt/test 축과 actual runtime/data는 변경하지 않는다.
+Documentation `2.20.6`은 Q-API-OFFICES-001=A/D-078의 설계 승인과 OFFICE-API-001 written
+specification을 기록한다. existing endpoint의 required filter·OFFICIAL-only·deterministic
+order를 runtime에 구현하고 unavailable을 value-free 503으로 닫는 계획이며, specification
+review와 실행계획 승인 전 제품/API contract/DB/data/provider/prompt/test 축은 변경하지 않는다.
+Documentation `2.20.7`은 D-079의 OFFICE-API-001 written specification 승인과
+[`2026-07-26-office-api-runtime-parity.md`](superpowers/plans/2026-07-26-office-api-runtime-parity.md)
+실행계획 발행을 기록한다. strict response·shared mapper·typed service/readiness guard·always-registered
+route·local composition·OpenAPI/generated TypeScript·closeout gate를 RED→GREEN 순서로 고정했으며,
+계획 승인 전 application/API/shared contract/test 축과 DB/data/Web/provider/dependency는 변경하지 않는다.
+Documentation `2.20.8`은 OFFICE-API-001 runtime parity 구현 closeout이다. application
+`0.9.1-grounded-local-chat-evidence→0.10.0-office-directory-runtime`, API
+`3.2.0-draft→3.3.0-draft`, shared contracts `0.5.0→0.6.0`, tests
+`1.6.1-grounded-actual→1.7.0-office-directory`로 승격했다. required region+supported intent,
+OFFICIAL-only server mapping, valid-empty 200, value-free 422와 `Retry-After: 30` safe 503을
+default/local FastAPI와 tracked/generated contract에 정렬했다.
+
+aggregate `scripts/verify.ps1`은 PowerShell/Node/pnpm preflight 뒤 repo-local/PATH `uv` 부재로
+`PREFLIGHT-UV reason=exception code=2`에서 중단되어 PASS로 기록하지 않는다. pinned
+uv 0.11.28로 실행한 constituent API Ruff/MyPy/pytest, shared generation/contracts,
+repository docs/secret/diff gate는 모두 PASS했다. API는 2,043 PASS·DB-only 8 skip·subtests 5
+PASS이며 기존 Starlette warning 1건, shared contracts는 90/90 PASS다. actual Docker/Supabase
+endpoint smoke는 secret environment와 local prerequisite가 없어 Pending이고 injected local
+integration은 PASS했다. product specification, repository guidance, Web, DB schema, official/mock
+data와 prompt 축은 정확히 유지했으며 migration·seed·data·provider·dependency·lockfile·
+public/remote 변경은 없다.
+
+Documentation `2.20.9`는 D-080에 따라 published OFFICE-API-001 실행계획 승인과
+Subagent-Driven 구현 완료, human-review Draft PR Pending을 기록한 final-review fix다. runtime
+OpenAPI의 office 503 `Retry-After` header schema를 tracked contract와 정렬하고,
+`versions/manifest.json`에서 API version을 읽어 active README, CODEX index, tracked OpenAPI,
+FastAPI metadata와 generated TypeScript banner를 함께 검증한다. test suite는
+`1.7.0-office-directory→1.7.1-office-directory-review-fix`로 승격하며 application/API/shared
+contracts/Web/DB/data/prompt 축은 유지한다. fresh constituent API 2,044 PASS·DB-only 8 skip·
+subtests 5 PASS, pinned root 431 PASS·2 skip, shared 90/90와 docs/secret/diff gate를 통과했다.
+aggregate `scripts/verify.ps1`은 기존
+`PREFLIGHT-UV reason=exception code=2` 때문에 **NOT PASS**이고, actual Docker/Supabase endpoint
+smoke도 `Pending — local prerequisite unavailable` 그대로다. public/remote/deploy/automatic
+merge는 승인되지 않았다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

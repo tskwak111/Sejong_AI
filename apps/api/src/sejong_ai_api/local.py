@@ -36,6 +36,7 @@ from sejong_ai_api.db.models import PurgeResult
 from sejong_ai_api.db.pool import _ambient_libpq_environment_is_clear, create_pool
 from sejong_ai_api.db.repository import PsycopgSejongRepository
 from sejong_ai_api.main import create_app
+from sejong_ai_api.office.service import GuardedOfficeDirectory, OfficeDirectoryService
 
 if TYPE_CHECKING:
     from sejong_ai_api.llm.settings import UpstageChatSettings
@@ -187,12 +188,17 @@ def create_local_app(
             ),
         )
         responder = GuardedChatResponder(probe, service)
+        office_directory = GuardedOfficeDirectory(
+            probe,
+            OfficeDirectoryService(repository),
+        )
     except Exception:
         return create_app()
 
     application = create_app(
         readiness_probe=probe,
         chat_responder=responder,
+        office_directory=office_directory,
         admin_enabled=True,
         admin_service=AdminService(repository),
     )
