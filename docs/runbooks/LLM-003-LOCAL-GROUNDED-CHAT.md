@@ -77,6 +77,13 @@ provisioning은 ignored `apps/api/.env`의 `DATABASE_URL`만 회전한다. 기�
 `apps/api/.env.example`을 기준으로 ignored `apps/api/.env`를 사용한다.
 `DATABASE_URL`은 바로 앞 provisioning 결과를 유지하고, `CONTEXT_TOKEN_SECRET`에는 CSPRNG로
 생성한 최소 32-byte 값을 둔다. 값 자체는 명령 기록, 문서, Git 또는 화면 캡처에 남기지 않는다.
+아래 fixed-target 명령은 linked worktree에서도 Git common directory의 primary checkout을 찾아
+exact ignored `.env`의 해당 한 줄만 원자 교체한다. 별도 경로나 secret 값을 인수로 받지 않는다.
+
+```powershell
+.\.tools\uv\uv.exe run --project apps/api --frozen python `
+  scripts/provision_local_context_secret.py
+```
 
 ## 6. provider mode 하나만 선택
 
