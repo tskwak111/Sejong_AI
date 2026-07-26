@@ -223,8 +223,7 @@ def _load_profile_api_key(
         return None
 
     non_secret_values = {
-        key: _merged_value(key, process_values, dotenv_profile.values)
-        for key in expected_values
+        key: _merged_value(key, process_values, dotenv_profile.values) for key in expected_values
     }
     if any(value is None or not _is_safe_value(value) for value in non_secret_values.values()):
         return None

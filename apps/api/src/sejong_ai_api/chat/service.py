@@ -105,9 +105,7 @@ _REGION_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = (
     "region.dodam",
     "region.jochiwon",
 )
-_WASTE_ITEM_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = (
-    "waste.item.describe",
-)
+_WASTE_ITEM_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = ("waste.item.describe",)
 _PROVIDER_HARD_WALL_SECONDS = 12.0
 _CONTEXT_DETAIL_TERMS = (
     "준비물",
@@ -420,9 +418,7 @@ class ChatService:
             )
 
         context_topic_id = (
-            prior_context.topic_id
-            if intent_from_context and prior_context is not None
-            else None
+            prior_context.topic_id if intent_from_context and prior_context is not None else None
         )
         ranked = await self._ranked_knowledge(
             safe_question,
@@ -477,11 +473,7 @@ class ChatService:
             dialog_act=(
                 "CHANGING_TOPIC"
                 if topic_changed
-                else (
-                    "CHANGING_REGION"
-                    if contextual_action == "CHANGING_REGION"
-                    else "ANSWERED"
-                )
+                else ("CHANGING_REGION" if contextual_action == "CHANGING_REGION" else "ANSWERED")
             ),
         )
         answer_mode: AnswerMode = "TEMPLATE"
@@ -590,11 +582,7 @@ class ChatService:
                     intent=Intent(replay.intent),
                     selected_region=selected_region,
                     answer_status=replay.answer_status,
-                    dialog_act=(
-                        "ANSWERED"
-                        if replay.answer_status == "SUCCESS"
-                        else "ASKING_SLOT"
-                    ),
+                    dialog_act=("ANSWERED" if replay.answer_status == "SUCCESS" else "ASKING_SLOT"),
                 )
                 try:
                     return CHAT_RESPONSE_ADAPTER.validate_json(

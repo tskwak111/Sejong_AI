@@ -52,9 +52,7 @@ REJECT_CANDIDATE_SQL = "SELECT app_api.reject_kb_candidate(%s, %s, %s, %s)"
 PURGE_SQL = "SELECT * FROM app_api.purge_expired_failed_question_text()"
 RECORD_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.record_civic_scope_gap(%s)"
 LIST_CIVIC_SCOPE_GAPS_SQL = "SELECT * FROM app_api.list_civic_scope_gaps(%s)"
-REVIEW_CIVIC_SCOPE_GAP_SQL = (
-    "SELECT app_api.review_civic_scope_gap(%s, %s, %s, %s, %s)"
-)
+REVIEW_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.review_civic_scope_gap(%s, %s, %s, %s, %s)"
 PURGE_CIVIC_SCOPE_GAP_SQL = "SELECT * FROM app_api.purge_expired_civic_scope_gap_text()"
 LIST_ACTIVE_KB_MIGRATION = (
     Path(__file__).resolve().parents[4]
@@ -633,9 +631,7 @@ async def test_records_civic_scope_gap_with_one_exact_masked_parameter() -> None
 
     await repository(pool).record_civic_scope_gap("합성 범위 부족 민원")
 
-    assert pool.cursor.executions == [
-        (RECORD_CIVIC_SCOPE_GAP_SQL, ("합성 범위 부족 민원",))
-    ]
+    assert pool.cursor.executions == [(RECORD_CIVIC_SCOPE_GAP_SQL, ("합성 범위 부족 민원",))]
     assert pool.connection_value.fake_transaction.enter_count == 1
 
 

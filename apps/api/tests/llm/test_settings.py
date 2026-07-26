@@ -134,10 +134,7 @@ def test_exact_classifier_settings_load_without_exposing_key(
 
 
 def test_classifier_disabled_or_non_exact_profile_fails_closed() -> None:
-    assert (
-        load_upstage_classifier_settings(environ={}, env_path=Path("missing"))
-        is None
-    )
+    assert load_upstage_classifier_settings(environ={}, env_path=Path("missing")) is None
     for key, invalid in (
         ("LLM_PROVIDER", "disabled"),
         ("LLM_MODEL", "solar-pro"),

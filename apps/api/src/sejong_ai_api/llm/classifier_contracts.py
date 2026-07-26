@@ -56,18 +56,14 @@ class ClassifierDecision:
         if self.intent is not None and type(self.intent) is not Intent:
             raise ValueError
         if self.topic_id is not None and (
-            type(self.topic_id) is not str
-            or _TOPIC_ID_PATTERN.fullmatch(self.topic_id) is None
+            type(self.topic_id) is not str or _TOPIC_ID_PATTERN.fullmatch(self.topic_id) is None
         ):
             raise ValueError
         if self.pending_slot is not None and type(self.pending_slot) is not PendingSlot:
             raise ValueError
 
         if self.route is ClassifierRoute.SUPPORTED:
-            if (
-                self.intent not in _SUPPORTED_INTENTS
-                or self.pending_slot is not None
-            ):
+            if self.intent not in _SUPPORTED_INTENTS or self.pending_slot is not None:
                 raise ValueError
             return
 
@@ -75,10 +71,7 @@ class ClassifierDecision:
             ClassifierRoute.CIVIC_SCOPE_GAP,
             ClassifierRoute.NON_CIVIC,
         }:
-            if any(
-                value is not None
-                for value in (self.intent, self.topic_id, self.pending_slot)
-            ):
+            if any(value is not None for value in (self.intent, self.topic_id, self.pending_slot)):
                 raise ValueError
             return
 
@@ -93,10 +86,7 @@ class ClassifierDecision:
             and self.intent is not Intent.CERTIFICATE_ISSUANCE
         ):
             raise ValueError
-        if (
-            self.pending_slot is PendingSlot.WASTE_ITEM
-            and self.intent is not Intent.BULKY_WASTE
-        ):
+        if self.pending_slot is PendingSlot.WASTE_ITEM and self.intent is not Intent.BULKY_WASTE:
             raise ValueError
 
 

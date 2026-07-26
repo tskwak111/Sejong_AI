@@ -63,11 +63,12 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
 - 역사적 pre-import 기준선에서는 공식/mock DB row 0과 `/ready=503`이 의도한 상태였다. 이는 당시
   검증 기록이며 현재 상태가 아니다. 이후 supported actual seed와 application rehearsal이 local DB
   19→20 ACTIVE 및 `/ready=200`을 별도 증명했다.
-- 공유 계약 package는 OpenAPI 3.3.0-draft, standalone JSON Schema·strict Pydantic과 생성
-  TypeScript의 drift를 검증한다. SUCCESS는 `answer_mode=GENERATED|TEMPLATE`를 필수로 제공하며
-  optional UUID `Idempotency-Key`는 correlation request ID와 분리한다.
+- 공유 계약 package는 OpenAPI 4.0.0-draft, standalone JSON Schema·strict Pydantic과 생성
+  TypeScript의 drift를 검증한다. SUCCESS는 `answer_mode=GENERATED|TEMPLATE`를 필수로 제공하고,
+  `CIVIC_SCOPE_GAP`과 text-free context v2를 동결하며 optional UUID `Idempotency-Key`는
+  correlation request ID와 분리한다.
 - DB-001 disposable local/private 기준선은 patched Supabase CLI 2.109.1, PostgreSQL 17.6,
-  현재 9개 forward/rollback, forced RLS/capability, pgTAP 9 files/356 assertions와 backend
+  현재 11개 forward/rollback, forced RLS/capability, pgTAP 11 files/385 tests와 backend
   integration·rollback·absence·reset/replay 증거를 갖췄다. 실행 권위는 `supabase/migrations/`, 논리 projection은
   `database/schema-v1.draft.sql`이다.
 - Windows PowerShell 5.1+ root gate와 별도 Docker DB gate가 exact runtime, frozen install,
@@ -82,9 +83,10 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
 - canonical T-01~T-20 deterministic pure-service 평가는 20/20(SUCCESS 10/10, FOLLOWUP 2/2,
   FALLBACK 8/8)이다. provider/remote/public 또는 HTTP source-card QA로 일반화하지 않는다.
 - 기존 FastAPI·CSV·정적 HTML 스타터는 `legacy/`에 보존됨.
-- `contracts/`의 API spec revision은 3.3.0-draft다. SUCCESS/FOLLOWUP/5개 정책 폴백,
-  HTTPS 전용 공식 링크와 local/private admin envelope를 판별 union으로 동결했다. DB executable authority는 timestamp
-  migrations이며 `database/`의 `0.4.0-local` projection은 실제 검증된 local 기준선의 읽기용
+- `contracts/`의 API spec revision은 4.0.0-draft다. SUCCESS/FOLLOWUP과
+  `CIVIC_SCOPE_GAP`을 포함한 정책 폴백, text-free context v2, HTTPS 전용 공식 링크와
+  local/private admin envelope를 판별 union으로 동결했다. DB executable authority는 timestamp
+  migrations이며 `database/`의 `0.5.0-local` projection은 실제 검증된 local 기준선의 읽기용
   투영이다. 공개·원격 DB 기준선이나 production readiness를 뜻하지 않는다.
 - Q-LLM-005=A의 합성 평가 actual은 strict JSON 27/30으로 FAIL한 역사적 증거를 유지한다.
   이후 Q-LLM-006~012/D-072~075가 local/private 입찰 시연에 한해 Upstage exact `solar-pro3`

@@ -27,8 +27,7 @@ from sejong_ai_api.llm.classifier_contracts import (
             ),
         ),
         (
-            b'{"route":"CIVIC_SCOPE_GAP","intent":null,"topic_id":null,'
-            b'"pending_slot":null}',
+            b'{"route":"CIVIC_SCOPE_GAP","intent":null,"topic_id":null,"pending_slot":null}',
             ClassifierDecision(
                 route=ClassifierRoute.CIVIC_SCOPE_GAP,
                 intent=None,
@@ -37,8 +36,7 @@ from sejong_ai_api.llm.classifier_contracts import (
             ),
         ),
         (
-            b'{"route":"NON_CIVIC","intent":null,"topic_id":null,'
-            b'"pending_slot":null}',
+            b'{"route":"NON_CIVIC","intent":null,"topic_id":null,"pending_slot":null}',
             ClassifierDecision(
                 route=ClassifierRoute.NON_CIVIC,
                 intent=None,
@@ -96,30 +94,18 @@ def test_parse_classifier_decision_accepts_only_closed_valid_shapes(
         ),
         b'{"route":"UNKNOWN","intent":null,"topic_id":null,"pending_slot":null}',
         b'{"route":"SUPPORTED","intent":null,"topic_id":null,"pending_slot":null}',
-        (
-            b'{"route":"SUPPORTED","intent":"OUT_OF_SCOPE",'
-            b'"topic_id":null,"pending_slot":null}'
-        ),
+        (b'{"route":"SUPPORTED","intent":"OUT_OF_SCOPE","topic_id":null,"pending_slot":null}'),
         (
             b'{"route":"SUPPORTED","intent":"BULKY_WASTE",'
             b'"topic_id":null,"pending_slot":"WASTE_ITEM"}'
         ),
-        (
-            b'{"route":"CIVIC_SCOPE_GAP","intent":"BULKY_WASTE",'
-            b'"topic_id":null,"pending_slot":null}'
-        ),
-        (
-            b'{"route":"NON_CIVIC","intent":null,'
-            b'"topic_id":"KB-WEATHER","pending_slot":null}'
-        ),
+        (b'{"route":"CIVIC_SCOPE_GAP","intent":"BULKY_WASTE","topic_id":null,"pending_slot":null}'),
+        (b'{"route":"NON_CIVIC","intent":null,"topic_id":"KB-WEATHER","pending_slot":null}'),
         (
             b'{"route":"NEEDS_FOLLOWUP","intent":"CERTIFICATE_ISSUANCE",'
             b'"topic_id":null,"pending_slot":null}'
         ),
-        (
-            b'{"route":"NEEDS_FOLLOWUP","intent":"UNKNOWN",'
-            b'"topic_id":null,"pending_slot":"REGION"}'
-        ),
+        (b'{"route":"NEEDS_FOLLOWUP","intent":"UNKNOWN","topic_id":null,"pending_slot":"REGION"}'),
         (
             b'{"route":"NEEDS_FOLLOWUP","intent":"BULKY_WASTE",'
             b'"topic_id":"has spaces","pending_slot":"WASTE_ITEM"}'

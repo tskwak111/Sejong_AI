@@ -393,9 +393,7 @@ async def test_only_approver_can_review_a_new_scope_gap() -> None:
 
     result = await service.review_civic_scope_gap(approver(), gap_id, payload)
     assert result.status == "PLANNED"
-    assert repository.scope_gap_reviews == [
-        (gap_id, approver(), "PLANNED", "다음 범위로 검토")
-    ]
+    assert repository.scope_gap_reviews == [(gap_id, approver(), "PLANNED", "다음 범위로 검토")]
 
 
 @pytest.mark.asyncio

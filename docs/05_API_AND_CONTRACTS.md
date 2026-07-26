@@ -7,10 +7,10 @@
 - 계약 변경은 영향 분석, 테스트, 버전, 구현 노트를 동반한다.
 - breaking change는 인간 승인과 ADR이 필요하다.
 - source metadata는 서버가 결합한다.
-- API spec revision은 `3.3.0-draft`다. SUCCESS/FOLLOWUP/5개 사유별 FALLBACK,
-  `PRIVACY_UNRESOLVED` 고정 문구, HTTPS 전용 출처·기관 링크, local/private admin 성공·오류
-  envelope와 strict office list를 OpenAPI·standalone schema·Pydantic·생성 TypeScript가 같은
-  fixture로 검증한다.
+- API spec revision은 `4.0.0-draft`다. SUCCESS/FOLLOWUP과 `CIVIC_SCOPE_GAP`을 포함한
+  사유별 FALLBACK, `PRIVACY_UNRESOLVED` 고정 문구, text-free context v2, HTTPS 전용
+  출처·기관 링크, local/private admin 성공·오류 envelope와 strict office list를
+  OpenAPI·standalone schema·Pydantic·생성 TypeScript가 같은 fixture로 검증한다.
 - SUCCESS에만 required `answer_mode=GENERATED|TEMPLATE`가 있다. `GENERATED`는 provider draft를
   strict 검증한 뒤 서버가 ACTIVE/OFFICIAL record의 공식 fact·source·office를 materialize한 결과이고,
   `TEMPLATE`은 disabled/default, timeout, transport, schema, ID 또는 fact-drift 실패 때의 전체
@@ -22,7 +22,9 @@
 - `ChatRequest.session_id`는 제거했다. optional nullable `context_token`은 최대 2048자의 signed opaque value다.
 - 첫 요청은 token 누락/null을 허용한다. 만료·위변조·미지원 token은 401/403이 아니라 문맥 없는 새 요청으로 처리한다.
 - `ChatResponse.context_token`은 required nullable이다. SUCCESS/FOLLOWUP은 새 token을 반환할 수 있고 FALLBACK은 반드시 null이다.
-- token TTL은 15분이며 현재 탭 메모리에만 둔다. 서버 DB/session/log와 local/session storage, IndexedDB, cookie, URL에는 저장하지 않는다.
+- token TTL은 15분이며 issuer는 closed server ID만 담은 v2를 발급한다. v1은 기존 TTL
+  동안 read-only로만 허용한다. token은 현재 탭 메모리에만 두고 서버 DB/session/log와
+  local/session storage, IndexedDB, cookie, URL에는 저장하지 않는다.
 - 현재 request의 유효한 `selected_region`이 token과 충돌하면 현재 request가 우선한다. token은 인증·권한·출처·ACTIVE KB 검증에 사용하지 않는다.
 
 ## 권장 엔드포인트

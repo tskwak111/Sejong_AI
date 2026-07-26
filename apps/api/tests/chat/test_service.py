@@ -291,9 +291,7 @@ async def test_success_uses_masked_text_for_lookup_and_server_bound_metadata() -
     assert response.office.id == "OFFICE-TEST-01"
     assert response.context_token is not None
     assert raw_phone not in response.context_token
-    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(
-        response.context_token
-    )
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(response.context_token)
     assert context is not None
     assert context.schema_version == 2
     assert context.topic_id == record.public_id
@@ -362,9 +360,7 @@ async def test_generic_certificate_requests_exact_certificate_kind() -> None:
         "무인민원발급기 이용",
     ]
     assert response.context_token is not None
-    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(
-        response.context_token
-    )
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(response.context_token)
     assert context is not None
     assert context.schema_version == 2
     assert context.topic_id is None
@@ -615,6 +611,8 @@ async def test_idempotent_scope_gap_records_queue_only_after_first_commit() -> N
         idempotency_key=IDEMPOTENCY_KEY,
     )
 
+    assert first.fallback is not None
+    assert replay.fallback is not None
     assert first.fallback.reason == "CIVIC_SCOPE_GAP"
     assert replay.fallback.reason == "CIVIC_SCOPE_GAP"
     assert classifier.calls == ["청년 월세 지원 어떻게 해요?"]
@@ -678,9 +676,7 @@ async def test_v2_context_resolves_bounded_detail_against_same_current_active_to
         topic_id=record.public_id,
     )
 
-    response = await service(repository).answer(
-        ChatRequest(question=question, context_token=token)
-    )
+    response = await service(repository).answer(ChatRequest(question=question, context_token=token))
 
     assert response.answer_status == "SUCCESS"
     assert [source.source_id for source in response.sources] == [record.public_id]

@@ -62,9 +62,7 @@ _INTENTS = frozenset(
 _REGIONS = frozenset({"아름동", "도담동", "조치원읍"})
 _ANSWER_STATUSES = frozenset({"SUCCESS", "FOLLOWUP"})
 _PENDING_SLOTS = frozenset({"CERTIFICATE_KIND", "REGION", "WASTE_ITEM"})
-_DIALOG_ACTS = frozenset(
-    {"ANSWERED", "ASKING_SLOT", "CHANGING_REGION", "CHANGING_TOPIC"}
-)
+_DIALOG_ACTS = frozenset({"ANSWERED", "ASKING_SLOT", "CHANGING_REGION", "CHANGING_TOPIC"})
 _TOPIC_ID_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,63}$")
 _FOLLOWUP_OPTION_IDS = frozenset(
     {

@@ -250,9 +250,7 @@ class AdminService:
         if status is not None and status not in _CIVIC_SCOPE_GAP_STATUSES:
             raise AdminServiceError("ADMIN_VALIDATION_FAILED")
         await self._safe_call(self._repository.purge_expired_civic_scope_gap_text)
-        items = await self._safe_call(
-            lambda: self._repository.list_civic_scope_gaps(status=status)
-        )
+        items = await self._safe_call(lambda: self._repository.list_civic_scope_gaps(status=status))
         return CivicScopeGapListResponse(items=list(items), total=len(items))
 
     async def review_civic_scope_gap(
@@ -262,9 +260,7 @@ class AdminService:
         payload: CivicScopeGapReviewRequest,
     ) -> CivicScopeGapReviewResponse:
         self._require_role(actor, AdminRole.APPROVER)
-        items = await self._safe_call(
-            lambda: self._repository.list_civic_scope_gaps(status=None)
-        )
+        items = await self._safe_call(lambda: self._repository.list_civic_scope_gaps(status=None))
         item = next((candidate for candidate in items if candidate.id == scope_gap_id), None)
         if item is None:
             raise AdminServiceError("ADMIN_NOT_FOUND")

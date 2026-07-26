@@ -69,9 +69,7 @@ ABANDON_CHAT_IDEMPOTENCY_SQL = "SELECT app_api.abandon_chat_idempotency(%s, %s, 
 PURGE_EXPIRED_CHAT_IDEMPOTENCY_SQL = "SELECT * FROM app_api.purge_expired_chat_idempotency()"
 RECORD_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.record_civic_scope_gap(%s)"
 LIST_CIVIC_SCOPE_GAPS_SQL = "SELECT * FROM app_api.list_civic_scope_gaps(%s)"
-REVIEW_CIVIC_SCOPE_GAP_SQL = (
-    "SELECT app_api.review_civic_scope_gap(%s, %s, %s, %s, %s)"
-)
+REVIEW_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.review_civic_scope_gap(%s, %s, %s, %s, %s)"
 PURGE_EXPIRED_CIVIC_SCOPE_GAP_TEXT_SQL = (
     "SELECT * FROM app_api.purge_expired_civic_scope_gap_text()"
 )

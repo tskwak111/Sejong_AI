@@ -28,8 +28,7 @@ def _question(text: str = "청년 월세 지원 어떻게 해요?") -> SafeQuest
 
 def _provider_response(
     content: str = (
-        '{"route":"CIVIC_SCOPE_GAP","intent":null,'
-        '"topic_id":null,"pending_slot":null}'
+        '{"route":"CIVIC_SCOPE_GAP","intent":null,"topic_id":null,"pending_slot":null}'
     ),
     *,
     finish_reason: str = "stop",
@@ -163,10 +162,7 @@ async def test_timeout_returns_none_without_retry_or_content_exception() -> None
         httpx.Response(200, content=b"not-json"),
         _provider_response(content="not-json"),
         _provider_response(
-            content=(
-                '{"route":"UNBOUNDED","intent":null,'
-                '"topic_id":null,"pending_slot":null}'
-            )
+            content=('{"route":"UNBOUNDED","intent":null,"topic_id":null,"pending_slot":null}')
         ),
         _provider_response(finish_reason="length"),
     ],

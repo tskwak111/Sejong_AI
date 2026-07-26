@@ -18,10 +18,11 @@
   `200 {"items":[]}`이고 누락·미지원 query는 값 없는 422다. route는 import-safe 기본 앱에도
   항상 등록되지만 directory dependency가 닫혀 있으므로 `Retry-After: 30`을 가진 safe 503을
   반환한다. local app factory만 기존 repository와 shared readiness probe를 주입한다.
-- API 3.3.0-draft는 `PRIVACY_UNRESOLVED`, SUCCESS/FOLLOWUP/FALLBACK 판별 union,
-  SUCCESS의 `answer_mode=GENERATED|TEMPLATE`, 기관 카드, optional UUID
-  `Idempotency-Key`, strict `OfficeListResponse`와 local/private 관리자 성공·오류 envelope를
-  엄격한 공개 계약으로 고정한다. import-safe 기본 앱의 `/ready`와 기관 read는 계속 503이다.
+- API 4.0.0-draft는 `PRIVACY_UNRESOLVED`·`CIVIC_SCOPE_GAP`,
+  SUCCESS/FOLLOWUP/FALLBACK 판별 union, text-free context v2, SUCCESS의
+  `answer_mode=GENERATED|TEMPLATE`, 기관 카드, optional UUID `Idempotency-Key`, strict
+  `OfficeListResponse`와 local/private 관리자 성공·오류 envelope를 엄격한 공개 계약으로
+  고정한다. import-safe 기본 앱의 `/ready`와 기관 read는 계속 503이다.
 - 승인된 chat/admin response와 공통 503은 strict Pydantic v2 경계 모델과 공유 합성 JSON fixture를 함께 소비한다. 숫자·문자열·boolean 간 암묵적 coercion과 스냅샷/디버그 추가 필드를 거부한다.
 - 정상 완료와 일반 `Exception` 경로의 HTTP 요청 로그는 서버가 만든 UUID, method, 라우트
   템플릿, status만 JSON 한 줄로 남긴다.

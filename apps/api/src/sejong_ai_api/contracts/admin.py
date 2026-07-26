@@ -79,10 +79,7 @@ class CivicScopeGapSummary(StrictPublicModel):
             raise ValueError("scope-gap text and purge timestamp must transition together")
         if self.text_purged_at is not None and self.text_purged_at < self.text_expires_at:
             raise ValueError("scope-gap text cannot be purged before expiry")
-        if (
-            self.masked_question is not None
-            and self.text_expires_at <= datetime.now(UTC)
-        ):
+        if self.masked_question is not None and self.text_expires_at <= datetime.now(UTC):
             raise ValueError("expired scope-gap text must already be purged")
 
         review_values = (self.reviewed_by, self.reviewed_at, self.review_comment)
