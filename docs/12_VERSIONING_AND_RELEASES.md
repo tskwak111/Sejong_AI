@@ -189,6 +189,11 @@ bare `pnpm` spawn `ENOENT`를 분리 진단하고, Corepack과 frozen lockfile�
 TypeScript 개발 의존성을 복구한 기록이다. package manifest·lockfile·제품 동작·provider·
 DB는 변경하지 않았고 Web `tsc --noEmit`으로 해석 가능 상태를 확인했다.
 
+Documentation `2.21.6`은 generic 증명서 요청이 classifier에서 `UNKNOWN + FOLLOWUP`으로
+분류되고 service의 고정 네 분야 option을 거쳐 Web generic 확인 질문으로 표시되는 원인을
+확인한 기록이다. category-aware certificate FOLLOWUP을 권고하되 exact option은 인간 제품
+결정으로 남겼고 product/Web/API/DB/data/provider/test는 변경하지 않았다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과

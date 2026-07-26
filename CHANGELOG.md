@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed — certificate category follow-up diagnosis
+
+- Reproduced the generic certificate request as `UNKNOWN + FOLLOWUP` and traced the four-category
+  prompt to the classifier's missing generic certificate cue plus the service's UNKNOWN-only
+  follow-up branch. The Web renders that server response faithfully.
+- Recorded a recommended category-aware FOLLOWUP that stays within the five approved certificate
+  KB topics, while leaving the exact option set for human product approval.
+- Product code, public contract, Web, DB, data, provider and tests remain unchanged. Advanced
+  documentation only from `2.21.5` to `2.21.6`.
+
 ### Changed — local Web development dependency recovery
 
 - Diagnosed the Web startup failure as a production-only `node_modules` state followed by Next.js
