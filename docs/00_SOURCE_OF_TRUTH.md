@@ -100,6 +100,14 @@ formal `.2` seed/19→20과 remote 작업은 unit/area gate 뒤 통합 명세의
 경계를 따라 수행한다. local 00700은 exact 22 property-only 변경과 11-file pgTAP/11-stage
 rollback·replay를 통과했지만 remote 배포 완료를 뜻하지 않는다.
 
+2026-07-27 D-095 actual evidence에서 frozen 60 classifier는 deterministic 40/provider 20,
+policy/privacy outbound 0, corrective 60/60으로 PASS했고 두 bounded run 누적 비용은 VAT 포함
+USD 0.003873210이다. provider request/response와 key는 저장하지 않았다. 같은 시점 remote
+discovery는 public application target, remote DB project, deployment credential/origin/saved
+version을 찾지 못했다. 따라서 remote migration·seed·deploy·smoke는
+`Not executed: target not configured`이며 local DB ACTIVE 20과 00700 evidence를 remote
+production-ready로 해석하지 않는다.
+
 ## 4. 변경 절차
 
 제품 범위, 공개 계약, DB, 개인정보, 외부 공급자, 배포 아키텍처가 바뀌면:

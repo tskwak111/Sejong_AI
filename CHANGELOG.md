@@ -17,7 +17,8 @@
   `4.0.0-draft`, shared contracts to `1.0.0`, DB to `0.5.0-local`, prompt set to
   `0.3.1-hybrid-classifier`, tests to `1.9.1-natural-dialogue` and docs to `2.24.1`.
 - Local DB hardening, immutable `.2` seed/19→20 and actual Upstage classifier gates pass.
-  Configured remote citizen smoke is recorded separately and is not claimed by this entry.
+  Remote discovery found no configured application/DB target, credential, origin or saved version;
+  migration, seed, deploy and smoke are recorded as `Not executed: target not configured`.
 
 ### Planned — natural dialogue implementation
 

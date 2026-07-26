@@ -1,6 +1,6 @@
 # ADR-0026: 인증 없는 관리자를 제외한 controlled public citizen verification
 
-- Status: Accepted / implementation pending
+- Status: Accepted / local hardening and preflight implemented / remote target not configured
 - Date: 2026-07-27
 - Decision authority: D-092, 사용자 actual/DB/public·remote 실행 승인
 - Depends on: ADR-0002, ADR-0004, ADR-0018, ADR-0023, ADR-0025
@@ -35,6 +35,10 @@
 - remote 환경에서 template 시민 chat은 가능하지만 actual free-input LLM 운영은 아직 아니다.
 - 배포 대상 계정·리전·비용·DNS가 저장소에 없으면 코드와 runbook까지만 완료될 수 있다.
 - `00700`과 remote smoke는 local schema를 production-ready라고 자동 선언하지 않는다.
+- 2026-07-27 actual discovery에서 public application target, remote DB project, deployment
+  credential/origin/saved version이 모두 없었다. 따라서 remote migration·seed·deploy·smoke는
+  `Not executed: target not configured`이며, 이는 실패나 완료를 과장하지 않는 승인된
+  fail-closed 결과다.
 
 ## Rejected alternatives
 

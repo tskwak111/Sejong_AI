@@ -73,4 +73,3 @@ apps/api/.venv/Scripts/python.exe -B `
 3. `git status --short`와 secret scan으로 key·DSN·본문이 tracked 파일에 들어가지 않았음을
    확인한다.
 4. 실제 실행 실패 시 응답 본문을 복사하지 말고 bounded error code와 집계만 기록한다.
-

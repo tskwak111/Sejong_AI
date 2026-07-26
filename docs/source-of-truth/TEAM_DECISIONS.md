@@ -271,6 +271,10 @@
   P2이며 현재 시스템이 행정 처리를 완료한다고 표현하지 않는다.
 - remote target/credential이 없으면 코드·migration·runbook까지만 검증하고 target을 추측하거나
   새 계정을 자동 생성하지 않는다.
+- D-095 actual evidence: frozen 60 classifier는 40 deterministic/20 provider, policy/privacy
+  outbound 0, corrective 60/60 PASS이며 두 bounded run 누적 비용은 VAT 포함 USD 0.003873210이다.
+  remote discovery에서 application/DB target·credential·origin·saved version이 모두 0이므로
+  migration·seed·deploy·smoke는 `Not executed: target not configured`다.
 
 ## 제출 정보
 
