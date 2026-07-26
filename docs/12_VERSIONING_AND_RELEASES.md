@@ -53,32 +53,32 @@ DB-001의 historical 2026-07-18 baseline 뒤, 2026-07-22 local/private core-loop
 supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 
 ```text
-product_spec: 2.5.0
+product_spec: 2.6.0
 repo_guidance: 1.7.9
-application: 0.10.0-office-directory-runtime
-web: 0.6.0-answer-mode
-api: 3.3.0-draft
-shared_contracts: 0.6.0
-database_schema: 0.4.0-local
+application: 0.11.0-natural-dialogue
+web: 0.7.0-natural-dialogue
+api: 4.0.0-draft
+shared_contracts: 1.0.0
+database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.2.0-grounded-live-chat
-test_suite: 1.8.0-local-demo-readiness
-documentation: 2.21.0
+prompt_set: 0.3.0-hybrid-classifier
+test_suite: 1.9.0-natural-dialogue
+documentation: 2.24.0
 ```
 
-승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
+승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
+absence/reapply, pinned
 patched runtime, actual exact one `127.0.0.1:54322`, backend integration,
 compensation/absence/reset/replay와
 DATA-SEED `.2` baseline·identity·A/B concurrency·19/3/10·replay·cleanup PASS다. root full integration
 first attempt는 stale Web env expectation 1건(집중 수정/통과)과 Windows PowerShell subprocess timeout
 9건 때문에 최종 green으로 주장하지 않는다. 별도 final local application rehearsal의 `/ready=200`과
 20번째 ACTIVE, sample 20/20, final API/Web/contracts/E2E/scanner, clean disposable DB와 root offline은
-PASS했다. application `0.8.1-main-stabilization`은 PR #9로 통합된 local/private MVP와
-POST-MVP owner dev-origin 안정화 slice를 뜻한다. 현재 owner Draft PR, manual demo·accessibility와
-public/remote/provider/`00700` readiness 완료를 뜻하지 않는다.
-`local` suffix는 공개·원격·production release가 아님을 명시한다. D-046에서 방향이 확정된 `00700`
-구현·검증은 계속 별도 public blocker다.
+PASS했다. current application/Web/API는 CHAT-NATURAL Slice 1~3 구현을 뜻한다.
+manual demo·formal actual Upstage aggregate와 configured remote smoke 완료를 뜻하지 않는다.
+`local` suffix는 공개·원격·production release가 아님을 명시한다. D-046/D-092의 `00700`
+local 구현·검증은 끝났고, remote 운영은 ADR-0026 gate가 별도다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
@@ -276,3 +276,16 @@ provider 연결은 0이다. 이후 버전 승격은 위 manifest와 `CHANGELOG.m
 - tests/report
 - data lineage
 - implementation notes/handoff
+
+## CHAT-NATURAL-001 grouped implementation promotion
+
+2026-07-27 세 수직 흐름의 계약·코드·DB·Web 검증 완료로 application
+`0.11.0-natural-dialogue`, Web `0.7.0-natural-dialogue`, API `4.0.0-draft`, shared contracts
+`1.0.0`, database `0.5.0-local`, prompt `0.3.0-hybrid-classifier`, tests
+`1.9.0-natural-dialogue`, documentation `2.24.0`으로 승격했다. 공식 데이터
+`0.1.0-initial.2`와 mock data는 변경하지 않았다.
+
+API major는 `CIVIC_SCOPE_GAP`과 context v2 공개 계약, shared major는 생성 타입의 동기
+승격이다. DB minor는 additive 00680과 property-only 00700을 포함하며 rollback 순서는
+00700→00680→…→00100이다. 이 버전은 local schema와 구현 완료를 뜻하고, formal seed
+19→20 actual 증거·실제 Upstage 품질·remote/public 배포 완료를 뜻하지 않는다.

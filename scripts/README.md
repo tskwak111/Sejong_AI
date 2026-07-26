@@ -316,9 +316,9 @@ disposable local DB-001 compensation과 absence proof에만 사용하며 remote�
 
 선택적 local stop은 `.\.tools\supabase\v2.109.1-sejong-loopback\supabase.exe stop`을 사용한다. volume
 삭제·prune은 하지 않는다. local stack은 기본 개발 credential과 TLS/rate-limit 부재를
-전제로 하므로 공개하지 않는다. Q-SEC-003=A/D-046의 `00700`은 public 준비까지 구현 보류이며,
-그 migration·compensation·전체 regression 전에는 remote/public 배포·public admin/API·public
-backend DB credential을 차단한다.
+전제로 하므로 공개하지 않는다. Q-SEC-003=A/D-046/D-092의 `00700`과 compensation·전체
+local regression은 PASS했다. remote/public 배포는 별도 configured-target smoke가 필요하고
+인증 없는 public admin/API·public backend DB credential은 계속 차단한다.
 
 ## 보안 경계 검사
 

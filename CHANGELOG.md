@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Implemented — natural civic dialogue and governed scope operations
+
+- Added privacy-first hybrid classification, exact certificate follow-up choices, text-free signed
+  context v2, contextual follow-ups, direct region selection and an explicit new-conversation reset.
+- Added the isolated `CIVIC_SCOPE_GAP` 30-day masked review queue, typed admin API/Web review,
+  operator-authored general KB candidates and candidate status history.
+- Added property-only `00700` hardening for the ADR-0018 exact 22 functions with matching rollback,
+  body/owner/ACL fingerprints and an 11-migration replay gate.
+- Advanced application to `0.11.0-natural-dialogue`, Web to `0.7.0-natural-dialogue`, API to
+  `4.0.0-draft`, shared contracts to `1.0.0`, DB to `0.5.0-local`, prompt set to
+  `0.3.0-hybrid-classifier`, tests to `1.9.0-natural-dialogue` and docs to `2.24.0`.
+- Local DB hardening and offline/fixture gates pass. Formal `.2` seed/19→20, actual Upstage aggregate
+  and configured remote citizen smoke are recorded separately and are not claimed by this entry.
+
 ### Planned — natural dialogue implementation
 
 - Added the reviewed 18-task TDD plan for PII correction, hybrid classification, context v2,

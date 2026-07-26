@@ -1,19 +1,19 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-27T01:22:07+09:00",
+  "updated_at": "2026-07-27T03:26:21+09:00",
   "versions": {
     "product_spec": "2.6.0",
     "repo_guidance": "1.7.9",
-    "application": "0.10.0-office-directory-runtime",
-    "web": "0.6.0-answer-mode",
-    "api": "3.3.0-draft",
-    "shared_contracts": "0.6.0",
-    "database_schema": "0.4.0-local",
+    "application": "0.11.0-natural-dialogue",
+    "web": "0.7.0-natural-dialogue",
+    "api": "4.0.0-draft",
+    "shared_contracts": "1.0.0",
+    "database_schema": "0.5.0-local",
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
-    "prompt_set": "0.2.0-grounded-live-chat",
-    "test_suite": "1.8.0-local-demo-readiness",
-    "documentation": "2.23.1"
+    "prompt_set": "0.3.0-hybrid-classifier",
+    "test_suite": "1.9.0-natural-dialogue",
+    "documentation": "2.24.0"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

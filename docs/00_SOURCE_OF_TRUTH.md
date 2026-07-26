@@ -73,7 +73,8 @@ corrective second 10-call run의 governance incident는 D-076에서 사용자가
 retry 0·입력 1,024자·출력 128 token·process sub-cap 20으로 제한하고, 기존 grounded
 generation의 8초·1회·sub-cap 30과 합친 process cap을 40, local synthetic run 비용 stop
 line을 VAT 포함 USD 0.05로 고정한다. exact schema written specification·실행계획·별도 local
-D-092가 PII-free allowlisted actual classifier 실행을 승인했다. public/remote 시민 검증은
+D-092가 PII-free allowlisted actual classifier 실행을 승인했고 D-093은 offline classifier
+runtime과 local 00680/00700/admin/Web 구현 검증을 기록했다. public/remote 시민 검증은
 ADR-0026에 따라 provider-disabled와 admin-disabled가 기본이며 real citizen/free-input
 provider 전송은 계속 금지한다.
 
@@ -95,7 +96,9 @@ D-091은 classifier/generator 오류·성능·60개 분류/5개 후속/7개 장�
 정식 seed, `00680` scope queue와 ADR-0018의 `00700` public hardening, 구성된 remote 시민 경로
 검증을 승인한다. secret·DSN·raw payload를 출력하지 않고 remote target을 추측하지 않는다.
 인증 없는 public 관리자 경로는 승인 범위가 아니며 계속 fail-closed로 비활성이다. actual provider,
-DB와 remote 작업은 unit/area gate 뒤 통합 명세의 비용·rollback·증거 경계를 따라 수행한다.
+formal `.2` seed/19→20과 remote 작업은 unit/area gate 뒤 통합 명세의 비용·rollback·증거
+경계를 따라 수행한다. local 00700은 exact 22 property-only 변경과 11-file pgTAP/11-stage
+rollback·replay를 통과했지만 remote 배포 완료를 뜻하지 않는다.
 
 ## 4. 변경 절차
 

@@ -155,6 +155,6 @@ NEW
   이로써 manifest `database_schema=0.3.0-local`은 disposable local/private 기준선으로 활성화됐다.
 - `73f300b`는 DB child와 descendant를 bounded process tree로 실행해 timeout/failure/success 모두에서
   종료·dispose·환경 복원을 보장한다. runner 50/50, patched 24/24와 final-code DB gate가 재검증했다.
-- Q-SEC-003=A/D-046으로 exact 22 signature property-only `00700` 방향은 확정했지만 구현은
-  public 준비까지 보류한다. 이 기준선은 local/private에 한정하며 `00700` 전체 검증 전에는
-  remote/public 배포, public admin/API, public backend DB credential 사용을 차단한다.
+- Q-SEC-003=A/D-046/D-092의 exact 22 signature property-only `00700`은 matching
+  rollback·body/owner/ACL fingerprint·전체 local regression을 통과했다. 이는 remote 배포
+  완료가 아니며, 인증 없는 public admin/API와 public backend DB credential은 계속 차단한다.

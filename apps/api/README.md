@@ -51,7 +51,7 @@ disabled·불완전·서로 충돌하는 profile에서는 real local DB app을 �
 전체 순서는 [LLM-003 local grounded chat runbook](../../docs/runbooks/LLM-003-LOCAL-GROUNDED-CHAT.md)을
 따른다.
 
-DB-001 `0.4.0-local`의 Docker-backed 검증 gate는 실제 single loopback binding을
+DB-001 `0.5.0-local`의 Docker-backed 검증 gate는 실제 single loopback binding을
 reset 전에 먼저 확인하고, 안전할 때만 로컬 DB reset 뒤
 `sejong_local_login` password를 매번
 새로 만들거나 회전하고, 무시된 `apps/api/.env`의 `DATABASE_URL` 한 줄만 갱신한다.
@@ -63,9 +63,10 @@ evidence는 public admin, remote DB, deployment 또는 import-safe 기본 앱의
 내부 repository는 schema-qualified fixed capability SQL만 사용하고 native DB diagnostic을
 SQLSTATE 기반 고정 domain error로 축약한다.
 
-Q-SEC-003=A/D-046의 `00700` 방향은 확정됐지만 public 준비까지 구현 보류다. 이 DB credential과
-repository는 계속 local/private 전용이며 public admin/API, public backend DB credential과
-remote/public 배포는 `00700` 전체 검증 전 금지한다.
+Q-SEC-003=A/D-046/D-092의 exact 22-signature `00700`은 property-only migration,
+matching rollback과 전체 local regression을 통과했다. 이 DB credential과 admin repository는
+계속 local/private 전용이며 인증 없는 public admin/API와 public backend DB credential은
+비활성이다. remote 시민 경로는 ADR-0026의 configured-target smoke를 별도로 통과해야 한다.
 
 ## 로컬 명령
 

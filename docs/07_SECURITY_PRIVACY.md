@@ -131,8 +131,8 @@ raw request in memory
   공개 admin 보호와 원격 credential 안전성을 증명하지 않는다.
 - `73f300b`는 DB child process tree를 bounded timeout으로 관리하고 descendant 종료·dispose를
   mutation tests로 고정했다. 명령 argument·child output·credential은 여전히 parent 출력에 노출하지 않는다.
-- A-021 감사에서 privileged execution graph 22개 중 `00600` validator만 exact
-  `search_path=pg_catalog, pg_temp`로 보정됐고 21개는 public hardening 미완료다.
-  Q-SEC-003=A/D-046으로 `00700` property migration 방향은 확정했지만 public 준비까지 구현을
-  보류한다. migration·compensation·전체 regression 전에는 remote/public 배포, public admin/API,
-  public backend DB credential을 차단한다.
+- A-021 감사의 privileged execution graph exact 22개는 Q-SEC-003=A/D-046/D-092의
+  `00700` property-only migration으로 모두 `search_path=pg_catalog, pg_temp`가 됐다.
+  matching rollback과 body/owner/ACL fingerprint·전체 local regression도 통과했다.
+  remote/public 운영 완료를 뜻하지 않으며 인증 없는 public admin/API와 public backend DB
+  credential은 계속 차단한다.

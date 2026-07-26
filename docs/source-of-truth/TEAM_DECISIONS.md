@@ -184,10 +184,10 @@
 - 후보 gate: 후보 작성은 `REASON_CONFIRMED + INSUFFICIENT_GROUNDING + candidate_eligible=true` failure에서만 가능하다. 사유 확인은 질문/답변 snapshot 없이 metadata audit를 남긴다.
 - 승인 comment: 공개 OpenAPI가 승인·반려 모두 `review_comment`를 요구하므로 내부 승인 capability도 `approve_kb_candidate(uuid,text,text,text)`를 사용해 승인 comment를 후보와 metadata audit에 저장한다. 공개 wire 계약은 바뀌지 않는다.
 - 적용된 migration은 불변이다. 이미 commit된 migration을 수정하지 않고 reviewed forward를 추가한다.
-  현재 9개 rollback 순서는 `00670 → 00660 → 00650 → 00600 → 00500 → 00400 → 00300 → 00200 → 00100`이다.
+  현재 11개 rollback 순서는 `00700 → 00680 → 00670 → 00660 → 00650 → 00600 → 00500 → 00400 → 00300 → 00200 → 00100`이다.
 - deferred ACTIVE-question trigger 실행: `app_private.validate_active_kb_question()` 하나만 새 `00600`에서 제한된 SECURITY DEFINER로 전환한다. `sejong_schema_owner`, `search_path=pg_catalog, pg_temp`(공식 PostgreSQL 17 SECURITY DEFINER 지침에 따라 임시 스키마를 마지막에 명시), PUBLIC·anon·authenticated·backend 직접 EXECUTE revoke를 재확인하며 backend private schema/table grant와 repository/admin-DSN 우회는 금지한다. 사용자의 직전 추천안 뒤 계속 진행 지시는 Q-DB-003=A 승인으로 해석했고 문자 A를 직접 입력했다고 기록하지 않는다.
-- DB local schema 현재 기준선: forward/rollback 각 9개, pgTAP 9 files/356 assertions와 backend
-  integration·rollback/absence/reset/replay를 갖춘 disposable `0.4.0-local` 기준선이다. Q-SEC-006=A/D-031과 Q-TOOL-001=A/D-032의
+- DB local schema 현재 기준선: forward/rollback 각 11개, pgTAP 11 files/385 tests와 backend
+  integration·rollback/absence/reset/replay를 갖춘 disposable `0.5.0-local` 기준선이다. Q-SEC-006=A/D-031과 Q-TOOL-001=A/D-032의
   patched CLI는 source/patch/runtime hash를 분리 고정하고 runner가 stock/PATH fallback 없이
   patched binary만 사용한다. 2026-07-18 historical gate는 exact one `127.0.0.1:54322`, 당시 pgTAP
   8 files/320, integration·8단계 compensation/absence/reset/replay, final container/process 0·volume delete 0을
@@ -206,11 +206,11 @@
   `수정 계획 승인, 구현 시작`을 승인했고, checkout `.tools/s/a`, `.tools/s/b`와 pre-mutation
   absolute path budget, legacy partial-tree deny-only 경계, reproducible runtime manifest, patched-only
   runner와 actual full gate가 local에서 구현·검증됐다.
-- DB public release 경계: Q-SEC-003=A/D-046으로 exact privileged function 22 signatures를
-  property-only `00700`에서 `search_path=pg_catalog, pg_temp`로 보정하는 방향은 확정했다.
-  구현은 사용자의 지시대로 public 준비 단계까지 보류한다. `00700`·matching compensation·전체
-  regression과 별도 배포 승인이 끝날 때까지 remote/public 배포, public admin/API,
-  public backend DB credential 사용을 차단하고 local 기준선을 production-ready라고 부르지 않는다.
+- DB public release 경계: Q-SEC-003=A/D-046/D-092에 따라 exact privileged function 22
+  signatures의 property-only `00700`과 matching rollback·body/owner/ACL fingerprint·전체
+  regression을 local에서 구현·검증했다. 이는 remote/public 배포 완료가 아니다. ADR-0026의
+  configured citizen target smoke 전 production-ready를 주장하지 않으며 인증 없는 public
+  admin/API와 public backend DB credential 사용은 계속 차단한다.
 
 ## 2026-07-25 local/private 핵심 개선 루프 마일스톤
 

@@ -81,10 +81,10 @@ local stack에는 개발용 기본 credential이 있고 production TLS/rate limi
 함께 생성했다. Q-SEC-006=A/D-031의 patched CLI는 2026-07-18 actual gate에서 exact one
 `127.0.0.1:54322`, pgTAP 282, integration 8/8과 cleanup 0/0을 통과해 DB-001 local/private
 기준선이 됐다. direct stock `db start`, PATH fallback과 `db diff`는 승인된 운영 경로가 아니다.
-Q-SEC-003=A/D-046의 exact 22-signature `00700` 방향은 확정됐지만 public 준비까지 구현
-보류다. `00700`·matching compensation·전체 regression 전에는 remote/public deployment,
-public admin/API, public backend DB credential 사용이 금지되며 local baseline을
-production-ready라고 부르지 않는다.
+Q-SEC-003=A/D-046/D-092의 exact 22-signature `00700`은 matching compensation과 전체
+local regression을 통과했다. remote/public deployment는 ADR-0026의 configured target과
+citizen smoke가 별도로 필요하다. 인증 없는 public admin/API와 public backend DB credential은
+금지되며 local baseline만으로 production-ready라고 부르지 않는다.
 
 Q-SEC-004=A/D-029와 Q-SEC-005=A/D-030은 적용됐으나 exact local을 달성하지 못했다.
 Q-SEC-006=A/D-031과 Q-TOOL-001=A/D-032가 explicit HostIP, short checkout, source/patch/runtime
