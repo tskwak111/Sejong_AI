@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Approved — natural chat design section 1
+
+- Recorded D-089 approval of the privacy-first hybrid request pipeline and 15-minute
+  server-issued structured context without raw transcript or citizen profile storage.
+- Public response, persistence, error and test details remain in design review; product/API/DB/
+  provider behavior is unchanged. Advanced documentation from `2.22.4` to `2.22.5`.
+
 ### Decided — realistic civic guidance and operations product target
 
 - Recorded Q-PROD-REAL-001=A/D-088: the product will mature as a realistic official-guidance,

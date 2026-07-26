@@ -224,6 +224,12 @@ Documentation `2.22.1`은 Q-SCOPE-001=A/D-085/ADR-0024를 기록한다. 네 분�
 exact wire enum·DB migration·admin workflow는 written specification/plan 승인 전 미구현이며
 product/application/API/DB/provider/test version은 유지한다.
 
+Documentation `2.22.5`는 사용자의 CHAT-NATURAL-001 설계 1부 승인/D-089를 기록한다.
+PII-first deterministic safety와 ambiguous-only classifier, server route, ACTIVE/OFFICIAL
+grounding, generated/template, server-owned source 순서와 raw transcript 없는 15분 structured
+context 경계를 확정했다. 공개 응답·저장·오류·테스트 상세는 후속 설계 검토 전 미확정이며
+product/application/Web/API/contract/DB/data/prompt/test/provider actual은 변경하지 않는다.
+
 Documentation `2.22.4`는 Q-PROD-REAL-001=A/D-088을 기록한다. 제품은 현실형 공식 민원
 안내·기관 연결·사람 승인 운영센터를 고도화하며 실제 신청·상태조회·결제·기관 transaction은
 P2로 유지한다. CHAT-NATURAL-001은 제품 범위 인터뷰에서 설계 검토로 이동했다. product/
