@@ -2,7 +2,7 @@
 
 - Task: `CHAT-REALISTIC-USABILITY-AUDIT-001`
 - Date: 2026-07-27 KST
-- Status: Discovery complete / product target decision pending
+- Status: Discovery complete / product target A confirmed
 - Branch/Base: `codex/ACTUAL-P0-UX-GAPS-001` / `13632cb`
 - Safety: 시민 질문 원문, 비밀, DSN, provider call, DB read/write 없음
 
@@ -163,8 +163,8 @@ metadata-only observability, backup/restore, write load, 접근성 수동 검수
 - deterministic fallback·timeout·invalid-schema 테스트
 - UI 문구 정합성, 키보드 접근성, 내부 명명과 중복 제거
 
-## 9. 미해결
+## 9. 제품 목표 결정과 다음 설계
 
-`Q-PROD-REAL-001`이 A면 Slice 1을 첫 단일 written specification으로 작성한다. B면 현재
-Slice 1은 계속 유효하지만, 실제 처리 플랫폼은 인증·기관 API·법무·transaction을 먼저
-별도 discovery 해야 한다.
+사용자는 Q-PROD-REAL-001=A를 선택했다. 현실형 민원 안내·운영센터를 고도화하며 실제
+신청·상태조회·결제·기관 transaction은 P2로 유지한다. 다음 단계는 Slice 1의 설계를
+섹션별로 검토한 뒤 단일 written specification으로 작성하는 것이다.

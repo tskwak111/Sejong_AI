@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Decided — realistic civic guidance and operations product target
+
+- Recorded Q-PROD-REAL-001=A/D-088: the product will mature as a realistic official-guidance,
+  office-routing and human-governed improvement platform.
+- Actual application submission, status lookup, payment and government/internal-system
+  transactions remain P2 and must not be claimed as current product behavior.
+- Moved CHAT-NATURAL-001 from product-scope interviewing to design review. Product/runtime/API/DB/
+  data/provider behavior remains unchanged. Advanced documentation from `2.22.3` to `2.22.4`.
+
 ### Audited — natural dialogue and realistic civic-service readiness
 
 - Recorded Q-CLASS-002=A: the classifier is limited to one 3-second attempt, no retry, 1,024 input

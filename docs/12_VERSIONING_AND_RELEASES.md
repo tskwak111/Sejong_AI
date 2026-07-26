@@ -224,6 +224,11 @@ Documentation `2.22.1`은 Q-SCOPE-001=A/D-085/ADR-0024를 기록한다. 네 분�
 exact wire enum·DB migration·admin workflow는 written specification/plan 승인 전 미구현이며
 product/application/API/DB/provider/test version은 유지한다.
 
+Documentation `2.22.4`는 Q-PROD-REAL-001=A/D-088을 기록한다. 제품은 현실형 공식 민원
+안내·기관 연결·사람 승인 운영센터를 고도화하며 실제 신청·상태조회·결제·기관 transaction은
+P2로 유지한다. CHAT-NATURAL-001은 제품 범위 인터뷰에서 설계 검토로 이동했다. product/
+application/Web/API/contract/DB/data/prompt/test/provider actual은 변경하지 않는다.
+
 Documentation `2.22.3`은 Q-CLASS-002=A/D-087의 classifier 1회·3초·retry 0·입력 1,024자·
 출력 128 token·sub-cap 20, generation sub-cap 30, combined process cap 40과 VAT 포함
 USD 0.05 local synthetic stop line을 기록한다. 또한 active code와 권위 문서를 기준으로

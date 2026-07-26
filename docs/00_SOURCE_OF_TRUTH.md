@@ -73,6 +73,12 @@ generation의 8초·1회·sub-cap 30과 합친 process cap을 40, local syntheti
 line을 VAT 포함 USD 0.05로 고정한다. exact schema written specification·실행계획·별도 local
 actual 승인 전 current runtime/provider call은 0이며 public/remote 금지를 유지한다.
 
+2026-07-27 Q-PROD-REAL-001=A/D-088은 제품 목표를 **현실형 민원 안내·운영센터**로 확정한다.
+자연스러운 구조화 대화, 승인된 공식 근거, 기관 연결, 범위 확대 검토와 사람 승인 개선 루프를
+고도화한다. 실제 신청·상태조회·결제·정부24/기관 내부 시스템 연계는 현재 P2로 유지하며 이
+제품이 처리 완료를 보장한다고 표현하지 않는다. 향후 실제 처리 플랫폼으로 바꾸려면 기관 API,
+본인인증, 법무·개인정보, transaction·감사·보상과 production 배포를 별도 discovery/승인한다.
+
 ## 4. 변경 절차
 
 제품 범위, 공개 계약, DB, 개인정보, 외부 공급자, 배포 아키텍처가 바뀌면:
