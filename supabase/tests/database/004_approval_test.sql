@@ -168,7 +168,8 @@ SELECT is(
       AND namespaces.nspname = 'app_api'
       AND owners.rolname = 'sejong_schema_owner'
       AND functions.prosecdef
-      AND functions.proconfig = ARRAY['search_path=pg_catalog']::text[]
+      AND functions.proconfig =
+        ARRAY['search_path=pg_catalog, pg_temp']::text[]
   ),
   5,
   'workflow interfaces are owner SECURITY DEFINER with fixed search_path'

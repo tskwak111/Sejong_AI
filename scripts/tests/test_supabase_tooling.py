@@ -82,6 +82,25 @@ CIVIC_SCOPE_GAP_ROLLBACK_PATH = (
 CIVIC_SCOPE_GAP_TEST_PATH = (
     ROOT / "supabase" / "tests" / "database" / "010_civic_scope_gap_queue_test.sql"
 )
+PRIVILEGED_SEARCH_PATH_MIGRATION_PATH = (
+    ROOT
+    / "supabase"
+    / "migrations"
+    / "20260727000700_privileged_function_search_path.sql"
+)
+PRIVILEGED_SEARCH_PATH_ROLLBACK_PATH = (
+    ROOT
+    / "database"
+    / "rollbacks"
+    / "20260727000700_privileged_function_search_path.rollback.sql"
+)
+PRIVILEGED_SEARCH_PATH_TEST_PATH = (
+    ROOT
+    / "supabase"
+    / "tests"
+    / "database"
+    / "011_privileged_function_search_path_test.sql"
+)
 EXPECTED_PIN = {
     "version": "2.109.1",
     "release": "v2.109.1",
@@ -142,10 +161,49 @@ class MvpDatabaseAdditionStructureTests(unittest.TestCase):
             CIVIC_SCOPE_GAP_MIGRATION_PATH,
             CIVIC_SCOPE_GAP_ROLLBACK_PATH,
             CIVIC_SCOPE_GAP_TEST_PATH,
+            PRIVILEGED_SEARCH_PATH_MIGRATION_PATH,
+            PRIVILEGED_SEARCH_PATH_ROLLBACK_PATH,
+            PRIVILEGED_SEARCH_PATH_TEST_PATH,
         ):
             source = path.read_text(encoding="utf-8")
             self.assertTrue(source.startswith("BEGIN;\n"), path.name)
             self.assertRegex(source, r"(?m)^(?:COMMIT|ROLLBACK);\s*$", path.name)
+
+    def test_public_hardening_is_exact_property_only_allowlist(self) -> None:
+        migration = PRIVILEGED_SEARCH_PATH_MIGRATION_PATH.read_text(encoding="utf-8")
+        rollback = PRIVILEGED_SEARCH_PATH_ROLLBACK_PATH.read_text(encoding="utf-8")
+        pgtap = PRIVILEGED_SEARCH_PATH_TEST_PATH.read_text(encoding="utf-8")
+
+        alter_pattern = re.compile(
+            r"ALTER FUNCTION (app_(?:api|private)\.[^(]+\([^)]*\))\s+"
+            r"SET search_path = pg_catalog(?:, pg_temp)?;"
+        )
+        forward = alter_pattern.findall(migration)
+        reverse = alter_pattern.findall(rollback)
+
+        self.assertEqual(len(forward), 22)
+        self.assertEqual(len(set(forward)), 22)
+        self.assertEqual(reverse, forward)
+        self.assertEqual(migration.count("SET search_path = pg_catalog, pg_temp;"), 22)
+        self.assertEqual(rollback.count("SET search_path = pg_catalog;"), 21)
+        self.assertEqual(rollback.count("SET search_path = pg_catalog, pg_temp;"), 1)
+        for forbidden in (
+            "CREATE FUNCTION",
+            "CREATE OR REPLACE FUNCTION",
+            "DROP FUNCTION",
+            "GRANT ",
+            "REVOKE ",
+            "ALTER TABLE",
+            "UPDATE ",
+            "INSERT ",
+            "DELETE ",
+            "EXECUTE ",
+        ):
+            self.assertNotIn(forbidden, migration)
+        self.assertIn("SELECT plan(6);", pgtap)
+        self.assertIn("search_path=pg_catalog, pg_temp", pgtap)
+        self.assertIn("md5(functions.prosrc)", pgtap)
+        self.assertIn("pg_catalog.aclexplode", pgtap)
 
     def test_admin_read_files_expose_and_compensate_only_four_capabilities(self) -> None:
         migration = ADMIN_READ_MIGRATION_PATH.read_text(encoding="utf-8")
@@ -2354,6 +2412,7 @@ class LocalDatabaseToolingContractTests(unittest.TestCase):
         self.assertEqual(
             rollback_paths,
             [
+                "20260727000700_privileged_function_search_path.rollback.sql",
                 "20260727000680_civic_scope_gap_queue.rollback.sql",
                 "20260722000670_candidate_public_id_binding.rollback.sql",
                 "20260722000660_chat_idempotency.rollback.sql",
@@ -2388,6 +2447,7 @@ class LocalDatabaseToolingContractTests(unittest.TestCase):
                 ["test", "db"],
                 [
                     "sql",
+                    "20260727000700_privileged_function_search_path.rollback.sql",
                     "20260727000680_civic_scope_gap_queue.rollback.sql",
                     "20260722000670_candidate_public_id_binding.rollback.sql",
                     "20260722000660_chat_idempotency.rollback.sql",

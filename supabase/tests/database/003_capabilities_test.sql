@@ -539,18 +539,8 @@ SELECT ok(
       AND (
         owners.rolname <> 'sejong_schema_owner'
         OR NOT functions.prosecdef
-        OR functions.proconfig IS DISTINCT FROM CASE
-          WHEN functions.proname IN (
-            'list_failed_questions', 'get_failed_question',
-            'list_kb_candidates', 'get_kb_candidate',
-            'approve_kb_candidate_with_public_id',
-            'claim_chat_idempotency', 'complete_chat_idempotency',
-            'abandon_chat_idempotency', 'purge_expired_chat_idempotency',
-            'record_civic_scope_gap', 'list_civic_scope_gaps',
-            'review_civic_scope_gap', 'purge_expired_civic_scope_gap_text'
-          ) THEN ARRAY['search_path=pg_catalog, pg_temp']::text[]
-          ELSE ARRAY['search_path=pg_catalog']::text[]
-        END
+        OR functions.proconfig IS DISTINCT FROM
+          ARRAY['search_path=pg_catalog, pg_temp']::text[]
       )
   ),
   'every app_api function is schema-owner SECURITY DEFINER with fixed search_path'
@@ -592,7 +582,8 @@ SELECT ok(
 SELECT ok(
   (
     SELECT owners.rolname = 'sejong_schema_owner'
-      AND functions.proconfig = ARRAY['search_path=pg_catalog']::text[]
+      AND functions.proconfig =
+        ARRAY['search_path=pg_catalog, pg_temp']::text[]
     FROM pg_catalog.pg_proc AS functions
     JOIN pg_catalog.pg_roles AS owners ON owners.oid = functions.proowner
     WHERE functions.oid = pg_catalog.to_regprocedure(
