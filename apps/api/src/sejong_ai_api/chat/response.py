@@ -12,12 +12,12 @@ from sejong_ai_api.contracts.chat import (
     Fallback,
     FallbackResponse,
     FollowupResponse,
-    Office,
     Source,
     SuccessResponse,
 )
 from sejong_ai_api.db.models import Intent, KnowledgeRecord, OfficeRecord
 from sejong_ai_api.llm.chat_contracts import MaterializedChatAnswer
+from sejong_ai_api.office.response import build_public_office
 
 type FollowupOptionId = Literal[
     "intent.move-in",
@@ -141,7 +141,7 @@ def build_success_response(
                 used_fields=used_fields,
             )
         ],
-        office=_public_office(office),
+        office=build_public_office(office),
         context_token=context_token,
     )
 
@@ -214,26 +214,9 @@ def build_fallback_response(
             message=message,
             next_actions=list(next_actions),
             candidate_eligible=candidate_eligible,
-            office=_public_office(office),
+            office=build_public_office(office),
         ),
         context_token=None,
-    )
-
-
-def _public_office(record: OfficeRecord | None) -> Office | None:
-    if record is None:
-        return None
-    return Office(
-        id=record.public_id,
-        region=record.region.value,
-        office_name=record.office_name,
-        address=record.address,
-        phone=record.phone,
-        opening_hours=record.opening_hours,
-        map_url=AnyUrl(record.map_url) if record.map_url is not None else None,
-        source_title=record.source_title,
-        source_url=AnyUrl(record.source_url),
-        last_verified_at=record.last_verified_at,
     )
 
 

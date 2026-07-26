@@ -87,10 +87,18 @@ def test_success_uses_only_the_selected_kb_and_office_metadata() -> None:
     assert response.fallback is None
     assert response.context_token == "signed-token"
     dumped_office = response.model_dump(mode="json")["office"]
-    assert dumped_office is not None
-    assert dumped_office["id"] == office.public_id
-    assert dumped_office["source_title"] == office.source_title
-    assert dumped_office["source_url"] == office.source_url
+    assert dumped_office == {
+        "id": "OFFICE-AREUM",
+        "region": "아름동",
+        "office_name": "아름동 행정복지센터",
+        "address": "세종특별자치시 보듬3로 114",
+        "phone": "044-301-6300",
+        "opening_hours": "평일 09:00~18:00",
+        "map_url": "https://example.invalid/map/areum",
+        "source_title": "세종특별자치시 아름동 안내",
+        "source_url": "https://example.invalid/office/areum",
+        "last_verified_at": "2026-07-20",
+    }
 
 
 def test_success_answer_mode_accepts_only_the_approved_modes() -> None:
