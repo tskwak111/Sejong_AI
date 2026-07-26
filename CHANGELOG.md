@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Changed — final local demo readiness and performance smoke plan
+
+- Added a fixed-target local context-secret provisioner that generates a CSPRNG value, updates only
+  the primary checkout's ignored `apps/api/.env`, preserves unrelated bytes and never prints the
+  secret. Seven focused tests cover target resolution, ignore enforcement, atomic replacement,
+  invalid generation and value-free output.
+- Completed a provider-disabled latest-main local rehearsal: `/health=200`, `/ready=200`, normal
+  chat SUCCESS/TEMPLATE with one server-owned source, PERSONAL_LOOKUP with
+  `candidate_eligible=false`, office match/empty, approved admin read and provider attempts 0.
+- Re-ran Web lint, typecheck, unit, build and fixture-isolated Playwright; 21/21 browser cases passed
+  across 390px, 430px and desktop. Manual 200% zoom, visual contrast/large-text, keyboard-only demo
+  and presentation timing remain human Pending.
+- Split PERF-001 into a provider-off, DB-write-free 100 VU/60-second Phase A and a cached/fixed chat
+  Phase B. Phase B remains HOLD until A-052 chooses a disposable clean DB or explicitly authorizes
+  bounded writes to the current non-KPI local DB.
+- Advanced repository guidance to `1.7.9`, test suite to `1.8.0-local-demo-readiness` and
+  documentation to `2.21.0`. Product/application/Web/API/shared/DB/data/prompt/dependency,
+  public/remote scope and official rows are unchanged.
+
 ### Changed — OFFICE-API-001 runtime parity
 
 - Implemented the already-declared `GET /api/v1/offices` in the default and local FastAPI

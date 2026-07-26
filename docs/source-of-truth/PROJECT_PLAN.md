@@ -378,6 +378,14 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
 
 마스킹 완화 검토는 같은 20문항 평가셋에서 답변 성공률 80% 미달과 과잉 마스킹의 인과를 함께 기록한 경우에만 시작한다. 개인정보 마스킹률 100% 기준은 완화하지 않는다.
 
+PERF-001은 2026-07-26 실행계획에서 두 단계로 분리한다. Phase A는 provider-disabled
+loopback-only `/health`와 official office read에 100 virtual users·60초를 적용해 harness와
+aggregate-only 결과를 검증하며 DB write는 0이다. Phase B는 cached/fixed chat 경로를 대상으로
+하지만 interaction/idempotency metadata를 만들 수 있어 A-052에서 disposable clean DB 또는
+current non-KPI local DB bounded write를 인간이 선택하기 전까지 실행하지 않는다. 두 단계 모두
+오류율 1% 미만과 평균 3초 이하를 pass 기준으로 사용하고 p95는 측정·공개하되 별도 threshold를
+임의로 만들지 않는다. 이 결과는 실서비스 용량 보증이 아니다.
+
 ## 12. 데모 시나리오
 
 1. `이사했는데 전입신고 어떻게 해요?` → 공식 KB 답변·출처

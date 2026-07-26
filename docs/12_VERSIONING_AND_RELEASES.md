@@ -54,7 +54,7 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 
 ```text
 product_spec: 2.5.0
-repo_guidance: 1.7.8
+repo_guidance: 1.7.9
 application: 0.10.0-office-directory-runtime
 web: 0.6.0-answer-mode
 api: 3.3.0-draft
@@ -63,8 +63,8 @@ database_schema: 0.4.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
-test_suite: 1.7.1-office-directory-review-fix
-documentation: 2.20.10
+test_suite: 1.8.0-local-demo-readiness
+documentation: 2.21.0
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -152,6 +152,16 @@ valid empty `200/count=0`을 확인했다. process-only CSPRNG context secret을
 record/DSN/secret 출력, purge/reset/seed/write와 provider call은 0이다. application/API/shared
 contracts/test/Web/DB/data/prompt 축은 변경하지 않으며 historical aggregate verifier의
 `PREFLIGHT-UV` NOT PASS 증거도 바꾸지 않는다.
+
+Documentation `2.21.0`, repository guidance `1.7.9`, test suite
+`1.8.0-local-demo-readiness`는 PR #16 merge commit `bcaf39c` 이후 D-082의 local/private
+closeout을 기록한다. 고정된 primary ignored `apps/api/.env`만 갱신하고 값을 출력하지 않는
+CSPRNG context-secret provisioner와 7개 테스트를 추가했다. provider-disabled final rehearsal은
+`/health=200`, `/ready=200`, chat SUCCESS/TEMPLATE/source 1, PERSONAL_LOOKUP
+`candidate_eligible=false`, office match/empty, approved admin read, provider attempt 0과 Web
+390/430/desktop 21/21을 확인했다. PERF-001은 read-only Phase A와 metadata-write Phase B로
+분리했고 A-052 결정 전 Phase B는 HOLD다. application/Web/API/shared/DB/data/prompt/dependency,
+public/remote 범위와 actual official rows는 변경하지 않는다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

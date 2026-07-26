@@ -12,6 +12,18 @@ python -B scripts/validate_data_staging.py validate --draft-dir data/staging/dat
 
 위 Python 유틸리티와 `scripts/tests/`의 저장소 경계 검사는 Python 표준 라이브러리만 사용한다.
 
+## local context secret provisioner
+
+```powershell
+.\.tools\uv\uv.exe run --project apps/api --frozen python `
+  scripts/provision_local_context_secret.py
+```
+
+이 명령은 Git common directory에서 primary checkout을 확인하고, Git-ignored
+`apps/api/.env`의 `CONTEXT_TOKEN_SECRET` 한 줄만 최소 32-byte CSPRNG 값으로 원자 교체한다.
+별도 경로나 secret 인수를 받지 않으며 값은 stdout/stderr에 출력하지 않는다. 대상이 exact
+primary local `.env`가 아니거나 ignored 상태가 아니면 파일을 변경하기 전에 fail closed한다.
+
 ## Upstage 합성 평가 runner
 
 ```powershell

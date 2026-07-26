@@ -24,7 +24,7 @@
 | SIR-001 | 공공데이터 연계 | CSV/DB 입력과 공급자별 어댑터 경계 설계 | P2 로드맵 | 인터페이스·동기화·변경 감지 설계 검토 | MVP는 수동 검증 데이터 |
 | SIR-002 | 지도·위치 API | 지역 선택과 공식 지도 링크 제공 | 부분 구현(P0)+P2 | 기관 카드와 링크 동작 확인 | 내장 지도·GPS·거리 정렬은 P2 |
 | PER-001 | 평균 응답시간 3초 | 평균·p95·오류율 측정, 캐시·템플릿 폴백 | P1 확정 검증 | 표본 요청의 평균·p95 기록 | 외부 LLM 상태에 따른 병목 공개 |
-| PER-002 | 동시 사용자 100명 | 캐시된 KB 검색/고정 응답 경로에 100명·1분 제한 스모크 테스트 | P1 제한 검증 | k6/Locust 평균·p95·오류율 기록 | 실서비스 용량 보증이 아닌 구조 검증 |
+| PER-002 | 동시 사용자 100명 | 100 VU·60초 제한 스모크: read-only harness preflight 뒤 cached/fixed chat | P1 실행계획 Ready / chat DB-write gate Pending | locked Python/httpx aggregate의 request·error rate·average·p50·p95·max 기록 | Phase A provider-off·DB write 0. Phase B는 A-052 인간 선택 전 HOLD; 실서비스 용량 보증이 아닌 구조 검증 |
 | SER-001 | 개인정보 최소수집 | 외부 LLM 호출 전 마스킹, 원문 DB 미저장, 앱 DB IP·기기ID 미수집 | P0 실제 구현 + LLM-003 local actual PASS | PII-free actual 10건 typed write-boundary raw fixture/API key 위반 0, aggregate-only stdout, local DB exact single-loopback | local/private 시민 chat은 D-072~D-075 승인 gate만; public/remote/실제 기관 운영 금지. actual metric은 post-read DB forensic scan이 아니며 정적 schema/repository tests와 함께 해석. DB tooling은 D-031/D-032의 pinned patched CLI와 short checkout path-budget을 통과해야 함 |
 | SER-002 | 비식별화 | 이름·주민번호·전화·이메일·상세주소·차량번호·접수번호 등 보수적 마스킹과 마스킹 불능 전용 safe-rephrase | P0 실제 구현 | PII 포함 테스트·provider payload·30일 expires_at·`PRIVACY_UNRESOLVED` no-text/no-row 확인 | PII 누락 방지 우선; 완화는 품질 근거와 인간 재승인 필요 |
 | SER-003 | 환각 방지 | 출처 없는 직접 답변 금지, 서버가 KB 메타데이터를 출처 카드로 결합 | P0 실제 구현 | 출처 표기율 100%, 근거 부족 폴백 검사 | LLM이 출처명·URL을 생성하지 않음 |
