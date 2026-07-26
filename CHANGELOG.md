@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed — ready 200 and local Web actual setup
+
+- Reconfirmed the user-started API at `/ready=200` without outputting its body.
+- Created an ignored, non-secret Web local environment with exact loopback API, actual chat,
+  local admin enabled and actual admin transport settings. All four aggregates passed and port
+  3000 was free.
+- Provider calls and DB query/write/reset/seed remained zero. Advanced documentation only from
+  `2.21.3` to `2.21.4`.
+
 ### Changed — grounded mode false local verification
 
 - Verified without outputting values that the ignored local environment has exactly one lowercase
