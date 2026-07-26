@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
 test_suite: 1.6.1-grounded-actual
-documentation: 2.20.4
+documentation: 2.20.5
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -104,6 +104,9 @@ Documentation `2.20.4`는 2026-07-26 current MVP status audit과 handoff를 기�
 비실행 상태, OpenAPI의 `/api/v1/offices`·`/api/v1/admin/quality-summary` 대비 current runtime
 gap과 hosted backend CI 부재를 다음 P1 후보로 기록한다. 제품/API contract/DB/data/prompt/test
 축과 실제 runtime/data는 변경하지 않는다.
+Documentation `2.20.5`는 위 결정·상태 문서를 Draft PR #14로 게시하고, OFFICE API의 공개 query
+및 응답 동작을 인간이 승인하기 전 제품 구현을 시작하지 않는 설계 gate를 기록한다.
+제품/API contract/DB/data/provider/prompt/test 축과 actual runtime/data는 변경하지 않는다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
