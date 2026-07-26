@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed — certificate category follow-up design approval
+
+- Recorded Q-CHAT-FOLLOWUP-001=A: a generic certificate request will return
+  `CERTIFICATE_ISSUANCE + FOLLOWUP` with five exact ACTIVE-KB-bounded certificate options instead
+  of repeating the four-category question.
+- Preserved unsupported compound certificates as OUT_OF_SCOPE, specific supported queries as
+  direct retrieval candidates, text-free FOLLOWUP events and the existing signed context design.
+- Published the written specification for review. Product code, API shape, DB, data, provider,
+  dependency and tests remain unchanged. Advanced documentation only from `2.21.7` to `2.21.8`.
+
 ### Changed — actual chat and admin system audit
 
 - Exercised the actual local chat, admin and office read paths through the browser and UTF-8 API

@@ -201,6 +201,12 @@ generic 증명서 반복 FOLLOWUP, exact WASTE-03만 허용하는 관리자 후�
 숨겨진 것이며 AI key 부재가 원인이 아님을 확인했다. product/Web/API/DB/data/provider/test
 코드는 변경하지 않았다.
 
+Documentation `2.21.8`은 Q-CHAT-FOLLOWUP-001=A/D-083의 generic certificate category-aware
+FOLLOWUP 설계와 exact five options를 기록한 written specification이다. unsupported compound
+certificate의 OUT_OF_SCOPE, specific supported query의 기존 retrieval, text-free FOLLOWUP,
+signed context와 public contract shape를 보존한다. product/Web/API/DB/data/provider/test
+코드는 변경하지 않았다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과
