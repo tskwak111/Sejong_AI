@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Changed — actual chat and admin system audit
+
+- Exercised the actual local chat, admin and office read paths through the browser and UTF-8 API
+  requests. Specific supported questions, official source binding, safe fallbacks, 15-minute
+  context and responsive routes passed.
+- Reproduced three P0 gaps: the generic certificate option loops back to the same four-category
+  FOLLOWUP, arbitrary eligible failures cannot be authored into candidates, and the initial
+  citizen region selection path is unreachable even though the office endpoint works.
+- Confirmed that the apparent missing admin draft is an approved candidate hidden by the
+  pending-only view, not an LLM configuration failure. Current policy requires operators—not the
+  LLM—to author official answer, fee, department and source fields.
+- Product code, API contract, DB, data, provider and tests remain unchanged. Advanced
+  documentation only from `2.21.6` to `2.21.7`.
+
 ### Changed — certificate category follow-up diagnosis
 
 - Reproduced the generic certificate request as `UNKNOWN + FOLLOWUP` and traced the four-category

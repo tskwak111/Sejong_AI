@@ -194,6 +194,13 @@ Documentation `2.21.6`은 generic 증명서 요청이 classifier에서 `UNKNOWN 
 확인한 기록이다. category-aware certificate FOLLOWUP을 권고하되 exact option은 인간 제품
 결정으로 남겼고 product/Web/API/DB/data/provider/test는 변경하지 않았다.
 
+Documentation `2.21.7`은 실제 browser·UTF-8 API·read-only admin/office 경로를 함께 감사해
+구체 질문·공식 출처·정책 폴백·15분 context·반응형 화면의 정상 동작을 확인하고,
+generic 증명서 반복 FOLLOWUP, exact WASTE-03만 허용하는 관리자 후보 작성, 시민 최초 지역
+선택 진입점 부재를 P0 gap으로 기록했다. DB의 APPROVED 후보는 pending-only 화면 필터로
+숨겨진 것이며 AI key 부재가 원인이 아님을 확인했다. product/Web/API/DB/data/provider/test
+코드는 변경하지 않았다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과
