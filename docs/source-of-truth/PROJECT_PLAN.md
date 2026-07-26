@@ -200,9 +200,10 @@ owner PR 과제다. owner Draft PR review/merge와 manual demo는 인간 Pending
   `ce8a6085fb57670ca74e009ed45e3d02d784c24b`다. 해당 SHA의 post-merge policy and frozen Frontend CI
   hosted runs passed, and `koregy` collaborator write/variable evidence is verified. current remote
   authority는 `git fetch origin` 뒤 `origin/main`으로 동적 확인하며 어떤 local `main`도 같다고 전제하지 않는다.
-  Task 5 is partial: teammate MFA/recovery and the first Task 7 PR-only/no-direct-main-push rehearsal are
-  human-only Pending. Q-GIT-004=A/D-053의 author/committer history·SHA 보존은 유지한다.
-  COLLAB-001은 남은 Task 6~7 rehearsal까지 In Progress다.
+  private PR #1~#5, Cloud docs-only PR #3, Frontend onboarding PR #4와 제품 PR #8의
+  PR-only/manual-merge rehearsal은 완료됐다. teammate MFA/recovery 확인만 human-only Pending이다.
+  Q-GIT-004=A/D-053의 author/committer history·SHA 보존은 유지한다. COLLAB-001은 이 human
+  recovery gate 때문에 In Progress다.
 - GitHub Free·0원으로 시작하므로 private branch protection/CODEOWNERS 강제를 전제하지 않는다.
   PR-only 팀 규칙, 변경 범위 분류, CI와 작은 revert 가능한 PR을 사용한다.
 - Frontend 팀원은 `/`, `/chat`, `/admin`, typed client, 모든 화면 상태, 반응형·접근성과 frontend
@@ -213,7 +214,8 @@ owner PR 과제다. owner Draft PR review/merge와 manual demo는 인간 Pending
   해결한다.
 - Codex Cloud는 `codex/<task-id>-<slug>` branch와 Draft PR까지만 만들고 사용자가 병합한다.
   App installation의 `Only select repositories / Sejong_AI`와 secret-free `sejong-ai-cloud-docs`
-  환경 저장은 사용자 확인됐다. Cloud docs-only task/Draft-PR/manual-merge rehearsal은 Pending이다.
+  환경 저장은 사용자 확인됐다. Cloud docs-only task/Draft-PR/manual-merge rehearsal은 private
+  PR #3으로 완료됐다.
   비밀·외부 LLM 실호출·Docker/Supabase actual 검증은 Cloud에서 금지한다.
 - private GitHub source remote는 D-046이 차단하는 remote/public application·DB deployment와
   별개이며 이를 해제하지 않는다.
