@@ -86,6 +86,14 @@
 | D-083 | 2026-07-26 | 사용자의 `ㅇㅋ 진행해`를 직전 Q-CHAT-FOLLOWUP-001=A 권고안과 exact 5개 certificate option에 대한 설계 승인으로 기록한다. | generic `증명서`는 특정 KB를 추측하지 않고 `CERTIFICATE_ISSUANCE + FOLLOWUP`과 주민등록등본 발급·주민등록초본 발급·등본과 초본의 차이·주민등록표 열람·무인민원발급기 이용을 반환한다. unsupported compound certificate는 OUT_OF_SCOPE를 유지하고 선택 후 ACTIVE-only retrieval을 사용한다. Written specification Review; 제품 코드는 명세 검토와 계획 승인 뒤 TDD로 구현한다. API shape/DB/data/provider/dependency/public/remote 변경 0. | Q-CHAT-FOLLOWUP-001, A-053, SFR-002/SFR-005, certificate followup design, IMP-20260726-022 | 사용자 |
 | D-084 | 2026-07-26 | 사용자의 `명세 승인`으로 certificate category-aware FOLLOWUP written specification 전체를 승인하고 상세 TDD 실행계획 작성을 허용한다. | Written Specification Approved / Execution Plan Review. 구현계획은 classifier priority/invariant→server-owned five options→text-free service FOLLOWUP→typed Web prompt/context→full gate 순서다. 계획 승인 전 product code 0이며 API shape/DB/data/provider/dependency/public/remote 작업은 계속 금지한다. | D-083, A-053, certificate followup spec/plan, IMP-20260726-023 | 사용자 |
 
+### CHAT-CLASSIFICATION-GAPS-001 diagnostic evidence (non-decision)
+
+2026-07-26 actual-equivalent fixture 재현에서 WX/SCHOLAR는 PII contextual-name false positive로
+분류 전에 `PRIVACY_UNRESOLVED`, RENT/FAMILY는 안전한 마스킹 뒤 `UNKNOWN+FOLLOWUP`이 됐다.
+현재 계약은 비민원, 네 분야 밖 행정 민원, 네 분야 안의 새 표현을 분리하지 못하며
+OUT_OF_SCOPE text/failed row 저장은 금지한다. 이는 LLM 채택 승인이 아니며
+Q-CLASS-001/Q-SCOPE-001 결정 전 제품·계약·DB/provider 변경은 0이다.
+
 ### LLM-003 execution evidence (non-decision)
 
 Tasks 1~7의 offline 구현과 task-scoped 독립 검토는

@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Documented — chat classification and PII false-positive gaps
+
+- Reproduced four reported fixture paths without persisting citizen text.
+- Isolated two PII contextual-name false positives and the missing distinction between non-civic,
+  current-scope gap and supported-intent ambiguity.
+- Recorded the recommended hybrid deterministic/bounded-LLM architecture and the separate
+  `CIVIC_SCOPE_GAP` retention decision. Product, contract, DB, provider and dependency code remain
+  unchanged. Advanced documentation from `2.21.9` to `2.22.0`.
+
 ### Changed — certificate follow-up specification approval and TDD plan
 
 - Recorded D-084 approval of the category-aware certificate FOLLOWUP written specification.

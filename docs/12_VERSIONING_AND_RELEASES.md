@@ -212,6 +212,12 @@ classifier priority/invariant→closed server option labels→text-free service 
 Web prompt/context→full gate의 5-task RED/GREEN 실행계획을 기록한다. plan 승인 전
 product/Web/API/DB/data/provider/dependency/test source는 변경하지 않는다.
 
+Documentation `2.22.0`은 CHAT-CLASSIFICATION-GAPS-001 actual-equivalent fixture 진단을
+기록한다. 일반 한국어 두 건의 contextual-name PII false positive와, 현재 taxonomy가
+비민원·네 분야 밖 행정 민원·지원 intent의 새 표현을 분리하지 못하는 원인을 확인했다.
+Q-CLASS-001/Q-SCOPE-001 전 product/API/Web/test/OpenAPI/DB/data/provider/dependency는
+변경하지 않는다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과
