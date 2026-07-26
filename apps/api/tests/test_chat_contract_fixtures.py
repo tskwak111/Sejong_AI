@@ -121,6 +121,17 @@ def test_chat_response_rejects_string_number_coercion() -> None:
         CHAT_RESPONSE_ADAPTER.validate_json(json.dumps(response, ensure_ascii=False), strict=True)
 
 
+def test_success_answer_mode_is_required_and_closed() -> None:
+    response = read_fixture("chat-response/valid-success.json")
+    response.pop("answer_mode", None)
+    with pytest.raises(ValidationError):
+        CHAT_RESPONSE_ADAPTER.validate_python(response, strict=True)
+
+    response["answer_mode"] = "UNAPPROVED"
+    with pytest.raises(ValidationError):
+        CHAT_RESPONSE_ADAPTER.validate_python(response, strict=True)
+
+
 def test_service_unavailable_rejects_integer_literal_coercion() -> None:
     unavailable = read_fixture("errors/valid-service-unavailable.json")
     unavailable["error"]["retryable"] = 1

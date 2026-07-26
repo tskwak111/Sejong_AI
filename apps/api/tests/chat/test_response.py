@@ -9,6 +9,7 @@ from sejong_ai_api.chat.response import (
     build_followup_response,
     build_success_response,
 )
+from sejong_ai_api.contracts.chat import SuccessResponse
 from sejong_ai_api.db.models import Intent, KnowledgeRecord, OfficeRecord, Region
 
 REQUEST_ID = UUID("11111111-1111-4111-8111-111111111111")
@@ -64,6 +65,7 @@ def test_success_uses_only_the_selected_kb_and_office_metadata() -> None:
     )
 
     assert response.answer_status == "SUCCESS"
+    assert response.answer_mode == "TEMPLATE"
     assert response.intent == record.category.value
     assert response.summary == record.answer_summary
     assert response.procedure_steps == list(record.procedure_steps)
@@ -89,6 +91,23 @@ def test_success_uses_only_the_selected_kb_and_office_metadata() -> None:
     assert dumped_office["id"] == office.public_id
     assert dumped_office["source_title"] == office.source_title
     assert dumped_office["source_url"] == office.source_url
+
+
+def test_success_answer_mode_accepts_only_the_approved_modes() -> None:
+    response = build_success_response(
+        request_id=REQUEST_ID,
+        record=knowledge_record(),
+        office=None,
+        confidence=0.99,
+        context_token=None,
+    )
+
+    assert (
+        SuccessResponse.model_validate(
+            {**response.model_dump(), "answer_mode": "GENERATED"}
+        ).answer_mode
+        == "GENERATED"
+    )
 
 
 def test_success_omits_unavailable_optional_high_risk_fields() -> None:

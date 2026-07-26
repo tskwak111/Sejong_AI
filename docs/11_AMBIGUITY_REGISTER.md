@@ -47,10 +47,11 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-041 | B / High | 범위 밖 개인조회·법적판단 표현 | Resolved / Q-MVP-002=A | 공개 응답은 `intent=UNKNOWN`+정확한 정책 reason, 후보 false; local MVP에서 text/event/failed row 0 | D-059/ADR-0021; sample T-16~T-18 실행 승인 |
 | A-042 | A / Blocker | 관리자 DB read capability | Resolved / Q-DB-004=A | local/private 전용 `00650` migration+rollback+pgTAP+repository adapter 승인 | D-060/ADR-0021; public admin/remote/00700 불변 |
 | A-043 | B / High | chat 재시도 idempotency | Resolved / Q-API-002=A | optional UUID header, Web retry key 유지, correlation 분리, `00660` durable dedupe 승인 | D-061/ADR-0021; raw question 저장 0, local 24h TTL |
-| A-044 | A / Blocker | LLM 공급자 전환·실사용 경계 | Resolved plan / offline implementation complete | Q-LLM-005=A, 명세·계획 승인: Upstage exact `solar-pro3`를 canonical `T-01`~`T-10` local/private 합성 평가에만 사용해 한국어·strict JSON·비용을 먼저 판정 | D-065~D-067/ADR-0022/LLM-002 plan. offline Tasks 1~6 review clean; key/network call 0. Task 7 local human actual과 시민/free-input/public/remote 선택지 B는 별도 |
+| A-044 | A / Blocker | LLM 공급자 전환·합성 평가 경계 | Resolved — actual FAIL / 당시 option B not approved | Q-LLM-005=A local/private actual 완료: Upstage exact `solar-pro3`, outbound 30, strict-schema 27/30, 인간 검토 9개 평균 4.8444·최저 4, VAT 포함 USD 0.004654815. JSON 100% criterion 미충족 | D-065~D-067/D-071/ADR-0022/LLM-002 report의 historical verdict. 후속 local 시민 경계는 A-048/D-072가 supersede하며 public/remote 금지는 유지 |
 | A-045 | B / High | PM 데모의 개인조회와 개선 질문 분리 | Resolved / local actual PASS | #4 PERSONAL_LOOKUP은 interaction event/failed row delta 0, #5 별도 INSUFFICIENT_GROUNDING은 delta 1/1 뒤 19→20 승인 루프와 재질의 SUCCESS | D-068/D-059, Q-PM-DEMO-001 plan; backend runner와 actual browser evidence PASS |
 | A-046 | B / High | 공식 서비스명 | Resolved | 공식 서비스명은 `세종 민원이음`; 옛 작업명은 활성 문서에서 교정하고 역사 증거는 보존 | D-069 / POST-MVP-001 |
 | A-047 | B / High | local dev config 소유 경계 | Resolved / owner review | PR #10의 exact `127.0.0.1` 개발 origin은 owner가 인계하고 팀원 config 권한과 public CORS 범위는 넓히지 않음 | D-070 / WEB-DEV-ORIGIN-001 |
+| A-048 | A / Blocker | local 시민 chat 외부 LLM 경계 | Resolved / offline implementation and final root gate complete; local actual Pending | Q-LLM-006=B·007=A·009=A·011=C·012=B와 D-073 명세·D-074 계획 승인: supported+masked+ACTIVE/OFFICIAL+grounded만 masked question+최소 KB 전송, `solar-pro3` 8초 1 attempt, server-issued fact ID·server-bound source, 검증 실패 전체 template fallback, `answer_mode` 배지 | D-072~D-074/ADR-0023/LLM-003 spec+plan/report. provider-disabled root gate PASS; local actual은 human Pending, public/remote/실제 기관 운영 금지 |
 
 ## 우선도 정의
 
@@ -59,9 +60,12 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 - C: AI 기본값 가능, 기록 필요
 - D: 내부 구현 판단
 
-현재 deterministic MVP를 막는 인터뷰 결정은 없다. A-044/Q-LLM-005는 2026-07-23
-D-065~D-067로 합성 평가 명세·계획까지 승인돼 구현 중이다. 실제 provider call은 offline
-Tasks 1~6과 local human gate 전에는 하지 않는다.
+현재 deterministic MVP를 막는 인터뷰 결정은 없다. A-044/Q-LLM-005의 합성 평가는
+D-071에서 actual FAIL로 종료했다. 이후 사용자가 A-048/Q-LLM-006~012/D-072로 local/private
+근거 제한형 시민 chat 생성을 승인했고 D-073에서 written specification, D-074에서 실행계획과
+Subagent-Driven 구현을 승인했다. offline 구현·task-scoped 검토와 provider-disabled final root gate는
+완료됐고 actual provider call만 별도 local 인간 단계다. public/remote/실제 기관
+운영은 별도 개인정보·보안·비용·배포 승인 전까지 계속 금지한다.
 A-041~A-043은 2026-07-22 D-059~D-061로 해결됐다.
 T-16~T-18, local admin DB read와 durable chat 재시도는 승인 범위에서 구현·검증한다. DATA actual과
 end-to-end 증거가 통과해 final local 19→20 ACTIVE를 확인했다. A-040/Q-MVP-001은

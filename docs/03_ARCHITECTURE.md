@@ -61,26 +61,32 @@ scripts        reproducible project tooling
 
 ## 4. LLM adapter
 
-합성 평가 공급자 모델은 정확히 Upstage `solar-pro3`로 고정한다. max output 1024,
-concurrency 1, 논리 요청당 재시도 최대 1회, 명시적 process run당 재시도를 포함한 실제
-outbound attempt 총 30회를 강제한다. 도메인 서비스가 공급자 API에 직접 의존하지 않도록
-다음 인터페이스를 둔다. 이 adapter는 LLM-002 계획 승인 전 미구현이며 시민 chat 기본 경로는
-deterministic template다.
+합성 평가 공급자와 D-072/D-073가 승인한 local/private 시민 chat 목표 모델은 정확히 Upstage
+`solar-pro3`로 고정한다. 합성 평가 경로는 max output 1024, concurrency 1, 논리 요청당 재시도
+최대 1회, process outbound attempt 30이고 actual은 D-071에서 FAIL로 종료했다. 후속 시민 chat
+경로는 timeout 8초, logical attempt 1회, hidden retry 0, concurrency 1, process cap 30이다.
+도메인 서비스가 공급자 API에 직접 의존하지 않도록 provider-neutral interface를 사용한다.
+현재 product runtime은 아직 deterministic template이며
+[승인 대기 실행계획](superpowers/plans/2026-07-25-grounded-live-chat-generation.md) 승인 뒤에만
+아래 좁은 interface를 구현한다.
 
 ```python
-class LLMProvider(Protocol):
-    async def classify_or_answer(self, request: GroundedRequest) -> GroundedResult: ...
+class GroundedAnswerGenerator(Protocol):
+    async def generate(self, request: GroundedChatRequest) -> GroundedChatResult: ...
 ```
 
 요구사항:
 
-- 입력은 마스킹된 질문과 허용된 KB 청크만
-- Upstage 입력은 서버 allowlist의 canonical local/private `T-01`~`T-10`만; 실제 시민·public 요청은 disabled/template
-- 출력은 스키마 검증 가능한 구조화 객체
-- timeout/retry/circuit-breaker 경계
+- 입력은 마스킹된 질문과 실제 답변에 필요한 최소 ACTIVE/OFFICIAL KB fact만
+- 시민 입력은 supported intent·안전 마스킹·ACTIVE/OFFICIAL·grounding을 모두 통과한
+  local/private 요청만; public/remote/실제 기관 운영은 disabled/template
+- 출력은 최대 500자 summary와 server-issued fact ID뿐이며 strict schema와 사실 drift 검증
+- timeout 8초, attempt 1, hidden retry 0, concurrency 1, process cap 30
 - 공급자 장애 시 KB 템플릿 또는 안전 폴백
 - 공급자 이름/모델/latency는 관측 가능하되 질문 텍스트 로그 금지
-- provider disabled 기본, 서버 allowlist synthetic evaluation runner에서만 활성; hidden retry·preflight provider call·cap reset endpoint 금지
+- source/office/policy/공식 fact text는 서버가 결합
+- provider disabled 기본, synthetic/chat mode 상호 배타; preflight provider call·cap reset
+  endpoint 금지
 
 ## 4.1 대화 문맥 경계
 

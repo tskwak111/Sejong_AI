@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from datetime import date
+from pathlib import Path
 from types import TracebackType
 from typing import cast
 from uuid import UUID, uuid4
@@ -48,6 +50,12 @@ APPROVE_CANDIDATE_WITH_PUBLIC_ID_SQL = (
 )
 REJECT_CANDIDATE_SQL = "SELECT app_api.reject_kb_candidate(%s, %s, %s, %s)"
 PURGE_SQL = "SELECT * FROM app_api.purge_expired_failed_question_text()"
+LIST_ACTIVE_KB_MIGRATION = (
+    Path(__file__).resolve().parents[4]
+    / "supabase"
+    / "migrations"
+    / "20260716000500_indexes_and_read_interfaces.sql"
+)
 
 
 def _database_dsn(scheme: str, authority: str) -> str:
@@ -263,6 +271,59 @@ def test_repository_satisfies_the_exact_nine_method_protocol() -> None:
     concrete: SejongRepository = repository(FakePool())
 
     assert isinstance(concrete, PsycopgSejongRepository)
+
+
+def test_executable_list_active_kb_authority_pins_active_official_projection() -> None:
+    migration = LIST_ACTIVE_KB_MIGRATION.read_text(encoding="utf-8")
+    bodies = re.findall(
+        r"AS \$list_active_kb\$\r?\n(?P<body>.*?)\r?\n\$list_active_kb\$;",
+        migration,
+        flags=re.DOTALL,
+    )
+
+    assert len(bodies) == 1
+    body = bodies[0]
+    projection = re.search(
+        r"RETURN QUERY\s+SELECT(?P<projection>.*?)"
+        r"\n  FROM app_private\.kb_documents AS kb",
+        body,
+        flags=re.DOTALL,
+    )
+    assert projection is not None
+    for trusted_column in (
+        "kb.public_id",
+        "kb.category::text",
+        "kb.service_name",
+        "kb.answer_summary",
+        "kb.procedure_steps",
+        "kb.required_documents",
+        "kb.processing_time",
+        "kb.fee",
+        "kb.department",
+        "kb.source_title",
+        "kb.source_url",
+        "kb.last_verified_at",
+        "kb.caution",
+        "questions.question_example",
+    ):
+        assert trusted_column in projection.group("projection")
+
+    predicate = re.search(
+        r"\n  FROM app_private\.kb_documents AS kb\r?\n"
+        r"  WHERE (?P<predicate>.*?)\r?\n"
+        r"  ORDER BY kb\.public_id COLLATE pg_catalog\.\"C\" ASC;",
+        body,
+        flags=re.DOTALL,
+    )
+    assert predicate is not None
+    assert tuple(line.strip() for line in predicate.group("predicate").splitlines()) == (
+        "kb.category = p_intent::app_private.intent_code",
+        "AND kb.status = 'ACTIVE'",
+        "AND kb.data_origin = 'OFFICIAL'",
+    )
+    assert "app_private.kb_candidates" not in body
+    assert "'CANDIDATE'" not in predicate.group("predicate")
+    assert "'MOCK'" not in predicate.group("predicate")
 
 
 def test_create_pool_is_explicit_lazy_and_preserves_nonblank_dsn(

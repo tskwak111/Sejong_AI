@@ -16,12 +16,14 @@
 8. 이름·상세주소는 개인정보 누락 방지를 우선해 보수적으로 마스킹하고, 불확실하면 외부 호출 없이 안전 폴백한다.
 9. 화면 transcript와 대화 문맥 token은 현재 탭 메모리에만 두고 서버 세션·DB·로그·브라우저 영속 저장소에는 저장하지 않는다.
 10. 안전한 마스킹 값을 만들 수 없으면 질문 텍스트를 반환·저장·외부 전송하지 않는다. 이 경우 질문 없는 interaction event만 기록할 수 있다.
-11. 마스킹 성공은 저장 또는 provider 호출의 필요조건일 뿐 충분조건이 아니다. 실제 시민 질문은 마스킹 여부와 무관하게 Upstage 또는 다른 외부 LLM으로 전송하지 않는다.
+11. 마스킹 성공은 저장 또는 provider 호출의 필요조건일 뿐 충분조건이 아니다. local/private에서는 지원 intent·ACTIVE/OFFICIAL·근거 gate까지 통과한 요청만 Upstage로 전송할 수 있고, public/remote/실제 기관 운영은 별도 승인 전 전송하지 않는다.
 12. 시민 입력의 “공식 대표번호” 표시는 신뢰 근거가 아니다. 입력 안의 모든 phone-shaped value를 마스킹하고, 공식 기관 연락처는 승인된 KB·기관 메타데이터를 서버가 결합한 카드에서만 제공한다.
 13. 안전한 마스킹 문자열을 만들 수 없는 요청은 `PRIVACY_UNRESOLVED`로 분리해 HTTP 200 안전 재질문을 제공한다. 이 outcome에는 질문 text, source/context/office, provider 호출, 실패 질문 row와 후보를 만들지 않고 질문 없는 interaction metadata만 허용한다.
 
-13번은 D-045로 확정된 후속 consumer 정책 목표다. 현재 active API 계약·DB enum·route에는 아직
-적용되지 않았으며 별도 consumer 명세, 공개 계약과 forward migration 승인 뒤에만 활성화한다.
+위 `PRIVACY_UNRESOLVED` 동작은 D-045와 Q-MVP-001 consumer 구현으로 local/private 활성 계약·route에
+적용됐다. 질문 text·source/context/office·provider·failed-question row·candidate·DB event는 모두 0이며,
+persistent metadata migration과 public route는 reserved `00700` 및 별도 승인 전까지 비활성이다. 이전의
+“아직 적용되지 않았다” 문장은 consumer 구현 전의 역사적 checkpoint였으며 현행 정책이 아니다.
 
 ## 3. 저장 금지 정보
 
@@ -93,34 +95,56 @@ text_purged_at
 - `text_expires_at`: `created_at + 30일`; 실패 행 전체가 아니라 `masked_question` 텍스트의 만료 시각
 - `text_purged_at`: 파기 전에는 NULL, 파기 후에는 실제 처리 시각
 
-## 7. Upstage 외부 LLM 합성 평가 경계
+## 7. Upstage 외부 LLM 처리 경계
 
-Q-LLM-005=A/D-065로 provider는 Upstage direct API exact `solar-pro3`로 변경한다. API key는
-ignored backend local 환경변수에만 두고 브라우저·저장소·GitHub·Codex Cloud·문서·로그에
-값이나 잔액을 남기지 않는다. `max_tokens=1024`, 동시 외부 호출 1개, 논리 요청당 재시도 최대
-1회, 한 process run에서 재시도를 포함한 실제 outbound attempt 총 30회를 강제한다.
+Q-LLM-005=A/D-065의 합성 평가 경계는 LLM-002 actual FAIL 증거로 보존한다. 이후
+Q-LLM-006~012/D-072는 공개 운영이 아닌 local/private 입찰 시연 MVP에 한해 Upstage direct API
+exact `solar-pro3`의 근거 제한형 시민 chat 사용을 승인했다. API key는 ignored backend local
+환경변수에만 두고 브라우저·저장소·GitHub·Codex Cloud·문서·로그에 값이나 잔액을 남기지 않는다.
 
-- local/private에서 server-owned canonical `T-01`~`T-10`만 Upstage로 전송한다. 클라이언트
-  `is_test`, fixture ID 또는 자유 입력을 그대로 신뢰하지 않는다.
-- 실제 시민 자유 입력, 실제 개인정보·민감정보, 공개/remote 요청은 마스킹 여부와 무관하게
-  Upstage 또는 다른 외부 LLM으로 전송하지 않는다.
-- 합성 fixture도 백엔드 보수적 마스킹과 ACTIVE/OFFICIAL retrieval·grounding을 통과한 뒤
-  최소 KB 청크와 output schema만 전송한다.
-- Upstage의 2026-07-07 개인정보 처리방침은 Playground, Async API, 별도 동의 API logging,
-  Free Tier request/response에 다른 처리·보관 조건과 AWS US 국외 처리를 명시한다. 실제 계정의
-  계약·동의 상태를 저장소에서 확인할 수 없으므로 합성 전용 경계를 완화하지 않는다.
+### 7.1 호출 전 필수 gate
+
+- 백엔드 보수적 masker가 원문 없이 안전한 마스킹 질문을 생성해야 한다.
+- deterministic supported intent, ACTIVE/OFFICIAL retrieval과 grounding을 모두 통과해야 한다.
+- FOLLOWUP, PRIVACY_UNRESOLVED, INSUFFICIENT_GROUNDING, PERSONAL_LOOKUP, LEGAL_JUDGMENT,
+  OUT_OF_SCOPE에는 provider를 호출하지 않는다.
+- provider는 기본 disabled이며 local/private chat mode를 서버에서 명시적으로 활성화해야 한다.
+  클라이언트 flag, intent, fixture ID, KB ID 또는 mode를 신뢰하지 않는다.
+- public/remote/실제 기관 운영의 시민 질문 전송은 별도 개인정보·법무·보안·비용·배포 승인
+  전까지 계속 금지한다.
+
+### 7.2 최소 전송
+
+- 전송 허용: 마스킹된 현재 질문, 서버 확정 intent, 실제 답변에 필요한 최소 ACTIVE/OFFICIAL KB,
+  server-issued fact ID와 strict output schema
+- 전송 금지: raw question, PII finding 원문, 이전 transcript/context token, actor/IP/device,
+  secret/DSN/내부 UUID, 전체 DB/KB, CANDIDATE/staging/mock, 관리자 comment/audit
+- 모델은 summary와 fact ID만 제안한다. 공식 fact text, source title/URL/verified date와 office는
+  서버가 결합한다.
+- JSON/schema/ID/fact drift 검증 하나라도 실패하면 모델 결과 전체를 버리고 공식 template를
+  사용한다.
+
+### 7.3 보관·실행 제한
+
+- 시민 chat은 timeout 8초, logical attempt 1, hidden retry 0, concurrency 1, process outbound
+  attempt 30 이하를 강제한다.
 - run/attempt ID에는 개인정보를 넣지 않는다.
-- JSON output은 서버 strict schema 검증을 통과해야 하며 provider body·reasoning·질문·답변을
-  로그나 평가 artifact에 남기지 않는다.
-- 공개 운영·실제 시민 입력은 별도 개인정보 고지, 처리 법적 근거, 국외 처리, 보관·삭제,
-  공급자 약관·비용 검토와 선택지 B의 인간 승인 전까지 금지한다.
-- provider 장애 또는 정책 변경 시 disabled/template 경로를 유지한다.
-- provider는 기본 disabled이며 명시적 synthetic evaluation runner와 서버 fixture allowlist가
-  함께 만족할 때만 호출한다. cap·retry·latency·outcome·token usage·aggregate cost는 질문 없는
-  지표만 기록하고 provider body·reasoning·잔액은 기록하지 않는다.
+- provider request/response, reasoning, raw/masked question과 생성 답변은 DB·파일·로그·오류
+  추적에 남기지 않는다.
+- 허용 metric은 질문 없는 outcome, latency, attempt, token usage와 aggregate cost뿐이다.
+- provider 장애·정책 변경·cap 소진 시 disabled/template 경로를 유지한다.
+- provider-disabled final root offline gate는 2026-07-26 PASS했지만, provider key·network·actual
+  output은 이 gate에서 사용하지 않았다. local actual은 인간이 ignored 환경에서 별도로 승인·실행할
+  때까지 Pending이며 Cloud/CI·public/remote/실제 기관 운영 호출은 계속 0이다.
 
-공식 확인 기준일은 2026-07-23이며 모델·API·가격·개인정보 처리방침은 구현 시작과 actual 합성
-평가 전에 다시 확인한다.
+Upstage 공식 페이지가 `Last Revised: May 21, 2026`로 표시하는 개인정보 처리방침은
+Console/Studio API logging이 별도 동의에서
+정한 기간 동안 API input/output을 수집할 수 있고, Upstage Service에 입력된 대화·데이터의
+국외 처리 항목을 둔다. 실제 계정의 별도 동의·계약 상태는 저장소에서 증명할 수 없다. 따라서
+마스킹 질문 전송도 잔여 위험으로 기록하고 local/private MVP에서만 허용한다.
+
+페이지 확인일은 2026-07-25이며 URL slug를 효력일로 해석하지 않는다. 모델·API·가격·개인정보
+처리방침은 구현 시작과 local actual 전에 다시 확인한다.
 
 ### 대화 문맥 token
 
@@ -139,7 +163,7 @@ ignored backend local 환경변수에만 두고 브라우저·저장소·GitHub�
 | 실패 질문 비텍스트 메타데이터·후보 연결 | 텍스트 파기 후에도 프로젝트 산출물 범위에서 유지 |
 | 지원 범위 밖 질문 텍스트 | 저장하지 않음 |
 | 대화 transcript·context token | 서버에 저장하지 않음; 현재 탭 메모리에서만 15분 이내 사용 |
-| local chat idempotency | UUID key, HMAC request digest, correlation과 분리된 임시 claim token·5분 lease, 안전 응답과 상태만 논리 TTL 24시간; 원문·마스킹 질문·correlation ID는 저장하지 않고 startup+60초 주기로 만료 행 purge |
+| local chat idempotency | UUID key, HMAC request digest, correlation과 분리된 임시 claim token·5분 lease, 엄격한 서버 검증을 통과한 최종 안전 응답과 상태만 논리 TTL 24시간. `GENERATED` summary도 이 제한된 중복 방지 응답에는 포함될 수 있으나 원문·마스킹 질문·prompt·provider body·context token·correlation ID는 저장하지 않고 startup+60초 주기로 만료 행 purge |
 | KB 후보·승인 이력 | 프로젝트 산출물 범위에서 유지 |
 | 승인 KB | 출처·버전·승인자와 함께 유지 |
 | 감사 이력 | 질문·답변 전문 없이 상태 변경 정보만 유지 |

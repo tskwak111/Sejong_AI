@@ -13,7 +13,7 @@ lang: ko-KR
 **팀원**: [직접 입력]  
 **대표 연락처**: [직접 입력]  
 **제출일**: [직접 입력]  
-**문서 버전**: v2.3
+**문서 버전**: v2.5.0
 
 > **모르면 지어내지 않고, 알면 끝까지 안내한다.**
 
@@ -401,26 +401,30 @@ KB가 20건이므로 복잡한 벡터 검색만으로 판단하지 않는다.
 
 ## 7.4 LLM 공급자
 
-외부 LLM 합성 평가 공급자는 Upstage direct API exact `solar-pro3`로 확정했다. max output 1024,
-동시 호출 1, 요청당 재시도 최대 1회, 명시적 평가 process run당 재시도를 포함한 실제 outbound
-attempt 총 30회를 강제한다. 외부 호출은 local/private 환경에서 서버가 검증한 canonical
-`T-01`~`T-10`으로만 제한하고, 실제 시민·PII·민감정보·자유 입력·공개 요청은
-disabled/template 경로로 처리한다. `LLMProvider` 인터페이스로 분리하고 strict JSON·타임아웃·
-재시도·cap·disabled fallback을 어댑터에 구현한다. 실제 시민 연결은 합성 평가 뒤 별도 승인한다.
+공급자는 Upstage direct API exact `solar-pro3`다. 합성 평가를 먼저 수행했고 strict schema
+27/30으로 FAIL했다. 이후 local/private 입찰 시연 MVP에서는 supported intent·안전한 마스킹·
+ACTIVE/OFFICIAL 검색·근거 gate를 모두 통과한 시민 요청만 8초·1 attempt·concurrency 1·
+process cap 30으로 호출하도록 별도 승인했다. `LLMProvider` 인터페이스를 유지하고, 모델은
+summary와 server-issued fact ID만 제안한다. strict schema·ID·fact 검증에 실패하면 결과 전체를
+버리고 서버가 공식 KB template와 source를 결합한다. public/remote/실제 기관 운영은 별도 승인
+전까지 disabled/template 경로만 사용한다.
 
 # 8. 개인정보·보안·접근성
 
 ## 8.1 외부 LLM 호출 전 마스킹
 
 ```text
-local/private 합성 시연 입력
+local/private 지원 범위 시민 입력
 → 백엔드 PII 탐지·마스킹
-→ 서버 fixture allowlist 검증
-→ 마스킹 질문과 최소 ACTIVE/OFFICIAL KB 청크만 Upstage 전달
+→ deterministic policy·ACTIVE/OFFICIAL·grounding gate
+→ 마스킹 질문, 최소 KB와 server-issued fact ID만 Upstage 전달
+→ 서버 strict 검증·공식 fact/source 결합 또는 전체 template fallback
 → 원문 DB 미저장
 ```
 
-실제 시민 자유 입력과 공개 환경 요청은 Upstage 또는 다른 외부 LLM에 전달하지 않고 ACTIVE KB 기반 template 경로만 사용한다.
+FOLLOWUP·privacy unresolved·근거 부족·개인조회·법적판단·지원 범위 밖 요청은 provider call
+0이다. public/remote/실제 기관 운영 요청도 별도 개인정보·보안·비용·배포 승인 전까지
+Upstage 또는 다른 외부 LLM에 전달하지 않고 ACTIVE KB 기반 template 경로만 사용한다.
 
 ## 8.2 로그 분리
 
@@ -440,7 +444,7 @@ local/private 합성 시연 입력
 
 - PII 포함 질문의 DB·서버로그 원문 0건
 - 외부 LLM 테스트 더블 payload의 마스킹 확인
-- 합성 fixture allowlist 밖 자유 입력의 Upstage adapter 도달 0건
+- 정책/근거 gate 밖 자유 입력의 Upstage adapter 도달 0건
 - DRAFT/PENDING KB 검색 노출 0건
 - 작성자 본인 승인 거부
 - KB 후보 개인정보 입력 시 저장 차단
@@ -457,7 +461,7 @@ local/private 합성 시연 입력
 | Backend | FastAPI + Python | AI·정책·구조화 API |
 | DB | Supabase PostgreSQL + Supabase CLI SQL | 관계형 승인 데이터와 재현 가능한 migration 계보 |
 | 검색 | 키워드+메타데이터, 임베딩 보조 | 20건 규모의 예측 가능성 |
-| LLM | Upstage `solar-pro3` canonical 합성 평가 전용·어댑터 | 한국어·JSON·비용 선검증과 실제 시민 데이터 차단 |
+| LLM | Upstage `solar-pro3` provider adapter + local/private 근거 제한형 생성 | supported+masked+ACTIVE/OFFICIAL+grounded만 호출, server-issued fact ID·server-bound source와 전체 template fallback; public/remote 금지 |
 | 배포 | Vercel + Render + Supabase | 짧은 개발 기간·관리형 서비스 |
 | 백업 | 로컬 고정 KB·템플릿 응답·화면 녹화 | 발표 장애 대응 |
 | 테스트 | Pytest·Playwright·k6/Locust | API·UI·성능·정책 검증 |

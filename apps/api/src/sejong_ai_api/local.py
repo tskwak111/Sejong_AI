@@ -13,7 +13,7 @@ from collections.abc import AsyncIterator, Callable, Mapping
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, TextIO, cast
 from urllib.parse import quote
 from uuid import UUID, uuid4
 
@@ -36,6 +36,12 @@ from sejong_ai_api.db.models import PurgeResult
 from sejong_ai_api.db.pool import _ambient_libpq_environment_is_clear, create_pool
 from sejong_ai_api.db.repository import PsycopgSejongRepository
 from sejong_ai_api.main import create_app
+
+if TYPE_CHECKING:
+    from sejong_ai_api.llm.settings import UpstageChatSettings
+    from sejong_ai_api.llm.upstage_chat import GroundedChatRuntime
+
+    type GroundedChatRuntimeFactory = Callable[[UpstageChatSettings], GroundedChatRuntime]
 
 _LOCAL_ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 _ALLOWED_ENV_KEYS = frozenset({"DATABASE_URL", "CONTEXT_TOKEN_SECRET"})
@@ -142,6 +148,7 @@ def create_local_app(
     env_path: Path | None = None,
     pool_factory: Callable[[str], LocalPool] | None = None,
     repository_factory: Callable[[object], LocalRepository] | None = None,
+    grounded_chat_runtime_factory: GroundedChatRuntimeFactory | None = None,
     purge_interval_seconds: float = _DEFAULT_PURGE_INTERVAL_SECONDS,
 ) -> FastAPI:
     """Build one fail-closed local application without eager network access."""
@@ -158,6 +165,11 @@ def create_local_app(
         pool = selected_pool_factory(settings.database_url)
         repository = selected_repository_factory(pool)
         probe = RepositoryReadinessProbe(repository)
+        grounded_chat_runtime = _compose_optional_grounded_chat_runtime(
+            environ=environ,
+            env_path=env_path,
+            runtime_factory=grounded_chat_runtime_factory,
+        )
         service = ChatService(
             repository=repository,
             context_codec=ContextTokenCodec(
@@ -170,6 +182,9 @@ def create_local_app(
             idempotency_repository=repository,
             idempotency_secret=settings.context_token_secret,
             idempotency_claim_factory=uuid4,
+            answer_generator=(
+                grounded_chat_runtime.generator if grounded_chat_runtime is not None else None
+            ),
         )
         responder = GuardedChatResponder(probe, service)
     except Exception:
@@ -207,12 +222,39 @@ def create_local_app(
             if purge_task is not None:
                 with suppress(Exception):
                     await purge_task
+            if grounded_chat_runtime is not None:
+                with suppress(Exception):
+                    await grounded_chat_runtime.aclose()
             with suppress(Exception):
                 await pool.close()
             probe.disable()
 
     application.router.lifespan_context = local_lifespan
     return application
+
+
+def _compose_optional_grounded_chat_runtime(
+    *,
+    environ: Mapping[str, str] | None,
+    env_path: Path | None,
+    runtime_factory: GroundedChatRuntimeFactory | None,
+) -> GroundedChatRuntime | None:
+    """Lazily compose the exact local profile without making an outbound request."""
+
+    try:
+        from sejong_ai_api.llm.settings import load_upstage_chat_settings
+
+        chat_settings = load_upstage_chat_settings(environ=environ, env_path=env_path)
+        if chat_settings is None:
+            return None
+        selected_factory = runtime_factory
+        if selected_factory is None:
+            from sejong_ai_api.llm.upstage_chat import build_upstage_chat_runtime
+
+            selected_factory = build_upstage_chat_runtime
+        return selected_factory(chat_settings)
+    except Exception:
+        return None
 
 
 async def _purge_expired_private_records(repository: LocalRepository) -> None:
@@ -240,26 +282,56 @@ async def _run_periodic_purge(
 def _read_allowlisted_env(path: Path) -> dict[str, str] | None:
     values: dict[str, str] = {}
     try:
-        with path.open("r", encoding="utf-8") as stream:
-            for raw_line in stream:
-                line = raw_line.strip()
-                if not line or line.startswith("#"):
+        with path.open("r", encoding="utf-8", newline=None) as stream:
+            while (assignment := _read_env_assignment_name(stream)) is not None:
+                raw_key, has_separator = assignment
+                key = raw_key.strip()
+                if not key or key.startswith("#"):
+                    if has_separator:
+                        _discard_env_line(stream)
                     continue
-                if line.startswith("export "):
-                    line = line.removeprefix("export ").lstrip()
-                key, separator, raw_value = line.partition("=")
-                key = key.strip()
+                if key.startswith("export "):
+                    key = key.removeprefix("export ").lstrip()
                 if key not in _ALLOWED_ENV_KEYS:
+                    if has_separator:
+                        _discard_env_line(stream)
                     continue
-                if not separator or key in values:
+                if not has_separator or key in values:
                     return None
-                value = raw_value.strip()
+                value = _read_env_line_value(stream).strip()
                 if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
                     value = value[1:-1]
                 values[key] = value
-    except (OSError, UnicodeError):
+    except (OSError, UnicodeDecodeError):
         return None
     return values
+
+
+def _read_env_assignment_name(stream: TextIO) -> tuple[str, bool] | None:
+    characters: list[str] = []
+    while True:
+        character = stream.read(1)
+        if character == "":
+            return ("".join(characters), False) if characters else None
+        if character == "\n":
+            return ("".join(characters), False)
+        if character == "=":
+            return ("".join(characters), True)
+        characters.append(character)
+
+
+def _read_env_line_value(stream: TextIO) -> str:
+    characters: list[str] = []
+    while True:
+        character = stream.read(1)
+        if character in ("", "\n"):
+            return "".join(characters)
+        characters.append(character)
+
+
+def _discard_env_line(stream: TextIO) -> None:
+    while stream.read(1) not in ("", "\n"):
+        pass
 
 
 def _valid_env_value(value: object) -> bool:

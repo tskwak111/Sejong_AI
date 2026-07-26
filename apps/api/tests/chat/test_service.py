@@ -11,7 +11,6 @@ from sejong_ai_api.chat.idempotency import (
     IdempotencyClaim,
     IdempotencyClaimStatus,
     IdempotencyConflictError,
-    IdempotencyInProgressError,
 )
 from sejong_ai_api.chat.response import (
     build_fallback_response,
@@ -35,6 +34,7 @@ from sejong_ai_api.db.models import (
     OfficeRecord,
     Region,
 )
+from sejong_ai_api.llm.chat_contracts import GroundedAnswerGenerator
 
 REQUEST_ID = UUID("11111111-1111-4111-8111-111111111111")
 INTERACTION_ID = UUID("22222222-2222-4222-8222-222222222222")
@@ -217,6 +217,7 @@ def service(
     clock_ns: Callable[[], int] | None = None,
     idempotency_repository: FakeIdempotencyRepository | None = None,
     idempotency_claim_factory: Callable[[], UUID] = lambda: CLAIM_TOKEN,
+    answer_generator: GroundedAnswerGenerator | None = None,
 ) -> ChatService:
     ticks = iter((1_000_000, 6_000_000))
     return ChatService(
@@ -228,6 +229,7 @@ def service(
         idempotency_repository=idempotency_repository,
         idempotency_secret=b"i" * 32 if idempotency_repository is not None else None,
         idempotency_claim_factory=idempotency_claim_factory,
+        answer_generator=answer_generator,
     )
 
 
@@ -567,20 +569,12 @@ async def test_completed_conversational_replay_reissues_a_memory_only_context_to
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("status", "error_type"),
-    [
-        (IdempotencyClaimStatus.CONFLICT, IdempotencyConflictError),
-        (IdempotencyClaimStatus.IN_PROGRESS, IdempotencyInProgressError),
-    ],
-)
-async def test_non_acquired_idempotency_claims_are_value_free_errors(
-    status: IdempotencyClaimStatus,
-    error_type: type[Exception],
-) -> None:
-    idempotency = FakeIdempotencyRepository(IdempotencyClaim(status=status))
+async def test_conflicting_idempotency_claim_is_a_value_free_error() -> None:
+    idempotency = FakeIdempotencyRepository(
+        IdempotencyClaim(status=IdempotencyClaimStatus.CONFLICT)
+    )
 
-    with pytest.raises(error_type):
+    with pytest.raises(IdempotencyConflictError):
         await service(FakeRepository(), idempotency_repository=idempotency).answer(
             ChatRequest(question="김철수"),
             request_id=REQUEST_ID,

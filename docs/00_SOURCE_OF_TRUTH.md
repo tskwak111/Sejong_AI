@@ -39,6 +39,20 @@
 공급자는 Upstage exact `solar-pro3`이며, 먼저 local/private server-allowlisted 합성
 `T-01`~`T-10` 평가로 한국어 품질·strict JSON·비용을 검증한다. 결정론적 시민 경로는 계속
 기본이고 실제 시민/free-input/public/remote provider 사용은 선택지 B의 별도 승인 전 금지한다.
+2026-07-25 actual은 outbound 30회에서 strict-schema 27/30으로 전체 FAIL했다. 인간 검토 9개
+평균 4.8444·최저 4와 VAT 포함 USD 0.004654815는 통과했지만 JSON 100% 기준을 충족하지
+못했으므로 D-071에서 선택지 B 미승인과 provider-disabled/template 시민 경로 유지를 확정했다.
+
+이후 사용자는 2026-07-25 Q-LLM-006~012/D-072/ADR-0023으로 **local/private 입찰 시연
+MVP에 한해** 근거 제한형 Upstage 시민 답변 생성을 새로 승인했다. 보수적 마스킹, deterministic
+supported intent, ACTIVE/OFFICIAL 검색과 근거 gate를 모두 통과한 요청만 마스킹 질문과 최소
+KB를 보낸다. 모델은 summary와 server-issued fact ID만 제안하고, 공식 fact text·출처·기관·정책
+결과는 서버가 결합한다. 8초·1 attempt·hidden retry 0이며 검증이나 호출 실패 시 모델 결과 전체를
+버리고 기존 공식 template로 답한다. LLM-002 actual FAIL 증거는 그대로이며 public/remote/실제
+기관 운영은 별도 개인정보·보안·비용·배포 승인 전까지 계속 금지한다. 현재 상태는 설계·D-073
+written specification·D-074 8-task 실행계획 승인에 따른 offline 구현·task-scoped review·
+provider-disabled final root gate 완료다. actual provider network는 별도 local 인간 gate로
+Pending이다.
 
 ## 4. 변경 절차
 

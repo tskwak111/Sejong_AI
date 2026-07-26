@@ -29,16 +29,51 @@ describe("contract fixture rendering", () => {
 
     // summary가 없는 fixture는 기본 제목으로 렌더링하되 카드가 깨지지 않는다
     expect(screen.getByText("확인된 민원 안내")).toBeInTheDocument();
+    expect(screen.getByText("공식 안내")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.",
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("시연용 샘플 출처 — 공식 데이터 아님"),
     ).toBeInTheDocument();
     expect(screen.getByText("2026-07-15 확인 기준")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /원문 보기/ })).toHaveAttribute(
+    const sourceLink = screen.getByRole("link", { name: /원문 보기/ });
+    expect(sourceLink).toHaveAttribute(
       "href",
       "https://example.invalid/sources/001",
     );
+    expect(sourceLink).toHaveAttribute("target", "_blank");
+    expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer");
     expect(screen.getByText("시연용 샘플 행정복지센터")).toBeInTheDocument();
     expect(screen.getByText("시연용 샘플 주소")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["blank source id", { source_id: "   " }],
+    ["blank source title", { title: "   " }],
+    ["blank verified date", { last_verified_at: "   " }],
+    ["missing source URL", { url: undefined }],
+    ["non-HTTPS source URL", { url: "http://example.invalid/sources/001" }],
+    ["unparseable HTTPS source URL", { url: "https://" }],
+  ])("fails closed for a SUCCESS response with %s", (_, sourceOverride) => {
+    const validResponse = validSuccess as unknown as SuccessResponse;
+    const response = {
+      ...validResponse,
+      sources: [{ ...validResponse.sources[0], ...sourceOverride }],
+    } as unknown as SuccessResponse;
+
+    render(<AnswerCard response={response} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("일시적인 오류");
+    expect(screen.queryByText("공식 안내")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /원문 보기/ })).not.toBeInTheDocument();
   });
 
   it("renders valid-followup.json options as selectable chips", () => {

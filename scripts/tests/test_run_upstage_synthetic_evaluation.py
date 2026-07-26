@@ -333,6 +333,16 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(stdout, "")
         self.assertEqual(stderr, "LLM_EVALUATION_CONFIGURATION_INVALID\n")
 
+    def test_synthetic_runner_loads_only_the_synthetic_profile(self) -> None:
+        runner = _runner()
+        sentinel = object()
+        from sejong_ai_api.llm import settings
+
+        with patch.object(
+            settings, "load_upstage_synthetic_settings", return_value=sentinel
+        ):
+            assert runner._load_provider_settings() is sentinel
+
     def test_rejected_argument_never_echoes_its_value(self) -> None:
         result, stdout, stderr = self._capture_main(["--api-key", _SECRET])
 

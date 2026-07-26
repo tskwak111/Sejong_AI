@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import cast
 
 import pytest
 
@@ -10,6 +11,82 @@ from sejong_ai_api.chat.idempotency import (
     fingerprint_chat_request,
 )
 from sejong_ai_api.contracts.chat import ChatRequest
+
+
+def _safe_fallback_payload() -> dict[str, object]:
+    return {
+        "intent": "UNKNOWN",
+        "confidence": None,
+        "summary": None,
+        "procedure_steps": [],
+        "required_documents": [],
+        "processing_time": None,
+        "fee": None,
+        "department": None,
+        "followup_options": [],
+        "fallback": {
+            "reason": "PERSONAL_LOOKUP",
+            "title": "개인 정보 조회는 할 수 없어요",
+            "message": "이 서비스는 개인별 신청·처리·고지 상태를 조회하지 않아요.",
+            "next_actions": ["정부24 또는 해당 기관의 본인 인증 조회 경로를 이용해 주세요."],
+            "candidate_eligible": False,
+            "office": None,
+        },
+        "answer_status": "FALLBACK",
+        "sources": [],
+    }
+
+
+def _safe_success_payload() -> dict[str, object]:
+    return {
+        "intent": "MOVE_IN_RESIDENT_REGISTRATION",
+        "confidence": 0.99,
+        "summary": "전입신고 공식 안내입니다.",
+        "procedure_steps": ["전입신고를 신청합니다."],
+        "required_documents": [],
+        "processing_time": None,
+        "fee": None,
+        "department": "아름동 행정복지센터",
+        "followup_options": [],
+        "fallback": None,
+        "answer_status": "SUCCESS",
+        "answer_mode": "TEMPLATE",
+        "sources": [
+            {
+                "source_id": "SOURCE-TEST-01",
+                "title": "승인된 공식 출처",
+                "url": "https://example.invalid/official/source",
+                "last_verified_at": "2026-07-20",
+                "used_fields": [],
+            }
+        ],
+        "office": None,
+    }
+
+
+def _payload_with_office_extra(
+    payload_kind: str,
+    unsafe_key: str,
+) -> dict[str, object]:
+    payload = _safe_success_payload() if payload_kind == "success" else _safe_fallback_payload()
+    office: dict[str, object] = {
+        "id": "OFFICE-TEST-01",
+        "region": "아름동",
+        "office_name": "아름동 행정복지센터",
+        "address": "세종특별자치시 시연용 주소",
+        "phone": "044-000-0000",
+        "opening_hours": "평일 09:00~18:00",
+        "map_url": None,
+        "source_title": "승인된 기관 출처",
+        "last_verified_at": "2026-07-20",
+        unsafe_key: "must-not-persist",
+    }
+    if payload_kind == "success":
+        payload["office"] = office
+    else:
+        fallback = cast(dict[str, object], payload["fallback"])
+        fallback["office"] = office
+    return payload
 
 
 def test_request_fingerprint_is_stable_hmac_and_contains_no_input() -> None:
@@ -69,9 +146,40 @@ def test_completed_claim_requires_a_safe_response_payload() -> None:
 @pytest.mark.parametrize(
     "payload",
     [
+        {"answer_status": "FALLBACK"},
+        {"arbitrary": {"nested": "json"}},
+    ],
+)
+def test_completed_claim_rejects_incomplete_or_arbitrary_json(
+    payload: dict[str, object],
+) -> None:
+    with pytest.raises(ValueError, match="^IDEMPOTENCY_CLAIM_INVALID$"):
+        IdempotencyClaim(
+            status=IdempotencyClaimStatus.COMPLETED,
+            response_payload=payload,
+        )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
         {"request_id": "must-not-persist"},
+        {"correlation_id": "must-not-persist"},
+        {"correlation_request_id": "must-not-persist"},
         {"context_token": "must-not-persist"},
+        {"context": {"value": "must-not-persist"}},
         {"fallback": {"question": "must-not-persist"}},
+        {"fallback": {"masked_question": "must-not-persist"}},
+        {"fallback": {"raw_question": "must-not-persist"}},
+        {"fallback": {"request": "must-not-persist"}},
+        {"fallback": {"request_body": "must-not-persist"}},
+        {"fallback": {"provider_request": "must-not-persist"}},
+        {"fallback": {"provider_response": "must-not-persist"}},
+        {"fallback": {"provider_content": "must-not-persist"}},
+        {"fallback": {"provider_error": "must-not-persist"}},
+        {"fallback": {"provider_result": "must-not-persist"}},
+        {"fallback": {"draft": "must-not-persist"}},
+        {"fallback": {"prompt": "must-not-persist"}},
         {"sources": [{"transcript": "must-not-persist"}]},
     ],
 )
@@ -85,15 +193,81 @@ def test_completed_claim_rejects_persistent_correlation_or_conversation_values(
         )
 
 
+@pytest.mark.parametrize(
+    "credential_key",
+    [
+        "access_token",
+        "Api_Key",
+        "api_secret",
+        "Authorization",
+        "bearer_token",
+        "client_secret",
+        "LLM_API_KEY",
+        "provider_api_key",
+        "provider_secret",
+        "secret",
+        "secret_access_key",
+    ],
+)
+def test_completed_claim_rejects_nested_provider_credential_keys(
+    credential_key: str,
+) -> None:
+    payload = _safe_fallback_payload()
+    fallback = cast(dict[str, object], payload["fallback"])
+    fallback["office"] = {
+        "id": "OFFICE-TEST-01",
+        "region": "아름동",
+        "office_name": "아름동 행정복지센터",
+        "address": "세종특별자치시 시연용 주소",
+        "phone": "044-000-0000",
+        "opening_hours": "평일 09:00~18:00",
+        "map_url": None,
+        "source_title": "승인된 기관 출처",
+        "source_url": "https://example.invalid/official/office",
+        "last_verified_at": "2026-07-20",
+        credential_key: "provider-credential-must-not-persist",
+    }
+
+    with pytest.raises(ValueError, match="^IDEMPOTENCY_CLAIM_INVALID$"):
+        IdempotencyClaim(
+            status=IdempotencyClaimStatus.COMPLETED,
+            response_payload=payload,
+        )
+
+
+@pytest.mark.parametrize("payload_kind", ["fallback", "success"])
+@pytest.mark.parametrize(
+    "unsafe_key",
+    [
+        "apiKey",
+        "api-key",
+        "rawQuestion",
+        "raw.question",
+        "maskedQuestion",
+        "contextToken",
+        "providerResponse",
+        "provider-secret",
+        "authorizationHeader",
+    ],
+)
+def test_completed_claim_rejects_canonicalized_forbidden_office_aliases(
+    payload_kind: str,
+    unsafe_key: str,
+) -> None:
+    with pytest.raises(ValueError, match="^IDEMPOTENCY_CLAIM_INVALID$"):
+        IdempotencyClaim(
+            status=IdempotencyClaimStatus.COMPLETED,
+            response_payload=_payload_with_office_extra(payload_kind, unsafe_key),
+        )
+
+
 def test_completed_claim_accepts_only_safe_chat_response_fields() -> None:
+    payload = _safe_fallback_payload()
+
     claim = IdempotencyClaim(
         status=IdempotencyClaimStatus.COMPLETED,
-        response_payload={
-            "answer_status": "FALLBACK",
-            "intent": "UNKNOWN",
-            "sources": [],
-            "fallback": {"reason": "PERSONAL_LOOKUP"},
-        },
+        response_payload=payload,
     )
 
     assert claim.status is IdempotencyClaimStatus.COMPLETED
+    assert claim.response_payload == payload

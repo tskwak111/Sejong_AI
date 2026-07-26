@@ -1,6 +1,7 @@
 {
   "request_id": "adadadad-adad-4dad-8dad-adadadadadad",
   "answer_status": "SUCCESS",
+  "answer_mode": "TEMPLATE",
   "intent": "BULKY_WASTE",
   "sources": [
     {

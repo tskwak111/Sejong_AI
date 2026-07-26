@@ -112,6 +112,7 @@ function moveInAnswer(region: Region | null): ChatResponse {
   return {
     request_id: uuid(),
     answer_status: "SUCCESS",
+    answer_mode: "TEMPLATE",
     intent: "MOVE_IN_RESIDENT_REGISTRATION",
     confidence: 0.96,
     summary:
@@ -149,6 +150,7 @@ function bulkyWasteAnswer(region: Region): ChatResponse {
   return {
     request_id: uuid(),
     answer_status: "SUCCESS",
+    answer_mode: "TEMPLATE",
     intent: "BULKY_WASTE",
     confidence: 0.93,
     summary: `${region}은 인터넷 또는 주민센터에서 배출 신고 후 받은 스티커(납부필증)를 부착하여, 신고 시 지정한 배출일 전날 저녁 지정 장소에 내놓으면 됩니다.`,
@@ -230,6 +232,7 @@ function certificateAnswer(region: Region | null): ChatResponse {
   return {
     request_id: uuid(),
     answer_status: "SUCCESS",
+    answer_mode: "TEMPLATE",
     intent: "CERTIFICATE_ISSUANCE",
     confidence: 0.95,
     summary:

@@ -1271,7 +1271,7 @@ Do not include an actual provider result in this commit.
 - Consumes: local DB containing final ACTIVE/OFFICIAL 20, ignored Upstage key, Tasks 1–6
 - Produces: aggregate actual evidence and human decision, never answer text
 
-- [ ] **Step 1: Human prepares the ignored local environment**
+- [x] **Step 1: Human prepares the ignored local environment**
 
 The user edits `apps/api/.env` locally:
 
@@ -1292,7 +1292,7 @@ UPSTAGE_SYNTHETIC_EVALUATION_MODE=true
 The user pastes the key only after the final `=` in the ignored local file. The key is not pasted into
 chat, GitHub, Codex Cloud, PowerShell history, a command argument or a tracked file.
 
-- [ ] **Step 2: Reconfirm official mutable facts**
+- [x] **Step 2: Reconfirm official mutable facts**
 
 Before the call, verify from Upstage official pages:
 
@@ -1307,7 +1307,7 @@ Use only the official [Chat API](https://console.upstage.ai/api-keys?api=chat),
 
 If any value changed, stop without calling and return the plan to Review.
 
-- [ ] **Step 3: Run preflight without revealing values**
+- [x] **Step 3: Run preflight without revealing values**
 
 ```powershell
 git status --short
@@ -1318,7 +1318,7 @@ python -B scripts/check_git_history_secrets.py --repo . --local-secret-file apps
 Expected: tracked tree clean except planned report/note work, current/history secret matches 0. The scanner
 prints counts/rule IDs only.
 
-- [ ] **Step 4: Run interactive actual evaluation once**
+- [x] **Step 4: Run interactive actual evaluation once**
 
 The human runs in a personal local interactive terminal, not Codex Cloud:
 
@@ -1330,7 +1330,7 @@ Review the first valid result for each T-01..T-10 and enter five scores. Do not 
 to improve results. If the process fails, retain the aggregate failure counts, keep provider disabled
 and do not claim 30 completed generations.
 
-- [ ] **Step 5: Apply the acceptance gate**
+- [x] **Step 5: Apply the acceptance gate**
 
 Overall PASS requires all:
 
@@ -1344,7 +1344,7 @@ Overall PASS requires all:
 
 Any failure keeps actual citizen/free-input option B unapproved.
 
-- [ ] **Step 6: Publish aggregate evidence and remove/retain the local key deliberately**
+- [x] **Step 6: Publish aggregate evidence and remove/retain the local key deliberately**
 
 Create the Markdown report from the ignored aggregate JSON. Include counts, scores, reason codes,
 token totals, price snapshot, cost and PASS/FAIL; do not include question or answer text, key, DSN,
@@ -1353,7 +1353,7 @@ request/response body, account data or raw error.
 After the run, the user either removes `LLM_API_KEY` and returns provider to disabled, or deliberately
 keeps the key in ignored local `.env`. In both cases Git/history scans must remain clean.
 
-- [ ] **Step 7: Commit actual evidence**
+- [x] **Step 7: Commit actual evidence**
 
 ```powershell
 git add docs/test-reports/LLM-002-UPSTAGE-SYNTHETIC-EVALUATION.md TASKS.md docs/implementation-notes
@@ -1375,12 +1375,12 @@ This commit does not authorize option B.
 - Consumes: Tasks 1–7
 - Produces: reviewable owner branch and explicit actual status
 
-- [ ] **Step 1: Disable provider for the full regression**
+- [x] **Step 1: Disable provider for the full regression**
 
 Set process overrides to `LLM_PROVIDER=disabled` and
 `UPSTAGE_SYNTHETIC_EVALUATION_MODE=false`; do not delete or print the ignored file.
 
-- [ ] **Step 2: Run final repository gate**
+- [x] **Step 2: Run final repository gate**
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 -Offline
@@ -1393,7 +1393,7 @@ Expected: root offline PASS, docs PASS, secret clean, diff clean. If the root ga
 environment-specific skip/failure, record the exact bounded stage and run the approved focused
 replacement; never rewrite it as a full PASS.
 
-- [ ] **Step 3: Perform requirement-by-requirement diff review**
+- [x] **Step 3: Perform requirement-by-requirement diff review**
 
 Verify:
 
@@ -1406,7 +1406,7 @@ Verify:
 - input upper-bound and provider-reported prompt-token limits both reconcile at or below 4096
 - actual status does not imply option B approval
 
-- [ ] **Step 4: Finalize documentation**
+- [x] **Step 4: Finalize documentation**
 
 Mark LLM-002:
 
@@ -1416,7 +1416,7 @@ Mark LLM-002:
 Record every command, count, duration, version, privacy/cost impact and rollback in the implementation
 note. Keep actual citizen/public provider use Pending in A-044/D-065/D-066.
 
-- [ ] **Step 5: Commit closeout**
+- [x] **Step 5: Commit closeout**
 
 ```powershell
 git add CHANGELOG.md README.md TASKS.md versions/manifest.json docs
@@ -1536,7 +1536,10 @@ Still not approved:
 
 ## Result and Retrospective
 
-- Actual provider result: not executed; API key/network call remain zero.
+- Actual provider result: 2026-07-25 local/private run FAIL. Outbound attempts 30, strict-schema
+  valid 27/30, completed generations 29, deterministic fallbacks 2다. 인간 검토는 valid result가
+  있는 9개에서 mean 4.844444444444444444444444444, minimum 4, `OK=9`, critical 0이며
+  VAT 포함 비용은 USD 0.004654815/0.05다. JSON 100% criterion 실패로 option B는 미승인이다.
 - Plan deviation: linked-worktree `uv` lookup was corrected through Git common-dir discovery; Task 1
   independent review found and closed one Important malformed-dotenv gap plus a controller-found
   non-string fail-closed gap.
@@ -1557,5 +1560,8 @@ Still not approved:
   DeepSeek environment expectation, fixed at `a249b50`; its 20-test security module then passed.
   Two linked-worktree exact-runtime cases were environment-specific because the ignored Supabase
   binary is not copied into worktrees; both exact tests passed in the primary checkout.
-- Actual key, provider network, remote/public route and model-quality verdict remain zero/pending.
-- Next step: Task 7 local-only human actual evaluation after the independent MVP demo evidence lane.
+- Actual provider network는 승인된 canonical synthetic fixture에만 30회 사용했다. 실제 시민
+  질문, remote/public route, API/DB/data/dependency 변경은 0이며 provider-disabled/template
+  경로를 유지한다.
+- Next step: 이번 결과를 재실행으로 덮지 않는다. 향후 튜닝은 새 승인·prompt/model version과
+  별도 평가 계획으로 분리한다.

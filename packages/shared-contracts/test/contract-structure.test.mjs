@@ -9,7 +9,7 @@ import {
 const { openApi } = loadContracts();
 
 test("health and readiness 200 responses use strict required body components", () => {
-  assert.equal(openApi.info.version, "3.1.0-draft");
+  assert.equal(openApi.info.version, "3.2.0-draft");
 
   for (const [path, componentName, status] of [
     ["/health", "HealthResponse", "ok"],
@@ -76,6 +76,10 @@ test("chat response is an explicit status-discriminated oneOf contract", () => {
     { $ref: "#/components/schemas/FallbackResponse" },
   ]);
   assert.ok(openApi.components.schemas.SuccessResponse.allOf[1].required.includes("office"));
+  assert.ok(openApi.components.schemas.SuccessResponse.allOf[1].required.includes("answer_mode"));
+  assert.deepEqual(openApi.components.schemas.SuccessResponse.allOf[1].properties.answer_mode, {
+    enum: ["GENERATED", "TEMPLATE"],
+  });
   assert.deepEqual(
     openApi.components.schemas.FollowupResponse.allOf[1].properties.office,
     { type: "null" },

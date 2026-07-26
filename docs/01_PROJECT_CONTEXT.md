@@ -53,8 +53,9 @@
 
 ## LLM과 배포
 
-- Upstage provider adapter 설계, canonical `T-01`~`T-10` local/private 합성 평가 전용;
-  exact `solar-pro3`, max 1024, concurrency 1, retry 1, run당 outbound attempt 30. 실제 시민 연결은 별도 승인
+- Upstage `solar-pro3` 합성 평가 뒤 local/private 근거 제한형 시민 chat 설계를 승인했다.
+  supported+masked+ACTIVE/OFFICIAL+grounded만 8초·1 attempt·cap 30으로 호출하고,
+  server-issued fact ID·server-bound source와 전체 template fallback을 강제한다. public/remote는 별도 승인
 - 화면 transcript는 현재 탭 메모리, 문맥은 15분 서명형 client-carried token; 서버 세션·raw transcript 저장 없음
 - 키워드·메타데이터 검색 기본, MVP 임베딩 off
 - Vercel(web) + Render(api) + Supabase(DB) 권장

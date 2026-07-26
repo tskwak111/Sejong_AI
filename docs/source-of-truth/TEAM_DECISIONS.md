@@ -73,12 +73,23 @@
 - 초기 runtime 마스커는 표준 라이브러리 기반 결정론적 typed rule engine으로 구현한다. 원문 값 없는 고정 토큰만 반환하고 안전한 결과를 만들 수 없으면 텍스트 저장·실패 질문 row·provider 호출을 금지하며 metadata-only event만 허용한다.
 - 시민 입력이 번호를 “공식 대표번호”라고 표시해도 그 label은 신뢰하지 않고 모든 phone-shaped value를 마스킹한다. 공식 기관 연락처는 승인된 KB·기관 메타데이터를 서버가 결합한 카드에서만 제공한다.
 - 안전한 마스킹 text를 만들 수 없으면 HTTP 200 `PRIVACY_UNRESOLVED`로 개인정보를 빼거나 표현을 바꿔 다시 질문하도록 안내한다. 질문 text·source/context/office·provider·실패 질문 행·후보는 0이다. Q-MVP-001은 public response enum 동결을 승인했고, 7/25 local milestone에서는 DB event를 만들지 않는다. persistent metadata DB migration은 reserved public `00700` 이후 별도 승인·실행한다.
-- 마스킹 성공은 저장·합성 fixture provider 호출의 필요조건일 뿐 충분조건이 아니며 실제 시민 질문의 외부 LLM 전송 금지는 유지한다.
+- 마스킹 성공은 저장·provider 호출의 필요조건일 뿐 충분조건이 아니다. local/private에서는
+  D-072의 supported intent·ACTIVE/OFFICIAL·근거 gate까지 통과해야 하며 public/remote/실제
+  기관 운영의 시민 질문 외부 전송 금지는 유지한다.
 - Q-LLM-005=A: 외부 합성 평가 공급자는 Upstage exact `solar-pro3`다. local/private의 서버
   검증 canonical `T-01`~`T-10`만 최대 30 outbound attempt로 평가하며 실제 시민·PII·민감정보·
   자유 입력·공개 운영은 금지한다. D-066/D-067로 written specification과 실행계획이 승인돼
-  구현 중이며 Task 1 fail-closed settings는 review clean이다. key/network call은 아직 0이다.
-  평가 통과 뒤에도 실제 시민 연결은 선택지 B의 별도 승인 대상이다.
+  offline 구현·리뷰를 완료했고 D-071의 local actual은 strict-schema 27/30으로 FAIL했다.
+  인간 검토 9개 평균 4.8444·최저 4와 비용 cap은 통과했지만 option B는 승인되지 않았다.
+  이 역사적 FAIL과 당시 option B 미승인 증거는 유지한다.
+- Q-LLM-006~012/D-072: 사용자는 이후 local/private 입찰 시연 MVP에 한해 실제 시민 chat의
+  근거 제한형 Upstage 연결을 새로 승인했다. 안전한 마스킹+supported intent+ACTIVE/OFFICIAL+
+  grounding을 모두 통과한 경우만 masked question과 최소 KB를 보내고, 모델은 summary와
+  server-issued fact ID만 제안한다. 공식 fact text·source·office·policy는 서버가 결합하며
+  8초 1 attempt 뒤 오류·schema·fact drift가 하나라도 있으면 전체 template fallback이다.
+  SUCCESS는 `GENERATED|TEMPLATE` 작성 방식 배지를 제공한다. D-073에서 written specification,
+  D-074에서 후속 TDD 실행계획과 Subagent-Driven 구현을 승인했다. actual network는 offline
+  전체 gate 뒤 별도 local 인간 단계이며 public/remote/실제 기관 운영은 계속 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 
 ## 기술
@@ -87,10 +98,11 @@
 - Backend: FastAPI + Python
 - 개발 기준: Node 24.x+pnpm, Python 3.12+uv
 - DB/Search: Supabase PostgreSQL + Supabase CLI 버전 SQL migration + 키워드·메타데이터 검색; MVP embedding off
-- LLM: Upstage direct API, exact `solar-pro3`, local/private canonical 합성 fixture 전용,
-  max output 1024, concurrency 1, retry 최대 1회, run당 outbound attempt 총 30회;
-  provider adapter와 disabled/template fallback 필수. 실제 구현·actual call은 승인된 명세와
-  후속 실행계획 뒤에만 수행한다.
+- LLM: Upstage direct API, exact `solar-pro3`. 합성 evaluator는 기존 max output 1024,
+  concurrency 1, retry 최대 1, run outbound attempt 30 경계를 유지한다. 후속 LLM-003 시민
+  경로는 local/private에서 supported+masked+ACTIVE/OFFICIAL+grounded일 때만 8초·1 attempt·
+  hidden retry 0·concurrency 1·process cap 30으로 호출하고, server-issued fact ID와
+  disabled/template fallback을 강제한다. public/remote/실제 기관 운영은 별도 승인 전 금지한다.
 - 초기 실행: local-first, 외부 인프라 예산 0원
 - 현재 웹 기준선: 사람이 병합한 Frontend PR #8과 owner 통합 commit `c15f61b`부터 local/private
   `/chat`과 `/admin`은 typed actual transport가 기본이고 fixture는 명시적 개발·테스트 mode에서만
@@ -176,10 +188,11 @@
 - 실행 순서는 owner PR 통합·Frontend PR #4 note-ID 교정, DATA-SEED-002 19 ACTIVE, PII/chat
   계약, deterministic chat API와 `/chat`, 실패 질문·후보·별도 승인·20번째 ACTIVE, 최소
   `/admin`, 표본 20·회귀 1·보안·데모다.
-- 7월 25일 뒤로 미룬 항목 중 외부 LLM은 Q-LLM-005=A에 따라 Upstage 합성 품질 평가로
-  시작한다. 고급 UI polish, 100명 부하, 자동 백업, public deployment와 deferred `00700`은
-  계속 별도다. 실제 시민 외부 LLM 전송과 public/remote 사용은
-  계속 금지한다.
+- 7월 25일 뒤 외부 LLM은 Q-LLM-005=A 합성 평가로 시작했고 D-071에서 FAIL로 종료했다.
+  이후 Q-LLM-006~012/D-072가 local/private 근거 제한형 시민 chat 설계를 승인했고 D-073에서
+  written specification, D-074에서 TDD 실행계획을 승인해 구현을 시작한다. 고급 UI polish, 100명 부하, 자동 백업,
+  public deployment와 deferred `00700`은 계속 별도이며 public/remote/실제 기관 운영의 시민
+  외부 전송은 계속 금지한다.
 - 일정 단축으로도 PII 원문 0, ACTIVE/OFFICIAL-only, server-bound source, author≠reviewer,
   official/mock 분리, 390/430 keyboard/contrast 최소선은 완화하지 않는다.
 - local/private `/admin`의 role selector는 demo actor 선택일 뿐 인증/RBAC가 아니다. public
@@ -199,8 +212,13 @@
   후보→별도 승인자·checklist 3/3→20번째 ACTIVE→동일 질문 SUCCESS·정확한 공식 출처를 actual
   browser 1/1로 재검증했다. feedback dialog의 focus 이동·trap·Escape·focus restore도 Web
   unit gate를 통과했다. manual demo는 인간 Pending이다. Upstage 합성 평가는 LLM-002의 승인된 명세와
-  실행계획으로 offline Tasks 1~6 review clean이며 key/network/model-quality actual은 0이다.
-  actual call은 local human Task 7 gate 뒤다. 100-user,
+  실행계획으로 offline Tasks 1~6 review clean 뒤 2026-07-25 local actual을 수행했다. outbound
+  30회에서 strict-schema 27/30, 인간 검토 9개 평균 4.8444·최저 4, VAT 포함
+  USD 0.004654815로 JSON 100% 기준을 충족하지 못해 전체 FAIL이다. 당시 선택지 B는 승인되지
+  않아 provider-disabled/template 시민 경로를 유지했다. 후속 D-072가 더 좁은 server-issued
+  fact ID 검증과 전체 template fallback을 전제로 local/private 연결 설계를 새로 승인했지만
+  written specification은 D-073, 계획과 구현 시작은 D-074에서 승인됐다. actual network는
+  offline 전체 gate 뒤 별도 local 인간 단계다. 100-user,
   automated backup, advanced UI,
   public/remote deploy와 `00700`은 deferred다. local role selector는 production authentication이 아니다.
 
@@ -211,4 +229,4 @@
 - 대표 연락처: [직접 입력]
 - 제출일: [직접 입력]
 - 최종 확인란: `팀 대표 확인`
-- 문서 버전: v2.4.1
+- 문서 버전: v2.5.0

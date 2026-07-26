@@ -9,7 +9,7 @@ raw request in memory
 → validate length/type
 → validate optional signed context; invalid/expired becomes no context
 → detect and redact PII
-→ only redacted text reaches LLM/provider
+→ only a safe-masked current question plus minimum ACTIVE/OFFICIAL facts may reach the optional provider
 → answer returned
 → text-free event metadata saved
 → only eligible failure stores masked text
@@ -30,12 +30,29 @@ raw request in memory
 - service role key는 backend only.
 - CORS는 명시적 origin allowlist.
 - 실제 배포 전 인프라 제공사의 자동 로그와 데이터 보관 정책 확인.
-- Upstage adapter는 서버 allowlist의 canonical 합성 `T-01`~`T-10`만 허용하고 클라이언트
-  `is_test`나 자유 입력을 신뢰하지 않는다.
-- 실제 시민·PII·민감정보·public 요청은 Upstage로 보내지 않으며 run/attempt ID에도 개인정보를 넣지 않는다.
+- 합성 adapter는 canonical `T-01`~`T-10`만 허용한다. 시민 adapter는 D-072~D-074의
+  local/private supported+masked+ACTIVE/OFFICIAL+grounded 요청만 허용하며 클라이언트
+  `is_test`, intent, KB ID, mode를 신뢰하지 않는다.
+- raw PII·민감정보·public/remote/실제 기관 요청은 Upstage로 보내지 않으며 run/attempt ID에도 개인정보를 넣지 않는다.
 - ACTIVE/OFFICIAL KB 최소 청크만 보내고 provider request/response body를 로깅·저장하지 않는다.
-- exact `solar-pro3`, max output 1024, concurrency 1, retry 최대 1, run당 실제 outbound attempt
-  총 30을 강제하고 cap/장애 시 template/policy fallback으로 전환한다.
+- 시민 chat은 exact `solar-pro3`, timeout 8초, max output 1024, concurrency 1, retry 0,
+  process outbound attempt 30을 강제하고 cap/장애 시 전체 template/policy fallback으로
+  전환한다. 합성 평가는 historical 15초·retry 최대 1 profile로 분리한다.
+- 기본 app import, startup, `/health`, `/ready`는 provider settings, prompt, transport, key와
+  outbound request를 사용하지 않는다. local composition에서 exact disabled-by-default profile을
+  명시 활성화한 뒤에도 policy/PRIVACY_UNRESOLVED/FOLLOWUP/근거 부족 경로는 call 0이다.
+- provider prompt에는 raw/masked question 이외의 transcript/context, request/correlation ID,
+  secret, source metadata, CANDIDATE/staging/mock/non-official KB 또는 관리자 기록을 넣지 않는다.
+  generated answer, prompt, request/response body, key는 log/trace/file/일반 저장에서 제외한다.
+- `GENERATED`은 server-issued fact ID 검증과 server-owned materialization을 통과한 경우만 가능하다.
+  source·office·official fact는 record와 byte equality를 유지하고, 하나라도 실패하면 혼합 없이
+  `TEMPLATE` 전체로 닫는다.
+- 호출자가 `Idempotency-Key`를 제공한 경우에만 엄격히 검증된 최종 안전 응답을 기존 24시간
+  idempotency TTL로 저장할 수 있다. raw/masked question·prompt·provider body·context token·
+  correlation ID는 이 payload에도 금지한다.
+- provider-disabled final root offline gate는 2026-07-26 PASS했다. 실제 provider network는 이후에도
+  인간이 ignored local 환경에서만 실행할 수 있으며 local actual은 Pending이다. Cloud/CI·public/remote·
+  실제 기관 운영에는 provider call 0이다.
 - transcript와 15분 context token은 current-tab memory만 사용한다. token은 HMAC 무결성만 제공하므로 free text·PII·URL·공식 사실을 넣지 않고 DB/log/browser storage에 저장하지 않는다.
 
 ## Phase 1 환경·로그 구현 경계
@@ -84,8 +101,8 @@ raw request in memory
 
 - 마스킹 범위 축소
 - 보관기간 변경
-- 외부 LLM 실제 시민/공개 사용으로 범위 확대
-- Upstage model/call cap 변경, actual 시민 연결과 잔액 추가 충전
+- 외부 LLM public/remote/실제 기관 사용으로 범위 확대
+- Upstage model/call cap 변경, local actual 실행과 잔액 추가 충전
 - context token TTL·claim allowlist·저장 경계 변경
 - admin public exposure
 - RLS/auth 방식

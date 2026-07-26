@@ -19,6 +19,7 @@ from pydantic import ValidationError
 from sejong_ai_api.admin.candidate_binding import RESERVED_KB_PUBLIC_ID
 from sejong_ai_api.chat.idempotency import IdempotencyClaim, IdempotencyClaimStatus
 from sejong_ai_api.contracts.admin import FailedQuestion, KBCandidateSummary
+from sejong_ai_api.contracts.chat import CHAT_RESPONSE_ADAPTER
 from sejong_ai_api.db.errors import DatabaseUnavailableError, map_database_error
 from sejong_ai_api.db.models import (
     Actor,
@@ -81,16 +82,46 @@ _CONFIRMABLE_REASONS = frozenset(
 _ADMIN_FAILURE_REASONS = frozenset(reason.value for reason in _CONFIRMABLE_REASONS)
 _ADMIN_FAILURE_STATUSES = frozenset({"NEW", "REASON_CONFIRMED"})
 _IDEMPOTENCY_DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$", re.ASCII)
+_IDEMPOTENCY_VALIDATION_REQUEST_ID = "00000000-0000-4000-8000-000000000000"
+
+
+def _canonical_idempotency_response_key(value: str) -> str:
+    return "".join(character for character in value.casefold() if character.isalnum())
+
+
 _FORBIDDEN_IDEMPOTENCY_RESPONSE_KEYS = frozenset(
-    {
+    _canonical_idempotency_response_key(key)
+    for key in {
+        "access_token",
+        "api_key",
+        "api_secret",
+        "authorization",
+        "authorization_header",
+        "bearer_token",
+        "client_secret",
+        "context",
         "context_token",
+        "correlation_id",
+        "correlation_request_id",
+        "draft",
+        "llm_api_key",
         "masked_question",
         "prompt",
+        "provider_api_key",
         "provider_body",
+        "provider_content",
+        "provider_error",
+        "provider_request",
+        "provider_response",
+        "provider_result",
+        "provider_secret",
         "question",
         "raw_question",
+        "request",
         "request_body",
         "request_id",
+        "secret",
+        "secret_access_key",
         "transcript",
     }
 )
@@ -230,7 +261,7 @@ def _response_has_forbidden_key(value: object) -> bool:
         for key, nested in value.items():
             if type(key) is not str:
                 return True
-            if key.casefold() in _FORBIDDEN_IDEMPOTENCY_RESPONSE_KEYS:
+            if _canonical_idempotency_response_key(key) in _FORBIDDEN_IDEMPOTENCY_RESPONSE_KEYS:
                 return True
             if _response_has_forbidden_key(nested):
                 return True
@@ -244,15 +275,33 @@ def _require_safe_response_json(value: object) -> dict[str, Any]:
     if type(value) is not dict or not value or _response_has_forbidden_key(value):
         raise ValueError("IDEMPOTENCY_RESPONSE_UNSAFE")
     try:
-        encoded = json.dumps(
+        stored_encoded = json.dumps(
             value,
             ensure_ascii=False,
             allow_nan=False,
             separators=(",", ":"),
         ).encode("utf-8")
+        candidate = value.copy()
+        candidate["request_id"] = _IDEMPOTENCY_VALIDATION_REQUEST_ID
+        candidate["context_token"] = None
+        validated = CHAT_RESPONSE_ADAPTER.validate_json(
+            json.dumps(
+                candidate,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            )
+        )
     except (TypeError, ValueError):
         raise ValueError("IDEMPOTENCY_RESPONSE_UNSAFE") from None
-    if len(encoded) > _MAX_IDEMPOTENCY_RESPONSE_BYTES:
+    if (
+        len(stored_encoded) > _MAX_IDEMPOTENCY_RESPONSE_BYTES
+        or validated.model_dump(
+            mode="json",
+            exclude={"request_id", "context_token"},
+        )
+        != value
+    ):
         raise ValueError("IDEMPOTENCY_RESPONSE_UNSAFE")
     return value.copy()
 

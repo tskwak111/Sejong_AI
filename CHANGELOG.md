@@ -2,6 +2,60 @@
 
 ## [Unreleased]
 
+### Changed — LLM-003 grounded local/private chat generation offline implementation
+
+- Approved Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C and Q-LLM-012=B
+  for a local/private-only Upstage `solar-pro3` chat path. Q-LLM-008=A summary-only is
+  superseded by the later full structured-answer attempt decision.
+- Provider calls are limited to safe-masked, supported-intent, ACTIVE/OFFICIAL and sufficiently
+  grounded requests. Policy/follow-up/insufficient-grounding paths make zero provider calls.
+- The model may propose a bounded summary and server-issued fact IDs only. The server materializes
+  official facts and binds sources/offices; timeout, schema, unknown ID or fact drift discards the
+  entire model result and uses the deterministic template.
+- Fixed the design limits at 8 seconds, one logical attempt, zero hidden retry, concurrency one and
+  30 outbound attempts per process. The approved response draft adds
+  `answer_mode=GENERATED|TEMPLATE` and accessible Web labels.
+- D-073 records written-specification approval and D-074 authorizes the eight-task TDD plan. Tasks
+  1~7 now implement the additive SUCCESS `answer_mode`, source-free bounded fact materialization,
+  exact disabled-by-default local profile, one-attempt fallback, durable idempotency boundary,
+  optional local lifecycle and accessible Web disclosure.
+- The provider can only propose a summary and request-scoped fact IDs. The server validates and
+  materializes every official fact, source and office; disabled/default, timeout, transport, schema,
+  ID or fact-drift failure returns the entire official template rather than a mixed response.
+- Same-key concurrency/replay uses the existing safe-response idempotency path so it cannot start a
+  duplicate provider call. Only a caller-supplied key can retain the strict final safe response for
+  the logical 24-hour TTL.
+- Task-scoped offline evidence and independent reviews are recorded in
+  `docs/test-reports/LLM-003-GROUNDED-LIVE-CHAT.md`. The final provider-disabled root
+  `scripts/verify.ps1 -Offline` PASSed on 2026-07-26 (637.7s, stdout 2006 bytes, stderr 0),
+  including root/data/seed/Web/API/contracts/secrets/bundle/package/diff gates. Optional actual
+  provider use remains a separate human gate with no recorded result.
+- Public/remote use, real-institution operation, new production dependencies, DB migration, data
+  mutation, push, PR and automatic merge remain prohibited or Pending under their existing gates.
+- Clarified the pre-existing idempotency exception: only a caller-supplied key may retain the
+  strictly validated final safe response for the existing logical 24-hour TTL. Raw/masked question,
+  prompt/provider body, context/correlation and new DB migration remain prohibited.
+- Closeout axes are application `0.9.0-grounded-local-chat`, Web `0.6.0-answer-mode`, API
+  `3.2.0-draft`, shared contracts `0.5.0`, prompt `0.2.0-grounded-live-chat`, tests
+  `1.6.0-grounded-live-chat`, documentation `2.20.0`. DB `0.4.0-local`, official data
+  `0.1.0-initial.2`, mock data `0.0.0-not-populated`, dependencies and lockfiles are unchanged.
+
+### Changed — LLM-002 Upstage local actual evaluation
+
+- Ran the approved local/private canonical `T-01`~`T-10` Upstage exact `solar-pro3` evaluation
+  once after a fail-closed local configuration repair. The initial configuration-only exit made
+  zero provider calls and no artifact.
+- The actual run consumed 30 outbound attempts: 27 strict-schema successes and three
+  `SCHEMA_INVALID` attempt outcomes. It completed 29 generation cases, produced two deterministic
+  fallbacks, and failed the mandatory 30/30 JSON criterion.
+- Human PM review covered the nine fixtures with a valid first result: mean
+  `4.844444444444444444444444444`, minimum dimension 4, `OK=9`, critical fact errors 0. Estimated
+  cost was USD 0.004654815 including VAT against the USD 0.05 cap.
+- Overall verdict is FAIL. Upstage citizen/free-input/public/remote option B is not approved;
+  provider-disabled ACTIVE-KB template behavior remains authoritative. No product/API/DB schema,
+  official data, dependency, lockfile or public behavior changed.
+- Documentation `2.17.0→2.18.0`; all other version axes are unchanged.
+
 ### Changed — POST-MVP-001 private main stabilization
 
 - Adopted Frontend PR #10's exact `allowedDevOrigins: ["127.0.0.1"]` change on an owner-reviewed

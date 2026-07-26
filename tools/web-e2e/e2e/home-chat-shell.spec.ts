@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const successResponse = {
   request_id: "11111111-1111-4111-8111-111111111111",
   answer_status: "SUCCESS",
+  answer_mode: "TEMPLATE",
   intent: "MOVE_IN_RESIDENT_REGISTRATION",
   confidence: 0.99,
   summary: "전입신고 절차를 공식 근거에서 확인했어요.",
@@ -66,6 +67,12 @@ test("recommended question reaches chat via tab memory - exact /chat, empty sear
 
   // 탭 메모리로 넘어간 질문이 자동 전송되어 응답 카드가 렌더된다
   await expect(page.getByText(successResponse.summary)).toBeVisible();
+  await expect(page.getByText("공식 안내", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(
+      "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.",
+    ),
+  ).toBeVisible();
   await expect(page.getByText(successResponse.sources[0].title)).toBeVisible();
   await expect(page.getByText("공식 출처 확인")).toBeVisible();
   await expect(page.getByRole("link", { name: /원문 보기/ })).toHaveAttribute(

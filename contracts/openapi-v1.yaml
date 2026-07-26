@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sejong Civil AI API
-  version: 3.1.0-draft
+  version: 3.2.0-draft
   description: |
     Final-scope draft. Validate through discovery/interview before implementation.
     Admin routes are local/private demo surfaces, not public authentication boundaries.
@@ -523,13 +523,14 @@ components:
       allOf:
         - { $ref: '#/components/schemas/ChatResponseBase' }
         - type: object
-          required: [answer_status, intent, sources, office]
+          required: [answer_status, intent, sources, office, answer_mode]
           properties:
             answer_status: { const: SUCCESS }
             intent:
               enum: [MOVE_IN_RESIDENT_REGISTRATION, CERTIFICATE_ISSUANCE, BULKY_WASTE, LOCAL_TAX_GENERAL]
             sources: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Source' } }
             office: { anyOf: [ { $ref: '#/components/schemas/Office' }, { type: 'null' } ] }
+            answer_mode: { enum: [GENERATED, TEMPLATE] }
             fallback: { type: 'null' }
             followup_options: { type: array, maxItems: 0 }
       unevaluatedProperties: false

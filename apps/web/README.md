@@ -15,6 +15,9 @@
 - `/chat`: 생성된 계약 타입(ChatResponse union)을 소비해 SUCCESS, FOLLOWUP,
   폴백 5종(PRIVACY_UNRESOLVED 포함), 출처 스트립·기관 카드,
   loading/error/retry를 표시한다.
+- SUCCESS 답변은 `GENERATED`일 때 `AI로 정리한 공식 안내`, `TEMPLATE`일 때
+  `공식 안내`를 텍스트로 표시한다. 두 경우 모두 행정 사실·출처 확인 및 오류 시
+  공식 안내 형식 사용을 알리는 동일한 고지와 서버 결합 출처 링크를 표시한다.
 - logical retry마다 UUID `Idempotency-Key` 하나를 만들고 같은 재시도에는
   유지한다. correlation ID는 backend가 별도로 만들며 Web은 저장하지 않는다.
 - 대화와 signed context token은 React 메모리에만 두며 브라우저 저장소·쿠키·

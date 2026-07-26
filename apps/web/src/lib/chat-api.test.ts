@@ -6,6 +6,7 @@ import { ChatTransportError, createChatTransport } from "./chat-api";
 const SUCCESS_RESPONSE = {
   request_id: "11111111-1111-4111-8111-111111111111",
   answer_status: "SUCCESS",
+  answer_mode: "TEMPLATE",
   intent: "MOVE_IN_RESIDENT_REGISTRATION",
   sources: [
     {

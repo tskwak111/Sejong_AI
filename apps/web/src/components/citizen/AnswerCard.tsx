@@ -29,6 +29,27 @@ import RegionSelect from "@/components/citizen/RegionSelect";
 type SuccessResponse = components["schemas"]["SuccessResponse"];
 type Office = components["schemas"]["Office"];
 
+const ANSWER_MODE_LABEL = {
+  GENERATED: "AI로 정리한 공식 안내",
+  TEMPLATE: "공식 안내",
+} as const;
+
+const ANSWER_MODE_DISCLOSURE =
+  "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.";
+
+function isNonBlankText(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isHttpsUrl(value: unknown): value is string {
+  if (!isNonBlankText(value)) return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * 핵심 기한·수치 강조 (대화 화면 개정 2) - 파란 틴트 배경
  * (--color-highlight-text) + semibold + primary-dark, 패딩 1px 4px, 반경 4px.
@@ -155,10 +176,16 @@ export default function AnswerCard({
 }) {
   const [showRegionSelect, setShowRegionSelect] = useState(false);
 
-  // 출처 또는 최종 확인일 누락 → 답변 카드 렌더링 금지 (SER-003)
+  // 출처 메타데이터가 비었거나 안전한 HTTPS 원문 링크가 아니면 렌더링 금지 (SER-003)
   const hasValidSources =
     response.sources.length > 0 &&
-    response.sources.every((s) => s.source_id && s.last_verified_at);
+    response.sources.every(
+      (source) =>
+        isNonBlankText(source.source_id) &&
+        isNonBlankText(source.title) &&
+        isNonBlankText(source.last_verified_at) &&
+        isHttpsUrl(source.url),
+    );
   if (!hasValidSources) {
     return (
       <div
@@ -202,6 +229,9 @@ export default function AnswerCard({
         <span className="rounded-[8px] border border-primary-border bg-primary-light px-2.5 py-1 text-caption font-extrabold text-primary">
           {INTENT_LABEL[response.intent]}
         </span>
+        <span className="rounded-[8px] border border-border bg-white px-2.5 py-1 text-caption font-extrabold text-text">
+          {ANSWER_MODE_LABEL[response.answer_mode]}
+        </span>
         {region && (
           <span className="flex items-center rounded-[8px] bg-bg-sub px-2.5 py-1 text-caption font-bold text-text-sub">
             {region} 기준
@@ -224,6 +254,9 @@ export default function AnswerCard({
           {/* 2. 요약 - 파란 틴트 강조 (개정 2) */}
           <p className="text-body-lg font-semibold text-text [text-wrap:pretty]">
             <HighlightedSummary text={response.summary ?? "확인된 민원 안내"} />
+          </p>
+          <p className="text-note leading-6 text-text-sub">
+            {ANSWER_MODE_DISCLOSURE}
           </p>
 
           {/* 3. 신청 방법 - 번호 원 + 이음선 (v3 불변) */}
