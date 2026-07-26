@@ -85,12 +85,12 @@ loop를 Uvicorn보다 먼저 선택하고, 유효한 local 설정이 없으면 �
 `127.0.0.1` 단일 worker와 access log 비활성 경계를 고정한다. 다른 포트가 필요할 때만
 1024~65535 범위의 정수를 `--port 8123`처럼 전달한다.
 
-OFFICE-API-001 closeout에서 실제 Docker/Supabase endpoint smoke는 이 worktree에 ignored
-local 환경이 없고 현재 process에도 required 설정 이름이 없어
-`Pending — local prerequisite unavailable`로 남겼다. `.env`를 읽거나 다른 checkout에서
-복사하지 않았고 Docker/DB/provider를 시작하지 않았다. 대신 injected local integration을 포함한
-API 전체 2,043 PASS, DB-only 8 skip, subtests 5 PASS와 shared contract 90/90 PASS로 default
-route discovery, local injection, match/valid-empty 200, safe 422/503을 검증했다. broad API
+OFFICE-API-001 closeout 당시 실제 Docker/Supabase endpoint smoke는 prerequisite 부재로
+Pending이었고 injected local integration을 포함한 API 전체 2,043 PASS, DB-only 8 skip,
+subtests 5 PASS와 shared contract 90/90 PASS로 경계를 검증했다. PR #15 병합 뒤 최신 main의
+read-only local actual smoke는 process-only CSPRNG context secret과 existing allowlisted local
+DB 설정을 사용해 `/ready=200`, match `200/count=1`, valid empty `200/count=0`을 PASS했다.
+`.env` 복사, record/DSN 출력, purge/reset/seed/write와 provider call은 0이다. broad API
 baseline에는 기존 Starlette deprecation warning 1건이 있다.
 
 기관 조회를 롤백할 때는 router, typed service/readiness guard, strict model/shared mapper,

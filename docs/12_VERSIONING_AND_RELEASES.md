@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
 test_suite: 1.7.1-office-directory-review-fix
-documentation: 2.20.9
+documentation: 2.20.10
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -145,6 +145,13 @@ aggregate `scripts/verify.ps1`은 기존
 `PREFLIGHT-UV reason=exception code=2` 때문에 **NOT PASS**이고, actual Docker/Supabase endpoint
 smoke도 `Pending — local prerequisite unavailable` 그대로다. public/remote/deploy/automatic
 merge는 승인되지 않았다.
+
+Documentation `2.20.10`은 PR #15 merge commit `b66e18c`와 D-081의 post-merge bounded
+read-only actual smoke를 기록한다. 최신 main에서 `/ready=200`, office match `200/count=1`,
+valid empty `200/count=0`을 확인했다. process-only CSPRNG context secret을 사용했고 `.env` 복사,
+record/DSN/secret 출력, purge/reset/seed/write와 provider call은 0이다. application/API/shared
+contracts/test/Web/DB/data/prompt 축은 변경하지 않으며 historical aggregate verifier의
+`PREFLIGHT-UV` NOT PASS 증거도 바꾸지 않는다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
