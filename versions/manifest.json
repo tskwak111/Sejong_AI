@@ -1,10 +1,10 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-26T02:55:00+09:00",
+  "updated_at": "2026-07-26T13:31:56+09:00",
   "versions": {
     "product_spec": "2.5.0",
     "repo_guidance": "1.7.8",
-    "application": "0.9.0-grounded-local-chat",
+    "application": "0.9.1-grounded-local-chat-evidence",
     "web": "0.6.0-answer-mode",
     "api": "3.2.0-draft",
     "shared_contracts": "0.5.0",
@@ -12,8 +12,8 @@
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.2.0-grounded-live-chat",
-    "test_suite": "1.6.0-grounded-live-chat",
-    "documentation": "2.20.0"
+    "test_suite": "1.6.1-grounded-actual",
+    "documentation": "2.20.2"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

@@ -17,6 +17,7 @@ from sejong_ai_api.llm.chat_prompt import (
     build_grounded_chat_messages,
     estimate_grounded_input_upper_bound,
 )
+from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.limits import AttemptBudget, AttemptCapReached
 from sejong_ai_api.llm.settings import (
     UPSTAGE_BASE_URL,
@@ -27,6 +28,7 @@ from sejong_ai_api.llm.settings import (
 )
 
 _CHAT_COMPLETIONS_PATH = "/chat/completions"
+_ZERO_USAGE = TokenUsage(0, 0, 0)
 
 
 def create_upstage_chat_client(settings: UpstageChatSettings) -> httpx.AsyncClient:
@@ -101,7 +103,11 @@ class UpstageChatGenerator:
             # Provider/transport failures cross this boundary only as a content-free enum.
             # Cancellation and other BaseException subclasses intentionally remain unhandled.
             return _failure(GroundedChatOutcomeCode.TRANSPORT)
-        return _parse_response(response, max_input_tokens=self._settings.max_input_tokens)
+        return _parse_response(
+            response,
+            max_input_tokens=self._settings.max_input_tokens,
+            max_output_tokens=self._settings.max_output_tokens,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +139,7 @@ def _parse_response(
     response: httpx.Response,
     *,
     max_input_tokens: int,
+    max_output_tokens: int,
 ) -> GroundedChatResult:
     status_code = response.status_code
     if status_code in (401, 403):
@@ -149,34 +156,37 @@ def _parse_response(
     if type(envelope) is not dict:
         return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
 
-    reported_input_tokens = _reported_input_tokens(envelope.get("usage"))
-    if reported_input_tokens is None:
+    usage = _reported_usage(envelope.get("usage"))
+    if usage is None:
         return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
-    if reported_input_tokens > max_input_tokens:
-        return _failure(GroundedChatOutcomeCode.INPUT_LIMIT)
+    if usage.input_tokens > max_input_tokens:
+        return _failure(GroundedChatOutcomeCode.INPUT_LIMIT, usage=usage)
+    if usage.output_tokens > max_output_tokens:
+        return _failure(GroundedChatOutcomeCode.TRUNCATED, usage=usage)
 
     choice = _first_choice(envelope.get("choices"))
     if choice is None:
-        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
+        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID, usage=usage)
     if choice.get("finish_reason") != "stop":
-        return _failure(GroundedChatOutcomeCode.TRUNCATED)
+        return _failure(GroundedChatOutcomeCode.TRUNCATED, usage=usage)
 
     message = choice.get("message")
     if type(message) is not dict:
-        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
+        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID, usage=usage)
     content = message.get("content")
     if type(content) is not str:
-        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
+        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID, usage=usage)
     if not content.strip():
-        return _failure(GroundedChatOutcomeCode.EMPTY)
+        return _failure(GroundedChatOutcomeCode.EMPTY, usage=usage)
 
     try:
         draft = GeneratedChatDraft.model_validate_json(content)
     except (ValidationError, ValueError):
-        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
+        return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID, usage=usage)
     return GroundedChatResult(
         code=GroundedChatOutcomeCode.SUCCESS,
         draft=draft,
+        usage=usage,
     )
 
 
@@ -187,12 +197,28 @@ def _first_choice(value: object) -> dict[str, Any] | None:
     return choice if type(choice) is dict else None
 
 
-def _reported_input_tokens(value: object) -> int | None:
+def _reported_usage(value: object) -> TokenUsage | None:
     if type(value) is not dict:
         return None
     prompt_tokens = value.get("prompt_tokens")
-    return prompt_tokens if type(prompt_tokens) is int and prompt_tokens >= 0 else None
+    completion_tokens = value.get("completion_tokens")
+    if (
+        type(prompt_tokens) is not int
+        or prompt_tokens < 0
+        or type(completion_tokens) is not int
+        or completion_tokens < 0
+    ):
+        return None
+    return TokenUsage(
+        input_tokens=prompt_tokens,
+        cached_input_tokens=0,
+        output_tokens=completion_tokens,
+    )
 
 
-def _failure(code: GroundedChatOutcomeCode) -> GroundedChatResult:
-    return GroundedChatResult(code=code)
+def _failure(
+    code: GroundedChatOutcomeCode,
+    *,
+    usage: TokenUsage = _ZERO_USAGE,
+) -> GroundedChatResult:
+    return GroundedChatResult(code=code, usage=usage)

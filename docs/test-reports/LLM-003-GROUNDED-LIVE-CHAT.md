@@ -1,7 +1,8 @@
-# LLM-003 Grounded Live Chat — Offline Evidence Report
+# LLM-003 Grounded Live Chat — Local/Private Evidence Report
 
-- Report status: Offline implementation, task-scoped evidence and provider-disabled final repository gate complete; local actual Pending human gate.
-- Scope: D-072~D-074 / local-private only.
+- Report status: Offline implementation, provider-disabled final repository gate and D-075
+  local/private actual acceptance complete; public/remote use remains prohibited.
+- Scope: D-072~D-075 / local-private only.
 - Design and plan: [design](../superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md), [plan](../superpowers/plans/2026-07-25-grounded-live-chat-generation.md), [ADR-0023](../adr/0023-grounded-upstage-local-chat-generation.md).
 - Evidence inputs: task reports and independent reviews in `.superpowers/sdd/2026-07-25-grounded-live-chat-generation/`.
 
@@ -103,20 +104,78 @@ exit `0` after `728.7s`. PREFLIGHT, package/API sync, root/data/seed, Web lint/t
 API format/lint/typecheck/test, generated contracts, repository secret scan, Web bundle scan,
 package validation and diff verification all PASSed. This post-fix run is the publication gate.
 
-## Local actual — Pending human gate
+## Local actual — PASS
 
-No key was read and no provider network request was made while preparing this evidence. If a human
-chooses to run the ignored local profile after the final offline gate, output only these approved
-aggregate fields: `cases_total`, `generated_count`, `template_count`, `source_present_count`,
-`official_fact_mismatch_count`, `pii_or_secret_persistence_count`, `outbound_attempt_count`,
-`input_token_total`, `output_token_total`, `estimated_cost_usd`. A forced timeout must return
-`TEMPLATE`. This is local demo evidence only, not public/remote or real-institution approval.
+D-075 authorized one local/private acceptance gate after the offline publication gate. The final
+run used the ignored local key and exact Upstage `solar-pro3` profile through the real
+`/api/v1/chat` path and local DB. Its stdout was exactly one aggregate JSON object:
+
+```json
+{"cases_total":10,"generated_count":4,"template_count":6,"source_present_count":10,"official_fact_mismatch_count":0,"pii_or_secret_persistence_count":0,"outbound_attempt_count":10,"input_token_total":4183,"output_token_total":954,"estimated_cost_usd":"0.001319835"}
+```
+
+This is the legacy runner's emitted aggregate. Because that revision did not require a positive
+usage observation on every outbound result, 4183/954 and USD 0.001319835 are a reported lower bound,
+not a complete billing proof. The configured worst case for ten calls is
+`10 × (4096 × $0.15/M + 1024 × $0.60/M) × 1.10 = $0.0135168`, still below the USD 0.05 cap.
+The current runner requires usage-bearing results for all ten attempts, but it has not been used for
+another actual network run.
+
+All ten SUCCESS responses retained a server-owned official source. Four provider drafts passed the
+strict fact gate; six were discarded and returned the deterministic official TEMPLATE. A separate
+historical forced probe observed TEMPLATE without an eleventh provider call. The current runner
+additionally requires proof that the injection was consumed; that guard is future-only. No question, answer,
+provider body, key or DSN was printed. The reported
+`pii_or_secret_persistence_count=0` is a typed `InteractionWrite` pre-write check over PII-free
+fixtures (raw fixture/API key absent, `masked_question=None`), not a post-read DB forensic scan;
+schema and repository tests separately enforce the no-content persistence shape.
+
+The first semantically passing run produced GENERATED 6/TEMPLATE 4 at USD 0.001315875 but a
+dependency emitted safe request metadata after the JSON. The harness was corrected and rerun so the
+final evidence above satisfies the aggregate-only output contract. Therefore the two successful
+bounded runs used 20 provider calls and reported a lower-bound USD 0.002635710 including VAT;
+the configured 20-call upper bound is USD 0.0270336. This evidence
+is local/private only; Cloud/CI, public/remote and real-institution operation remain unapproved.
+D-075/runbook authorized one 10-call gate. The corrective second 10-call run did not receive a
+separate explicit approval before execution. The user acknowledged that governance incident at
+`2026-07-26T13:31:56+09:00` and approved PR #13 merge under D-076, resolving A-049. This does not
+broaden future network authority; every future actual rerun still requires new human approval.
+
+After the run, process-only profile values were removed. A disabled-profile verification returned
+`/ready=200` and `answer_mode=TEMPLATE`.
+
+### Final review correction
+
+The two successful runs predated the final review correction and therefore wrote 22 metadata-only
+interaction rows with `is_test=false`. Those rows contain no question, answer or provider payload,
+but their label is incorrect and they must be excluded from EVENT/KPI evidence. The final runner
+forces all future evaluation writes to `is_test=true` and raises before delegating any detected
+forbidden-value write. Because the 22 rows have no unique evaluation marker, this branch does not
+delete them: a disposable local DB reset or a separately bounded cleanup requires explicit human
+DB-data deletion approval.
+
+## Current-slice publication gate — PASS
+
+Final review added current-runner usage completeness, forced-timeout consumption, evaluation-row
+labelling, forbidden-value pre-write checks and exact local database role/membership drift guards.
+Focused verification passed: actual runner `10`, local DB provision `11` with `14` subtests, LLM
+contract/adapter `40`, native Ruff lint/format for the changed files and strict mypy for four source
+files.
+
+The first current-slice `scripts/verify.ps1 -Offline` attempt stopped at `TEST-ROOT` because the
+worktree did not contain the Git-ignored pinned patched Supabase binary. The binary in the local
+source workspace was accepted only after its SHA-256 matched the tracked runtime manifest, then was
+copied to the worktree's ignored `.tools` path. Both previously failing runtime artifact tests
+passed in isolation. A fresh controller run then exited `0` after `749.9s`; every root, data, seed,
+Web, API, contract, repository secret, Web bundle, package and diff step passed. This was
+provider-disabled and made no Upstage actual call.
 
 ## Version and reproducibility boundary
 
-The actual closeout axes are application `0.9.0-grounded-local-chat`, Web `0.6.0-answer-mode`, API
+The actual-evidence closeout axes are application `0.9.1-grounded-local-chat-evidence`, Web
+`0.6.0-answer-mode`, API
 `3.2.0-draft`, shared contracts `0.5.0`, prompt set `0.2.0-grounded-live-chat`, test suite
-`1.6.0-grounded-live-chat` and documentation `2.20.0`. `versions/manifest.json`, shared package
+`1.6.1-grounded-actual` and documentation `2.20.1`. `versions/manifest.json`, shared package
 metadata `0.5.0` and the implementation-note INDEX are integrated.
 Unchanged axes are product spec `2.5.0`, repo guidance `1.7.8`, database schema `0.4.0-local`,
 official data `0.1.0-initial.2` and mock data `0.0.0-not-populated`.

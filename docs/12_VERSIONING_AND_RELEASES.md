@@ -55,7 +55,7 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.5.0
 repo_guidance: 1.7.8
-application: 0.9.0-grounded-local-chat
+application: 0.9.1-grounded-local-chat-evidence
 web: 0.6.0-answer-mode
 api: 3.2.0-draft
 shared_contracts: 0.5.0
@@ -63,8 +63,8 @@ database_schema: 0.4.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
-test_suite: 1.6.0-grounded-live-chat
-documentation: 2.20.0
+test_suite: 1.6.1-grounded-actual
+documentation: 2.20.2
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -87,8 +87,14 @@ additive API `3.2.0-draft`, grounded prompt/profile, bounded fallback/idempotenc
 Web `answer_mode` disclosure를 offline으로 구현·task-scoped 검토했다. 위 closeout axes는
 `versions/manifest.json`, package metadata와 implementation-note INDEX에 통합됐고, final
 provider-disabled root offline gate도 PASS했다. DB schema, official data, mock data, dependency와
-lockfile은 변경하지 않았다. optional local provider actual은 인간 gate Pending이며
-`3.2.0-draft` offline 구현은 public/remote 사용 승인과 다르다.
+lockfile은 변경하지 않았다. D-075 local provider actual은 10건 GENERATED 4/TEMPLATE 6,
+출처 10/10, 공식 mismatch 0, PII-free fixture typed write-boundary 위반 0, outbound 10으로
+PASS했다. VAT 포함 USD 0.001319835는 legacy-reported lower-bound이며 configured maximum
+USD 0.0135168은 USD 0.05 cap 아래다.
+`3.2.0-draft`와 이 local 증거는 public/remote 사용 승인과 다르다.
+Documentation `2.20.2`는 D-076에서 corrective second 10-call incident를 사후 확인하고 PR #13
+병합을 승인해 A-049를 해결한 기록이다. application/API/DB/data/prompt/test 축은 바꾸지 않으며
+future rerun·22행 삭제·public/remote·자동 merge 권한을 추가하지 않는다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

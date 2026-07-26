@@ -1,9 +1,10 @@
 # LLM-003 근거 제한형 Upstage 시민 답변 생성 설계
 
-- 상태: Approved / offline implementation and provider-disabled final root gate complete; local actual Pending human gate
+- 상태: Approved / offline implementation, provider-disabled final root gate and D-075 local
+  actual acceptance complete; public/remote prohibited
 - 작성일: 2026-07-25 KST
 - 결정: Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C, Q-LLM-012=B
-- 관련 결정: D-024, D-045, D-059, D-061, D-065~D-067, D-071, D-072
+- 관련 결정: D-024, D-045, D-059, D-061, D-065~D-067, D-071~D-075
 - 관련 ADR: ADR-0004, ADR-0005, ADR-0006, ADR-0010, ADR-0021, ADR-0022, ADR-0023
 - 구현 시작 조건: [후속 실행계획](../plans/2026-07-25-grounded-live-chat-generation.md)에 대한
   사용자 승인 — D-074로 충족
@@ -310,7 +311,8 @@ Tasks 1~7의 focused evidence와 independent review, 그리고 provider-disabled
 ### local actual acceptance
 
 - 지원 질문 10개를 local/private에서 실행한다.
-- source 표기 100%, server-owned 공식 facts 불일치 0, PII/secret persistence 0
+- source 표기 100%, server-owned 공식 facts 불일치 0, typed write-boundary forbidden-value
+  위반 0. Actual fixture는 PII-free이며 이 metric은 post-read DB forensic scan이 아니다.
 - 장애 강제 1개 이상에서 `TEMPLATE` fallback 시연
 - 예상·실제 outbound/token/비용을 원문 없는 aggregate로 기록
 - 이 결과는 local demo 증거이며 public 운영 승인이나 전체 민원 정확도 보장이 아니다.
@@ -326,9 +328,11 @@ Tasks 1~7의 focused evidence와 independent review, 그리고 provider-disabled
 5. 사용자가 ignored local env에서만 chat mode를 활성화
 6. local actual acceptance
 
-1~4는 offline Tasks 1~7 증거와 검토로 완료됐다. 5~6은 인간이 ignored local 환경에서 수행할
-별도 gate이며, 현재 provider 기본 disabled 상태를 바꾸지 않았다. local actual Pending은 public/remote
-또는 실제 기관 운영 승인으로 해석하지 않는다.
+1~4는 offline Tasks 1~7 증거와 검토로 완료됐다. 5~6도 D-075 아래 ignored local 환경에서
+수행해 final PII-free fixture 10건 GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 mismatch 0,
+typed write-boundary 위반 0으로 PASS했고 종료 뒤
+provider 기본 disabled 상태로 되돌렸다. 이 local actual PASS는 public/remote 또는 실제 기관
+운영 승인으로 해석하지 않는다.
 
 ### 롤백
 

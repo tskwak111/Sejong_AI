@@ -41,10 +41,13 @@
 | `docs/superpowers/specs/2026-07-22-four-day-local-private-core-loop-mvp-design.md` | Q-MVP-001=A로 승인된 19→20 ACTIVE 시민·관리자 수직 흐름과 defer 경계 |
 | `docs/superpowers/plans/2026-07-22-four-day-local-private-core-loop-mvp.md` | 날짜별·역할별 4일 TDD 실행계획과 일일 exit gate |
 | `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md` | D-073으로 승인된 local/private Upstage fact-ID·server-bound source 서면 명세 |
-| `docs/superpowers/plans/2026-07-25-grounded-live-chat-generation.md` | LLM-003 계약→validator→transport→ChatService→local/Web→최종 gate 8-task TDD 계획; offline 구현·final root gate 완료, local actual만 human Pending |
-| `docs/test-reports/LLM-003-GROUNDED-LIVE-CHAT.md` | LLM-003 task-scoped 명령·검토·보안 경계와 final provider-disabled root gate PASS, human local actual gate |
-| `docs/implementation-notes/IMP-20260725-005-llm-003-grounded-live-chat-implementation.md` | LLM-003 6W1H 구현·실제 버전·rollback·인수인계; local provider actual human Pending |
-| `docs/runbooks/LLM-003-LOCAL-GROUNDED-CHAT.md` | disabled-first local/private grounded chat 실행·actual human gate·rollback runbook |
+| `docs/superpowers/plans/2026-07-25-grounded-live-chat-generation.md` | LLM-003 계약→validator→transport→ChatService→local/Web→최종 gate 8-task TDD 계획; offline·final root·D-075 local actual 완료 |
+| `docs/test-reports/LLM-003-GROUNDED-LIVE-CHAT.md` | LLM-003 offline/final root와 aggregate-only local actual PASS 증거 |
+| `docs/implementation-notes/IMP-20260725-005-llm-003-grounded-live-chat-implementation.md` | LLM-003 offline 6W1H 구현·버전·rollback·인수인계; 당시 actual Pending인 역사 증거 |
+| `docs/implementation-notes/IMP-20260726-002-llm-003-local-actual-실행과-aggregate-증거.md` | LLM-003 local actual 실행·비용·보안·rollback 6W1H 증거 |
+| `docs/runbooks/LLM-003-LOCAL-GROUNDED-CHAT.md` | disabled-first local/private grounded chat·고정 actual runner·rollback runbook |
+| `scripts/run_upstage_grounded_chat_actual.py` | 실제 `/api/v1/chat` 10건과 forced timeout의 aggregate-only local actual runner |
+| `scripts/tests/test_run_upstage_grounded_chat_actual.py` | actual runner의 hash/source/cost/output/timeout 보안 경계 회귀 |
 
 ## 모든 작업 후 갱신할 파일
 

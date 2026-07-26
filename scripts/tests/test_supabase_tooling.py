@@ -1245,20 +1245,23 @@ class LocalDatabaseToolingContractTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory(prefix="sejong provision uri ") as directory:
             env_path = Path(directory) / ".env"
-            env_path.write_text(
-                "CONTEXT_TOKEN_SECRET=synthetic-context\n", encoding="utf-8"
-            )
+            env_path.write_text("CONTEXT_TOKEN_SECRET=synthetic-context\n", encoding="utf-8")
             with (
                 patch.dict(module.os.environ, {}, clear=True),
                 patch.object(module.psycopg, "connect") as connect,
-                patch.object(
-                    module.secrets, "token_urlsafe", return_value=generated_password
-                ),
+                patch.object(module.secrets, "token_urlsafe", return_value=generated_password),
                 patch("builtins.print") as output,
             ):
                 connection = connect.return_value.__enter__.return_value
                 cursor = connection.cursor.return_value.__enter__.return_value
-                cursor.fetchone.return_value = None
+                cursor.fetchone.side_effect = [
+                    None,
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    (True, True, False, True, True),
+                    module.EXPECTED_LOGIN_ADMIN_STATE,
+                    module.EXPECTED_CAPABILITY_ROLE_STATE,
+                    module.EXPECTED_CAPABILITY_MEMBER_STATE,
+                ]
 
                 module.provision(admin_dsn, env_path)
 
@@ -1273,6 +1276,332 @@ class LocalDatabaseToolingContractTests(unittest.TestCase):
                 autocommit=False,
             )
             output.assert_not_called()
+
+    def test_provisioner_rejects_unsafe_capability_role_before_commit_or_env_write(
+        self,
+    ) -> None:
+        module = load_module(
+            PROVISION_PATH,
+            "provision_local_database_login_unsafe_capability_test",
+        )
+        admin_dsn = _database_dsn(
+            "postgresql", "postgres:synthetic-admin-secret@127.0.0.1:54322/postgres"
+        )
+        unsafe_capability = (
+            False,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            -1,
+            True,
+            True,
+            False,
+        )
+
+        with tempfile.TemporaryDirectory(
+            prefix="sejong provision unsafe capability "
+        ) as directory:
+            env_path = Path(directory) / ".env"
+            with (
+                patch.dict(module.os.environ, {}, clear=True),
+                patch.object(module.psycopg, "connect") as connect,
+                patch.object(
+                    module.secrets,
+                    "token_urlsafe",
+                    return_value="rotated-synthetic-password",
+                ),
+            ):
+                connection = connect.return_value.__enter__.return_value
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.side_effect = [
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    (True, True, False, True, True),
+                    module.EXPECTED_LOGIN_ADMIN_STATE,
+                    unsafe_capability,
+                ]
+
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "^BACKEND_CAPABILITY_STATE_INVALID$",
+                ):
+                    module.provision(admin_dsn, env_path)
+
+            connection.commit.assert_not_called()
+            self.assertFalse(env_path.exists())
+
+    def test_provisioner_rejects_extra_capability_member_before_commit_or_env_write(
+        self,
+    ) -> None:
+        module = load_module(
+            PROVISION_PATH,
+            "provision_local_database_login_extra_capability_member_test",
+        )
+        admin_dsn = _database_dsn(
+            "postgresql", "postgres:synthetic-admin-secret@127.0.0.1:54322/postgres"
+        )
+
+        with tempfile.TemporaryDirectory(
+            prefix="sejong provision extra capability member "
+        ) as directory:
+            env_path = Path(directory) / ".env"
+            with (
+                patch.dict(module.os.environ, {}, clear=True),
+                patch.object(module.psycopg, "connect") as connect,
+                patch.object(
+                    module.secrets,
+                    "token_urlsafe",
+                    return_value="rotated-synthetic-password",
+                ),
+            ):
+                connection = connect.return_value.__enter__.return_value
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.side_effect = [
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    module.EXPECTED_MEMBERSHIP_STATE,
+                    module.EXPECTED_LOGIN_ADMIN_STATE,
+                    module.EXPECTED_CAPABILITY_ROLE_STATE,
+                    (False, True, True),
+                ]
+
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "^BACKEND_CAPABILITY_MEMBER_STATE_INVALID$",
+                ):
+                    module.provision(admin_dsn, env_path)
+
+            connection.commit.assert_not_called()
+            self.assertFalse(env_path.exists())
+
+    def test_provisioner_rejects_unsafe_existing_login_before_mutation_or_env_write(
+        self,
+    ) -> None:
+        module = load_module(
+            PROVISION_PATH,
+            "provision_local_database_login_unsafe_existing_role_test",
+        )
+        admin_dsn = _database_dsn(
+            "postgresql", "postgres:synthetic-admin-secret@127.0.0.1:54322/postgres"
+        )
+
+        with tempfile.TemporaryDirectory(prefix="sejong provision unsafe existing ") as directory:
+            env_path = Path(directory) / ".env"
+            with (
+                patch.dict(module.os.environ, {}, clear=True),
+                patch.object(module.psycopg, "connect") as connect,
+                patch.object(module.secrets, "token_urlsafe") as token_urlsafe,
+            ):
+                connection = connect.return_value.__enter__.return_value
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.return_value = (
+                    True,
+                    True,
+                    True,
+                    False,
+                    False,
+                    False,
+                    False,
+                    -1,
+                    True,
+                    True,
+                )
+
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "^BACKEND_ROLE_STATE_INVALID$",
+                ):
+                    module.provision(admin_dsn, env_path)
+
+            token_urlsafe.assert_called_once_with(32)
+            self.assertEqual(cursor.execute.call_count, 1)
+            self.assertFalse(env_path.exists())
+
+    def test_provisioner_rejects_unsafe_membership_postcondition_before_commit_or_env_write(
+        self,
+    ) -> None:
+        module = load_module(
+            PROVISION_PATH,
+            "provision_local_database_login_unsafe_membership_test",
+        )
+        admin_dsn = _database_dsn(
+            "postgresql", "postgres:synthetic-admin-secret@127.0.0.1:54322/postgres"
+        )
+
+        with tempfile.TemporaryDirectory(prefix="sejong provision unsafe membership ") as directory:
+            env_path = Path(directory) / ".env"
+            with (
+                patch.dict(module.os.environ, {}, clear=True),
+                patch.object(module.psycopg, "connect") as connect,
+                patch.object(
+                    module.secrets,
+                    "token_urlsafe",
+                    return_value="rotated-synthetic-password",
+                ),
+            ):
+                connection = connect.return_value.__enter__.return_value
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.side_effect = [
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    (False, True, False, True, True),
+                ]
+
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "^BACKEND_MEMBERSHIP_STATE_INVALID$",
+                ):
+                    module.provision(admin_dsn, env_path)
+
+            connection.commit.assert_not_called()
+            self.assertFalse(env_path.exists())
+
+    def test_provisioner_rejects_extra_login_admin_member_before_commit_or_env_write(
+        self,
+    ) -> None:
+        module = load_module(
+            PROVISION_PATH,
+            "provision_local_database_login_extra_admin_member_test",
+        )
+        admin_dsn = _database_dsn(
+            "postgresql", "postgres:synthetic-admin-secret@127.0.0.1:54322/postgres"
+        )
+
+        with tempfile.TemporaryDirectory(
+            prefix="sejong provision extra admin member "
+        ) as directory:
+            env_path = Path(directory) / ".env"
+            with (
+                patch.dict(module.os.environ, {}, clear=True),
+                patch.object(module.psycopg, "connect") as connect,
+                patch.object(
+                    module.secrets,
+                    "token_urlsafe",
+                    return_value="rotated-synthetic-password",
+                ),
+            ):
+                connection = connect.return_value.__enter__.return_value
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.side_effect = [
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    (True, True, False, True, True),
+                    (False, True, True, False, False),
+                ]
+
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "^BACKEND_LOGIN_ADMIN_STATE_INVALID$",
+                ):
+                    module.provision(admin_dsn, env_path)
+
+            connection.commit.assert_not_called()
+            self.assertFalse(env_path.exists())
+
+    def test_provisioner_rejects_unsafe_role_postcondition_before_grant_or_env_write(
+        self,
+    ) -> None:
+        module = load_module(
+            PROVISION_PATH,
+            "provision_local_database_login_unsafe_role_postcondition_test",
+        )
+        admin_dsn = _database_dsn(
+            "postgresql", "postgres:synthetic-admin-secret@127.0.0.1:54322/postgres"
+        )
+        unsafe_postcondition = (
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            1,
+            True,
+            True,
+        )
+
+        with tempfile.TemporaryDirectory(
+            prefix="sejong provision unsafe role postcondition "
+        ) as directory:
+            env_path = Path(directory) / ".env"
+            with (
+                patch.dict(module.os.environ, {}, clear=True),
+                patch.object(module.psycopg, "connect") as connect,
+                patch.object(
+                    module.secrets,
+                    "token_urlsafe",
+                    return_value="rotated-synthetic-password",
+                ),
+            ):
+                connection = connect.return_value.__enter__.return_value
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.side_effect = [
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    unsafe_postcondition,
+                ]
+
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "^BACKEND_ROLE_STATE_INVALID$",
+                ):
+                    module.provision(admin_dsn, env_path)
+
+            self.assertFalse(
+                any("GRANT" in repr(call.args[0]) for call in cursor.execute.call_args_list)
+            )
+            connection.commit.assert_not_called()
+            self.assertFalse(env_path.exists())
+
+    def test_provisioner_rotates_existing_safe_login_without_reasserting_superuser_flag(
+        self,
+    ) -> None:
+        module = load_module(
+            PROVISION_PATH,
+            "provision_local_database_login_existing_role_test",
+        )
+        admin_dsn = _database_dsn(
+            "postgresql", "postgres:synthetic-admin-secret@127.0.0.1:54322/postgres"
+        )
+
+        with tempfile.TemporaryDirectory(prefix="sejong provision existing ") as directory:
+            env_path = Path(directory) / ".env"
+            with (
+                patch.dict(module.os.environ, {}, clear=True),
+                patch.object(module.psycopg, "connect") as connect,
+                patch.object(
+                    module.secrets,
+                    "token_urlsafe",
+                    return_value="rotated-synthetic-password",
+                ),
+            ):
+                connection = connect.return_value.__enter__.return_value
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.side_effect = [
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    module.EXPECTED_EXISTING_ROLE_STATE,
+                    (True, True, False, True, True),
+                    module.EXPECTED_LOGIN_ADMIN_STATE,
+                    module.EXPECTED_CAPABILITY_ROLE_STATE,
+                    module.EXPECTED_CAPABILITY_MEMBER_STATE,
+                ]
+
+                module.provision(admin_dsn, env_path)
+
+            alter_statements = [
+                call.args[0]
+                for call in cursor.execute.call_args_list
+                if "ALTER ROLE" in repr(call.args[0])
+            ]
+            self.assertEqual(len(alter_statements), 1)
+            self.assertNotIn("NOSUPERUSER", repr(alter_statements[0]))
+            self.assertNotIn("NOREPLICATION", repr(alter_statements[0]))
+            self.assertNotIn("NOBYPASSRLS", repr(alter_statements[0]))
+            self.assertIn("PASSWORD", repr(alter_statements[0]))
+            self.assertIn("DATABASE_URL=", env_path.read_text(encoding="utf-8"))
 
     def test_provisioner_rejects_non_exact_admin_identity_before_connect_or_write(
         self,
