@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed — certificate follow-up specification approval and TDD plan
+
+- Recorded D-084 approval of the category-aware certificate FOLLOWUP written specification.
+- Published a five-task TDD plan covering classifier priority, closed server labels, text-free
+  service orchestration, typed Web copy/context, full gates and version evidence.
+- Product code, API shape, DB, data, provider, dependencies and tests remain unchanged. Advanced
+  documentation only from `2.21.8` to `2.21.9`.
+
 ### Changed — certificate category follow-up design approval
 
 - Recorded Q-CHAT-FOLLOWUP-001=A: a generic certificate request will return

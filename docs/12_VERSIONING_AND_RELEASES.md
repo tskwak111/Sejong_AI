@@ -207,6 +207,11 @@ certificate의 OUT_OF_SCOPE, specific supported query의 기존 retrieval, text-
 signed context와 public contract shape를 보존한다. product/Web/API/DB/data/provider/test
 코드는 변경하지 않았다.
 
+Documentation `2.21.9`는 D-084의 certificate FOLLOWUP written specification 승인과
+classifier priority/invariant→closed server option labels→text-free service orchestration→typed
+Web prompt/context→full gate의 5-task RED/GREEN 실행계획을 기록한다. plan 승인 전
+product/Web/API/DB/data/provider/dependency/test source는 변경하지 않는다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과
