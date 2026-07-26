@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed — post-PR #17 human action handoff
+
+- Recorded PR #17 merge authority `c945303` and separated the remaining human-only work from
+  Codex-owned implementation: manual display/accessibility/presentation rehearsal, A-052 Phase B
+  database selection, and teammate MFA/recovery confirmation.
+- Added a value-free Windows local start guide, five-question expected-result checklist, 200% zoom
+  and keyboard walkthrough, presentation timing, and a copyable result template.
+- Kept the current ACTIVE 20 database immutable for the rehearsal. Reset, seed, deletion, provider
+  actual, public/remote work, product/API/DB/data/dependency changes remain prohibited.
+- Advanced documentation only from `2.21.0` to `2.21.1`.
+
 ### Changed — final local demo readiness and performance smoke plan
 
 - Added a fixed-target local context-secret provisioner that generates a CSPRNG value, updates only

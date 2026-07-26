@@ -163,6 +163,12 @@ CSPRNG context-secret provisioner와 7개 테스트를 추가했다. provider-di
 분리했고 A-052 결정 전 Phase B는 HOLD다. application/Web/API/shared/DB/data/prompt/dependency,
 public/remote 범위와 actual official rows는 변경하지 않는다.
 
+Documentation `2.21.1`은 PR #17 merge commit `c945303` 뒤 사람이 직접 수행할 작업을
+manual demo/accessibility/presentation, A-052 Phase B DB 선택, teammate MFA/recovery 확인으로
+분리한 handoff다. current ACTIVE 20 DB를 reset/reseed하지 않고 개선 후 결과를 시연하며,
+Codex 후속은 DB-write-free PERF Phase A다. product/application/Web/API/shared/DB/data/prompt/test
+축과 실제 환경·DB·provider는 변경하지 않는다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과
