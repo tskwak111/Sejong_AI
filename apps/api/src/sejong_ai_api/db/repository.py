@@ -18,7 +18,11 @@ from pydantic import ValidationError
 
 from sejong_ai_api.admin.candidate_binding import RESERVED_KB_PUBLIC_ID
 from sejong_ai_api.chat.idempotency import IdempotencyClaim, IdempotencyClaimStatus
-from sejong_ai_api.contracts.admin import FailedQuestion, KBCandidateSummary
+from sejong_ai_api.contracts.admin import (
+    CivicScopeGapSummary,
+    FailedQuestion,
+    KBCandidateSummary,
+)
 from sejong_ai_api.contracts.chat import CHAT_RESPONSE_ADAPTER
 from sejong_ai_api.db.errors import DatabaseUnavailableError, map_database_error
 from sejong_ai_api.db.models import (
@@ -63,6 +67,14 @@ CLAIM_CHAT_IDEMPOTENCY_SQL = "SELECT * FROM app_api.claim_chat_idempotency(%s, %
 COMPLETE_CHAT_IDEMPOTENCY_SQL = "SELECT app_api.complete_chat_idempotency(%s, %s, %s, %s)"
 ABANDON_CHAT_IDEMPOTENCY_SQL = "SELECT app_api.abandon_chat_idempotency(%s, %s, %s)"
 PURGE_EXPIRED_CHAT_IDEMPOTENCY_SQL = "SELECT * FROM app_api.purge_expired_chat_idempotency()"
+RECORD_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.record_civic_scope_gap(%s)"
+LIST_CIVIC_SCOPE_GAPS_SQL = "SELECT * FROM app_api.list_civic_scope_gaps(%s)"
+REVIEW_CIVIC_SCOPE_GAP_SQL = (
+    "SELECT app_api.review_civic_scope_gap(%s, %s, %s, %s, %s)"
+)
+PURGE_EXPIRED_CIVIC_SCOPE_GAP_TEXT_SQL = (
+    "SELECT * FROM app_api.purge_expired_civic_scope_gap_text()"
+)
 
 _SUPPORTED_INTENTS = frozenset(
     {
@@ -81,6 +93,8 @@ _CONFIRMABLE_REASONS = frozenset(
 )
 _ADMIN_FAILURE_REASONS = frozenset(reason.value for reason in _CONFIRMABLE_REASONS)
 _ADMIN_FAILURE_STATUSES = frozenset({"NEW", "REASON_CONFIRMED"})
+_CIVIC_SCOPE_GAP_STATUSES = frozenset({"NEW", "PLANNED", "DISMISSED"})
+_CIVIC_SCOPE_GAP_DECISIONS = frozenset({"PLANNED", "DISMISSED"})
 _IDEMPOTENCY_DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$", re.ASCII)
 _IDEMPOTENCY_VALIDATION_REQUEST_ID = "00000000-0000-4000-8000-000000000000"
 
@@ -173,6 +187,22 @@ class SejongRepository(Protocol):
     async def list_kb_candidates(self) -> Sequence[KBCandidateSummary]: ...
 
     async def get_kb_candidate(self, candidate_id: UUID) -> KBCandidateSummary | None: ...
+
+    async def record_civic_scope_gap(self, masked_question: str) -> None: ...
+
+    async def list_civic_scope_gaps(
+        self, *, status: str | None
+    ) -> Sequence[CivicScopeGapSummary]: ...
+
+    async def review_civic_scope_gap(
+        self,
+        scope_gap_id: UUID,
+        actor: Actor,
+        decision: str,
+        review_comment: str,
+    ) -> None: ...
+
+    async def purge_expired_civic_scope_gap_text(self) -> PurgeResult: ...
 
     async def claim_chat_idempotency(
         self,
@@ -407,6 +437,15 @@ def _safe_failed_questions(rows: list[dict[str, Any]]) -> tuple[FailedQuestion, 
 def _safe_candidates(rows: list[dict[str, Any]]) -> tuple[KBCandidateSummary, ...]:
     try:
         return tuple(KBCandidateSummary.model_validate(row) for row in rows)
+    except (TypeError, ValueError, ValidationError):
+        raise DatabaseUnavailableError() from None
+
+
+def _safe_civic_scope_gaps(
+    rows: list[dict[str, Any]],
+) -> tuple[CivicScopeGapSummary, ...]:
+    try:
+        return tuple(CivicScopeGapSummary.model_validate(row) for row in rows)
     except (TypeError, ValueError, ValidationError):
         raise DatabaseUnavailableError() from None
 
@@ -677,6 +716,75 @@ class PsycopgSejongRepository:
         if len(rows) != 1:
             raise DatabaseUnavailableError()
         return _safe_candidates(rows)[0]
+
+    async def record_civic_scope_gap(self, masked_question: str) -> None:
+        valid_text = _required_text(masked_question)
+        if len(valid_text) > 2000:
+            raise ValueError("CIVIC_SCOPE_GAP_TEXT_INVALID")
+        try:
+            async with (
+                self._pool.connection() as connection,
+                connection.transaction(),
+                connection.cursor(row_factory=dict_row) as cursor,
+            ):
+                await cursor.execute(RECORD_CIVIC_SCOPE_GAP_SQL, (valid_text,))
+                rows = await cursor.fetchall()
+                self._scalar_uuid(rows, "record_civic_scope_gap")
+        except psycopg.Error as exc:
+            raise map_database_error(exc) from exc
+
+    async def list_civic_scope_gaps(
+        self, *, status: str | None
+    ) -> tuple[CivicScopeGapSummary, ...]:
+        valid_status = _require_admin_read_filter(status, _CIVIC_SCOPE_GAP_STATUSES)
+        try:
+            async with (
+                self._pool.connection() as connection,
+                connection.cursor(row_factory=dict_row) as cursor,
+            ):
+                await cursor.execute(LIST_CIVIC_SCOPE_GAPS_SQL, (valid_status,))
+                rows = await cursor.fetchall()
+        except psycopg.Error as exc:
+            raise map_database_error(exc) from exc
+        return _safe_civic_scope_gaps(rows)
+
+    async def review_civic_scope_gap(
+        self,
+        scope_gap_id: UUID,
+        actor: Actor,
+        decision: str,
+        review_comment: str,
+    ) -> None:
+        valid_id = _require_uuid(scope_gap_id, "CIVIC_SCOPE_GAP_ID_INVALID")
+        valid_actor = _require_actor(actor, AdminRole.APPROVER)
+        valid_decision = _require_admin_read_filter(decision, _CIVIC_SCOPE_GAP_DECISIONS)
+        if valid_decision is None:
+            raise ValueError("CIVIC_SCOPE_GAP_DECISION_INVALID")
+        valid_comment = _require_review_comment(review_comment)
+        await self._execute_void_write(
+            REVIEW_CIVIC_SCOPE_GAP_SQL,
+            (
+                valid_id,
+                valid_actor.actor_id,
+                valid_actor.role.value,
+                valid_decision,
+                valid_comment,
+            ),
+        )
+
+    async def purge_expired_civic_scope_gap_text(self) -> PurgeResult:
+        try:
+            async with (
+                self._pool.connection() as connection,
+                connection.transaction(),
+                connection.cursor(row_factory=dict_row) as cursor,
+            ):
+                await cursor.execute(PURGE_EXPIRED_CIVIC_SCOPE_GAP_TEXT_SQL, ())
+                rows = await cursor.fetchall()
+                result = self._purge_result(rows)
+        except psycopg.Error as exc:
+            raise map_database_error(exc) from exc
+        return result
 
     async def claim_chat_idempotency(
         self,

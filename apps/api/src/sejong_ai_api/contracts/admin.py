@@ -1,6 +1,6 @@
 """Strict local/private administrator response contracts."""
 
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
@@ -15,6 +15,7 @@ type StoredFailureReason = Literal[
     "LEGAL_JUDGMENT",
 ]
 type FailedQuestionStatus = Literal["NEW", "REASON_CONFIRMED"]
+type CivicScopeGapStatus = Literal["NEW", "PLANNED", "DISMISSED"]
 type KBCandidateStatus = Literal["DRAFTED", "PENDING_APPROVAL", "APPROVED", "REJECTED"]
 type SupportedIntent = Literal[
     "MOVE_IN_RESIDENT_REGISTRATION",
@@ -56,6 +57,63 @@ class FailedQuestionListResponse(StrictPublicModel):
 
 class FailedQuestionDetailResponse(StrictPublicModel):
     item: FailedQuestion
+
+
+class CivicScopeGapSummary(StrictPublicModel):
+    id: UUID
+    masked_question: Annotated[str, Field(min_length=1, max_length=2000)] | None
+    status: CivicScopeGapStatus
+    created_at: datetime
+    updated_at: datetime
+    text_expires_at: datetime
+    text_purged_at: datetime | None
+    reviewed_by: Annotated[str, Field(min_length=1, max_length=200)] | None
+    reviewed_at: datetime | None
+    review_comment: Annotated[str, Field(min_length=1, max_length=1000)] | None
+
+    @model_validator(mode="after")
+    def validate_lifecycle_and_review(self) -> Self:
+        if self.text_expires_at != self.created_at + timedelta(days=30):
+            raise ValueError("scope-gap text expiry must be exactly 30 days")
+        if (self.masked_question is None) is not (self.text_purged_at is not None):
+            raise ValueError("scope-gap text and purge timestamp must transition together")
+        if self.text_purged_at is not None and self.text_purged_at < self.text_expires_at:
+            raise ValueError("scope-gap text cannot be purged before expiry")
+        if (
+            self.masked_question is not None
+            and self.text_expires_at <= datetime.now(UTC)
+        ):
+            raise ValueError("expired scope-gap text must already be purged")
+
+        review_values = (self.reviewed_by, self.reviewed_at, self.review_comment)
+        if self.status == "NEW":
+            if any(value is not None for value in review_values):
+                raise ValueError("NEW scope gap cannot contain review outcome")
+        elif any(value is None for value in review_values):
+            raise ValueError("terminal scope gap requires complete review outcome")
+        return self
+
+
+class CivicScopeGapListResponse(StrictPublicModel):
+    items: list[CivicScopeGapSummary]
+    total: Annotated[int, Field(ge=0)]
+
+
+class CivicScopeGapReviewRequest(StrictPublicModel):
+    decision: Literal["PLANNED", "DISMISSED"]
+    review_comment: Annotated[str, Field(min_length=1, max_length=1000)]
+
+    @field_validator("review_comment")
+    @classmethod
+    def require_trimmed_review_comment(cls, value: str) -> str:
+        if not value.strip() or value != value.strip():
+            raise ValueError("review comment must be non-empty and trimmed")
+        return value
+
+
+class CivicScopeGapReviewResponse(StrictPublicModel):
+    id: UUID
+    status: Literal["PLANNED", "DISMISSED"]
 
 
 class ReasonConfirmationResponse(StrictPublicModel):
@@ -254,6 +312,10 @@ class AdminErrorEnvelope(StrictPublicModel):
 
 __all__ = [
     "AdminErrorEnvelope",
+    "CivicScopeGapListResponse",
+    "CivicScopeGapReviewRequest",
+    "CivicScopeGapReviewResponse",
+    "CivicScopeGapSummary",
     "FailedQuestion",
     "FailedQuestionDetailResponse",
     "FailedQuestionListResponse",

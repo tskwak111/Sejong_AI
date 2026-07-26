@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from types import TracebackType
 from typing import cast
@@ -50,6 +50,12 @@ APPROVE_CANDIDATE_WITH_PUBLIC_ID_SQL = (
 )
 REJECT_CANDIDATE_SQL = "SELECT app_api.reject_kb_candidate(%s, %s, %s, %s)"
 PURGE_SQL = "SELECT * FROM app_api.purge_expired_failed_question_text()"
+RECORD_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.record_civic_scope_gap(%s)"
+LIST_CIVIC_SCOPE_GAPS_SQL = "SELECT * FROM app_api.list_civic_scope_gaps(%s)"
+REVIEW_CIVIC_SCOPE_GAP_SQL = (
+    "SELECT app_api.review_civic_scope_gap(%s, %s, %s, %s, %s)"
+)
+PURGE_CIVIC_SCOPE_GAP_SQL = "SELECT * FROM app_api.purge_expired_civic_scope_gap_text()"
 LIST_ACTIVE_KB_MIGRATION = (
     Path(__file__).resolve().parents[4]
     / "supabase"
@@ -259,6 +265,24 @@ def office_row() -> dict[str, object]:
         "source_url": "https://example.invalid/office",
         "last_verified_at": date(2026, 7, 17),
     }
+
+
+def civic_scope_gap_row(**overrides: object) -> dict[str, object]:
+    created_at = datetime.now(UTC) - timedelta(hours=1)
+    row: dict[str, object] = {
+        "id": UUID("68000000-0000-4000-8000-000000000001"),
+        "masked_question": "합성 범위 부족 민원",
+        "status": "NEW",
+        "created_at": created_at,
+        "updated_at": created_at,
+        "text_expires_at": created_at + timedelta(days=30),
+        "text_purged_at": None,
+        "reviewed_by": None,
+        "reviewed_at": None,
+        "review_comment": None,
+    }
+    row.update(overrides)
+    return row
 
 
 def assert_one_transaction(pool: FakePool, expected_exception: type[BaseException] | None) -> None:
@@ -600,6 +624,90 @@ async def test_create_candidate_uses_exact_sql_and_jsonb_list_adapters() -> None
         "OFFICIAL",
     )
     assert_one_transaction(pool, None)
+
+
+@pytest.mark.asyncio
+async def test_records_civic_scope_gap_with_one_exact_masked_parameter() -> None:
+    gap_id = UUID("68000000-0000-4000-8000-000000000001")
+    pool = FakePool(rows=[{"record_civic_scope_gap": gap_id}])
+
+    await repository(pool).record_civic_scope_gap("합성 범위 부족 민원")
+
+    assert pool.cursor.executions == [
+        (RECORD_CIVIC_SCOPE_GAP_SQL, ("합성 범위 부족 민원",))
+    ]
+    assert pool.connection_value.fake_transaction.enter_count == 1
+
+
+@pytest.mark.asyncio
+async def test_lists_strict_civic_scope_gap_rows_with_exact_filter() -> None:
+    pool = FakePool(rows=[civic_scope_gap_row()])
+
+    items = await repository(pool).list_civic_scope_gaps(status="NEW")
+
+    assert len(items) == 1
+    assert items[0].status == "NEW"
+    assert pool.cursor.executions == [(LIST_CIVIC_SCOPE_GAPS_SQL, ("NEW",))]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "row",
+    [
+        civic_scope_gap_row(status="ACTIVE"),
+        civic_scope_gap_row(unexpected="sentinel"),
+        civic_scope_gap_row(
+            created_at=datetime.now(UTC) - timedelta(days=31),
+            text_expires_at=datetime.now(UTC) - timedelta(days=1),
+        ),
+    ],
+)
+async def test_civic_scope_gap_row_parser_fails_closed(row: dict[str, object]) -> None:
+    with pytest.raises(DatabaseUnavailableError):
+        await repository(FakePool(rows=[row])).list_civic_scope_gaps(status=None)
+
+
+@pytest.mark.asyncio
+async def test_reviews_civic_scope_gap_with_exact_approver_capability() -> None:
+    gap_id = UUID("68000000-0000-4000-8000-000000000001")
+    pool = FakePool()
+
+    await repository(pool).review_civic_scope_gap(
+        gap_id,
+        approver(),
+        "PLANNED",
+        "다음 범위로 검토",
+    )
+
+    assert pool.cursor.executions == [
+        (
+            REVIEW_CIVIC_SCOPE_GAP_SQL,
+            (gap_id, "approver-1", "APPROVER", "PLANNED", "다음 범위로 검토"),
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_civic_scope_gap_repository_rejects_operator_review_and_unknown_filter() -> None:
+    adapter = repository(FakePool())
+    gap_id = UUID("68000000-0000-4000-8000-000000000001")
+
+    with pytest.raises(ValueError, match="ACTOR_ROLE_FORBIDDEN"):
+        await adapter.review_civic_scope_gap(gap_id, operator(), "PLANNED", "검토")
+    with pytest.raises(ValueError, match="ADMIN_READ_FILTER_INVALID"):
+        await adapter.list_civic_scope_gaps(status="ACTIVE")
+
+
+@pytest.mark.asyncio
+async def test_purges_civic_scope_gap_text_with_exact_capability() -> None:
+    gap_id = UUID("68000000-0000-4000-8000-000000000001")
+    pool = FakePool(rows=[{"purged_count": 1, "purged_ids": [gap_id]}])
+
+    result = await repository(pool).purge_expired_civic_scope_gap_text()
+
+    assert result.purged_count == 1
+    assert result.purged_ids == (gap_id,)
+    assert pool.cursor.executions == [(PURGE_CIVIC_SCOPE_GAP_SQL, ())]
 
 
 @pytest.mark.asyncio

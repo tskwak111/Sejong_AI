@@ -124,6 +124,43 @@ paths:
         '404': { $ref: '#/components/responses/AdminError' }
         '409': { $ref: '#/components/responses/AdminError' }
         '422': { $ref: '#/components/responses/AdminError' }
+  /api/v1/admin/civic-scope-gaps:
+    get:
+      operationId: listCivicScopeGaps
+      parameters:
+        - { $ref: '#/components/parameters/DemoActorId' }
+        - { $ref: '#/components/parameters/DemoRole' }
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/CivicScopeGapStatus' } }
+      responses:
+        '200':
+          description: Separate masked civic scope-gap review queue
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CivicScopeGapListResponse' }
+        '403': { $ref: '#/components/responses/AdminError' }
+        '422': { $ref: '#/components/responses/AdminError' }
+  /api/v1/admin/civic-scope-gaps/{id}/review:
+    patch:
+      operationId: reviewCivicScopeGap
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+        - { $ref: '#/components/parameters/DemoActorId' }
+        - { $ref: '#/components/parameters/DemoRole' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CivicScopeGapReviewRequest' }
+      responses:
+        '200':
+          description: Scope gap marked for planning or dismissal without creating KB
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CivicScopeGapReviewResponse' }
+        '403': { $ref: '#/components/responses/AdminError' }
+        '404': { $ref: '#/components/responses/AdminError' }
+        '409': { $ref: '#/components/responses/AdminError' }
+        '422': { $ref: '#/components/responses/AdminError' }
   /api/v1/admin/kb-candidates:
     get:
       operationId: listKBCandidates
@@ -723,6 +760,80 @@ components:
       required: [item]
       properties:
         item: { $ref: '#/components/schemas/FailedQuestion' }
+    CivicScopeGapStatus:
+      type: string
+      enum: [NEW, PLANNED, DISMISSED]
+    CivicScopeGapSummary:
+      type: object
+      additionalProperties: false
+      x-sejong-state-invariant: civic-scope-gap-state-v1
+      required: [id, masked_question, status, created_at, updated_at, text_expires_at, text_purged_at, reviewed_by, reviewed_at, review_comment]
+      properties:
+        id: { type: string, format: uuid }
+        masked_question:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 2000
+          description: PII-safe text only; null after exact 30-day retention purge.
+        status: { $ref: '#/components/schemas/CivicScopeGapStatus' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        text_expires_at:
+          type: string
+          format: date-time
+          description: Exactly 30 days after creation.
+        text_purged_at: { type: ['string', 'null'], format: date-time }
+        reviewed_by: { type: [string, 'null'], minLength: 1, maxLength: 200 }
+        reviewed_at: { type: ['string', 'null'], format: date-time }
+        review_comment: { type: [string, 'null'], minLength: 1, maxLength: 1000 }
+      allOf:
+        - if:
+            properties:
+              status: { const: NEW }
+            required: [status]
+          then:
+            properties:
+              reviewed_by: { type: 'null' }
+              reviewed_at: { type: 'null' }
+              review_comment: { type: 'null' }
+          else:
+            properties:
+              reviewed_by: { type: string, minLength: 1, maxLength: 200 }
+              reviewed_at: { type: string, format: date-time }
+              review_comment: { type: string, minLength: 1, maxLength: 1000 }
+        - if:
+            properties:
+              masked_question: { type: 'null' }
+            required: [masked_question]
+          then:
+            properties:
+              text_purged_at: { type: string, format: date-time }
+          else:
+            properties:
+              text_purged_at: { type: 'null' }
+    CivicScopeGapListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CivicScopeGapSummary' }
+        total: { type: integer, minimum: 0 }
+    CivicScopeGapReviewRequest:
+      type: object
+      additionalProperties: false
+      required: [decision, review_comment]
+      properties:
+        decision: { type: string, enum: [PLANNED, DISMISSED] }
+        review_comment: { type: string, minLength: 1, maxLength: 1000 }
+    CivicScopeGapReviewResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [PLANNED, DISMISSED] }
     ReasonConfirmationResponse:
       type: object
       additionalProperties: false
