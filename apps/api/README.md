@@ -1,7 +1,7 @@
 # apps/api
 
-세종 민원이음의 FastAPI 서비스다. health/readiness와 local/private `/api/v1/chat`
-수직 흐름, DB-001 lazy typed repository boundary를 제공한다.
+세종 민원이음의 FastAPI 서비스다. health/readiness, local/private `/api/v1/chat`,
+공식 기관 조회 `/api/v1/offices` 수직 흐름과 DB-001 lazy typed repository boundary를 제공한다.
 
 ## 현재 동작
 
@@ -13,10 +13,15 @@
   구조화 응답/폴백을 수행한다. exact local grounded-chat profile에서만 Upstage 생성을 한 번
   시도하며, 그 외 설정·정책·검증·transport 실패는 공식 TEMPLATE 응답으로 돌아간다.
   import-safe 기본 앱은 의도적으로 503을 반환한다.
-- API 3.2.0-draft는 `PRIVACY_UNRESOLVED`, SUCCESS/FOLLOWUP/FALLBACK 판별 union,
+- `GET /api/v1/offices`: required `region`과 네 supported `intent`를 받아 기존
+  `app_api.list_offices`의 OFFICIAL 기관만 `public_id` 순서로 반환한다. valid no-match는
+  `200 {"items":[]}`이고 누락·미지원 query는 값 없는 422다. route는 import-safe 기본 앱에도
+  항상 등록되지만 directory dependency가 닫혀 있으므로 `Retry-After: 30`을 가진 safe 503을
+  반환한다. local app factory만 기존 repository와 shared readiness probe를 주입한다.
+- API 3.3.0-draft는 `PRIVACY_UNRESOLVED`, SUCCESS/FOLLOWUP/FALLBACK 판별 union,
   SUCCESS의 `answer_mode=GENERATED|TEMPLATE`, 기관 카드, optional UUID
-  `Idempotency-Key`와 local/private 관리자 성공·오류 envelope를 엄격한 공개 계약으로
-  고정한다. import-safe 기본 앱의 `/ready`는 계속 503이다.
+  `Idempotency-Key`, strict `OfficeListResponse`와 local/private 관리자 성공·오류 envelope를
+  엄격한 공개 계약으로 고정한다. import-safe 기본 앱의 `/ready`와 기관 read는 계속 503이다.
 - 승인된 chat/admin response와 공통 503은 strict Pydantic v2 경계 모델과 공유 합성 JSON fixture를 함께 소비한다. 숫자·문자열·boolean 간 암묵적 coercion과 스냅샷/디버그 추가 필드를 거부한다.
 - 정상 완료와 일반 `Exception` 경로의 HTTP 요청 로그는 서버가 만든 UUID, method, 라우트
   템플릿, status만 JSON 한 줄로 남긴다.
@@ -37,7 +42,8 @@
 
 `apps/api/.env.example`을 `apps/api/.env`로 복사한다. 비밀 칸은 의도적으로 비어 있으며,
 local app factory는 `DATABASE_URL`과 최소 32-byte `CONTEXT_TOKEN_SECRET`만 allowlist로
-읽는다. 둘 중 하나라도 없거나 유효하지 않으면 `/ready`와 `/api/v1/chat`을 503으로 닫는다.
+읽는다. 둘 중 하나라도 없거나 유효하지 않으면 `/ready`, `/api/v1/chat`,
+`/api/v1/offices`를 503으로 닫는다.
 별도 chat 설정 로더는 exact `upstage`/`solar-pro3`/8초/zero-retry profile과
 `UPSTAGE_GROUNDED_CHAT_MODE=true`일 때만 ignored local key를 읽고 optional runtime을 조립한다.
 disabled·불완전·서로 충돌하는 profile에서는 real local DB app을 그대로 만들되 TEMPLATE만
@@ -78,6 +84,18 @@ API 서버는 저장소 루트의 전용 runner로만 시작한다. 이 runner�
 loop를 Uvicorn보다 먼저 선택하고, 유효한 local 설정이 없으면 서버를 시작하지 않으며,
 `127.0.0.1` 단일 worker와 access log 비활성 경계를 고정한다. 다른 포트가 필요할 때만
 1024~65535 범위의 정수를 `--port 8123`처럼 전달한다.
+
+OFFICE-API-001 closeout에서 실제 Docker/Supabase endpoint smoke는 이 worktree에 ignored
+local 환경이 없고 현재 process에도 required 설정 이름이 없어
+`Pending — local prerequisite unavailable`로 남겼다. `.env`를 읽거나 다른 checkout에서
+복사하지 않았고 Docker/DB/provider를 시작하지 않았다. 대신 injected local integration을 포함한
+API 전체 2,043 PASS, DB-only 8 skip, subtests 5 PASS와 shared contract 90/90 PASS로 default
+route discovery, local injection, match/valid-empty 200, safe 422/503을 검증했다. broad API
+baseline에는 기존 Starlette deprecation warning 1건이 있다.
+
+기관 조회를 롤백할 때는 router, typed service/readiness guard, strict model/shared mapper,
+tracked OpenAPI와 generated TypeScript를 함께 이전 상태로 되돌린다. DB migration·seed·공식
+데이터 변경은 없으므로 data rollback은 필요 없다.
 
 grounded provider actual 전에는 runbook의 provider-disabled regression을 먼저 통과해야 한다.
 actual은 offline 전체 gate 뒤 별도 local 인간 단계이며 Cloud·CI에서 실행하지 않는다.

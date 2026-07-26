@@ -6,7 +6,7 @@
 
 - product_spec
 - repo_guidance
-- application/web/api
+- application/web/api/shared_contracts
 - database_schema
 - official_data/mock_data
 - prompt_set
@@ -55,16 +55,16 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.5.0
 repo_guidance: 1.7.8
-application: 0.9.1-grounded-local-chat-evidence
+application: 0.10.0-office-directory-runtime
 web: 0.6.0-answer-mode
-api: 3.2.0-draft
-shared_contracts: 0.5.0
+api: 3.3.0-draft
+shared_contracts: 0.6.0
 database_schema: 0.4.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
-test_suite: 1.6.1-grounded-actual
-documentation: 2.20.7
+test_suite: 1.7.0-office-directory
+documentation: 2.20.8
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -116,6 +116,22 @@ Documentation `2.20.7`은 D-079의 OFFICE-API-001 written specification 승인�
 실행계획 발행을 기록한다. strict response·shared mapper·typed service/readiness guard·always-registered
 route·local composition·OpenAPI/generated TypeScript·closeout gate를 RED→GREEN 순서로 고정했으며,
 계획 승인 전 application/API/shared contract/test 축과 DB/data/Web/provider/dependency는 변경하지 않는다.
+Documentation `2.20.8`은 OFFICE-API-001 runtime parity 구현 closeout이다. application
+`0.9.1-grounded-local-chat-evidence→0.10.0-office-directory-runtime`, API
+`3.2.0-draft→3.3.0-draft`, shared contracts `0.5.0→0.6.0`, tests
+`1.6.1-grounded-actual→1.7.0-office-directory`로 승격했다. required region+supported intent,
+OFFICIAL-only server mapping, valid-empty 200, value-free 422와 `Retry-After: 30` safe 503을
+default/local FastAPI와 tracked/generated contract에 정렬했다.
+
+aggregate `scripts/verify.ps1`은 PowerShell/Node/pnpm preflight 뒤 repo-local/PATH `uv` 부재로
+`PREFLIGHT-UV reason=exception code=2`에서 중단되어 PASS로 기록하지 않는다. pinned
+uv 0.11.28로 실행한 constituent API Ruff/MyPy/pytest, shared generation/contracts,
+repository docs/secret/diff gate는 모두 PASS했다. API는 2,043 PASS·DB-only 8 skip·subtests 5
+PASS이며 기존 Starlette warning 1건, shared contracts는 90/90 PASS다. actual Docker/Supabase
+endpoint smoke는 secret environment와 local prerequisite가 없어 Pending이고 injected local
+integration은 PASS했다. product specification, repository guidance, Web, DB schema, official/mock
+data와 prompt 축은 정확히 유지했으며 migration·seed·data·provider·dependency·lockfile·
+public/remote 변경은 없다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

@@ -7,9 +7,10 @@
 - 계약 변경은 영향 분석, 테스트, 버전, 구현 노트를 동반한다.
 - breaking change는 인간 승인과 ADR이 필요하다.
 - source metadata는 서버가 결합한다.
-- API spec revision은 `3.2.0-draft`다. SUCCESS/FOLLOWUP/5개 사유별 FALLBACK,
+- API spec revision은 `3.3.0-draft`다. SUCCESS/FOLLOWUP/5개 사유별 FALLBACK,
   `PRIVACY_UNRESOLVED` 고정 문구, HTTPS 전용 출처·기관 링크, local/private admin 성공·오류
-  envelope를 OpenAPI·standalone schema·Pydantic·생성 TypeScript가 같은 fixture로 검증한다.
+  envelope와 strict office list를 OpenAPI·standalone schema·Pydantic·생성 TypeScript가 같은
+  fixture로 검증한다.
 - SUCCESS에만 required `answer_mode=GENERATED|TEMPLATE`가 있다. `GENERATED`는 provider draft를
   strict 검증한 뒤 서버가 ACTIVE/OFFICIAL record의 공식 fact·source·office를 materialize한 결과이고,
   `TEMPLATE`은 disabled/default, timeout, transport, schema, ID 또는 fact-drift 실패 때의 전체
@@ -39,6 +40,62 @@ POST /api/v1/admin/kb-candidates/{id}/submit
 PATCH /api/v1/admin/kb-candidates/{id}/review
 GET  /api/v1/admin/quality-summary
 ```
+
+## 공식 기관 조회 계약
+
+`GET /api/v1/offices`는 `region`과 supported `intent`를 모두 required query로 받는다.
+허용 지역은 `아름동`, `도담동`, `조치원읍`이고 intent는 네 지원 분야만 허용한다.
+
+```http
+GET /api/v1/offices?region=아름동&intent=BULKY_WASTE
+```
+
+contract test/spec의 match shape 예시는 다음 strict `OfficeListResponse`다. 실제 endpoint smoke
+결과나 DB record dump가 아니다. identity, 주소, 대표번호, 지도 URL, 출처명·URL과 확인일은
+runtime에서 서버가 기존 OFFICIAL DB record로부터만 결합한다.
+
+```json
+{
+  "items": [
+    {
+      "id": "OFFICE-AREUM",
+      "region": "아름동",
+      "office_name": "아름동 행정복지센터",
+      "address": "세종특별자치시 보듬3로 114",
+      "phone": "044-301-6300",
+      "opening_hours": "평일 09:00~18:00",
+      "map_url": "https://www.sejong.go.kr/office/map",
+      "source_title": "세종특별자치시 공식 기관 안내",
+      "source_url": "https://www.sejong.go.kr/office",
+      "last_verified_at": "2026-07-19"
+    }
+  ]
+}
+```
+
+valid filter에 매칭되는 기관이 없으면 오류나 404가 아니라 다음 exact 200 빈 상태다.
+
+```json
+{"items":[]}
+```
+
+누락·미지원 query는 repository를 호출하지 않고 값 없는 422 `VALIDATION_ERROR`를 반환한다.
+default app의 closed dependency, false readiness, DB read 불능은 공식 결과나 빈 상태를
+fabricate하지 않고 `Retry-After: 30`을 가진 503 `SERVICE_UNAVAILABLE`로 닫힌다. response와
+request log에는 query value, DSN, stack, provider/secret 이름을 echo하지 않는다.
+
+default `create_app()`은 route discovery와 runtime OpenAPI parity를 위해 endpoint를 항상
+등록하지만 실제 directory read는 503이다. local `create_local_app()`만 하나의 기존
+repository/pool/readiness probe를 chat과 공유해 주입한다. DB function은 OFFICIAL-only와
+`public_id` deterministic order를 소유하고, public model은 internal `department_label`을
+노출하지 않는다.
+
+이번 slice는 DB migration·seed·official/mock data·Web·LLM/provider·production dependency·
+lockfile·public/remote deployment·admin exposure를 변경하지 않았다. 실제 Docker/Supabase
+endpoint smoke는 worktree/process의 local prerequisite 부재로
+`Pending — local prerequisite unavailable`이며 injected local integration은 PASS했다.
+롤백은 route/service/model/shared mapper, tracked OpenAPI와 generated TypeScript를 함께 revert하며
+data rollback은 없다.
 
 ## 데모 역할 전달
 
