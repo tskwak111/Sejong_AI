@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Planned — natural dialogue implementation
+
+- Added the reviewed 18-task TDD plan for PII correction, hybrid classification, context v2,
+  scope-gap operations, public hardening, clean DB, actual Upstage and controlled remote evidence.
+- Repository discovery found no configured remote target/project, so remote deployment has an
+  exact `target not configured` evidence path while all independent work continues.
+- Advanced documentation from `2.23.0` to `2.23.1`; runtime, contract, DB, data and provider state
+  remain unchanged.
+
 ### Approved — integrated natural dialogue specification and actual execution
 
 - Recorded D-091/D-092: the three approved design sections are consolidated into one
