@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
 test_suite: 1.6.1-grounded-actual
-documentation: 2.20.6
+documentation: 2.20.7
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -111,6 +111,11 @@ Documentation `2.20.6`은 Q-API-OFFICES-001=A/D-078의 설계 승인과 OFFICE-A
 specification을 기록한다. existing endpoint의 required filter·OFFICIAL-only·deterministic
 order를 runtime에 구현하고 unavailable을 value-free 503으로 닫는 계획이며, specification
 review와 실행계획 승인 전 제품/API contract/DB/data/provider/prompt/test 축은 변경하지 않는다.
+Documentation `2.20.7`은 D-079의 OFFICE-API-001 written specification 승인과
+[`2026-07-26-office-api-runtime-parity.md`](superpowers/plans/2026-07-26-office-api-runtime-parity.md)
+실행계획 발행을 기록한다. strict response·shared mapper·typed service/readiness guard·always-registered
+route·local composition·OpenAPI/generated TypeScript·closeout gate를 RED→GREEN 순서로 고정했으며,
+계획 승인 전 application/API/shared contract/test 축과 DB/data/Web/provider/dependency는 변경하지 않는다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

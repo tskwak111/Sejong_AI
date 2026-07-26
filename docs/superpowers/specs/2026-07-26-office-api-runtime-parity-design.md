@@ -1,6 +1,6 @@
 # OFFICE-API-001 기존 기관 조회 계약의 FastAPI runtime 정합 설계
 
-- 상태: Design Approved / Written Specification Review
+- 상태: Written Specification Approved / Execution Plan Review
 - 작성일: 2026-07-26 KST
 - 인간 결정: `Q-API-OFFICES-001=A`
 - 기준 commit: `8ebc66b65a67f106b05976112de345a8c849b631`

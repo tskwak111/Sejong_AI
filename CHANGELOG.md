@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Planned — OFFICE-API-001 runtime parity
+
+- Approved the existing `GET /api/v1/offices` written specification and published its detailed
+  RED→GREEN execution plan. Product code, API wire contract, DB/data, Web, provider, dependency,
+  and public/remote state remain unchanged until the execution plan is approved.
+
 ### Changed — LLM-003 grounded local/private chat generation and actual evidence
 
 - Approved Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C and Q-LLM-012=B
