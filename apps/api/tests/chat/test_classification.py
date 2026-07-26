@@ -117,6 +117,14 @@ def test_unsupported_certificate_domains_are_deferred_to_provider(question: str)
     assert outcome.fallback_reason is None
 
 
+def test_family_relation_certificate_is_deferred_to_provider() -> None:
+    outcome = classify_question(safe_question("가족관계증명서 어떻게 발급받아요?"))
+
+    assert outcome.intent is Intent.UNKNOWN
+    assert outcome.needs_provider is True
+    assert outcome.pending_slot is None
+
+
 def test_canonical_bed_frame_question_is_supported_bulky_waste() -> None:
     outcome = classify_question(safe_question("침대 2인용 프레임 수수료가 얼마예요?"))
 

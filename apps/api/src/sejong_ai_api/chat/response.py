@@ -24,11 +24,21 @@ type FollowupOptionId = Literal[
     "intent.certificate",
     "intent.bulky-waste",
     "intent.local-tax",
+    "certificate.resident-copy",
+    "certificate.resident-abstract",
+    "certificate.copy-vs-abstract",
+    "certificate.resident-register-inspection",
+    "certificate.unmanned-kiosk",
+    "region.areum",
+    "region.dodam",
+    "region.jochiwon",
+    "waste.item.describe",
 ]
 type PublicFallbackReason = Literal[
     "INSUFFICIENT_GROUNDING",
     "PERSONAL_LOOKUP",
     "LEGAL_JUDGMENT",
+    "CIVIC_SCOPE_GAP",
     "OUT_OF_SCOPE",
     "PRIVACY_UNRESOLVED",
 ]
@@ -38,6 +48,15 @@ _FOLLOWUP_LABELS: dict[FollowupOptionId, str] = {
     "intent.certificate": "증명서 발급",
     "intent.bulky-waste": "대형폐기물",
     "intent.local-tax": "지방세 일반 안내",
+    "certificate.resident-copy": "주민등록등본 발급",
+    "certificate.resident-abstract": "주민등록초본 발급",
+    "certificate.copy-vs-abstract": "등본과 초본의 차이",
+    "certificate.resident-register-inspection": "주민등록표 열람",
+    "certificate.unmanned-kiosk": "무인민원발급기 이용",
+    "region.areum": "아름동",
+    "region.dodam": "도담동",
+    "region.jochiwon": "조치원읍",
+    "waste.item.describe": "버리려는 물품을 적어 주세요",
 }
 _FALLBACK_COPY: dict[PublicFallbackReason, tuple[str, str, tuple[str, ...]]] = {
     "INSUFFICIENT_GROUNDING": (
@@ -54,6 +73,11 @@ _FALLBACK_COPY: dict[PublicFallbackReason, tuple[str, str, tuple[str, ...]]] = {
         "법적 판단은 제공하지 않아요",
         "개별 사실관계에 따른 법적 결론이나 책임을 단정할 수 없어요.",
         ("일반 절차 안내가 필요하면 법적 판단 없이 다시 질문해 주세요.",),
+    ),
+    "CIVIC_SCOPE_GAP": (
+        "아직 지원하지 않는 민원이에요",
+        "행정 민원으로 보이지만 현재 승인된 안내 범위에는 없어요.",
+        ("지원 범위 확대 검토 대상으로 안전하게 접수할 수 있어요.",),
     ),
     "OUT_OF_SCOPE": (
         "지원 범위 밖의 질문이에요",
