@@ -26,6 +26,7 @@ const responseExpectations = [
   ["valid-followup.json", true],
   ["valid-fallback-no-office.json", true],
   ["valid-fallback-office.json", true],
+  ["valid-civic-scope-gap.json", true],
   ["valid-privacy-unresolved.json", true],
   ["invalid-privacy-copy.json", false],
   ["invalid-privacy-confidence.json", false, { keyword: "type", path: "/confidence" }],
@@ -37,6 +38,7 @@ const responseExpectations = [
   ["invalid-fallback-missing-fallback.json", false, { keyword: "required", path: "", property: "fallback" }],
   ["invalid-insufficient-candidate.json", false, { keyword: "const", path: "/fallback/candidate_eligible" }],
   ["invalid-out-of-scope-intent.json", false, { keyword: "const", path: "/intent" }],
+  ["invalid-civic-scope-gap-intent.json", false, { keyword: "const", path: "/intent" }],
   ["invalid-fallback-context.json", false, { keyword: "type", path: "/context_token" }],
   ["invalid-missing-context.json", false, { keyword: "required", path: "", property: "context_token" }],
   ["invalid-session-id.json", false, { keyword: "unevaluatedProperties", path: "", property: "session_id" }],
@@ -106,7 +108,7 @@ const adminCases = [
 }));
 
 const cases = [...requestCases, ...responseCases, ...errorCases, ...adminCases];
-assert.equal(cases.length, 71, "fixture matrix must contain exactly 71 validations");
+assert.equal(cases.length, 75, "fixture matrix must contain exactly 75 validations");
 
 function summarizeErrors(errors = []) {
   return errors.map(({ instancePath, keyword, params }) => ({

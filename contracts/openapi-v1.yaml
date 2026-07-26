@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sejong Civil AI API
-  version: 3.3.0-draft
+  version: 4.0.0-draft
   description: |
     Final-scope draft. Validate through discovery/interview before implementation.
     Admin routes are local/private demo surfaces, not public authentication boundaries.
@@ -278,10 +278,10 @@ components:
       enum: [SUCCESS, FOLLOWUP, FALLBACK]
     FallbackReason:
       type: string
-      enum: [INSUFFICIENT_GROUNDING, PERSONAL_LOOKUP, LEGAL_JUDGMENT, OUT_OF_SCOPE, PRIVACY_UNRESOLVED]
+      enum: [INSUFFICIENT_GROUNDING, PERSONAL_LOOKUP, LEGAL_JUDGMENT, CIVIC_SCOPE_GAP, OUT_OF_SCOPE, PRIVACY_UNRESOLVED]
     StoredFailureReason:
       type: string
-      description: OUT_OF_SCOPE never creates a failed_questions row.
+      description: OUT_OF_SCOPE and CIVIC_SCOPE_GAP never create a failed_questions row.
       enum: [INSUFFICIENT_GROUNDING, PERSONAL_LOOKUP, LEGAL_JUDGMENT]
     FailedQuestionStatus:
       type: string
@@ -462,6 +462,16 @@ components:
             reason: { const: LEGAL_JUDGMENT }
             candidate_eligible: { const: false }
       unevaluatedProperties: false
+    CivicScopeGapFallback:
+      type: object
+      allOf:
+        - { $ref: '#/components/schemas/FallbackPayloadBase' }
+        - type: object
+          required: [reason, candidate_eligible]
+          properties:
+            reason: { const: CIVIC_SCOPE_GAP }
+            candidate_eligible: { const: false }
+      unevaluatedProperties: false
     OutOfScopeFallback:
       type: object
       allOf:
@@ -495,6 +505,7 @@ components:
         - { $ref: '#/components/schemas/InsufficientGroundingFallback' }
         - { $ref: '#/components/schemas/PersonalLookupFallback' }
         - { $ref: '#/components/schemas/LegalJudgmentFallback' }
+        - { $ref: '#/components/schemas/CivicScopeGapFallback' }
         - { $ref: '#/components/schemas/OutOfScopeFallback' }
         - { $ref: '#/components/schemas/PrivacyUnresolvedFallback' }
     ChatResponseBase:
@@ -609,6 +620,16 @@ components:
             intent: { const: UNKNOWN }
             fallback: { $ref: '#/components/schemas/LegalJudgmentFallback' }
       unevaluatedProperties: false
+    CivicScopeGapResponse:
+      type: object
+      allOf:
+        - { $ref: '#/components/schemas/FallbackResponseBase' }
+        - type: object
+          required: [intent, fallback]
+          properties:
+            intent: { const: OUT_OF_SCOPE }
+            fallback: { $ref: '#/components/schemas/CivicScopeGapFallback' }
+      unevaluatedProperties: false
     OutOfScopeResponse:
       type: object
       allOf:
@@ -635,6 +656,7 @@ components:
         - { $ref: '#/components/schemas/InsufficientGroundingResponse' }
         - { $ref: '#/components/schemas/PersonalLookupResponse' }
         - { $ref: '#/components/schemas/LegalJudgmentResponse' }
+        - { $ref: '#/components/schemas/CivicScopeGapResponse' }
         - { $ref: '#/components/schemas/OutOfScopeResponse' }
         - { $ref: '#/components/schemas/PrivacyUnresolvedResponse' }
     ChatResponse:

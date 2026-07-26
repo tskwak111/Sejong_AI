@@ -1,0 +1,17 @@
+{
+  "request_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "answer_status": "FALLBACK",
+  "intent": "OUT_OF_SCOPE",
+  "sources": [],
+  "fallback": {
+    "reason": "CIVIC_SCOPE_GAP",
+    "title": "아직 지원하지 않는 민원이에요",
+    "message": "행정 민원으로 보이지만 현재 승인된 안내 범위에는 없어요.",
+    "next_actions": [
+      "지원 범위 확대 검토 대상으로 안전하게 접수할 수 있어요."
+    ],
+    "candidate_eligible": false,
+    "office": null
+  },
+  "context_token": null
+}

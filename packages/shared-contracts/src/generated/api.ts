@@ -1,6 +1,6 @@
 /**
  * source: contracts/openapi-v1.yaml
- * OpenAPI: 3.3.0-draft; generator: openapi-typescript 7.13.0
+ * OpenAPI: 4.0.0-draft; generator: openapi-typescript 7.13.0
  * Generated deterministically; do not edit by hand.
  */
 export interface paths {
@@ -276,6 +276,17 @@ export interface components {
             sources: components["schemas"]["Source"][];
             summary?: string | null;
         };
+        CivicScopeGapFallback: components["schemas"]["FallbackPayloadBase"] & {
+            /** @constant */
+            candidate_eligible: false;
+            /** @constant */
+            reason: "CIVIC_SCOPE_GAP";
+        };
+        CivicScopeGapResponse: components["schemas"]["FallbackResponseBase"] & {
+            fallback: components["schemas"]["CivicScopeGapFallback"];
+            /** @constant */
+            intent: "OUT_OF_SCOPE";
+        };
         FailedQuestion: {
             candidate_eligible: boolean;
             /** Format: date-time */
@@ -308,7 +319,7 @@ export interface components {
         };
         /** @enum {string} */
         FailedQuestionStatus: "NEW" | "REASON_CONFIRMED";
-        Fallback: components["schemas"]["InsufficientGroundingFallback"] | components["schemas"]["PersonalLookupFallback"] | components["schemas"]["LegalJudgmentFallback"] | components["schemas"]["OutOfScopeFallback"] | components["schemas"]["PrivacyUnresolvedFallback"];
+        Fallback: components["schemas"]["InsufficientGroundingFallback"] | components["schemas"]["PersonalLookupFallback"] | components["schemas"]["LegalJudgmentFallback"] | components["schemas"]["CivicScopeGapFallback"] | components["schemas"]["OutOfScopeFallback"] | components["schemas"]["PrivacyUnresolvedFallback"];
         FallbackPayloadBase: {
             candidate_eligible: boolean;
             message: string;
@@ -318,8 +329,8 @@ export interface components {
             title: string;
         };
         /** @enum {string} */
-        FallbackReason: "INSUFFICIENT_GROUNDING" | "PERSONAL_LOOKUP" | "LEGAL_JUDGMENT" | "OUT_OF_SCOPE" | "PRIVACY_UNRESOLVED";
-        FallbackResponse: components["schemas"]["InsufficientGroundingResponse"] | components["schemas"]["PersonalLookupResponse"] | components["schemas"]["LegalJudgmentResponse"] | components["schemas"]["OutOfScopeResponse"] | components["schemas"]["PrivacyUnresolvedResponse"];
+        FallbackReason: "INSUFFICIENT_GROUNDING" | "PERSONAL_LOOKUP" | "LEGAL_JUDGMENT" | "CIVIC_SCOPE_GAP" | "OUT_OF_SCOPE" | "PRIVACY_UNRESOLVED";
+        FallbackResponse: components["schemas"]["InsufficientGroundingResponse"] | components["schemas"]["PersonalLookupResponse"] | components["schemas"]["LegalJudgmentResponse"] | components["schemas"]["CivicScopeGapResponse"] | components["schemas"]["OutOfScopeResponse"] | components["schemas"]["PrivacyUnresolvedResponse"];
         FallbackResponseBase: components["schemas"]["ChatResponseBase"] & {
             /** @constant */
             answer_status: "FALLBACK";
@@ -564,7 +575,7 @@ export interface components {
             used_fields?: string[];
         };
         /**
-         * @description OUT_OF_SCOPE never creates a failed_questions row.
+         * @description OUT_OF_SCOPE and CIVIC_SCOPE_GAP never create a failed_questions row.
          * @enum {string}
          */
         StoredFailureReason: "INSUFFICIENT_GROUNDING" | "PERSONAL_LOOKUP" | "LEGAL_JUDGMENT";

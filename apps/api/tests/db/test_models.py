@@ -139,6 +139,7 @@ def test_enum_values_exactly_match_database_contract() -> None:
         "INSUFFICIENT_GROUNDING",
         "PERSONAL_LOOKUP",
         "LEGAL_JUDGMENT",
+        "CIVIC_SCOPE_GAP",
         "OUT_OF_SCOPE",
     ]
     assert [item.value for item in Region] == ["아름동", "도담동", "조치원읍"]

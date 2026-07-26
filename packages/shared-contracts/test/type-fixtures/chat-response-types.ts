@@ -104,8 +104,27 @@ type ValidPrivacy = {
   context_token: null;
 };
 
+type ValidCivicScopeGap = {
+  request_id: string;
+  answer_status: "FALLBACK";
+  intent: "OUT_OF_SCOPE";
+  sources: [];
+  fallback: {
+    reason: "CIVIC_SCOPE_GAP";
+    title: string;
+    message: string;
+    next_actions: [string];
+    candidate_eligible: false;
+    office: null;
+  };
+  context_token: null;
+};
+
 type _ValidSuccessCompiles = Assert<IsAssignable<ValidSuccess, ChatResponse>>;
 type _ValidPrivacyCompiles = Assert<IsAssignable<ValidPrivacy, ChatResponse>>;
+type _ValidCivicScopeGapCompiles = Assert<
+  IsAssignable<ValidCivicScopeGap, ChatResponse>
+>;
 type _ValidFollowupCompiles = Assert<IsAssignable<ValidFollowup, ChatResponse>>;
 type _SuccessPrivacyRejected = AssertFalse<
   IsAssignable<InvalidSuccessWithPrivacy, ChatResponse>
