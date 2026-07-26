@@ -175,6 +175,11 @@ Documentation `2.21.2`는 primary ignored `.env`에 `UPSTAGE_GROUNDED_CHAT_MODE`
 product/application/Web/API/shared/DB/data/prompt/test와 actual environment/provider는
 변경하지 않았다.
 
+Documentation `2.21.3`은 사용자가 explicit false를 추가한 뒤 assignment 1개·exact
+lowercase false·runtime profile DISABLED·Git ignore를 값 비노출로 재확인한 기록이다.
+Docker client/server와 local DB container도 read-only로 준비 상태를 확인했으며 provider call,
+DB query/write, product/application/Web/API/shared/DB/data/prompt/test 변경은 0이다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과

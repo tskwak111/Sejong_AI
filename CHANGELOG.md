@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed — grounded mode false local verification
+
+- Verified without outputting values that the ignored local environment has exactly one lowercase
+  `false` grounded-mode assignment and the runtime loader remains `DISABLED`.
+- Confirmed the environment remains ignored and the Docker client/server plus local DB container
+  are ready for the next manual API step. No provider call or DB query/write was made.
+- Advanced documentation only from `2.21.2` to `2.21.3`.
+
 ### Changed — explicit local grounded-mode guidance
 
 - Confirmed without printing values that a missing `UPSTAGE_GROUNDED_CHAT_MODE` leaves the exact
