@@ -184,6 +184,11 @@ Documentation `2.21.4`는 사용자 실행 API의 `/ready=200`을 body 없이 �
 Web local actual 환경 4개를 정확히 준비한 기록이다. Git tracked file, product/application,
 Web source/API/shared/DB/data/prompt/test, provider와 DB 상태는 변경하지 않는다.
 
+Documentation `2.21.5`는 production-only로 남아 있던 local `node_modules`와 Next.js의
+bare `pnpm` spawn `ENOENT`를 분리 진단하고, Corepack과 frozen lockfile로 선언된 Web
+TypeScript 개발 의존성을 복구한 기록이다. package manifest·lockfile·제품 동작·provider·
+DB는 변경하지 않았고 Web `tsc --noEmit`으로 해석 가능 상태를 확인했다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과

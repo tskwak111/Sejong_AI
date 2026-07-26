@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed — local Web development dependency recovery
+
+- Diagnosed the Web startup failure as a production-only `node_modules` state followed by Next.js
+  attempting to spawn a bare `pnpm` executable that was not present on the user's PATH.
+- Restored the already-declared TypeScript development packages from the frozen lockfile through
+  Corepack. All 407 packages were reused from the local store, Web typecheck passed, and package
+  manifests plus the lockfile remained unchanged.
+- No provider, database, secret, API, product or Web source behavior changed. Advanced
+  documentation only from `2.21.4` to `2.21.5`.
+
 ### Changed — ready 200 and local Web actual setup
 
 - Reconfirmed the user-started API at `/ready=200` without outputting its body.
