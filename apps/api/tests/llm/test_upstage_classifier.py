@@ -54,6 +54,23 @@ def _ledger(*, classifier_cap: int = 20) -> ProviderAttemptLedger:
     )
 
 
+def test_prompt_defines_supported_boundary_and_closed_route_meanings() -> None:
+    messages = build_classifier_messages(_question(), max_input_chars=1024)
+    system = messages[0]["content"]
+
+    for required in (
+        "전입·주민등록",
+        "증명서 발급",
+        "대형폐기물",
+        "지방세 일반 안내",
+        "CIVIC_SCOPE_GAP",
+        "NON_CIVIC",
+        "NEEDS_FOLLOWUP",
+        "topic_id",
+    ):
+        assert required in system
+
+
 @pytest.mark.asyncio
 async def test_success_makes_one_exact_closed_source_free_request() -> None:
     settings = UpstageClassifierSettings(api_key=SECRET)

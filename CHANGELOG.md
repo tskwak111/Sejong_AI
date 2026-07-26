@@ -10,11 +10,14 @@
   operator-authored general KB candidates and candidate status history.
 - Added property-only `00700` hardening for the ADR-0018 exact 22 functions with matching rollback,
   body/owner/ACL fingerprints and an 11-migration replay gate.
+- Added a fixed PII-free 60-case classifier gate. Only 20 ambiguous cases use Upstage; the
+  corrective actual run passed 60/60 with policy/privacy outbound 0 and cumulative VAT-inclusive
+  cost USD 0.003873210.
 - Advanced application to `0.11.0-natural-dialogue`, Web to `0.7.0-natural-dialogue`, API to
   `4.0.0-draft`, shared contracts to `1.0.0`, DB to `0.5.0-local`, prompt set to
-  `0.3.0-hybrid-classifier`, tests to `1.9.0-natural-dialogue` and docs to `2.24.0`.
-- Local DB hardening and offline/fixture gates pass. Formal `.2` seed/19→20, actual Upstage aggregate
-  and configured remote citizen smoke are recorded separately and are not claimed by this entry.
+  `0.3.1-hybrid-classifier`, tests to `1.9.1-natural-dialogue` and docs to `2.24.1`.
+- Local DB hardening, immutable `.2` seed/19→20 and actual Upstage classifier gates pass.
+  Configured remote citizen smoke is recorded separately and is not claimed by this entry.
 
 ### Planned — natural dialogue implementation
 
