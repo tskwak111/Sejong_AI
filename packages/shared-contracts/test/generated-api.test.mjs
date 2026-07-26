@@ -39,7 +39,7 @@ test("the tracked API source exactly matches a fresh render", async (t) => {
 
   const banner = tracked.split("\n").slice(0, 4).join("\n");
   assert.match(banner, /source: contracts\/openapi-v1\.yaml/);
-  assert.match(banner, /OpenAPI: 3\.2\.0-draft/);
+  assert.match(banner, /OpenAPI: 3\.3\.0-draft/);
   assert.match(banner, /generator: openapi-typescript 7\.13\.0/);
   assert.doesNotMatch(banner, /\d{4}-\d{2}-\d{2}T|[A-Za-z]:\\/);
   assert.match(

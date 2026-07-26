@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sejong Civil AI API
-  version: 3.2.0-draft
+  version: 3.3.0-draft
   description: |
     Final-scope draft. Validate through discovery/interview before implementation.
     Admin routes are local/private demo surfaces, not public authentication boundaries.
@@ -69,13 +69,9 @@ paths:
           description: Official office matches
           content:
             application/json:
-              schema:
-                type: object
-                required: [items]
-                properties:
-                  items:
-                    type: array
-                    items: { $ref: '#/components/schemas/Office' }
+              schema: { $ref: '#/components/schemas/OfficeListResponse' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
   /api/v1/admin/failed-questions:
     get:
       operationId: listFailedQuestions
@@ -418,6 +414,14 @@ components:
         source_title: { type: string }
         source_url: { type: string, format: uri, pattern: '^https://' }
         last_verified_at: { type: string, format: date }
+    OfficeListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Office' }
     FallbackPayloadBase:
       type: object
       required: [reason, title, message, candidate_eligible]

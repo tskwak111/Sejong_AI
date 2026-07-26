@@ -1,6 +1,6 @@
 /**
  * source: contracts/openapi-v1.yaml
- * OpenAPI: 3.2.0-draft; generator: openapi-typescript 7.13.0
+ * OpenAPI: 3.3.0-draft; generator: openapi-typescript 7.13.0
  * Generated deterministically; do not edit by hand.
  */
 export interface paths {
@@ -485,6 +485,9 @@ export interface components {
             /** Format: uri */
             source_url?: string;
         };
+        OfficeListResponse: {
+            items: components["schemas"]["Office"][];
+        };
         OutOfScopeFallback: components["schemas"]["FallbackPayloadBase"] & {
             /** @constant */
             candidate_eligible: false;
@@ -950,11 +953,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        items: components["schemas"]["Office"][];
-                    };
+                    "application/json": components["schemas"]["OfficeListResponse"];
                 };
             };
+            422: components["responses"]["ValidationError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     health: {
