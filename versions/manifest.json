@@ -1,6 +1,6 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-26T17:43:18+09:00",
+  "updated_at": "2026-07-26T18:31:41+09:00",
   "versions": {
     "product_spec": "2.5.0",
     "repo_guidance": "1.7.8",
@@ -13,7 +13,7 @@
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.2.0-grounded-live-chat",
     "test_suite": "1.7.1-office-directory-review-fix",
-    "documentation": "2.20.9"
+    "documentation": "2.20.10"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

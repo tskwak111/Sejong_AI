@@ -91,9 +91,9 @@ repository/pool/readiness probe를 chat과 공유해 주입한다. DB function�
 노출하지 않는다.
 
 이번 slice는 DB migration·seed·official/mock data·Web·LLM/provider·production dependency·
-lockfile·public/remote deployment·admin exposure를 변경하지 않았다. 실제 Docker/Supabase
-endpoint smoke는 worktree/process의 local prerequisite 부재로
-`Pending — local prerequisite unavailable`이며 injected local integration은 PASS했다.
+lockfile·public/remote deployment·admin exposure를 변경하지 않았다. PR #15 병합 뒤 bounded
+read-only Docker/Supabase smoke는 `/ready=200`, match `200/count=1`, valid empty
+`200/count=0`을 PASS했다. record/DSN/secret 출력과 purge/reset/seed/write/provider call은 0이다.
 롤백은 route/service/model/shared mapper, tracked OpenAPI와 generated TypeScript를 함께 revert하며
 data rollback은 없다.
 
