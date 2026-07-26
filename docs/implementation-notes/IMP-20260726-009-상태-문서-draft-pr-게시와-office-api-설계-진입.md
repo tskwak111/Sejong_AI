@@ -49,7 +49,7 @@
 
 | ID | 구분 | 내용 | 결정/기본값 | 영향 |
 |---|---|---|---|---|
-| Q-API-OFFICES-001 | High | standalone office endpoint의 공개 동작과 필터 요구사항 | 별도 설계 선택을 제시하고 인간 승인 전 구현하지 않는다. | OpenAPI, API runtime, repository adapter, API tests |
+| Q-API-OFFICES-001 | High | existing standalone office endpoint를 존치·구현할지 계약에서 제거할지 | 존치·구현을 추천하고 인간 승인 전 제품 코드는 바꾸지 않는다. | OpenAPI, API runtime, repository adapter, API tests |
 | Q-DB-CLEANUP-001 | Resolved | 오표시 metadata 22행 처리 | A 유지, 현재 local event 수치는 평가 KPI에서 제외 | local evidence와 향후 clean benchmark |
 
 ## 5. 설계 결정과 대안
@@ -62,8 +62,9 @@
 ### 이유
 
 - 이미 병합된 LLM actual 기능과 다음 API 기능을 한 PR에 섞지 않는다.
-- `/api/v1/offices`는 활성 공개 계약에 포함된 경로이므로 query/empty/error 동작을 인간이
-  확인한 뒤 구현해야 한다.
+- `/api/v1/offices`의 required `region`·`intent`, enum, `items: []`, OFFICIAL-only와
+  public-id 정렬은 active OpenAPI와 DB read function에 이미 확정돼 있다. 남은 제품 결정은
+  이 endpoint의 존치·runtime 구현 여부다.
 
 ### 고려했지만 선택하지 않은 대안
 
@@ -153,8 +154,8 @@
 ## 11. 인간이 반드시 알아야 하거나 승인할 내용
 
 - PR #14는 Draft이며 사람이 리뷰·merge해야 한다. Codex는 자동 merge하지 않는다.
-- 다음 OFFICE API는 query requirement와 공개 응답 동작을 선택해야 하므로
-  `Q-API-OFFICES-001` 승인 전 제품 코드를 작성하지 않는다.
+- 다음 OFFICE API는 기존 계약을 존치·runtime에 구현할지, 미사용 endpoint를 계약에서
+  제거할지 선택해야 하므로 `Q-API-OFFICES-001` 승인 전 제품 코드를 작성하지 않는다.
 - current local DB event 통계는 계속 평가 KPI로 사용하지 않는다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
@@ -182,7 +183,8 @@
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- OFFICE API의 required query와 empty list/error semantics가 미확정이다.
+- OFFICE API의 required query와 empty list semantics는 existing contract에 확정돼 있다.
+  endpoint 존치·runtime 구현 여부만 `Q-API-OFFICES-001`로 남아 있다.
 - `/api/v1/admin/quality-summary`, clean KPI reset, hosted backend CI, public deploy는 이 작업
   승인 범위 밖이며 계속 Pending이다.
 
