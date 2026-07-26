@@ -1468,3 +1468,22 @@ def test_pathological_1000_character_inputs_finish_within_two_seconds() -> None:
         for _ in range(20):
             redact_question(raw)
     assert time.perf_counter() - started < 2.0
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "오늘 날씨 어때요?",
+        "청년 월세 지원 어떻게 해요?",
+        "장학금 신청 어떻게 해요?",
+        "가족관계증명서 어떻게 발급받아요?",
+        "증명서 발급해야해",
+    ],
+)
+def test_ordinary_korean_is_not_an_ambiguous_person_name(question: str) -> None:
+    result = redact_question(question)
+
+    assert result.unresolved_reason is None
+    assert result.masked_text == question
+    assert result.safe_for_failure_storage is True
+    assert result.safe_for_synthetic_provider is True
