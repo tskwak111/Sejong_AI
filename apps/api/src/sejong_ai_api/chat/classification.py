@@ -12,6 +12,11 @@ import unicodedata
 from dataclasses import dataclass
 
 from sejong_ai_api.db.models import FallbackReason, Intent
+from sejong_ai_api.llm.classifier_contracts import (
+    ClassifierDecision,
+    ClassifierRoute,
+    PendingSlot,
+)
 from sejong_ai_api.privacy.redaction import RedactionResult
 
 _SUPPORTED_INTENTS = frozenset(
@@ -72,9 +77,11 @@ _INTENT_TERMS: dict[Intent, tuple[tuple[str, int], ...]] = {
     ),
 }
 
-_OUT_OF_SCOPE_TERMS = (
+_NON_CIVIC_TERMS = (
     "날씨",
     "맛집",
+)
+_UNSUPPORTED_ADMIN_TERMS = (
     "버스",
     "교통",
     "병원",
@@ -153,32 +160,88 @@ class ClassificationOutcome:
     intent: Intent
     followup_required: bool
     fallback_reason: FallbackReason | None
+    route: ClassifierRoute | None = None
+    topic_id: str | None = None
+    pending_slot: PendingSlot | None = None
+    needs_provider: bool = False
 
     def __post_init__(self) -> None:
-        if type(self.intent) is not Intent or type(self.followup_required) is not bool:
+        if (
+            type(self.intent) is not Intent
+            or type(self.followup_required) is not bool
+            or type(self.needs_provider) is not bool
+        ):
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
         if self.fallback_reason is not None and type(self.fallback_reason) is not FallbackReason:
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
-        if self.followup_required:
-            if self.intent is not Intent.UNKNOWN or self.fallback_reason is not None:
-                raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
-            return
-        if self.intent is Intent.OUT_OF_SCOPE:
-            if self.fallback_reason is not FallbackReason.OUT_OF_SCOPE:
-                raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
-            return
-        if self.intent is Intent.UNKNOWN and self.fallback_reason in {
-            FallbackReason.PERSONAL_LOOKUP,
-            FallbackReason.LEGAL_JUDGMENT,
-        }:
-            return
-        if self.intent not in _SUPPORTED_INTENTS:
+        if self.route is not None and type(self.route) is not ClassifierRoute:
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
-        if self.fallback_reason not in {
-            None,
-            FallbackReason.PERSONAL_LOOKUP,
-            FallbackReason.LEGAL_JUDGMENT,
-        }:
+        if self.topic_id is not None and type(self.topic_id) is not str:
+            raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+        if self.pending_slot is not None and type(self.pending_slot) is not PendingSlot:
+            raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+
+        if self.needs_provider:
+            if (
+                self.route is not None
+                or self.intent is not Intent.UNKNOWN
+                or not self.followup_required
+                or self.fallback_reason is not None
+                or self.topic_id is not None
+                or self.pending_slot is not None
+            ):
+                raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+            return
+
+        if self.route is None:
+            if (
+                self.followup_required
+                or self.intent is not Intent.UNKNOWN
+                or self.fallback_reason
+                not in {
+                    FallbackReason.PERSONAL_LOOKUP,
+                    FallbackReason.LEGAL_JUDGMENT,
+                }
+                or self.topic_id is not None
+                or self.pending_slot is not None
+            ):
+                raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+            return
+
+        if self.route in {ClassifierRoute.NON_CIVIC, ClassifierRoute.CIVIC_SCOPE_GAP}:
+            if (
+                self.intent is not Intent.OUT_OF_SCOPE
+                or self.followup_required
+                or self.fallback_reason is not FallbackReason.OUT_OF_SCOPE
+                or self.topic_id is not None
+                or self.pending_slot is not None
+            ):
+                raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+            return
+
+        if self.route is ClassifierRoute.SUPPORTED:
+            if (
+                self.followup_required
+                or self.fallback_reason is not None
+                or self.pending_slot is not None
+            ):
+                raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+        elif self.route is ClassifierRoute.NEEDS_FOLLOWUP:
+            if not self.followup_required or self.fallback_reason is not None:
+                raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+        else:
+            raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+
+        try:
+            ClassifierDecision(
+                route=self.route,
+                intent=self.intent,
+                topic_id=self.topic_id,
+                pending_slot=self.pending_slot,
+            )
+        except ValueError as error:
+            raise ValueError("CLASSIFICATION_OUTCOME_INVALID") from error
+        if self.intent not in _SUPPORTED_INTENTS:
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
 
 
@@ -190,7 +253,11 @@ def classify_question(question: SafeQuestion) -> ClassificationOutcome:
     compact = _compact(question.text)
 
     if _is_personal_lookup(question.text, compact):
-        return ClassificationOutcome(Intent.UNKNOWN, False, FallbackReason.PERSONAL_LOOKUP)
+        return ClassificationOutcome(
+            Intent.UNKNOWN,
+            False,
+            FallbackReason.PERSONAL_LOOKUP,
+        )
     if _is_legal_judgment(compact):
         return ClassificationOutcome(Intent.UNKNOWN, False, FallbackReason.LEGAL_JUDGMENT)
 
@@ -199,20 +266,44 @@ def classify_question(question: SafeQuestion) -> ClassificationOutcome:
         for intent, terms in _INTENT_TERMS.items()
     }
     highest_score = max(scores.values())
-    if highest_score == 0 and any(term in compact for term in _OUT_OF_SCOPE_TERMS):
+    if highest_score == 0 and any(term in compact for term in _NON_CIVIC_TERMS):
         return ClassificationOutcome(
             Intent.OUT_OF_SCOPE,
             followup_required=False,
             fallback_reason=FallbackReason.OUT_OF_SCOPE,
+            route=ClassifierRoute.NON_CIVIC,
         )
     best_intents = tuple(
         intent for intent, score in scores.items() if score == highest_score and score
     )
-    if len(best_intents) != 1:
-        return ClassificationOutcome(Intent.UNKNOWN, followup_required=True, fallback_reason=None)
+    if len(best_intents) == 1:
+        intent = best_intents[0]
+        return ClassificationOutcome(
+            intent,
+            False,
+            None,
+            route=ClassifierRoute.SUPPORTED,
+        )
 
-    intent = best_intents[0]
-    return ClassificationOutcome(intent, False, None)
+    if (
+        highest_score == 0
+        and "증명서" in compact
+        and not any(term in compact for term in _UNSUPPORTED_ADMIN_TERMS)
+    ):
+        return ClassificationOutcome(
+            Intent.CERTIFICATE_ISSUANCE,
+            followup_required=True,
+            fallback_reason=None,
+            route=ClassifierRoute.NEEDS_FOLLOWUP,
+            pending_slot=PendingSlot.CERTIFICATE_KIND,
+        )
+
+    return ClassificationOutcome(
+        Intent.UNKNOWN,
+        followup_required=True,
+        fallback_reason=None,
+        needs_provider=True,
+    )
 
 
 def _compact(value: str) -> str:
