@@ -44,15 +44,18 @@
 - The two pre-fix successful runs inserted 22 metadata-only rows as `is_test=false`; they must be
   excluded from KPI evidence. Safe cleanup requires a separately approved local DB reset or
   bounded deletion because this branch cannot uniquely distinguish those rows from other events.
+- D-076 records the user's exact acknowledgement of the corrective second 10-call governance
+  incident and authorization to merge PR #13, resolving A-049. It does not approve future provider
+  reruns, deletion of the 22 rows, public/remote use or automatic merge.
 - Public/remote use, real-institution operation, new production dependencies, DB migration,
-  official/mock-data mutation, push, PR and automatic merge remain prohibited or Pending under
-  their existing gates.
+  official/mock-data mutation and automatic merge remain prohibited or Pending under their
+  existing gates.
 - Clarified the pre-existing idempotency exception: only a caller-supplied key may retain the
   strictly validated final safe response for the existing logical 24-hour TTL. Raw/masked question,
   prompt/provider body, context/correlation and new DB migration remain prohibited.
 - Closeout axes are application `0.9.1-grounded-local-chat-evidence`, Web `0.6.0-answer-mode`, API
   `3.2.0-draft`, shared contracts `0.5.0`, prompt `0.2.0-grounded-live-chat`, tests
-  `1.6.1-grounded-actual`, documentation `2.20.1`. DB `0.4.0-local`, official data
+  `1.6.1-grounded-actual`, documentation `2.20.2`. DB `0.4.0-local`, official data
   `0.1.0-initial.2`, mock data `0.0.0-not-populated`, dependencies and lockfiles are unchanged.
 
 ### Changed — LLM-002 Upstage local actual evaluation

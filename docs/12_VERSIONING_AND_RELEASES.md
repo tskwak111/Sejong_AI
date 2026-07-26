@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
 test_suite: 1.6.1-grounded-actual
-documentation: 2.20.1
+documentation: 2.20.2
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -92,6 +92,9 @@ lockfile은 변경하지 않았다. D-075 local provider actual은 10건 GENERAT
 PASS했다. VAT 포함 USD 0.001319835는 legacy-reported lower-bound이며 configured maximum
 USD 0.0135168은 USD 0.05 cap 아래다.
 `3.2.0-draft`와 이 local 증거는 public/remote 사용 승인과 다르다.
+Documentation `2.20.2`는 D-076에서 corrective second 10-call incident를 사후 확인하고 PR #13
+병합을 승인해 A-049를 해결한 기록이다. application/API/DB/data/prompt/test 축은 바꾸지 않으며
+future rerun·22행 삭제·public/remote·자동 merge 권한을 추가하지 않는다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,

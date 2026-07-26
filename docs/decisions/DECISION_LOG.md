@@ -76,6 +76,7 @@
 | D-073 | 2026-07-25 | 사용자는 `명세승인`으로 LLM-003 근거 제한형 시민 답변 생성의 서면 명세를 승인하고, 구현 전 상세 TDD 실행계획 작성을 허용했다. | 구현계획은 현재 API/provider/idempotency/Web 인터페이스와 대조해 8개 수직 task로 작성한다. 제품 코드·공개 계약·actual provider call은 계획 승인 전 0이다. 기존 privacy/idempotency 문장의 충돌은 새 저장을 추가하지 않고, 호출자가 `Idempotency-Key`를 준 경우 엄격히 검증된 최종 안전 응답만 기존 논리 TTL 24시간 보관할 수 있다는 제한된 예외로 명시한다. raw/masked question, prompt, provider body, context/correlation은 계속 금지하고 DB migration은 만들지 않는다. | D-061/D-072, ADR-0021/0023, LLM-003 written spec and plan | 사용자 |
 | D-074 | 2026-07-25 | 사용자는 `계획 승인, Subagent-Driven으로 구현 시작`으로 LLM-003 8-task TDD 실행계획과 agent-driven 구현 시작을 승인했다. | fresh implementer→task-scoped spec/quality review→필요 시 bounded fix loop 순서로 실행한다. 메인 모델은 공유 계약·버전·통합·보안·Git 판정을 소유한다. 계획 범위의 local/private product code와 additive API contract 구현은 허용하지만, actual Upstage network는 offline 전체 gate 뒤 별도 local 인간 실행 단계이고 public/remote/실제 기관 운영·새 production dependency·DB migration·자동 merge는 계속 금지한다. | D-072/D-073, ADR-0023, LLM-003 TDD plan | 사용자 |
 | D-075 | 2026-07-26 | 사용자의 `local actual 실행 승인`으로 LLM-003 exact local/private Upstage acceptance gate를 승인했다. | 실제 local DB와 `/api/v1/chat`의 PII-free 고정 10건은 GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 사실 mismatch 0, typed `InteractionWrite` 경계에서 raw fixture/API key 위반 0, outbound 10으로 PASS했다. legacy runner가 보고한 input/output 4183/954와 VAT 포함 USD 0.001319835는 10/10 usage completeness를 강제하기 전 lower-bound이며, configured maximum USD 0.0135168이 USD 0.05 cap 아래임을 별도로 증명한다. persistence metric은 post-read DB forensic scan이 아니다. historical forced probe는 TEMPLATE과 추가 outbound 0을 관측했으며 injection-consumption 검증은 current future-only harness에 추가됐다. 최종 stdout은 aggregate JSON 하나뿐이다. 이 결정은 public/remote, Cloud/CI, 실제 기관 운영, 새 dependency, DB schema/migration/official·mock data 변경 또는 merge를 승인하지 않는다. actual path의 operational metadata write만 명시적으로 발생했다. | D-072~D-074, ADR-0023, LLM-003 report, IMP-20260726-002 | 사용자 |
+| D-076 | 2026-07-26 | 사용자가 `A-049 확인 완료. 추가 10-call corrective run을 사후 확인하며 PR #13 병합 진행을 승인함.`으로 governance incident를 사후 확인하고 exact PR 병합을 승인했다. | A-049의 Draft PR merge hold만 해제한다. historical 실제 총계 20 calls, legacy-reported lower-bound USD 0.002635710, configured upper USD 0.0270336과 오표시 metadata 22행 KPI 제외는 유지한다. 이 결정은 future actual provider rerun, 22행 reset/delete, public/remote/Cloud/CI actual, 실제 기관 운영 또는 자동 merge를 승인하지 않는다. | A-049, D-075, PR #13, IMP-20260726-005 | 사용자 |
 
 ### LLM-003 execution evidence (non-decision)
 
@@ -92,8 +93,9 @@ Final review에서 두 성공 run의 metadata interaction 22건이 `is_test=fals
 또한 D-075/runbook의 승인 범위는 10-call actual gate 1회였지만, 첫 semantic PASS의 stdout
 경계 보정을 위해 별도 재승인 없이 10-call run을 한 번 더 실행했다. 실제 총계는 20 calls,
 legacy-reported VAT 포함 lower-bound USD 0.002635710이며 configured upper bound는
-USD 0.0270336이다. 이는 새 사용자 결정이 아니라 governance incident이며 A-049에서 사후 인간
-확인을 Pending으로 유지한다.
+USD 0.0270336이다. 이 governance incident는 사용자가 D-076의 exact acknowledgement로 사후
+확인했고 PR #13 병합을 승인해 A-049를 Resolved로 전환했다. future rerun과 22행 삭제는 별도
+인간 승인 없이 수행하지 않는다.
 
 새 결정은 기존 값을 덮어쓰지 않고 새 행과 ADR/노트 링크를 추가한다.
 Q-SEC-004/A-022와 Q-SEC-005/A-023은 각각 D-029/D-030으로 결정됐지만 실제 보정이 불충분했다.

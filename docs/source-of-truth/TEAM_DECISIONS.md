@@ -91,6 +91,8 @@
   D-074에서 후속 TDD 실행계획과 Subagent-Driven 구현을 승인했다. D-075 local actual은 10건
   GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 mismatch 0, PII-free fixture typed
   write-boundary 위반 0, outbound 10으로 PASS했다.
+  corrective second 10-call run은 D-076에서 사용자가 사후 확인하고 PR #13 병합을 승인했다.
+  이 확인은 future rerun이나 DB 삭제 권한을 넓히지 않는다.
   public/remote/실제 기관 운영은 계속 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 
@@ -223,7 +225,8 @@
   actual은 PII-free fixture 10건 GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 mismatch 0,
   typed write-boundary forbidden-value 위반 0, outbound 10으로 PASS했다. legacy-reported
   VAT 포함 USD 0.001319835는 usage completeness 전 lower-bound이고 configured maximum
-  USD 0.0135168은 USD 0.05 cap 아래다. 이는 local/private 증거다. 100-user,
+  USD 0.0135168은 USD 0.05 cap 아래다. corrective rerun incident는 D-076/A-049에서 사후
+  확인됐지만 future rerun은 새 승인이 필요하다. 이는 local/private 증거다. 100-user,
   automated backup, advanced UI,
   public/remote deploy와 `00700`은 deferred다. local role selector는 production authentication이 아니다.
 

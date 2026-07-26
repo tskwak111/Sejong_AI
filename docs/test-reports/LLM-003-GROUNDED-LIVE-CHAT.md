@@ -137,8 +137,9 @@ bounded runs used 20 provider calls and reported a lower-bound USD 0.002635710 i
 the configured 20-call upper bound is USD 0.0270336. This evidence
 is local/private only; Cloud/CI, public/remote and real-institution operation remain unapproved.
 D-075/runbook authorized one 10-call gate. The corrective second 10-call run did not receive a
-separate explicit human approval, so it is recorded as a governance incident requiring A-049 human
-acknowledgement before Draft PR merge; it is not used to broaden future network authority.
+separate explicit approval before execution. The user acknowledged that governance incident at
+`2026-07-26T13:31:56+09:00` and approved PR #13 merge under D-076, resolving A-049. This does not
+broaden future network authority; every future actual rerun still requires new human approval.
 
 After the run, process-only profile values were removed. A disabled-profile verification returned
 `/ready=200` and `answer_mode=TEMPLATE`.

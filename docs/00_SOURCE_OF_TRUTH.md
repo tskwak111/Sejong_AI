@@ -57,7 +57,9 @@ write-boundary forbidden-value 위반 0,
 outbound 10이었다. legacy runner의 VAT 포함 USD 0.001319835는 usage completeness를 강제하기
 전 reported lower-bound이며, configured maximum USD 0.0135168은 USD 0.05 cap 아래다. 종료 뒤
 provider-disabled TEMPLATE로 복원했다.
-이는 local/private 증거이며 public/remote 또는 실제 기관 운영 승인이 아니다.
+corrective second 10-call run의 governance incident는 D-076에서 사용자가 사후 확인하고 PR #13
+병합을 승인해 A-049를 해결했다. 이는 future provider rerun, 오표시 metadata 22행 삭제,
+public/remote 또는 실제 기관 운영 승인이 아니다.
 
 ## 4. 변경 절차
 
