@@ -224,6 +224,11 @@ Documentation `2.22.1`은 Q-SCOPE-001=A/D-085/ADR-0024를 기록한다. 네 분�
 exact wire enum·DB migration·admin workflow는 written specification/plan 승인 전 미구현이며
 product/application/API/DB/provider/test version은 유지한다.
 
+Documentation `2.22.2`는 Q-CLASS-001=A/D-086/ADR-0025의 future local/private hybrid
+classification 방향을 기록한다. deterministic PII·policy·명백한 분류 뒤 안전한 ambiguous
+질문만 Upstage closed enum 분류를 사용할 수 있으며 answer/source/KB/storage 권한은 서버에
+남는다. Q-CLASS-002 budget과 written spec 전 product/runtime/provider actual call은 0이다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과

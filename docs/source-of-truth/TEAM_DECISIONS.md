@@ -100,6 +100,10 @@
   event 통계를 평가 KPI로 사용하지 않는다. 정식 수치가 필요할 때의 reset·정식 `.2`
   재시드·필요한 19→20 승인 흐름 재현과 future rerun은 각각 별도 인간 승인이 필요하다.
   public/remote/실제 기관 운영은 계속 금지한다.
+- Q-CLASS-001=A/D-086 planned: PII·policy·명백한 supported/NON_CIVIC은 deterministic으로
+  유지하고 안전한 ambiguous 질문만 Upstage closed-enum classifier에 전달한다. 모델은
+  답변·출처·저장·candidate 여부를 결정하지 않는다. Q-CLASS-002 budget과 written spec 전
+  current runtime/actual call은 0이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 
 ## 기술

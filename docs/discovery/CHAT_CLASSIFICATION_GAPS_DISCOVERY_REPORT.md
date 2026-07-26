@@ -102,10 +102,11 @@ FOLLOWUP으로 합쳐진다.
 
 ## 6. 미결정
 
-### Q-CLASS-001 — 분류 실행 경계
+### Q-CLASS-001 — 분류 실행 경계 — Resolved A
 
-Hybrid classifier를 채택할지 결정해야 한다. 권고는 A이며 provider disabled 기본과
-deterministic fallback을 유지한다.
+사용자는 A를 선택했다. PII/policy/high-confidence deterministic gate 뒤 안전하지만 애매한
+질문만 Upstage closed-enum classifier에 전달한다. provider disabled 기본, server validation과
+deterministic fallback을 유지하며 Q-CLASS-002 budget 전 actual call은 금지한다.
 
 ### Q-SCOPE-001 — 현재 범위 밖 행정 민원 저장 — Resolved A
 

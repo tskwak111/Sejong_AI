@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Decided — hybrid bounded LLM question classification
+
+- Recorded Q-CLASS-001=A and ADR-0025: deterministic PII/policy/high-confidence gates remain,
+  while only safely masked ambiguous questions may use a closed-enum Upstage classifier.
+- The model cannot decide answers, sources, KB IDs, candidate eligibility, retention or persistence.
+- Q-CLASS-002 budget and the written specification remain pending; product/runtime/provider calls
+  are unchanged. Advanced documentation from `2.22.1` to `2.22.2`.
+
 ### Decided — separate civic scope-gap review queue
 
 - Recorded Q-SCOPE-001=A and ADR-0024: safely masked outside-current-scope civic requests will use

@@ -64,6 +64,12 @@ corrective second 10-call run의 governance incident는 D-076에서 사용자가
 승인을 받는다. 이는 future provider rerun, DB reset/delete/update, public/remote 또는 실제 기관
 운영 승인이 아니다.
 
+2026-07-27 Q-CLASS-001=A/D-086/ADR-0025는 future local/private 질문 분류를 hybrid로
+확장하는 방향을 승인했다. PII·policy·명백한 결과는 deterministic server gate가 유지하고,
+안전하게 마스킹됐지만 애매한 현재 질문만 Upstage closed-enum classifier에 전달한다. 모델은
+답변·출처·저장 여부를 결정하지 못한다. exact budget/schema written spec과 Q-CLASS-002 전
+current runtime·provider actual call은 변경하지 않으며 public/remote 금지를 유지한다.
+
 ## 4. 변경 절차
 
 제품 범위, 공개 계약, DB, 개인정보, 외부 공급자, 배포 아키텍처가 바뀌면:

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Status:** Paused pending Q-CLASS-001 and an integrated taxonomy specification.
-> Q-SCOPE-001=A is resolved, but the certificate slice touches the same classifier/service boundary
-> and must be integrated or explicitly unpaused first.
+> **Status:** Paused pending an integrated hybrid-taxonomy written specification.
+> Q-SCOPE-001=A and Q-CLASS-001=A are resolved, but the certificate slice touches the same
+> classifier/service boundary and must be integrated or explicitly unpaused first.
 
 **Goal:** Replace the repeating generic certificate category question with a server-owned five-option certificate FOLLOWUP that leads into the existing ACTIVE-only answer path.
 
@@ -586,7 +586,7 @@ git commit -m "fix(web): ask certificate-specific followup"
 - Version target: application `0.10.0-office-directory-runtime→0.11.0-certificate-followup`,
   Web `0.6.0-answer-mode→0.7.0-certificate-followup`,
   test `1.8.0-local-demo-readiness→1.9.0-certificate-followup`,
-  docs `2.22.1→2.23.0`
+  docs `2.22.2→2.23.0`
 
 - [ ] **Step 1: Run the complete API area gate**
 

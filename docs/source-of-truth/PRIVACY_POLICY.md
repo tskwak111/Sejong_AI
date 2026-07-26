@@ -117,6 +117,12 @@ exact `solar-pro3`의 근거 제한형 시민 chat 사용을 승인했다. API k
 - public/remote/실제 기관 운영의 시민 질문 전송은 별도 개인정보·법무·보안·비용·배포 승인
   전까지 계속 금지한다.
 
+Q-CLASS-001=A/D-086/ADR-0025는 future local/private classifier에 한해 위 deterministic
+supported-intent gate 앞의 제한된 예외 방향을 승인했다. PII-safe current question 중
+deterministic policy/high-confidence 결과가 없는 ambiguous 입력만 closed-enum 분류를 위해
+전송할 수 있고, 답변·KB·source·저장 여부는 전송하거나 모델에 위임하지 않는다.
+Q-CLASS-002 budget과 written specification/plan 전 current runtime/actual call은 0이다.
+
 ### 7.2 최소 전송
 
 - 전송 허용: 마스킹된 현재 질문, 서버 확정 intent, 실제 답변에 필요한 최소 ACTIVE/OFFICIAL KB,
