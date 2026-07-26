@@ -107,10 +107,11 @@ FOLLOWUP으로 합쳐진다.
 Hybrid classifier를 채택할지 결정해야 한다. 권고는 A이며 provider disabled 기본과
 deterministic fallback을 유지한다.
 
-### Q-SCOPE-001 — 현재 범위 밖 행정 민원 저장
+### Q-SCOPE-001 — 현재 범위 밖 행정 민원 저장 — Resolved A
 
-`CIVIC_SCOPE_GAP`을 별도 범위확대 검토 queue에 마스킹 text로 30일 저장할지, 기존처럼
-OUT_OF_SCOPE 무저장을 유지할지 결정해야 한다. 기존 KB 후보 queue에 바로 넣는 것은 금지한다.
+사용자는 A를 선택했다. `CIVIC_SCOPE_GAP`은 별도 범위확대 검토 queue에 마스킹 text로
+30일 저장하고 기존 KB 후보 queue와 분리한다. exact contract/DB/admin 설계와 migration은
+written specification 및 계획 승인 전 구현하지 않는다.
 
 ## 7. 변경·비변경
 

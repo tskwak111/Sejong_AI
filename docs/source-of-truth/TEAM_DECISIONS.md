@@ -57,6 +57,10 @@
 - LEGAL_JUDGMENT: 후보 불가
 - OUT_OF_SCOPE: 후보 불가, 질문 텍스트 저장 금지
 - PRIVACY_UNRESOLVED: 안전한 마스킹 text 생성 불능 전용 HTTP 200 재질문; 후보·질문 text·실패 행·provider 호출 없음
+- CIVIC_SCOPE_GAP planned: 네 분야 밖 행정 민원은 기존 KB 후보와 분리된 범위확대 검토
+  queue에 PII-safe masked text만 30일 보관한다. 자동 KB/ACTIVE 전환은 금지하며 exact
+  contract·migration 구현 전 current OUT_OF_SCOPE 무저장 runtime을 유지한다.
+- NON_CIVIC planned: 날씨·맛집 등 민원과 무관한 질문은 text와 review row를 저장하지 않는다.
 - 2026-07-25 local/private MVP의 PERSONAL_LOOKUP·LEGAL_JUDGMENT: 공개 `intent=UNKNOWN`+정확한 reason, 후보 불가, 질문 text·event·실패 행 저장 없음
 - 모호 질문: FOLLOWUP, 실패 질문이 아님
 

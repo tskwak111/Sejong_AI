@@ -218,6 +218,12 @@ Documentation `2.22.0`은 CHAT-CLASSIFICATION-GAPS-001 actual-equivalent fixture
 Q-CLASS-001/Q-SCOPE-001 전 product/API/Web/test/OpenAPI/DB/data/provider/dependency는
 변경하지 않는다.
 
+Documentation `2.22.1`은 Q-SCOPE-001=A/D-085/ADR-0024를 기록한다. 네 분야 밖 행정 민원은
+기존 failed-question/KB candidate와 분리된 future `CIVIC_SCOPE_GAP` queue에서 안전하게
+마스킹된 text만 30일 보관하고 자동 ACTIVE 전환을 금지한다. `NON_CIVIC`은 무저장이다.
+exact wire enum·DB migration·admin workflow는 written specification/plan 승인 전 미구현이며
+product/application/API/DB/provider/test version은 유지한다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과

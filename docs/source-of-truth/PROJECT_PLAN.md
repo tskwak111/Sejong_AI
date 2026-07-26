@@ -257,6 +257,8 @@ audit_logs
 | OUT_OF_SCOPE | 불가 | 질문 텍스트 저장 금지, 이벤트만 |
 | PRIVACY_UNRESOLVED | 불가 | 7/25 local은 질문 텍스트·실패 질문 행·DB event 모두 미생성 |
 | FOLLOWUP | 해당 없음 | 실패 질문 목록 미저장 |
+| CIVIC_SCOPE_GAP (planned) | 기존 KB 후보 불가 | 별도 범위확대 queue의 마스킹 text 30일; 구현 전 current runtime 무저장 |
+| NON_CIVIC (planned) | 불가 | 질문 text·검토 row 미저장 |
 
 Q-PM-DEMO-001=B의 local/private 실제 시연에서는 먼저 `PERSONAL_LOOKUP` 전후
 `interaction_events`·`failed_questions` count 무변화를 확인하고, 별도의

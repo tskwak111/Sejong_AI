@@ -62,7 +62,7 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-056 | C / Defaultable | 관리자 후보 상태 이력·문구 | Defaulted / implementation pending | 후보 화면이 PENDING만 표시해 DB의 APPROVED 후보가 없는 것처럼 보이고 “AI가 작성한 초안” 문구도 current actual과 다르다. | 대기/승인/반려 tabs+count, “운영자가 작성한 공식 KB 후보” 문구를 기본값으로 사용 |
 | A-057 | B / High | 일반 한국어를 이름으로 오탐하는 PII gate | Confirmed defect / design pending | WX의 일반 의문 표현과 SCHOLAR의 행정 명사가 `AMBIGUOUS_PERSON_NAME`으로 fail closed되어 분류 전에 종료된다. | fail-closed를 유지하면서 negative corpus와 contextual name 판정을 TDD 교정. LLM 추가만으로 해결되지 않음 |
 | A-058 | A / Blocker | local/private 질문 분류의 LLM 경계 | Pending Q-CLASS-001 | 현재 ADR-0023은 deterministic supported intent를 provider 전 필수 gate로 고정한다. 분류에 Upstage를 넣으면 개인정보 전송 범위·비용·지연·장애 fallback·ADR이 달라진다. | 권고 A: PII/정책 deterministic, 안전한 ambiguous 질문만 bounded strict-enum LLM, provider-disabled fallback |
-| A-059 | A / Blocker | 현재 네 분야 밖 행정 민원의 저장·검토 정책 | Pending Q-SCOPE-001 | current DB/contract/privacy는 OUT_OF_SCOPE text 미저장, failed row는 네 supported intent+INSUFFICIENT_GROUNDING만 허용한다. | 별도 `CIVIC_SCOPE_GAP` 범위확대 queue+30일 masked text 또는 기존 OUT_OF_SCOPE 무저장 중 인간 결정 필요 |
+| A-059 | A / Blocker | 현재 네 분야 밖 행정 민원의 저장·검토 정책 | Resolved direction / Q-SCOPE-001=A / implementation blocked by spec | 별도 `CIVIC_SCOPE_GAP` 범위확대 queue에 PII-safe masked text를 30일 보관하고 기존 failed/KB candidate와 분리한다. NON_CIVIC은 무저장이고 scope-gap은 자동 ACTIVE 승격 불가다. | D-085/ADR-0024. exact public enum·DB migration/rollback/pgTAP·admin contract는 written spec과 계획 승인 뒤 구현 |
 | A-057 | D / Internal | Next dev tracked 생성물 안정성 | Investigated / no change | `next dev`가 tracked `next-env.d.ts`를 build-types import에서 dev-types import로 바꿔 정상 실행만으로 worktree가 dirty해진다. | 사용자 생성 변경을 보존하고 Next 권장 정책 조사 뒤 별도 내부 위생 수정 |
 
 ## 우선도 정의

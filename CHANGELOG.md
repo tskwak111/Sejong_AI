@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Decided — separate civic scope-gap review queue
+
+- Recorded Q-SCOPE-001=A and ADR-0024: safely masked outside-current-scope civic requests will use
+  a separate 30-day scope-expansion review queue rather than the existing KB candidate workflow.
+- `NON_CIVIC` remains text/review-row free, and scope-gap rows cannot automatically become ACTIVE.
+- This is an accepted future direction only; runtime, OpenAPI, DB, provider and admin code remain
+  unchanged. Advanced documentation from `2.22.0` to `2.22.1`.
+
 ### Documented — chat classification and PII false-positive gaps
 
 - Reproduced four reported fixture paths without persisting citizen text.

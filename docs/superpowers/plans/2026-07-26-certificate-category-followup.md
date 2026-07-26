@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Status:** Paused pending Q-CLASS-001/Q-SCOPE-001. Do not execute this plan standalone; the
-> certificate slice touches the same classifier/service boundary as the newly diagnosed taxonomy
-> work and must be integrated or explicitly unpaused first.
+> **Status:** Paused pending Q-CLASS-001 and an integrated taxonomy specification.
+> Q-SCOPE-001=A is resolved, but the certificate slice touches the same classifier/service boundary
+> and must be integrated or explicitly unpaused first.
 
 **Goal:** Replace the repeating generic certificate category question with a server-owned five-option certificate FOLLOWUP that leads into the existing ACTIVE-only answer path.
 
@@ -576,7 +576,8 @@ git commit -m "fix(web): ask certificate-specific followup"
 - Modify: `docs/11_AMBIGUITY_REGISTER.md`
 - Modify: `docs/12_VERSIONING_AND_RELEASES.md`
 - Modify: `docs/decisions/DECISION_LOG.md`
-- Create: `docs/implementation-notes/IMP-20260726-025-증명서-분야별-followup-구현.md`
+- Create via `scripts/new_implementation_note.py`: the next available
+  `증명서 분야별 FOLLOWUP 구현` implementation note
 - Modify: `docs/implementation-notes/INDEX.md`
 
 **Interfaces:**
@@ -585,7 +586,7 @@ git commit -m "fix(web): ask certificate-specific followup"
 - Version target: application `0.10.0-office-directory-runtime→0.11.0-certificate-followup`,
   Web `0.6.0-answer-mode→0.7.0-certificate-followup`,
   test `1.8.0-local-demo-readiness→1.9.0-certificate-followup`,
-  docs `2.22.0→2.23.0`
+  docs `2.22.1→2.23.0`
 
 - [ ] **Step 1: Run the complete API area gate**
 
