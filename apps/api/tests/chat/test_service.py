@@ -289,6 +289,14 @@ async def test_success_uses_masked_text_for_lookup_and_server_bound_metadata() -
     assert response.office.id == "OFFICE-TEST-01"
     assert response.context_token is not None
     assert raw_phone not in response.context_token
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(
+        response.context_token
+    )
+    assert context is not None
+    assert context.schema_version == 2
+    assert context.topic_id == record.public_id
+    assert context.pending_slot is None
+    assert context.dialog_act == "ANSWERED"
     assert repository.active_intents == [Intent.BULKY_WASTE]
     assert repository.office_queries == [(Region.AREUM_DONG, Intent.BULKY_WASTE)]
     assert len(repository.events) == 1
@@ -351,6 +359,15 @@ async def test_generic_certificate_requests_exact_certificate_kind() -> None:
         "주민등록표 열람",
         "무인민원발급기 이용",
     ]
+    assert response.context_token is not None
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(
+        response.context_token
+    )
+    assert context is not None
+    assert context.schema_version == 2
+    assert context.topic_id is None
+    assert context.pending_slot == "CERTIFICATE_KIND"
+    assert context.dialog_act == "ASKING_SLOT"
     assert classifier.calls == []
     assert repository.active_intents == []
     assert repository.scope_gaps == []
@@ -618,6 +635,7 @@ async def test_signed_context_resolves_a_short_followup_without_storing_transcri
         last_intent=Intent.MOVE_IN_RESIDENT_REGISTRATION.value,
         selected_region=None,
         answer_status="SUCCESS",
+        dialog_act="ANSWERED",
     )
     ticks = iter((1_000_000, 2_000_000))
     chat_service = ChatService(

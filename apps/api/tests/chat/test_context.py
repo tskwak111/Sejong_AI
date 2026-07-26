@@ -7,6 +7,7 @@ import json
 import logging
 from collections.abc import Callable
 from typing import Any
+from uuid import UUID
 
 import pytest
 
@@ -43,6 +44,8 @@ def _signed_token(payload: dict[str, Any], *, secret: bytes = SECRET) -> str:
 
 
 def _valid_payload() -> dict[str, Any]:
+    """Frozen v1 payload retained for the 15-minute compatibility window."""
+
     return {
         "answer_status": "FOLLOWUP",
         "exp": NOW + 900,
@@ -51,6 +54,21 @@ def _valid_payload() -> dict[str, Any]:
         "last_intent": "UNKNOWN",
         "schema_version": 1,
         "selected_region": "아름동",
+    }
+
+
+def _valid_v2_payload() -> dict[str, Any]:
+    return {
+        "answer_status": "FOLLOWUP",
+        "dialog_act": "ASKING_SLOT",
+        "exp": NOW + 900,
+        "iat": NOW,
+        "last_intent": "CERTIFICATE_ISSUANCE",
+        "nonce": "00000000-0000-4000-8000-000000000001",
+        "pending_slot": "CERTIFICATE_KIND",
+        "schema_version": 2,
+        "selected_region": "아름동",
+        "topic_id": "KB-CERT-01",
     }
 
 
@@ -63,67 +81,84 @@ def _decode_payload(token: str) -> dict[str, Any]:
 
 
 def test_issue_and_read_round_trip_uses_exact_900_second_ttl() -> None:
-    codec = ContextTokenCodec(secret=SECRET, clock=_clock())
+    codec = ContextTokenCodec(
+        secret=SECRET,
+        clock=_clock(),
+        nonce_factory=lambda: UUID("00000000-0000-4000-8000-000000000001"),
+    )
 
     token = codec.issue(
-        last_intent="UNKNOWN",
+        last_intent="CERTIFICATE_ISSUANCE",
         selected_region="아름동",
         answer_status="FOLLOWUP",
-        followup_option_id="intent.bulky-waste",
+        topic_id="KB-CERT-01",
+        pending_slot="CERTIFICATE_KIND",
+        dialog_act="ASKING_SLOT",
     )
 
     assert len(token) <= MAX_CONTEXT_TOKEN_LENGTH
-    assert _decode_payload(token) == _valid_payload()
+    assert _decode_payload(token) == _valid_v2_payload()
     assert codec.read(token) == ChatContext(
-        schema_version=1,
+        schema_version=2,
         issued_at=NOW,
         expires_at=NOW + CONTEXT_TOKEN_TTL_SECONDS,
-        last_intent="UNKNOWN",
+        nonce=UUID("00000000-0000-4000-8000-000000000001"),
+        last_intent="CERTIFICATE_ISSUANCE",
         selected_region="아름동",
         answer_status="FOLLOWUP",
-        followup_option_id="intent.bulky-waste",
+        topic_id="KB-CERT-01",
+        pending_slot="CERTIFICATE_KIND",
+        dialog_act="ASKING_SLOT",
     )
 
 
-def test_issue_is_deterministic_and_omits_optional_claim_when_absent() -> None:
-    codec = ContextTokenCodec(secret=SECRET, clock=_clock())
+def test_issue_omits_optional_claims_when_absent() -> None:
+    codec = ContextTokenCodec(
+        secret=SECRET,
+        clock=_clock(),
+        nonce_factory=lambda: UUID("00000000-0000-4000-8000-000000000002"),
+    )
 
-    first = codec.issue(
+    token = codec.issue(
         last_intent="BULKY_WASTE",
         selected_region=None,
         answer_status="SUCCESS",
-    )
-    second = codec.issue(
-        last_intent="BULKY_WASTE",
-        selected_region=None,
-        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
     )
 
-    assert first == second
-    assert _decode_payload(first) == {
+    assert _decode_payload(token) == {
         "answer_status": "SUCCESS",
+        "dialog_act": "ANSWERED",
         "exp": NOW + 900,
         "iat": NOW,
         "last_intent": "BULKY_WASTE",
-        "schema_version": 1,
+        "nonce": "00000000-0000-4000-8000-000000000002",
+        "schema_version": 2,
         "selected_region": None,
     }
 
 
 def test_payload_has_only_closed_non_sensitive_claims() -> None:
-    token = ContextTokenCodec(secret=SECRET, clock=_clock()).issue(
+    token = ContextTokenCodec(
+        secret=SECRET,
+        clock=_clock(),
+        nonce_factory=lambda: UUID("00000000-0000-4000-8000-000000000003"),
+    ).issue(
         last_intent="CERTIFICATE_ISSUANCE",
         selected_region="도담동",
         answer_status="SUCCESS",
+        dialog_act="ANSWERED",
     )
 
     payload = _decode_payload(token)
 
     assert set(payload) == {
         "answer_status",
+        "dialog_act",
         "exp",
         "iat",
         "last_intent",
+        "nonce",
         "schema_version",
         "selected_region",
     }
@@ -173,6 +208,7 @@ def test_tampered_token_silently_resets() -> None:
         last_intent="LOCAL_TAX_GENERAL",
         selected_region="조치원읍",
         answer_status="SUCCESS",
+        dialog_act="ANSWERED",
     )
     payload, signature = token.split(".")
     tampered = f"{payload[:-1]}{'A' if payload[-1] != 'A' else 'B'}.{signature}"
@@ -185,9 +221,31 @@ def test_token_is_valid_until_but_not_at_expiry() -> None:
         last_intent="MOVE_IN_RESIDENT_REGISTRATION",
         selected_region=None,
         answer_status="SUCCESS",
+        dialog_act="ANSWERED",
     )
 
     assert ContextTokenCodec(secret=SECRET, clock=_clock(NOW + 899)).read(token) is not None
+    assert ContextTokenCodec(secret=SECRET, clock=_clock(NOW + 900)).read(token) is None
+
+
+def test_frozen_v1_token_remains_readable_only_until_expiry() -> None:
+    token = _signed_token(_valid_payload())
+
+    context = ContextTokenCodec(secret=SECRET, clock=_clock()).read(token)
+
+    assert context == ChatContext(
+        schema_version=1,
+        issued_at=NOW,
+        expires_at=NOW + CONTEXT_TOKEN_TTL_SECONDS,
+        nonce=None,
+        last_intent="UNKNOWN",
+        selected_region="아름동",
+        answer_status="FOLLOWUP",
+        topic_id=None,
+        pending_slot=None,
+        dialog_act=None,
+        followup_option_id="intent.bulky-waste",
+    )
     assert ContextTokenCodec(secret=SECRET, clock=_clock(NOW + 900)).read(token) is None
 
 
@@ -256,30 +314,54 @@ def test_clock_must_return_an_exact_integer(clock_value: object) -> None:
             last_intent="UNKNOWN",
             selected_region=None,
             answer_status="FOLLOWUP",
+            dialog_act="ASKING_SLOT",
         )
 
 
 @pytest.mark.parametrize(
-    "followup_option_id",
+    ("kwargs", "error"),
     [
-        "",
-        "contains space",
-        "한글",
-        "x" * 65,
-        "010-1234-5678",
-        "kb:KB-WASTE-03",
-        "actor:user123",
-        "source:official",
-        "custom.option",
+        ({"topic_id": ""}, "topic_id"),
+        ({"topic_id": "질문 원문은 금지"}, "topic_id"),
+        ({"topic_id": "x" * 65}, "topic_id"),
+        ({"pending_slot": "NOT_A_SLOT"}, "pending_slot"),
+        ({"dialog_act": "NOT_AN_ACT"}, "dialog_act"),
     ],
 )
-def test_issue_rejects_non_identifier_followup_values(followup_option_id: str) -> None:
+def test_issue_rejects_invalid_v2_claims(
+    kwargs: dict[str, str],
+    error: str,
+) -> None:
     codec = ContextTokenCodec(secret=SECRET, clock=_clock())
 
-    with pytest.raises(ValueError):
-        codec.issue(
-            last_intent="UNKNOWN",
-            selected_region=None,
-            answer_status="FOLLOWUP",
-            followup_option_id=followup_option_id,  # type: ignore[arg-type]
-        )
+    params: dict[str, object] = {
+        "last_intent": "UNKNOWN",
+        "selected_region": None,
+        "answer_status": "FOLLOWUP",
+        "dialog_act": "ASKING_SLOT",
+    }
+    params.update(kwargs)
+    with pytest.raises(ValueError, match=error):
+        codec.issue(**params)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda payload: payload.update(extra="not-allowed"),
+        lambda payload: payload.update(nonce="not-a-uuid"),
+        lambda payload: payload.update(topic_id="질문 원문은 금지"),
+        lambda payload: payload.update(pending_slot="NOT_A_SLOT"),
+        lambda payload: payload.update(dialog_act="NOT_AN_ACT"),
+        lambda payload: payload.pop("nonce"),
+        lambda payload: payload.pop("dialog_act"),
+        lambda payload: payload.update(question="질문 원문은 금지"),
+    ],
+)
+def test_invalid_v2_claims_silently_reset(
+    mutate: Callable[[dict[str, Any]], None],
+) -> None:
+    payload = _valid_v2_payload()
+    mutate(payload)
+
+    assert ContextTokenCodec(secret=SECRET, clock=_clock()).read(_signed_token(payload)) is None

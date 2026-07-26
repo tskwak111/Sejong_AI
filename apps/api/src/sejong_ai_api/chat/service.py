@@ -432,6 +432,8 @@ class ChatService:
             intent=intent,
             selected_region=selected_region,
             answer_status="SUCCESS",
+            topic_id=grounding.record.public_id,
+            dialog_act="ANSWERED",
         )
         answer_mode: AnswerMode = "TEMPLATE"
         materialized: MaterializedChatAnswer | None = None
@@ -539,6 +541,11 @@ class ChatService:
                     intent=Intent(replay.intent),
                     selected_region=selected_region,
                     answer_status=replay.answer_status,
+                    dialog_act=(
+                        "ANSWERED"
+                        if replay.answer_status == "SUCCESS"
+                        else "ASKING_SLOT"
+                    ),
                 )
                 try:
                     return CHAT_RESPONSE_ADAPTER.validate_json(
@@ -625,6 +632,8 @@ class ChatService:
             intent=intent,
             selected_region=selected_region,
             answer_status="FOLLOWUP",
+            pending_slot=pending_slot,
+            dialog_act="ASKING_SLOT",
         )
         response = build_followup_response(
             request_id=request_id,
@@ -680,11 +689,22 @@ class ChatService:
         intent: Intent,
         selected_region: Region | None,
         answer_status: Literal["SUCCESS", "FOLLOWUP"],
+        dialog_act: Literal[
+            "ANSWERED",
+            "ASKING_SLOT",
+            "CHANGING_REGION",
+            "CHANGING_TOPIC",
+        ],
+        topic_id: str | None = None,
+        pending_slot: PendingSlot | None = None,
     ) -> str:
         return self._context_codec.issue(
             last_intent=intent.value,
             selected_region=selected_region.value if selected_region is not None else None,
             answer_status=answer_status,
+            topic_id=topic_id,
+            pending_slot=pending_slot.value if pending_slot is not None else None,
+            dialog_act=dialog_act,
         )
 
     def _build_interaction(
