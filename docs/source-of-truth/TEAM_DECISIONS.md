@@ -88,8 +88,10 @@
   server-issued fact ID만 제안한다. 공식 fact text·source·office·policy는 서버가 결합하며
   8초 1 attempt 뒤 오류·schema·fact drift가 하나라도 있으면 전체 template fallback이다.
   SUCCESS는 `GENERATED|TEMPLATE` 작성 방식 배지를 제공한다. D-073에서 written specification,
-  D-074에서 후속 TDD 실행계획과 Subagent-Driven 구현을 승인했다. actual network는 offline
-  전체 gate 뒤 별도 local 인간 단계이며 public/remote/실제 기관 운영은 계속 금지한다.
+  D-074에서 후속 TDD 실행계획과 Subagent-Driven 구현을 승인했다. D-075 local actual은 10건
+  GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 mismatch 0, PII-free fixture typed
+  write-boundary 위반 0, outbound 10으로 PASS했다.
+  public/remote/실제 기관 운영은 계속 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 
 ## 기술
@@ -217,8 +219,11 @@
   USD 0.004654815로 JSON 100% 기준을 충족하지 못해 전체 FAIL이다. 당시 선택지 B는 승인되지
   않아 provider-disabled/template 시민 경로를 유지했다. 후속 D-072가 더 좁은 server-issued
   fact ID 검증과 전체 template fallback을 전제로 local/private 연결 설계를 새로 승인했지만
-  written specification은 D-073, 계획과 구현 시작은 D-074에서 승인됐다. actual network는
-  offline 전체 gate 뒤 별도 local 인간 단계다. 100-user,
+  written specification은 D-073, 계획과 구현 시작은 D-074에서 승인됐다. D-075의 별도 local
+  actual은 PII-free fixture 10건 GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 mismatch 0,
+  typed write-boundary forbidden-value 위반 0, outbound 10으로 PASS했다. legacy-reported
+  VAT 포함 USD 0.001319835는 usage completeness 전 lower-bound이고 configured maximum
+  USD 0.0135168은 USD 0.05 cap 아래다. 이는 local/private 증거다. 100-user,
   automated backup, advanced UI,
   public/remote deploy와 `00700`은 deferred다. local role selector는 production authentication이 아니다.
 

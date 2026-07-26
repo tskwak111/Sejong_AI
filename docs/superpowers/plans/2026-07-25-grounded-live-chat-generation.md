@@ -22,14 +22,16 @@ before generation, so concurrent/same-key replays do not start a second provider
 16.2.10, React 19.2.7, TypeScript 5.9.3, Vitest 4.1.10.
 
 - Plan ID: LLM-003-PLAN
-- Status: **Offline implementation, Task 8 closeout and provider-disabled final root gate complete. Optional local actual remains Pending human gate.**
+- Status: **Complete for approved local/private scope: offline implementation, Task 8 closeout,
+  provider-disabled final root gate and D-075 local actual PASS. Public/remote remains prohibited.**
 - Design:
   `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md`
 - ADR: `docs/adr/0023-grounded-upstage-local-chat-generation.md`
 - Decisions: Q-LLM-006~Q-LLM-012 / D-072 / D-073 / D-074
 - Execution base: `de1ee096d6e27b0a326dfaa0c93f72baf0c5f1c0`
-- D-074 authorizes implementation and the additive API mutation in this plan. Actual provider call,
-  key read, DB migration, push, PR and merge remain separately gated as stated below.
+- D-074 authorizes implementation and the additive API mutation in this plan. D-075 separately
+  authorizes and records the local actual call. DB migration, public/remote use, push, PR and merge
+  remain separately gated as stated below.
 
 ## Global Constraints
 
@@ -924,7 +926,7 @@ Assert:
 - provider-disabled sample T-01~T-20 is 20/20 with skip 0
 - no provider import/use in default app, startup, health or readiness
 
-- [x] **Step 2: Run the final offline repository gate once** — provider-disabled/unset-key run started `2026-07-26T02:39:05+09:00`, completed `2026-07-26T02:49:42+09:00` (637.7s; stdout 2006 bytes; stderr 0); every listed root/data/seed/Web/API/contracts/secrets/bundle/package/diff step PASSed. After final review fix commit `aaf67fe`, the controller reran the same full gate at the exact publication HEAD: exit `0` after `728.7s`, with every listed step PASS.
+- [x] **Step 2: Run the final offline repository gate once** — provider-disabled/unset-key run started `2026-07-26T02:39:05+09:00`, completed `2026-07-26T02:49:42+09:00` (637.7s; stdout 2006 bytes; stderr 0); every listed root/data/seed/Web/API/contracts/secrets/bundle/package/diff step PASSed. After final review fix commit `aaf67fe`, the controller reran the same full gate at the exact publication HEAD: exit `0` after `728.7s`, with every listed step PASS. Current actual-evidence final review then added runner/provision fail-closed guards. Its first controller attempt exposed only a missing Git-ignored pinned patched Supabase binary in the worktree; manifest SHA-256 verification and ignored-path restoration made both focused runtime tests pass. A fresh current-slice controller run exited `0` after `749.9s`, with all listed steps PASS and provider actual calls `0`.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 -Offline
@@ -952,7 +954,7 @@ Review the complete diff against:
 Resolve every Critical/Important finding and rerun only affected focused tests, followed by the
 single final gate if code changed after it.
 
-- [ ] **Step 4: Prepare the optional local actual gate; do not run without the human**
+- [x] **Step 4: Execute the human-approved local actual gate and record bounded evidence**
 
 After offline PASS, the human may enable the ignored local grounded profile. The runner/test harness
 must execute 10 supported, non-personal questions plus one forced timeout and output only:
@@ -970,7 +972,8 @@ output_token_total
 estimated_cost_usd
 ```
 
-Acceptance is source 10/10, official mismatch 0, PII/secret persistence 0, outbound at most 10,
+Acceptance is source 10/10, official mismatch 0, typed write-boundary forbidden-value violations
+0 for the PII-free fixtures, outbound at most 10,
 forced failure TEMPLATE, and no question/answer/provider body in output. This evidence is local demo
 quality only, not public deployment approval.
 
@@ -978,6 +981,21 @@ quality only, not public deployment approval.
 
 Record actual commands and results, not expected results. Keep actual status `Pending` if the human
 does not run it.
+
+D-075 authorized the gate on 2026-07-26. The final publication run wrote exactly one aggregate JSON
+object to stdout and passed: `cases_total=10`, `generated_count=4`, `template_count=6`,
+`source_present_count=10`, `official_fact_mismatch_count=0`,
+`pii_or_secret_persistence_count=0` (typed `InteractionWrite` boundary only; PII-free fixtures,
+not a post-read DB forensic scan), `outbound_attempt_count=10`, `input_token_total=4183`,
+`output_token_total=954`, `estimated_cost_usd=0.001319835` (10% VAT included). These token/cost
+values are a legacy-reported lower bound because that revision did not require usage on all 10
+responses. The configured upper bound is USD 0.0135168, below the USD 0.05 cap. The historical
+forced probe observed TEMPLATE and no eleventh provider call; injection-consumption verification
+was added afterward for future runs. An earlier semantically passing run
+had safe dependency metadata after the aggregate; output suppression was fixed and the clean run
+was repeated. Across those two successful bounded runs, provider calls totaled 20 and estimated
+cost lower-bound totaled USD 0.002635710; the configured 20-call upper bound is USD 0.0270336.
+No question, answer, provider body, key or DSN was printed.
 
 ```powershell
 git add docs TASKS.md CHANGELOG.md versions/manifest.json CODEX_FILE_INDEX.md `
@@ -1014,8 +1032,8 @@ both lineages, rerun the final docs/secret/diff gates, and report the PR URL.
   logged, and the existing 24-hour safe-response idempotency exception is explicit.
 - Dependency consistency: existing HTTPX/Pydantic/pytest/Next/React toolchain only; lockfiles are
   unchanged.
-- Human boundary: implementation, actual network use, public/remote operation and merge remain
-  separately gated.
+- Human boundary: local actual network use was separately approved and passed under D-075.
+  Public/remote operation and merge remain separately gated.
 
 ## Rollback
 
@@ -1023,7 +1041,9 @@ both lineages, rerun the final docs/secret/diff gates, and report the PR URL.
    `LLM_PROVIDER=disabled`, remove the ignored local key and restart. The deterministic TEMPLATE
    route remains.
 2. Code rollback before any external release: revert Task 8 through Task 1 commits in reverse order.
-3. No DB/data rollback is needed because no migration or official-data mutation is allowed.
+3. No DB schema/official-data rollback is needed. The two pre-review successful actual runs wrote
+   22 metadata-only rows with the wrong `is_test=false` label; exclude them from KPI evidence and
+   reset/delete only with separate human DB-data approval.
 4. If a key may have appeared in output or tracked content, stop immediately, revoke/replace it,
    run current-tree and reachable-history scans, and do not push.
 5. The additive `answer_mode` contract must be reverted together across OpenAPI, JSON Schema,

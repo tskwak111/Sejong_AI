@@ -47,6 +47,11 @@ if ($LASTEXITCODE -ne 0) { throw "LOCAL_SUPABASE_START_FAILED" }
 
 ## 3. immutable `.2` seed-cycle
 
+이 단계는 **빈 disposable DB에서 ACTIVE 19 기준선을 새로 만들 때만** 실행한다. 관리자 승인
+루프를 이미 완료해 ACTIVE 20인 DB에는 다시 실행하거나 reset하지 않는다. 그 경우 `.2` 19개
+projection과 별도 승인된 20번째 KB의 작성자/승인자 lineage를 read-only로 확인하고 Step 4로
+간다.
+
 ```powershell
 $releaseVersion = "0.1.0-initial.2"
 apps/api/.venv/Scripts/python.exe -B scripts/verify_data_seed_db.py `
@@ -64,8 +69,8 @@ apps/api/.venv/Scripts/python.exe -B scripts/verify_data_seed_db.py `
 apps/api/.venv/Scripts/python.exe -B scripts/provision_local_database_login.py
 ```
 
-provisioning은 ignored `apps/api/.env`의 `DATABASE_URL`만 회전한다. DSN과 생성 password를
-복사하거나 출력하지 않는다.
+provisioning은 ignored `apps/api/.env`의 `DATABASE_URL`만 회전한다. 기존 non-superuser role도
+안전 속성을 확인한 뒤 rerun할 수 있다. DSN과 생성 password를 복사하거나 출력하지 않는다.
 
 ## 5. ignored local DB/context 값 설정
 
@@ -146,9 +151,22 @@ $uv = Join-Path (Split-Path $commonGitDir -Parent) ".tools\uv\uv.exe"
 ```
 
 optional actual은 전체 offline test가 통과한 뒤 별도 local 인간 gate에서만 한 번 수행한다.
+실패·출력 보정 뒤 재실행도 새 10-call network 사용이므로 별도 인간 재승인 없이는 수행하지 않는다.
 `FOLLOWUP`, `PRIVACY_UNRESOLVED`, `INSUFFICIENT_GROUNDING`, `PERSONAL_LOOKUP`,
 `LEGAL_JUDGMENT`, `OUT_OF_SCOPE`, readiness 실패는 provider call 0이어야 한다. actual 중에도
 질문·답변·prompt·provider body를 출력하거나 저장하지 않는다.
+
+승인 후 별도 API process를 직접 띄우는 대신 아래 고정 runner로 10건과 locally injected timeout
+증거를 한 번에 실행한다. 인수는 받지 않으며 질문·답변·provider body를 출력하지 않는다.
+
+```powershell
+& $uv run --project apps/api --frozen python scripts/run_upstage_grounded_chat_actual.py
+```
+
+정상 stdout은 승인된 10개 aggregate field를 가진 JSON 객체 정확히 하나다. `cases_total=10`,
+`source_present_count=10`, 두 leak/mismatch count 0, `outbound_attempt_count=10`,
+`generated_count>=1`, 비용 USD 0.05 이하여야 한다. 별도 forced timeout은 TEMPLATE이고 provider
+outbound를 추가하지 않는다.
 
 ## 11. rollback과 종료
 

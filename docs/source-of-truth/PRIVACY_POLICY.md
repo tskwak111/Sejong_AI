@@ -133,9 +133,10 @@ exact `solar-pro3`의 근거 제한형 시민 chat 사용을 승인했다. API k
   추적에 남기지 않는다.
 - 허용 metric은 질문 없는 outcome, latency, attempt, token usage와 aggregate cost뿐이다.
 - provider 장애·정책 변경·cap 소진 시 disabled/template 경로를 유지한다.
-- provider-disabled final root offline gate는 2026-07-26 PASS했지만, provider key·network·actual
-  output은 이 gate에서 사용하지 않았다. local actual은 인간이 ignored 환경에서 별도로 승인·실행할
-  때까지 Pending이며 Cloud/CI·public/remote/실제 기관 운영 호출은 계속 0이다.
+- provider-disabled final root offline gate는 2026-07-26 PASS했다. 이후 D-075 local actual은
+  PII-free masked/grounded fixture 10건만 전송해 typed write-boundary에서 raw fixture/API key
+  위반 0, aggregate-only 출력, 공식 사실
+  mismatch 0으로 PASS했다. Cloud/CI·public/remote/실제 기관 운영 호출은 계속 0이다.
 
 Upstage 공식 페이지가 `Last Revised: May 21, 2026`로 표시하는 개인정보 처리방침은
 Console/Studio API logging이 별도 동의에서
@@ -144,7 +145,7 @@ Console/Studio API logging이 별도 동의에서
 마스킹 질문 전송도 잔여 위험으로 기록하고 local/private MVP에서만 허용한다.
 
 페이지 확인일은 2026-07-25이며 URL slug를 효력일로 해석하지 않는다. 모델·API·가격·개인정보
-처리방침은 구현 시작과 local actual 전에 다시 확인한다.
+처리방침은 public/remote 또는 다음 actual 재승인 전에 다시 확인한다.
 
 ### 대화 문맥 token
 

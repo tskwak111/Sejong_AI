@@ -51,8 +51,13 @@ KB를 보낸다. 모델은 summary와 server-issued fact ID만 제안하고, 공
 버리고 기존 공식 template로 답한다. LLM-002 actual FAIL 증거는 그대로이며 public/remote/실제
 기관 운영은 별도 개인정보·보안·비용·배포 승인 전까지 계속 금지한다. 현재 상태는 설계·D-073
 written specification·D-074 8-task 실행계획 승인에 따른 offline 구현·task-scoped review·
-provider-disabled final root gate 완료다. actual provider network는 별도 local 인간 gate로
-Pending이다.
+provider-disabled final root gate 완료와 D-075 local actual PASS다. final 10건은
+GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 사실 mismatch 0, PII-free fixture의 typed
+write-boundary forbidden-value 위반 0,
+outbound 10이었다. legacy runner의 VAT 포함 USD 0.001319835는 usage completeness를 강제하기
+전 reported lower-bound이며, configured maximum USD 0.0135168은 USD 0.05 cap 아래다. 종료 뒤
+provider-disabled TEMPLATE로 복원했다.
+이는 local/private 증거이며 public/remote 또는 실제 기관 운영 승인이 아니다.
 
 ## 4. 변경 절차
 

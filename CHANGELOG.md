@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-### Changed — LLM-003 grounded local/private chat generation offline implementation
+### Changed — LLM-003 grounded local/private chat generation and actual evidence
 
 - Approved Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C and Q-LLM-012=B
   for a local/private-only Upstage `solar-pro3` chat path. Q-LLM-008=A summary-only is
@@ -28,16 +28,31 @@
 - Task-scoped offline evidence and independent reviews are recorded in
   `docs/test-reports/LLM-003-GROUNDED-LIVE-CHAT.md`. The final provider-disabled root
   `scripts/verify.ps1 -Offline` PASSed on 2026-07-26 (637.7s, stdout 2006 bytes, stderr 0),
-  including root/data/seed/Web/API/contracts/secrets/bundle/package/diff gates. Optional actual
-  provider use remains a separate human gate with no recorded result.
-- Public/remote use, real-institution operation, new production dependencies, DB migration, data
-  mutation, push, PR and automatic merge remain prohibited or Pending under their existing gates.
+  including root/data/seed/Web/API/contracts/secrets/bundle/package/diff gates.
+- D-075 local actual PASSed through the real local `/api/v1/chat` path: 10 cases,
+  GENERATED 4/TEMPLATE 6, source 10/10, official mismatch 0, typed write-boundary forbidden-value
+  violations 0 for the PII-free fixtures, outbound 10,
+  legacy-reported input/output tokens 4183/954 and VAT-inclusive USD 0.001319835 lower bound.
+  The configured 10-call maximum is USD 0.0135168 including VAT, below the USD 0.05 cap. A separate
+  forced timeout returned TEMPLATE with no extra outbound. The final stdout was one aggregate JSON
+  object only.
+- The actual harness now retains content-free provider token usage, rejects usage above the exact
+  1,024 output-token boundary, labels future interaction writes `is_test=true`, and fails before a
+  forbidden-value DB write. It also requires usage-bearing results for all 10 provider attempts;
+  this hardening is future-only and does not retroactively upgrade the legacy aggregate. Existing
+  local DB login rotation now verifies the exact safe role and sole `sejong_backend` membership.
+- The two pre-fix successful runs inserted 22 metadata-only rows as `is_test=false`; they must be
+  excluded from KPI evidence. Safe cleanup requires a separately approved local DB reset or
+  bounded deletion because this branch cannot uniquely distinguish those rows from other events.
+- Public/remote use, real-institution operation, new production dependencies, DB migration,
+  official/mock-data mutation, push, PR and automatic merge remain prohibited or Pending under
+  their existing gates.
 - Clarified the pre-existing idempotency exception: only a caller-supplied key may retain the
   strictly validated final safe response for the existing logical 24-hour TTL. Raw/masked question,
   prompt/provider body, context/correlation and new DB migration remain prohibited.
-- Closeout axes are application `0.9.0-grounded-local-chat`, Web `0.6.0-answer-mode`, API
+- Closeout axes are application `0.9.1-grounded-local-chat-evidence`, Web `0.6.0-answer-mode`, API
   `3.2.0-draft`, shared contracts `0.5.0`, prompt `0.2.0-grounded-live-chat`, tests
-  `1.6.0-grounded-live-chat`, documentation `2.20.0`. DB `0.4.0-local`, official data
+  `1.6.1-grounded-actual`, documentation `2.20.1`. DB `0.4.0-local`, official data
   `0.1.0-initial.2`, mock data `0.0.0-not-populated`, dependencies and lockfiles are unchanged.
 
 ### Changed — LLM-002 Upstage local actual evaluation
@@ -153,10 +168,10 @@
 - Task 5 adds the explicit text-free aggregate and a Windows-safe, readiness-before-provider local
   runner. Independent review caught and closed human FAIL, per-case trace and forged token PASS
   paths; report 30, runner 14 and full LLM 123 tests passed with actual DB/key/network use zero.
-- Task 6 locks public-import isolation, provider-key/log/PII/source boundaries, strict attempt caps and
-  safe `/api/v1/chat` failure behavior. The focused security/architecture slice passed 23 tests plus
-  5 subtests, full API passed 1,782 with 8 approved local-DB skips plus 5 subtests, and independent
-  review found no remaining issue. Actual provider/key/network/model-quality evidence remains pending.
+- Task 6 locked public-import isolation, provider-key/log/PII/source boundaries, strict attempt caps
+  and safe `/api/v1/chat` failure behavior. At that historical offline checkpoint, actual evidence
+  was Pending; the later D-071 run produced the recorded strict-schema 27/30 FAIL and superseded that
+  checkpoint status.
 - Versions: application `0.7.0-local-synthetic-evaluator`, prompt
   `0.1.0-upstage-solar-pro3-synthetic`, tests `1.3.0-upstage-synthetic-evaluator`, documentation
   `2.14.0`; public API, DB, official data and Web remain unchanged.

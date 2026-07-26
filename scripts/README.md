@@ -32,6 +32,21 @@ exit `2`, local DB/readiness 오류는 exit `3`, 실행·무결성 오류는 exi
 질문·답변은 출력하지 않는다. 이 도구는 실제 시민/free-input/public/remote provider 연결을
 활성화하지 않는다.
 
+## LLM-003 grounded chat local actual runner
+
+```powershell
+& $uv run --project apps/api --frozen python scripts/run_upstage_grounded_chat_actual.py
+```
+
+이 runner는 별도 인간 승인 뒤 local/private에서만 실행한다. CLI 인수를 받지 않고 hash-bound
+`T-01`~`T-10`, 실제 local DB, exact Upstage `solar-pro3`와 실제 `/api/v1/chat` 경로를 사용한다.
+stdout은 질문·답변·provider body 없이 승인된 10개 aggregate field의 JSON 객체 하나뿐이다.
+출처 10/10, 공식 사실 불일치 0, PII-free fixture의 typed write-boundary forbidden-value 위반
+0, outbound 정확히 10, GENERATED 최소 1, VAT 포함
+비용 USD 0.05 이하를 강제한다. 별도 timeout은 local injection으로 TEMPLATE을 확인하며 provider
+호출을 추가하지 않는다. interaction은 runner 내부에서 `is_test=true`로 강제하고 forbidden-value
+감지 시 실제 DB write 전에 중단한다. Cloud/CI/public/remote용 도구가 아니다.
+
 ## Q-PM local actual 개선 루프 runner
 
 ```powershell
@@ -272,8 +287,14 @@ dependency와 readiness 상태를 바꾸지 않는다.
 [Supabase local development](https://supabase.com/docs/guides/local-development/)를 따른다.
 
 credential provisioning은 Supabase status의 admin DSN을 runner process memory/environment에서만 사용하고
-`sejong_local_login`을 생성하거나 password를 회전한 다음 `sejong_backend` capability만
-부여한다. 무시된 `apps/api/.env` 전체 bytes를 읽어 `DATABASE_URL`만 원자 갱신하고
+`sejong_local_login`을 생성하거나 password를 회전한 다음 전체 membership을 조회해
+`sejong_backend` capability 한 개만 있고 `ADMIN=false`, `INHERIT=true`, `SET=true`인지 검증한다.
+반대 방향 membership도 exact하게 확인해 login role의 grant 대상은 `postgres` 한 개,
+`ADMIN=true`, `INHERIT=false`, `SET=false`여야 한다. capability role은 `NOLOGIN`과 안전한
+catalog flag/default를 만족하고 outbound membership과 role-specific setting이 없어야 한다.
+capability를 상속하는 member도 `postgres` admin row와 `sejong_local_login` 한 개만 허용해
+제3 role에 대한 사전 grant drift를 fail-closed로 거부한다.
+무시된 `apps/api/.env` 전체 bytes를 읽어 `DATABASE_URL`만 원자 갱신하고
 주석·순서·다른 provider 값을 파싱하지 않은 채 byte-identical하게 보존한다. 이 파일은
 commit하지 않는다.
 

@@ -121,8 +121,10 @@ patched tooling 24/24(262.368s), AST error 0·secret·protected gate와 독립 r
 LLM-003의 task-scoped 실제 결과는
 [`LLM-003-GROUNDED-LIVE-CHAT.md`](test-reports/LLM-003-GROUNDED-LIVE-CHAT.md)에만 기록한다.
 최종 provider-disabled root offline gate는 2026-07-26에 PASS했다(637.7초, stdout 2006 bytes,
-stderr 0; root/data/seed/Web/API/contracts/secrets/bundle/package/diff 포함). optional local actual은
-여전히 인간 gate Pending이며, offline PASS를 provider actual PASS로 간주하지 않는다.
+stderr 0; root/data/seed/Web/API/contracts/secrets/bundle/package/diff 포함). 별도 D-075 local
+actual도 PII-free fixture 10건 GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 mismatch 0,
+typed write-boundary forbidden-value 위반 0, outbound 10으로 PASS했다.
+두 증거는 분리 기록하며 local actual을 public/remote provider 승인으로 간주하지 않는다.
 
 ## 금지
 

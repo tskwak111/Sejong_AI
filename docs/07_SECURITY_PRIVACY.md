@@ -50,8 +50,10 @@ raw request in memory
 - 호출자가 `Idempotency-Key`를 제공한 경우에만 엄격히 검증된 최종 안전 응답을 기존 24시간
   idempotency TTL로 저장할 수 있다. raw/masked question·prompt·provider body·context token·
   correlation ID는 이 payload에도 금지한다.
-- provider-disabled final root offline gate는 2026-07-26 PASS했다. 실제 provider network는 이후에도
-  인간이 ignored local 환경에서만 실행할 수 있으며 local actual은 Pending이다. Cloud/CI·public/remote·
+- provider-disabled final root offline gate는 2026-07-26 PASS했다. 이후 D-075 local actual은
+  ignored local 환경에서 PII-free fixture 10건만 실행해 typed write-boundary에서 raw fixture/API
+  key 위반 0, 공식 사실 mismatch 0,
+  aggregate-only 출력으로 PASS했고 provider-disabled TEMPLATE로 복원했다. Cloud/CI·public/remote·
   실제 기관 운영에는 provider call 0이다.
 - transcript와 15분 context token은 current-tab memory만 사용한다. token은 HMAC 무결성만 제공하므로 free text·PII·URL·공식 사실을 넣지 않고 DB/log/browser storage에 저장하지 않는다.
 

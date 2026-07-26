@@ -12,11 +12,38 @@ import psycopg
 from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict
 
-
 ROLE_NAME = "sejong_local_login"
 TARGET_ENV_KEY = "DATABASE_URL"
 CAPABILITY_ROLE_NAME = "sejong_backend"
 EXPECTED_ADMIN_IDENTITY = ("postgres", "127.0.0.1", 54322, "postgres")
+EXPECTED_EXISTING_ROLE_STATE = (
+    True,
+    True,
+    False,
+    False,
+    False,
+    False,
+    False,
+    -1,
+    True,
+    True,
+)
+EXPECTED_MEMBERSHIP_STATE = (True, True, False, True, True)
+EXPECTED_LOGIN_ADMIN_STATE = (True, True, True, False, False)
+EXPECTED_CAPABILITY_ROLE_STATE = (
+    False,
+    True,
+    False,
+    False,
+    False,
+    False,
+    False,
+    -1,
+    True,
+    True,
+    True,
+)
+EXPECTED_CAPABILITY_MEMBER_STATE = (True, True, True)
 ALLOWED_ADMIN_CONNINFO_KEYS = frozenset({"user", "password", "host", "port", "dbname"})
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_PATH = REPOSITORY_ROOT / "apps" / "api" / ".env"
@@ -140,28 +167,155 @@ def provision(admin_dsn: str, env_path: Path) -> None:
         autocommit=False,
     ) as connection:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (ROLE_NAME,))
-            role_exists = cursor.fetchone() is not None
-            role_options = sql.SQL(
-                " LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE "
-                "NOREPLICATION NOBYPASSRLS PASSWORD {}"
-            ).format(sql.Literal(password))
-            if role_exists:
+            cursor.execute(
+                """
+SELECT
+  rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole,
+  rolreplication, rolbypassrls, rolconnlimit, rolvaliduntil IS NULL,
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_db_role_setting AS settings
+    WHERE settings.setrole = roles.oid
+  )
+FROM pg_catalog.pg_roles AS roles
+WHERE roles.rolname = %s
+""".strip(),
+                (ROLE_NAME,),
+            )
+            role_state = cursor.fetchone()
+            if role_state is not None:
+                if role_state != EXPECTED_EXISTING_ROLE_STATE:
+                    raise ValueError("BACKEND_ROLE_STATE_INVALID")
+                # PostgreSQL 17 rejects even a no-op NOSUPERUSER assignment from the
+                # intentionally non-superuser local admin. The same boundary applies to
+                # NOREPLICATION and NOBYPASSRLS. The existing state was checked above,
+                # so rotate only options that role-admin may set.
+                role_options = sql.SQL(
+                    " LOGIN INHERIT NOCREATEDB NOCREATEROLE PASSWORD {}"
+                ).format(sql.Literal(password))
                 cursor.execute(
                     sql.SQL("ALTER ROLE {} WITH").format(sql.Identifier(ROLE_NAME))
                     + role_options
                 )
             else:
+                role_options = sql.SQL(
+                    " LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE "
+                    "NOREPLICATION NOBYPASSRLS PASSWORD {}"
+                ).format(sql.Literal(password))
                 cursor.execute(
                     sql.SQL("CREATE ROLE {} WITH").format(sql.Identifier(ROLE_NAME))
                     + role_options
                 )
+            cursor.execute(
+                """
+SELECT
+  rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole,
+  rolreplication, rolbypassrls, rolconnlimit, rolvaliduntil IS NULL,
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_db_role_setting AS settings
+    WHERE settings.setrole = roles.oid
+  )
+FROM pg_catalog.pg_roles AS roles
+WHERE roles.rolname = %s
+""".strip(),
+                (ROLE_NAME,),
+            )
+            if cursor.fetchone() != EXPECTED_EXISTING_ROLE_STATE:
+                raise ValueError("BACKEND_ROLE_STATE_INVALID")
             cursor.execute(
                 sql.SQL("GRANT {} TO {}").format(
                     sql.Identifier(CAPABILITY_ROLE_NAME),
                     sql.Identifier(ROLE_NAME),
                 )
             )
+            cursor.execute(
+                """
+SELECT
+  pg_catalog.count(*) = 1,
+  COALESCE(pg_catalog.bool_and(granted_role.rolname = %s), false),
+  COALESCE(pg_catalog.bool_or(memberships.admin_option), false),
+  COALESCE(pg_catalog.bool_or(memberships.inherit_option), false),
+  COALESCE(pg_catalog.bool_or(memberships.set_option), false)
+FROM pg_catalog.pg_auth_members AS memberships
+JOIN pg_catalog.pg_roles AS granted_role
+  ON granted_role.oid = memberships.roleid
+JOIN pg_catalog.pg_roles AS member_role
+  ON member_role.oid = memberships.member
+WHERE member_role.rolname = %s
+""".strip(),
+                (CAPABILITY_ROLE_NAME, ROLE_NAME),
+            )
+            if cursor.fetchone() != EXPECTED_MEMBERSHIP_STATE:
+                raise ValueError("BACKEND_MEMBERSHIP_STATE_INVALID")
+            cursor.execute(
+                """
+SELECT
+  pg_catalog.count(*) = 1,
+  COALESCE(pg_catalog.bool_and(member_role.rolname = %s), false),
+  COALESCE(pg_catalog.bool_or(memberships.admin_option), false),
+  COALESCE(pg_catalog.bool_or(memberships.inherit_option), false),
+  COALESCE(pg_catalog.bool_or(memberships.set_option), false)
+FROM pg_catalog.pg_auth_members AS memberships
+JOIN pg_catalog.pg_roles AS granted_role
+  ON granted_role.oid = memberships.roleid
+JOIN pg_catalog.pg_roles AS member_role
+  ON member_role.oid = memberships.member
+WHERE granted_role.rolname = %s
+""".strip(),
+                (EXPECTED_ADMIN_IDENTITY[0], ROLE_NAME),
+            )
+            if cursor.fetchone() != EXPECTED_LOGIN_ADMIN_STATE:
+                raise ValueError("BACKEND_LOGIN_ADMIN_STATE_INVALID")
+            cursor.execute(
+                """
+SELECT
+  rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole,
+  rolreplication, rolbypassrls, rolconnlimit, rolvaliduntil IS NULL,
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_db_role_setting AS settings
+    WHERE settings.setrole = roles.oid
+  ),
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_auth_members AS memberships
+    WHERE memberships.member = roles.oid
+  )
+FROM pg_catalog.pg_roles AS roles
+WHERE roles.rolname = %s
+""".strip(),
+                (CAPABILITY_ROLE_NAME,),
+            )
+            if cursor.fetchone() != EXPECTED_CAPABILITY_ROLE_STATE:
+                raise ValueError("BACKEND_CAPABILITY_STATE_INVALID")
+            cursor.execute(
+                """
+SELECT
+  pg_catalog.count(*) = 2,
+  pg_catalog.count(*) FILTER (
+    WHERE member_role.rolname = %s
+      AND NOT memberships.admin_option
+      AND memberships.inherit_option
+      AND memberships.set_option
+  ) = 1,
+  pg_catalog.count(*) FILTER (
+    WHERE member_role.rolname = %s
+      AND memberships.admin_option
+      AND NOT memberships.inherit_option
+      AND NOT memberships.set_option
+  ) = 1
+FROM pg_catalog.pg_auth_members AS memberships
+JOIN pg_catalog.pg_roles AS granted_role
+  ON granted_role.oid = memberships.roleid
+JOIN pg_catalog.pg_roles AS member_role
+  ON member_role.oid = memberships.member
+WHERE granted_role.rolname = %s
+""".strip(),
+                (ROLE_NAME, EXPECTED_ADMIN_IDENTITY[0], CAPABILITY_ROLE_NAME),
+            )
+            if cursor.fetchone() != EXPECTED_CAPABILITY_MEMBER_STATE:
+                raise ValueError("BACKEND_CAPABILITY_MEMBER_STATE_INVALID")
         connection.commit()
 
     backend_dsn = _build_backend_database_url(password)

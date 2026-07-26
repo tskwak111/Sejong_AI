@@ -1,7 +1,7 @@
 # ADR-0023: local/private 근거 제한형 Upstage 시민 답변 생성
 
-- Status: Accepted / offline implementation, task-scoped review, and provider-disabled final root
-  gate complete under D-074; local actual Pending human gate
+- Status: Accepted / offline implementation, provider-disabled final root gate and D-075 local
+  actual acceptance complete; public/remote use remains prohibited
 - Date: 2026-07-25
 - Supersedes: ADR-0022의 local/private 실제 시민 입력 금지와 actual 통과 선행조건
 - Preserves: ADR-0022의 public/remote 금지, provider abstraction, ACTIVE/OFFICIAL gate,
@@ -60,6 +60,12 @@ SUCCESS 응답에는 `answer_mode=GENERATED|TEMPLATE`를 추가하고 Web은 각
 - `answer_mode`는 공개 응답 draft와 Web/generated type을 함께 바꾸므로 후속 실행계획과 계약
   버전 갱신이 필요하다.
 - LLM-002 actual FAIL 증거는 변경되지 않으며 새 경계의 local acceptance를 별도로 수행한다.
+- D-075 local acceptance는 10건 중 GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 사실 불일치
+  0, PII-free fixture의 typed write-boundary forbidden-value 위반 0, aggregate stdout 노출 0,
+  outbound 10으로 PASS했다. VAT 포함 USD 0.001319835는 usage completeness guard 전 legacy
+  lower-bound이고 configured maximum USD 0.0135168은 USD 0.05 cap 아래다. persistence
+  metric은 post-read DB forensic이 아니다. 이는 local/private 증거이며 public/remote 또는 실제
+  기관 운영 승인이 아니다.
 
 ## Rejected alternatives
 
@@ -76,7 +82,7 @@ SUCCESS 응답에는 `answer_mode=GENERATED|TEMPLATE`를 추가하고 Web은 각
 ## References
 
 - Q-LLM-006=B, Q-LLM-007=A, Q-LLM-009=A, Q-LLM-011=C, Q-LLM-012=B
-- D-071, D-072, D-073
+- D-071~D-075
 - `docs/superpowers/specs/2026-07-25-grounded-live-chat-generation-design.md`
 - `docs/superpowers/plans/2026-07-25-grounded-live-chat-generation.md`
 - https://console.upstage.ai/api-keys?api=chat-reasoning

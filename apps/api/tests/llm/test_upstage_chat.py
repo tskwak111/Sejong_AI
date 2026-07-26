@@ -12,6 +12,7 @@ from sejong_ai_api.llm.chat_contracts import (
     GroundedFact,
 )
 from sejong_ai_api.llm.chat_prompt import build_grounded_chat_messages
+from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.limits import AttemptBudget
 from sejong_ai_api.llm.settings import UpstageChatSettings
 from sejong_ai_api.llm.upstage_chat import (
@@ -96,6 +97,7 @@ async def test_success_makes_one_exact_source_free_request_and_strictly_parses_d
     assert result.code is GroundedChatOutcomeCode.SUCCESS
     assert result.draft is not None
     assert result.draft.summary == "전입신고 안내를 쉽게 정리해 드려요."
+    assert result.usage == TokenUsage(20, 0, 10)
     assert len(seen) == 1
     request = seen[0]
     assert request.method == "POST"
@@ -294,6 +296,7 @@ async def test_malformed_or_truncated_output_fails_closed_after_one_request(
 
     assert result.code is expected_code
     assert result.draft is None
+    assert result.usage == TokenUsage(20, 0, 10)
     assert requests == 1
 
 
@@ -307,9 +310,41 @@ async def test_malformed_or_truncated_output_fails_closed_after_one_request(
         ({"prompt_tokens": True}, True, GroundedChatOutcomeCode.SCHEMA_INVALID),
         ({"prompt_tokens": 1.0}, True, GroundedChatOutcomeCode.SCHEMA_INVALID),
         ({"prompt_tokens": -1}, True, GroundedChatOutcomeCode.SCHEMA_INVALID),
-        ({"prompt_tokens": 0}, True, GroundedChatOutcomeCode.SUCCESS),
-        ({"prompt_tokens": 4096}, True, GroundedChatOutcomeCode.SUCCESS),
-        ({"prompt_tokens": 4097}, True, GroundedChatOutcomeCode.INPUT_LIMIT),
+        (
+            {"prompt_tokens": 0, "completion_tokens": 0},
+            True,
+            GroundedChatOutcomeCode.SUCCESS,
+        ),
+        (
+            {"prompt_tokens": 4096, "completion_tokens": 10},
+            True,
+            GroundedChatOutcomeCode.SUCCESS,
+        ),
+        (
+            {"prompt_tokens": 4097, "completion_tokens": 10},
+            True,
+            GroundedChatOutcomeCode.INPUT_LIMIT,
+        ),
+        (
+            {"prompt_tokens": 20, "completion_tokens": 1024},
+            True,
+            GroundedChatOutcomeCode.SUCCESS,
+        ),
+        (
+            {"prompt_tokens": 20, "completion_tokens": 1025},
+            True,
+            GroundedChatOutcomeCode.TRUNCATED,
+        ),
+        (
+            {"prompt_tokens": 20, "completion_tokens": True},
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+        ),
+        (
+            {"prompt_tokens": 20, "completion_tokens": -1},
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+        ),
     ],
 )
 async def test_provider_usage_is_strict_and_fails_closed_after_one_request(

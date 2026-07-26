@@ -87,11 +87,13 @@ legacy/                         오래된 스타터·문서, 비권위 참고자
   migrations이며 `database/`의 `0.4.0-local` projection은 실제 검증된 local 기준선의 읽기용
   투영이다. 공개·원격 DB 기준선이나 production readiness를 뜻하지 않는다.
 - Q-LLM-005=A의 합성 평가 actual은 strict JSON 27/30으로 FAIL한 역사적 증거를 유지한다.
-  이후 Q-LLM-006~012/D-072~074가 local/private 입찰 시연에 한해 Upstage exact `solar-pro3`
+  이후 Q-LLM-006~012/D-072~075가 local/private 입찰 시연에 한해 Upstage exact `solar-pro3`
   근거 제한형 시민 답변 생성을 승인했다. exact local profile에서만 optional runtime을
   조립하고 startup·health·ready는 provider를 호출하지 않는다. disabled·오류·schema/fact 검증
-  실패는 공식 TEMPLATE로 복구하며 source·office·공식 fact는 서버가 결합한다. actual network는
-  offline 전체 gate 뒤 별도 local 인간 단계이고 public/remote/실제 기관 운영은 계속 금지한다.
+  실패는 공식 TEMPLATE로 복구하며 source·office·공식 fact는 서버가 결합한다. D-075 local
+  actual은 10건 GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 mismatch 0과 PII-free fixture의
+  typed write-boundary forbidden-value 위반 0으로 PASS했고 종료 뒤
+  provider-disabled로 복원했다. public/remote/실제 기관 운영은 계속 금지한다.
   운영 순서는 [LLM-003 local grounded chat runbook](docs/runbooks/LLM-003-LOCAL-GROUNDED-CHAT.md)을
   따른다.
 - 권장 배포는 Vercel + Render + Supabase이며 실제 계정·리전·비밀값은 별도 확인이 필요함.

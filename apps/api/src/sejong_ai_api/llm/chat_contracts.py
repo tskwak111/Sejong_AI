@@ -10,6 +10,7 @@ from pydantic import Field
 
 from sejong_ai_api.contracts.health import StrictPublicModel
 from sejong_ai_api.db.models import Intent
+from sejong_ai_api.llm.contracts import TokenUsage
 
 
 class FactKind(StrEnum):
@@ -176,10 +177,13 @@ class GroundedChatResult:
 
     code: GroundedChatOutcomeCode
     draft: GeneratedChatDraft | None = None
+    usage: TokenUsage = TokenUsage(0, 0, 0)
 
     def __post_init__(self) -> None:
-        if type(self.code) is not GroundedChatOutcomeCode or (
-            (self.code is GroundedChatOutcomeCode.SUCCESS) is not (self.draft is not None)
+        if (
+            type(self.code) is not GroundedChatOutcomeCode
+            or ((self.code is GroundedChatOutcomeCode.SUCCESS) is not (self.draft is not None))
+            or type(self.usage) is not TokenUsage
         ):
             raise ValueError("GROUNDED_CHAT_RESULT_INVALID")
         if self.draft is not None and type(self.draft) is not GeneratedChatDraft:
