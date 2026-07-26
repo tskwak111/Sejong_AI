@@ -9,6 +9,8 @@
 - Branch: codex/FINAL-DEMO-PERF-PLAN-001
 - Source baseline: `bcaf39cdd8d7e903fa35705cda6f7d6c7fb433d7`
 - Planning commit: `94cbcce5b2b5b48ee13477944e0b0acf6d00f614`
+- Implementation closeout commit: `3dbb244cf9ce39452715ded0db13c93c25247dab`
+- Draft PR: `https://github.com/tskwak111/Sejong_AI/pull/17` — manual review/merge only
 - Related plan/ADR/RFP: D-077, D-082, A-052, ADR-0020, ADR-0023, DEMO-001,
   PERF-001, PER-001, PER-002,
   `docs/superpowers/specs/2026-07-26-local-demo-readiness-and-performance-smoke-design.md`,
@@ -170,6 +172,7 @@
 | root worktree suite | environment-limited | 429 pass, 2 skip, 2 `.tools/supabase.exe` missing failures | final report |
 | exact two root checks, identical primary source | PASS | SHA-256 match YES; 2/2 / 1.793s | final report |
 | shared contract/docs/secret/package/diff | PASS | contracts 90/90 | final report |
+| Git publication | PASS | branch push, Draft PR #17, initial Collaboration/Frontend summary PASS | GitHub PR #17 |
 
 ### 미실행 검증과 이유
 
@@ -209,6 +212,8 @@
   답이 없으면 HOLD다.
 - current DB event 통계는 D-077에 따라 평가 KPI가 아니다.
 - Draft PR은 사람이 검토·merge한다. public/remote/provider actual은 승인되지 않았다.
+- PR #17의 초기 Collaboration policy와 Frontend CI summary는 PASS했다. 이 hosted green은
+  local API/DB 전체 검증이나 사람의 merge 승인을 대신하지 않는다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
 
