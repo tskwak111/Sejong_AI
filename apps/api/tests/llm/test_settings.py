@@ -7,8 +7,10 @@ import pytest
 from sejong_ai_api.llm import settings as settings_module
 from sejong_ai_api.llm.settings import (
     UpstageChatSettings,
+    UpstageClassifierSettings,
     UpstageSyntheticSettings,
     load_upstage_chat_settings,
+    load_upstage_classifier_settings,
     load_upstage_synthetic_settings,
 )
 
@@ -24,6 +26,7 @@ VALID = {
     "LLM_MAX_OUTPUT_TOKENS": "1024",
     "LLM_RUN_ATTEMPT_CAP": "30",
     "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "true",
+    "UPSTAGE_CLASSIFIER_MODE": "false",
     "UPSTAGE_GROUNDED_CHAT_MODE": "false",
 }
 
@@ -34,6 +37,24 @@ CHAT_VALID = {
     "LLM_MAX_RETRIES": "0",
     "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
     "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+}
+
+CLASSIFIER_VALID = {
+    "LLM_PROVIDER": "upstage",
+    "LLM_MODEL": "solar-pro3",
+    "LLM_API_KEY": "classifier-test-key-not-a-real-secret",
+    "LLM_BASE_URL": "https://api.upstage.ai/v1",
+    "LLM_MAX_CONCURRENCY": "1",
+    "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
+    "UPSTAGE_CLASSIFIER_MODE": "true",
+    "UPSTAGE_GROUNDED_CHAT_MODE": "false",
+    "LLM_CLASSIFIER_TIMEOUT_SECONDS": "3",
+    "LLM_CLASSIFIER_MAX_RETRIES": "0",
+    "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
+    "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
+    "LLM_CLASSIFIER_ATTEMPT_CAP": "20",
+    "LLM_GENERATOR_ATTEMPT_CAP": "30",
+    "LLM_COMBINED_ATTEMPT_CAP": "40",
 }
 
 
@@ -65,6 +86,82 @@ def test_exact_grounded_chat_settings_load_without_exposing_key() -> None:
     assert settings.max_output_tokens == 1024
     assert settings.run_attempt_cap == 30
     assert CHAT_VALID["LLM_API_KEY"] not in repr(settings)
+
+
+@pytest.mark.parametrize("grounded_mode", ["false", "true"])
+def test_exact_classifier_settings_load_without_exposing_key(
+    grounded_mode: str,
+) -> None:
+    profile = {
+        **CLASSIFIER_VALID,
+        "UPSTAGE_GROUNDED_CHAT_MODE": grounded_mode,
+    }
+
+    settings = load_upstage_classifier_settings(
+        environ=profile,
+        env_path=Path("missing"),
+    )
+
+    assert isinstance(settings, UpstageClassifierSettings)
+    assert settings.model == "solar-pro3"
+    assert settings.base_url == "https://api.upstage.ai/v1"
+    assert settings.timeout_seconds == 3.0
+    assert settings.max_retries == 0
+    assert settings.max_concurrency == 1
+    assert settings.max_input_chars == 1024
+    assert settings.max_output_tokens == 128
+    assert settings.classifier_attempt_cap == 20
+    assert settings.generator_attempt_cap == 30
+    assert settings.combined_attempt_cap == 40
+    assert profile["LLM_API_KEY"] not in repr(settings)
+    if grounded_mode == "true":
+        combined_chat_profile = {
+            **CHAT_VALID,
+            **profile,
+            "LLM_TIMEOUT_SECONDS": "8",
+            "LLM_MAX_RETRIES": "0",
+            "LLM_MAX_INPUT_TOKENS": "4096",
+            "LLM_MAX_OUTPUT_TOKENS": "1024",
+            "LLM_RUN_ATTEMPT_CAP": "30",
+        }
+        assert isinstance(
+            load_upstage_chat_settings(
+                environ=combined_chat_profile,
+                env_path=Path("missing"),
+            ),
+            UpstageChatSettings,
+        )
+
+
+def test_classifier_disabled_or_non_exact_profile_fails_closed() -> None:
+    assert (
+        load_upstage_classifier_settings(environ={}, env_path=Path("missing"))
+        is None
+    )
+    for key, invalid in (
+        ("LLM_PROVIDER", "disabled"),
+        ("LLM_MODEL", "solar-pro"),
+        ("LLM_BASE_URL", "https://example.invalid/v1"),
+        ("LLM_MAX_CONCURRENCY", "2"),
+        ("UPSTAGE_SYNTHETIC_EVALUATION_MODE", "true"),
+        ("UPSTAGE_CLASSIFIER_MODE", "false"),
+        ("LLM_CLASSIFIER_TIMEOUT_SECONDS", "4"),
+        ("LLM_CLASSIFIER_MAX_RETRIES", "1"),
+        ("LLM_CLASSIFIER_MAX_INPUT_CHARS", "1025"),
+        ("LLM_CLASSIFIER_MAX_OUTPUT_TOKENS", "129"),
+        ("LLM_CLASSIFIER_ATTEMPT_CAP", "21"),
+        ("LLM_GENERATOR_ATTEMPT_CAP", "31"),
+        ("LLM_COMBINED_ATTEMPT_CAP", "41"),
+    ):
+        candidate = dict(CLASSIFIER_VALID)
+        candidate[key] = invalid
+        assert (
+            load_upstage_classifier_settings(
+                environ=candidate,
+                env_path=Path("missing"),
+            )
+            is None
+        )
 
 
 def test_modes_are_mutually_exclusive_and_disabled_by_default() -> None:
