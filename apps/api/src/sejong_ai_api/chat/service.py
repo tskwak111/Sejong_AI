@@ -138,6 +138,8 @@ _EXPLICIT_INTENT_TERMS = (
     "주민세",
     "취득세",
 )
+_CONTEXT_OFFICE_TERMS = ("어디", "방문", "주민센터", "행정복지센터")
+_CONTEXT_REGION_CHANGE_TERMS = ("바꿔", "변경", "옮겨")
 
 
 class ChatRepository(Protocol):
@@ -286,15 +288,34 @@ class ChatService:
         outcome = classify_question(safe_question)
         intent = outcome.intent
         intent_from_context = False
+        contextual_action = _resolve_contextual_action(safe_question.text, prior_context)
+        contextual_region = _contextual_region(safe_question.text, prior_context)
+        region_changed_by_request = (
+            prior_context is not None
+            and request.selected_region is not None
+            and request.selected_region != prior_context.selected_region
+        )
+        if contextual_region is not None:
+            selected_region = contextual_region
+            contextual_action = "CHANGING_REGION"
+        elif region_changed_by_request:
+            contextual_action = "CHANGING_REGION"
         if (
             outcome.followup_required
             and prior_context is not None
-            and _is_contextual_followup(safe_question.text)
+            and contextual_action is not None
         ):
             prior_intent = Intent(prior_context.last_intent)
             if prior_intent in _SUPPORTED_INTENTS:
                 intent = prior_intent
                 intent_from_context = True
+        topic_changed = (
+            prior_context is not None
+            and intent in _SUPPORTED_INTENTS
+            and Intent(prior_context.last_intent) in _SUPPORTED_INTENTS
+            and Intent(prior_context.last_intent) is not intent
+            and not intent_from_context
+        )
 
         if outcome.fallback_reason is FallbackReason.OUT_OF_SCOPE:
             fallback_response = build_fallback_response(
@@ -398,7 +419,16 @@ class ChatService:
                 persist_event=False,
             )
 
-        ranked = await self._ranked_knowledge(safe_question, intent)
+        context_topic_id = (
+            prior_context.topic_id
+            if intent_from_context and prior_context is not None
+            else None
+        )
+        ranked = await self._ranked_knowledge(
+            safe_question,
+            intent,
+            topic_id=context_topic_id,
+        )
         top = ranked[0] if ranked else None
         grounding = evaluate_grounding(
             safe_question,
@@ -427,13 +457,32 @@ class ChatService:
             )
             return _ChatExecution(response=fallback_response, interaction=interaction)
 
+        if contextual_action == "OFFICE" and selected_region is None:
+            return self._build_followup_execution(
+                request_id=selected_request_id,
+                intent=intent,
+                pending_slot=PendingSlot.REGION,
+                selected_region=None,
+                started_ns=started_ns,
+                persist_event=True,
+                topic_id=grounding.record.public_id,
+            )
+
         office = await self._load_optional_office(selected_region, intent)
         token = self._issue_context(
             intent=intent,
             selected_region=selected_region,
             answer_status="SUCCESS",
             topic_id=grounding.record.public_id,
-            dialog_act="ANSWERED",
+            dialog_act=(
+                "CHANGING_TOPIC"
+                if topic_changed
+                else (
+                    "CHANGING_REGION"
+                    if contextual_action == "CHANGING_REGION"
+                    else "ANSWERED"
+                )
+            ),
         )
         answer_mode: AnswerMode = "TEMPLATE"
         materialized: MaterializedChatAnswer | None = None
@@ -626,6 +675,7 @@ class ChatService:
         selected_region: Region | None,
         started_ns: int,
         persist_event: bool,
+        topic_id: str | None = None,
     ) -> _ChatExecution:
         option_ids = _followup_options(pending_slot)
         token = self._issue_context(
@@ -634,6 +684,7 @@ class ChatService:
             answer_status="FOLLOWUP",
             pending_slot=pending_slot,
             dialog_act="ASKING_SLOT",
+            topic_id=topic_id,
         )
         response = build_followup_response(
             request_id=request_id,
@@ -663,12 +714,17 @@ class ChatService:
         self,
         question: SafeQuestion,
         intent: Intent,
+        *,
+        topic_id: str | None = None,
     ) -> tuple[RankedKnowledge, ...]:
         try:
             records = await self._repository.list_active_kb(intent)
         except DatabaseUnavailableError:
             raise ChatUnavailableError() from None
-        return rank_active_knowledge(question, intent, records)
+        ranked = rank_active_knowledge(question, intent, records)
+        if topic_id is None:
+            return ranked
+        return tuple(item for item in ranked if item.record.public_id == topic_id)
 
     async def _load_optional_office(
         self,
@@ -760,15 +816,54 @@ def _selected_region(selected: str | None, context: ChatContext | None) -> Regio
     return Region(context.selected_region) if context.selected_region is not None else None
 
 
-def _is_contextual_followup(value: str) -> bool:
+def _compact_context_input(value: str) -> str:
+    return re.sub(
+        r"[^0-9a-z가-힣]",
+        "",
+        unicodedata.normalize("NFKC", value).casefold(),
+    )
+
+
+def _resolve_contextual_action(
+    value: str,
+    context: ChatContext | None,
+) -> Literal["DETAIL", "OFFICE", "CHANGING_REGION"] | None:
+    if context is None:
+        return None
+    compact = _compact_context_input(value)
+    if any(term in compact for term in _EXPLICIT_INTENT_TERMS):
+        return None
+    if _contextual_region(value, context) is not None:
+        return "CHANGING_REGION"
+    if any(term in compact for term in _CONTEXT_OFFICE_TERMS):
+        return "OFFICE"
+    if any(term in compact for term in _CONTEXT_DETAIL_TERMS):
+        return "DETAIL"
+    return None
+
+
+def _contextual_region(
+    value: str,
+    context: ChatContext | None,
+) -> Region | None:
+    if context is None:
+        return None
     compact = re.sub(
         r"[^0-9a-z가-힣]",
         "",
         unicodedata.normalize("NFKC", value).casefold(),
     )
-    return any(term in compact for term in _CONTEXT_DETAIL_TERMS) and not any(
-        term in compact for term in _EXPLICIT_INTENT_TERMS
+    selected = next(
+        (region for region in Region if region.value in compact),
+        None,
     )
+    if selected is None:
+        return None
+    if context.pending_slot == "REGION" or any(
+        term in compact for term in _CONTEXT_REGION_CHANGE_TERMS
+    ):
+        return selected
+    return None
 
 
 def _confidence(item: RankedKnowledge | None) -> float:

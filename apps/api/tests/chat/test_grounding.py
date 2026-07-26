@@ -209,3 +209,20 @@ def test_grounding_accepts_newly_approved_detail_when_record_contains_it() -> No
     )
 
     assert decision.is_grounded is True
+
+
+def test_validated_context_can_reuse_current_active_topic_for_bounded_detail() -> None:
+    record = knowledge(
+        service_name="대형폐기물 배출 안내",
+        question_examples=("대형폐기물은 어떻게 버리나요?",),
+    )
+
+    decision = evaluate_grounding(
+        safe_question("비용은요?"),
+        Intent.BULKY_WASTE,
+        record,
+        allow_contextual_detail=True,
+    )
+
+    assert decision.is_grounded is True
+    assert decision.record is record

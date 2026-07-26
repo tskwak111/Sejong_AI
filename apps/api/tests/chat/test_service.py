@@ -53,20 +53,22 @@ CLAIM_TOKEN = UUID("55555555-5555-4555-8555-555555555555")
 
 def knowledge_record(
     *,
+    public_id: str = "KB-TEST-01",
     intent: Intent = Intent.BULKY_WASTE,
     service_name: str = "대형폐기물 배출신청 절차",
     question_examples: tuple[str, ...] = ("대형폐기물은 어떻게 버려요?",),
     required_documents: tuple[str, ...] = (),
+    fee: str | None = None,
 ) -> KnowledgeRecord:
     return KnowledgeRecord(
-        public_id="KB-TEST-01",
+        public_id=public_id,
         category=intent,
         service_name=service_name,
         answer_summary="승인된 안내 요약입니다.",
         procedure_steps=("승인된 절차를 확인하세요.",),
         required_documents=required_documents,
         processing_time=None,
-        fee=None,
+        fee=fee,
         department="민원 담당 부서",
         source_title="승인된 공식 출처",
         source_url="https://example.invalid/official/source",
@@ -651,6 +653,158 @@ async def test_signed_context_resolves_a_short_followup_without_storing_transcri
     assert response.answer_status == "SUCCESS"
     assert response.intent == Intent.MOVE_IN_RESIDENT_REGISTRATION.value
     assert repository.active_intents == [Intent.MOVE_IN_RESIDENT_REGISTRATION]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "question",
+    ["비용은요?", "준비물은요?", "온라인도 돼요?"],
+)
+async def test_v2_context_resolves_bounded_detail_against_same_current_active_topic(
+    question: str,
+) -> None:
+    record = knowledge_record(
+        public_id="KB-WASTE-CONTEXT-01",
+        required_documents=("배출 품목과 규격",),
+        fee="품목별 수수료",
+    )
+    repository = FakeRepository(records=(record,))
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=record.public_id,
+    )
+
+    response = await service(repository).answer(
+        ChatRequest(question=question, context_token=token)
+    )
+
+    assert response.answer_status == "SUCCESS"
+    assert [source.source_id for source in response.sources] == [record.public_id]
+    assert repository.active_intents == [Intent.BULKY_WASTE]
+    assert response.context_token is not None
+    context = codec.read(response.context_token)
+    assert context is not None
+    assert context.topic_id == record.public_id
+    assert context.dialog_act == "ANSWERED"
+
+
+@pytest.mark.asyncio
+async def test_stale_context_topic_never_falls_through_to_another_active_record() -> None:
+    other_record = knowledge_record(public_id="KB-WASTE-OTHER-01")
+    repository = FakeRepository(records=(other_record,))
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id="KB-WASTE-REMOVED-01",
+    )
+
+    response = await service(repository).answer(
+        ChatRequest(question="비용은요?", context_token=token)
+    )
+
+    assert response.answer_status == "FALLBACK"
+    assert response.fallback.reason == "INSUFFICIENT_GROUNDING"
+    assert response.sources == []
+    assert repository.active_intents == [Intent.BULKY_WASTE]
+
+
+@pytest.mark.asyncio
+async def test_office_followup_without_region_asks_only_for_allowed_region() -> None:
+    record = knowledge_record(public_id="KB-WASTE-OFFICE-01")
+    repository = FakeRepository(records=(record,))
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=record.public_id,
+    )
+
+    response = await service(repository).answer(
+        ChatRequest(question="어디로 가요?", context_token=token)
+    )
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.followup_options == ["아름동", "도담동", "조치원읍"]
+    assert response.sources == []
+    assert repository.office_queries == []
+    assert response.context_token is not None
+    context = codec.read(response.context_token)
+    assert context is not None
+    assert context.topic_id == record.public_id
+    assert context.pending_slot == "REGION"
+    assert context.dialog_act == "ASKING_SLOT"
+
+
+@pytest.mark.asyncio
+async def test_region_change_rebinds_only_the_allowed_official_office() -> None:
+    record = knowledge_record(public_id="KB-WASTE-REGION-01")
+    repository = FakeRepository(
+        records=(record,),
+        offices=(office_record(region=Region.DODAM_DONG),),
+    )
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region="아름동",
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=record.public_id,
+    )
+
+    response = await service(repository).answer(
+        ChatRequest(question="도담동으로 바꿔줘", context_token=token)
+    )
+
+    assert response.answer_status == "SUCCESS"
+    assert repository.office_queries == [(Region.DODAM_DONG, Intent.BULKY_WASTE)]
+    assert response.office is not None
+    assert response.context_token is not None
+    context = codec.read(response.context_token)
+    assert context is not None
+    assert context.selected_region == "도담동"
+    assert context.dialog_act == "CHANGING_REGION"
+
+
+@pytest.mark.asyncio
+async def test_explicit_new_intent_takes_precedence_over_prior_topic() -> None:
+    old_record = knowledge_record(public_id="KB-WASTE-OLD-01")
+    new_record = knowledge_record(
+        public_id="KB-MOVE-NEW-01",
+        intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        service_name="전입신고 방법",
+        question_examples=("전입신고 어떻게 해요?",),
+    )
+    repository = FakeRepository(records=(old_record, new_record))
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=old_record.public_id,
+    )
+
+    response = await service(repository).answer(
+        ChatRequest(question="전입신고 어떻게 해요?", context_token=token)
+    )
+
+    assert response.answer_status == "SUCCESS"
+    assert response.intent == Intent.MOVE_IN_RESIDENT_REGISTRATION.value
+    assert [source.source_id for source in response.sources] == [new_record.public_id]
+    assert response.context_token is not None
+    context = codec.read(response.context_token)
+    assert context is not None
+    assert context.topic_id == new_record.public_id
+    assert context.dialog_act == "CHANGING_TOPIC"
 
 
 @pytest.mark.asyncio
