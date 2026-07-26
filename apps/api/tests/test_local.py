@@ -160,6 +160,7 @@ class FakeRepository:
         self.idempotency: dict[UUID, tuple[str, UUID, dict[str, object] | None]] = {}
         self.failed_text_purge_count = 0
         self.idempotency_purge_count = 0
+        self.office_read_count = 0
 
     async def list_active_kb(self, intent: Intent) -> Sequence[KnowledgeRecord]:
         if not self.ready:
@@ -167,6 +168,7 @@ class FakeRepository:
         return tuple(record for record in self.records if record.category is intent)
 
     async def list_offices(self, region: Region, intent: Intent) -> Sequence[OfficeRecord]:
+        self.office_read_count += 1
         if not self.ready:
             return ()
         return self.offices.get((region, intent), ())
@@ -532,6 +534,62 @@ def test_missing_configuration_keeps_health_alive_and_chat_readiness_closed(tmp_
             == 404
         )
     assert pool_factory_calls == []
+
+
+def test_local_app_injects_ready_official_office_directory(tmp_path: Path) -> None:
+    pool = FakePool()
+    repositories: list[FakeRepository] = []
+
+    def repository_factory(value: object) -> FakeRepository:
+        repository = FakeRepository(value)
+        repositories.append(repository)
+        return repository
+
+    app = create_local_app(
+        environ=_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=repository_factory,
+    )
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/offices",
+            params={"region": "아름동", "intent": "BULKY_WASTE"},
+        )
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["items"]] == ["OFFICE-AREUM"]
+    assert all("department_label" not in item for item in response.json()["items"])
+    assert len(repositories) == 1
+
+
+def test_local_office_directory_fails_closed_when_projection_is_not_ready(
+    tmp_path: Path,
+) -> None:
+    pool = FakePool()
+    repositories: list[FakeRepository] = []
+
+    def repository_factory(value: object) -> FakeRepository:
+        repository = FakeRepository(value, ready=False)
+        repositories.append(repository)
+        return repository
+
+    app = create_local_app(
+        environ=_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=repository_factory,
+    )
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/offices",
+            params={"region": "아름동", "intent": "BULKY_WASTE"},
+        )
+
+    assert response.status_code == 503
+    assert response.headers["Retry-After"] == "30"
+    assert response.json()["error"]["code"] == "SERVICE_UNAVAILABLE"
+    assert repositories[0].office_read_count == 0
 
 
 def test_valid_configuration_creates_one_lazy_pool_and_opens_and_closes_it_once(
