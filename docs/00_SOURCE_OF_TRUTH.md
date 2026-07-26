@@ -58,8 +58,11 @@ outbound 10이었다. legacy runner의 VAT 포함 USD 0.001319835는 usage compl
 전 reported lower-bound이며, configured maximum USD 0.0135168은 USD 0.05 cap 아래다. 종료 뒤
 provider-disabled TEMPLATE로 복원했다.
 corrective second 10-call run의 governance incident는 D-076에서 사용자가 사후 확인하고 PR #13
-병합을 승인해 A-049를 해결했다. 이는 future provider rerun, 오표시 metadata 22행 삭제,
-public/remote 또는 실제 기관 운영 승인이 아니다.
+병합을 승인해 A-049를 해결했다. D-077/Q-DB-CLEANUP-001=A에 따라 오표시 metadata 22행은
+현재 유지하고 해당 local DB snapshot의 event 통계를 평가 KPI로 사용하지 않는다. 정식 수치가
+필요해지는 시점의 local reset·정식 `.2` 재시드·필요한 19→20 승인 흐름 재현은 B의 별도 인간
+승인을 받는다. 이는 future provider rerun, DB reset/delete/update, public/remote 또는 실제 기관
+운영 승인이 아니다.
 
 ## 4. 변경 절차
 

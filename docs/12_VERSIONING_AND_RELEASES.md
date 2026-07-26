@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.2.0-grounded-live-chat
 test_suite: 1.6.1-grounded-actual
-documentation: 2.20.2
+documentation: 2.20.3
 ```
 
 승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
@@ -95,6 +95,10 @@ USD 0.0135168은 USD 0.05 cap 아래다.
 Documentation `2.20.2`는 D-076에서 corrective second 10-call incident를 사후 확인하고 PR #13
 병합을 승인해 A-049를 해결한 기록이다. application/API/DB/data/prompt/test 축은 바꾸지 않으며
 future rerun·22행 삭제·public/remote·자동 merge 권한을 추가하지 않는다.
+Documentation `2.20.3`은 D-077/Q-DB-CLEANUP-001=A로 오표시 22행을 현재 유지하고 해당 local
+DB의 event 통계를 평가 KPI로 사용하지 않는 결정을 기록한다. 정식 수치가 필요한 시점의
+reset·정식 `.2` 재시드·필요한 19→20 승인 흐름 재현은 B의 별도 인간 승인 대상으로 남긴다.
+application/API/DB/data/prompt/test 축과 실제 DB 행은 바꾸지 않는다.
 
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
