@@ -163,6 +163,8 @@ def test_deterministic_supported_fast_path_has_closed_route() -> None:
 
     assert outcome.route is ClassifierRoute.SUPPORTED
     assert outcome.intent is Intent.CERTIFICATE_ISSUANCE
+    assert outcome.topic_id is None
+    assert outcome.coverage_id is None
     assert outcome.needs_provider is False
 
 
@@ -193,6 +195,21 @@ def test_classifier_outcome_rejects_inconsistent_provider_state() -> None:
             fallback_reason=None,
             route=ClassifierRoute.NON_CIVIC,
             topic_id=None,
+            coverage_id=None,
+            pending_slot=None,
+            needs_provider=False,
+        )
+
+
+def test_classifier_outcome_rejects_topic_without_matching_coverage() -> None:
+    with pytest.raises(ValueError, match="^CLASSIFICATION_OUTCOME_INVALID$"):
+        classify_question(safe_question("주민등록등본 발급")).__class__(
+            intent=Intent.CERTIFICATE_ISSUANCE,
+            followup_required=False,
+            fallback_reason=None,
+            route=ClassifierRoute.SUPPORTED,
+            topic_id="KB-CERT-01",
+            coverage_id=None,
             pending_slot=None,
             needs_provider=False,
         )

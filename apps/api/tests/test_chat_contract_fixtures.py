@@ -86,6 +86,19 @@ def test_chat_response_consumes_shared_fixtures(fixture: str, valid: bool) -> No
             CHAT_RESPONSE_ADAPTER.validate_json(payload, strict=True)
 
 
+def test_followup_fixture_uses_approved_current_tax_topic_labels() -> None:
+    response = read_fixture("chat-response/valid-followup.json")
+
+    assert response["intent"] == "LOCAL_TAX_GENERAL"
+    assert response["followup_options"] == [
+        "지방세 온라인 납부 공식 경로 안내",
+        "자동차세 개인 고지 확인·납부의 공식 로그인 경로",
+        "지방세 납세증명서 발급 안내",
+        "지방세 세목별 과세증명서 발급 안내",
+        "지방세 납부확인서 발급 안내",
+    ]
+
+
 @pytest.mark.parametrize(
     ("fixture", "valid"),
     [

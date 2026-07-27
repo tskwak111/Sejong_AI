@@ -4,6 +4,7 @@ import json
 import time
 from collections.abc import Sequence
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID, uuid4
@@ -15,6 +16,7 @@ from fastapi.testclient import TestClient
 import sejong_ai_api.local as local_module
 from sejong_ai_api.chat.idempotency import IdempotencyClaim, IdempotencyClaimStatus
 from sejong_ai_api.chat.readiness import INITIAL_ACTIVE_KB_IDS, REQUIRED_OFFICE_PROJECTIONS
+from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.contracts.admin import (
     CivicScopeGapSummary,
     FailedQuestion,
@@ -37,6 +39,8 @@ from sejong_ai_api.llm.chat_contracts import (
     GroundedChatRequest,
     GroundedChatResult,
 )
+from sejong_ai_api.llm.contracts import TokenUsage
+from sejong_ai_api.llm.cost import estimate_cost_usd
 from sejong_ai_api.local import create_local_app, load_local_settings
 
 
@@ -390,10 +394,34 @@ def _combined_provider_config() -> dict[str, str]:
         "LLM_CLASSIFIER_MAX_RETRIES": "0",
         "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
         "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
-        "LLM_CLASSIFIER_ATTEMPT_CAP": "20",
-        "LLM_GENERATOR_ATTEMPT_CAP": "30",
-        "LLM_COMBINED_ATTEMPT_CAP": "40",
+        "LLM_CLASSIFIER_ATTEMPT_CAP": "80",
+        "LLM_GENERATOR_ATTEMPT_CAP": "100",
+        "LLM_COMBINED_ATTEMPT_CAP": "160",
+        "LLM_SESSION_COST_CAP_USD": "0.20",
     }
+
+
+def _write_single_topic_coverage(tmp_path: Path) -> Path:
+    path = tmp_path / "topic-coverage.v1.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "data_kind": "NON_FACTUAL_RETRIEVAL_METADATA",
+                "topics": [
+                    {
+                        "topic_id": "KB-WASTE-01",
+                        "intent": "BULKY_WASTE",
+                        "coverage_id": "GENERAL_BULKY_DISPOSAL",
+                        "coverage_label": "일반 가구류 배출 절차",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    return path
 
 
 def test_process_environment_wins_over_the_known_env_file(tmp_path: Path) -> None:
@@ -754,6 +782,11 @@ def test_exact_classifier_profile_routes_ambiguous_local_chat_through_one_provid
     post_calls = 0
     close_calls = 0
     original_close = httpx.AsyncClient.aclose
+    monkeypatch.setattr(
+        local_module,
+        "_TOPIC_COVERAGE_PATH",
+        _write_single_topic_coverage(tmp_path),
+    )
 
     async def classify_once(
         _client: httpx.AsyncClient,
@@ -771,11 +804,13 @@ def test_exact_classifier_profile_routes_ambiguous_local_chat_through_one_provid
                         "message": {
                             "content": (
                                 '{"route":"CIVIC_SCOPE_GAP","intent":null,'
-                                '"topic_id":null,"pending_slot":null}'
+                                '"topic_id":null,"coverage_id":null,'
+                                '"pending_slot":null}'
                             )
                         },
                     }
-                ]
+                ],
+                "usage": {"prompt_tokens": 20, "completion_tokens": 10},
             },
         )
 
@@ -817,6 +852,11 @@ def test_classifier_provider_failure_returns_safe_followup_without_persistence(
     pool = FakePool()
     repositories: list[FakeRepository] = []
     post_calls = 0
+    monkeypatch.setattr(
+        local_module,
+        "_TOPIC_COVERAGE_PATH",
+        _write_single_topic_coverage(tmp_path),
+    )
 
     async def fail_once(
         _client: httpx.AsyncClient,
@@ -858,14 +898,46 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import sejong_ai_api.llm.limits as limits_module
     import sejong_ai_api.llm.upstage_chat as upstage_chat_module
     import sejong_ai_api.llm.upstage_classifier as classifier_module
 
     pool = FakePool()
     grounded_runtime = FakeGroundedRuntime()
     captured_ledgers: dict[str, object] = {}
+    captured_ledger_arguments: dict[str, object] = {}
     classifier_close_calls = 0
     original_close = httpx.AsyncClient.aclose
+
+    class CapturingProviderAttemptLedger(limits_module.ProviderAttemptLedger):
+        def __init__(
+            self,
+            *,
+            classifier_cap: int = 80,
+            generator_cap: int = 100,
+            combined_cap: int = 160,
+            cost_cap_usd: Decimal = limits_module.LOCAL_INTERACTIVE_COST_CAP_USD,
+            classifier_worst_case_usd: Decimal,
+            generator_worst_case_usd: Decimal,
+        ) -> None:
+            captured_ledger_arguments.update(
+                {
+                    "classifier_cap": classifier_cap,
+                    "generator_cap": generator_cap,
+                    "combined_cap": combined_cap,
+                    "cost_cap_usd": cost_cap_usd,
+                    "classifier_worst_case_usd": classifier_worst_case_usd,
+                    "generator_worst_case_usd": generator_worst_case_usd,
+                }
+            )
+            super().__init__(
+                classifier_cap=classifier_cap,
+                generator_cap=generator_cap,
+                combined_cap=combined_cap,
+                cost_cap_usd=cost_cap_usd,
+                classifier_worst_case_usd=classifier_worst_case_usd,
+                generator_worst_case_usd=generator_worst_case_usd,
+            )
 
     class CapturingClassifier:
         def __init__(
@@ -878,7 +950,9 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
             del settings, client
             captured_ledgers["classifier"] = ledger
 
-        async def classify(self, _question: object) -> None:
+        async def classify(self, _question: object, catalog: TopicCatalog) -> None:
+            assert type(catalog) is TopicCatalog
+            assert catalog.provider_eligible
             return None
 
     def build_grounded_with_shared_ledger(
@@ -895,6 +969,11 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
         await original_close(client)
 
     monkeypatch.setattr(classifier_module, "QuestionClassifier", CapturingClassifier)
+    monkeypatch.setattr(
+        limits_module,
+        "ProviderAttemptLedger",
+        CapturingProviderAttemptLedger,
+    )
     monkeypatch.setattr(
         upstage_chat_module,
         "build_upstage_chat_runtime",
@@ -918,6 +997,14 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
 
     assert response.status_code == 200
     assert captured_ledgers["classifier"] is captured_ledgers["generator"]
+    assert captured_ledger_arguments == {
+        "classifier_cap": 80,
+        "generator_cap": 100,
+        "combined_cap": 160,
+        "cost_cap_usd": Decimal("0.20"),
+        "classifier_worst_case_usd": estimate_cost_usd(TokenUsage(4096, 0, 128)),
+        "generator_worst_case_usd": estimate_cost_usd(TokenUsage(4096, 0, 1024)),
+    }
     assert grounded_runtime.close_count == 1
     assert classifier_close_calls == 1
     assert pool.close_count == 1

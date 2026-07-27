@@ -17,6 +17,7 @@ SOURCE_FILES = (
     API_ROOT / "src" / "sejong_ai_api" / "core" / "logging.py",
     PRIVACY_SOURCE,
 )
+RETRIEVAL_METADATA_PATH = API_ROOT.parents[1] / "data" / "retrieval" / "topic-coverage.v1.json"
 
 PRIVACY_ALLOWED_IMPORT_ROOTS = {
     "__future__",
@@ -89,6 +90,11 @@ def test_privacy_module_is_stdlib_only_and_import_safe() -> None:
 
 
 class ApiArchitectureTest(unittest.TestCase):
+    def test_retrieval_metadata_is_outside_the_official_release_tree(self) -> None:
+        self.assertEqual(RETRIEVAL_METADATA_PATH.parent.name, "retrieval")
+        self.assertNotIn("official", RETRIEVAL_METADATA_PATH.parts)
+        self.assertTrue(RETRIEVAL_METADATA_PATH.is_file())
+
     def test_exact_approved_dependencies_and_tool_configuration(self) -> None:
         pyproject_path = API_ROOT / "pyproject.toml"
         self.assertTrue(pyproject_path.is_file(), "apps/api/pyproject.toml must exist")

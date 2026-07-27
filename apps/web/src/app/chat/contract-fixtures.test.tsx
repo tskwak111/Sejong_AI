@@ -86,7 +86,9 @@ describe("contract fixture rendering", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "시연용 샘플 선택지" }),
+      screen.getByRole("button", {
+        name: (validFollowup as { followup_options: string[] }).followup_options[0],
+      }),
     ).toBeInTheDocument();
     // 단정적 답변 금지 - 출처 스트립 없음
     expect(screen.queryByText("공식 출처 확인")).not.toBeInTheDocument();

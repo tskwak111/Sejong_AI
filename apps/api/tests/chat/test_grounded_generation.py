@@ -10,19 +10,23 @@ import pytest
 import sejong_ai_api.chat.service as service_module
 from sejong_ai_api.chat.idempotency import IdempotencyClaim, IdempotencyClaimStatus
 from sejong_ai_api.chat.service import ChatUnavailableError
+from sejong_ai_api.chat.topic_catalog import TopicCoverage
 from sejong_ai_api.contracts.chat import ChatRequest, SuccessResponse
+from sejong_ai_api.db.models import Intent
 from sejong_ai_api.llm.chat_contracts import (
     GeneratedChatDraft,
     GroundedChatOutcomeCode,
     GroundedChatRequest,
     GroundedChatResult,
 )
+from sejong_ai_api.llm.classifier_contracts import ClassifierDecision, ClassifierRoute
 
 from .test_service import (
     IDEMPOTENCY_KEY,
     REQUEST_ID,
     RETRY_REQUEST_ID,
     FakeIdempotencyRepository,
+    FakeQuestionClassifier,
     FakeRepository,
     knowledge_record,
     office_record,
@@ -244,6 +248,70 @@ async def test_typed_generator_failures_use_complete_template(
     assert response.procedure_steps == list(record.procedure_steps)
     assert response.department == record.department
     assert response.sources[0].source_id == record.public_id
+    assert len(generator.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_semantic_selection_generator_failure_uses_selected_complete_template() -> None:
+    selected = replace(
+        knowledge_record(
+            public_id="KB-WASTE-01",
+            service_name="일반 가구류 대형폐기물 배출",
+            question_examples=("대형폐기물 배출 절차",),
+            required_documents=("배출 품목과 규격",),
+        ),
+        answer_summary="선택된 공식 요약",
+        procedure_steps=("선택된 공식 절차 1", "선택된 공식 절차 2"),
+        processing_time="선택된 공식 처리시간",
+        fee="선택된 공식 수수료",
+        department="선택된 공식 부서",
+    )
+    other = knowledge_record(
+        public_id="KB-WASTE-02",
+        service_name="대형폐기물 결제 취소",
+        question_examples=("결제를 취소하고 싶어요",),
+    )
+    coverage = TopicCoverage(
+        topic_id=selected.public_id,
+        intent=Intent.BULKY_WASTE,
+        coverage_id="GENERAL_BULKY_DISPOSAL",
+        coverage_label="일반 가구류 배출 절차 검색 경계",
+    )
+    other_coverage = TopicCoverage(
+        topic_id=other.public_id,
+        intent=Intent.BULKY_WASTE,
+        coverage_id="PAYMENT_STICKER_CHANGE_REFUND",
+        coverage_label="결제 취소 검색 경계",
+    )
+    classifier = FakeQuestionClassifier(
+        result=ClassifierDecision(
+            route=ClassifierRoute.SUPPORTED,
+            intent=Intent.BULKY_WASTE,
+            topic_id=selected.public_id,
+            coverage_id=coverage.coverage_id,
+            pending_slot=None,
+        )
+    )
+    generator = CountingGenerator(result=GroundedChatResult(code=GroundedChatOutcomeCode.TIMEOUT))
+
+    response = await service(
+        FakeRepository(records=(other, selected)),
+        answer_generator=generator,
+        question_classifier=classifier,
+        topic_coverage=(coverage, other_coverage),
+    ).answer(ChatRequest(question="큰 장롱을 내놓고 싶어요"))
+
+    assert response.answer_status == "SUCCESS"
+    assert response.answer_mode == "TEMPLATE"
+    assert response.summary == selected.answer_summary
+    assert response.procedure_steps == list(selected.procedure_steps)
+    assert response.required_documents == list(selected.required_documents)
+    assert response.processing_time == selected.processing_time
+    assert response.fee == selected.fee
+    assert response.department == selected.department
+    assert [source.source_id for source in response.sources] == [selected.public_id]
+    assert response.sources[0].title == selected.source_title
+    assert str(response.sources[0].url) == selected.source_url
     assert len(generator.requests) == 1
 
 

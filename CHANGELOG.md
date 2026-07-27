@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+### Implemented — bounded ACTIVE-topic Hybrid RAG
+
+- Added a versioned 20-topic metadata catalog whose runtime view is the request-local
+  ACTIVE/OFFICIAL intersection (19 in immutable official `.2`) and a closed
+  route/intent/topic/coverage/pending-slot selector with server-side membership and typed grounding.
+- Added intent-specific exact follow-ups, bounded structured context, always-visible same-tab region
+  selection, the three-choice certificate entry and source-backed related questions.
+- Added local interactive provider limits of classifier 80, generator 100, combined 160 and a
+  VAT-inclusive USD 0.20 pre-reservation stop; retry remains 0 and failures remain value-free.
+- Froze a 48-case synthetic UAT with an independent provider oracle, phone-shaped redaction-to-MOVE
+  success, exact follow-up options/pending slots and aggregate-only privacy reporting. Offline
+  acceptance passed 91 tests with skip 0; official examples are 57/57 and classifier fixtures 60/60.
+- Added a content-pinned, one-run-locked, aggregate-only actual selector runner. Its single approved
+  local execution selected 20 with skip 0, kept 11 deterministic cases provider-free and made the
+  expected 9 outbound attempts, but accepted 0 strict usage responses and matched 0 provider routes;
+  the recorded outcome is FAIL and was not rerun.
+- Kept vector/embedding, new dependencies, DB migrations, official `.2` changes, multi-KB synthesis,
+  public/remote provider operation and automatic merge out of scope. The actual FAIL does not
+  invalidate offline/template behavior, but provider configuration/availability must be diagnosed
+  and a new human authorization obtained before any corrective actual rerun.
+- Preserved the validated topic in durable SUCCESS and topic-bound REGION FOLLOWUP replay context,
+  so a network retry does not break the next short facet or region answer. Generic follow-ups remain
+  topic-free.
+- Final browser evidence is 27/27. API is 2,357 passed with 8 local-DB skips, shared contracts are
+  96/96, Mypy covers 114 files, and secret/bundle/protected-path findings are 0. The one final
+  aggregate wrapper is explicitly not PASS: it stopped at formatting after 19 unique prior stages;
+  formatter correction and every unrun constituent then passed independently.
+- Advanced application `0.11.1→0.12.1`, Web `0.7.0→0.8.0`, prompt set `0.3.1→0.4.0`, tests
+  `1.9.2→2.1.1` and documentation `2.26.1→2.29.0`; API/shared/DB/data axes are unchanged.
+
 ### Fixed — local hybrid classifier runtime composition
 
 - Wired the approved bounded Upstage classifier into the actual local/private

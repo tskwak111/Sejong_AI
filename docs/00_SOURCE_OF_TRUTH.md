@@ -112,8 +112,35 @@ production-ready로 해석하지 않는다.
 실제 local `create_local_app()`에 조립되지 않았던 완료 판정 결함을 교정했다. exact
 classifier-only/combined profile에서 ambiguous safe question만 classifier를 사용하며,
 combined profile은 classifier 20/generator 30/combined 40의 같은 process ledger를 공유한다.
-NON_CIVIC·PERSONAL_LOOKUP·LEGAL_JUDGMENT·privacy/policy fast path는 provider 호출과 질문
-row가 계속 0이다. API 계약·DB·공식 데이터·public/remote 경계는 변하지 않는다.
+ NON_CIVIC·PERSONAL_LOOKUP·LEGAL_JUDGMENT·privacy/policy fast path는 provider 호출과 질문
+ row가 계속 0이다. API 계약·DB·공식 데이터·public/remote 경계는 변하지 않는다.
+
+2026-07-27 Q-RAG-001=A, Q-DATA-RAG-001=A와 D-096~D-102는 위 hybrid classifier를
+**ACTIVE topic catalog와 coverage grounding을 사용하는 제한형 Hybrid RAG**로 개선하는 목표를
+확정한다. current ACTIVE/OFFICIAL projection과 non-factual versioned coverage metadata의
+교집합만 최대 20개 catalog로 만들고, exact approved·unique lexical·validated semantic
+`topic_id+coverage_id`·validated context facet 중 하나가 있을 때만 top-1 KB를 사용한다.
+모델은 답변·사실·출처·기관·저장 여부를 생성하거나 결정하지 못하며 서버가 current membership,
+intent, coverage와 source를 다시 검증한다. vector/embedding, 새 dependency, DB migration,
+official `.2` 수정과 다중 KB 합성은 이 구현 범위가 아니다.
+
+generic certificate는 등본/초본/차이 3개로 시작하고 move/waste/tax의 generic 질문은 해당
+intent의 bounded topic 선택지를 제시한다. 지역은 chat 입력창 위에 항상 표시하되 같은 탭
+React memory에서만 새 대화 후 유지하고 browser/server storage에는 넣지 않는다. local
+interactive provider target은 classifier 80/generator 100/combined 160, 3초/8초, retry 0,
+concurrency 1, request hard wall 12초, VAT 포함 USD0.20 pre-reservation stop이다. historical
+20/30/40·USD0.05 actual은 과거 evidence로 보존한다. D-103의 명세·계획 승인 뒤 Tasks 1~9
+local/offline 구현과 독립 검토가 끝났고 D-104가 이를 통합한다. immutable official `.2`의
+runtime ACTIVE/OFFICIAL 교집합은 19이며 metadata의 20번째 topic을 허위 ACTIVE로 만들지 않는다.
+offline UAT는 48/48, official 57/57, classifier 60/60, focused 91 PASS·skip 0이다. Task 10
+PII-free Upstage actual은 정확히 한 번 실행해 20 selected·skip 0·11 provider-free·9 outbound를
+기록했지만 strict accepted usage와 provider match가 0이라 FAIL했고 재실행하지 않았다.
+Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
+Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
+FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는
+모두 별도 PASS했다. public/remote, DB reset/seed, official `.2` 수정과 자동 merge는 아직
+완료가 아니다. 상세 권위는 ADR-0027과
+`2026-07-27-bounded-hybrid-rag-conversation-design.md`다.
 
 ## 4. 변경 절차
 

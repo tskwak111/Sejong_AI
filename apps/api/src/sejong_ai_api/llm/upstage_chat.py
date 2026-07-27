@@ -22,6 +22,8 @@ from sejong_ai_api.llm.limits import (
     AttemptBudget,
     AttemptCapReached,
     ProviderAttemptLedger,
+    ProviderCostReservation,
+    parse_provider_token_usage,
 )
 from sejong_ai_api.llm.settings import (
     UPSTAGE_BASE_URL,
@@ -33,6 +35,14 @@ from sejong_ai_api.llm.settings import (
 
 _CHAT_COMPLETIONS_PATH = "/chat/completions"
 _ZERO_USAGE = TokenUsage(0, 0, 0)
+
+
+class _GroundedResponseRejected(RuntimeError):
+    """Carry one typed result through value-free reservation failure control flow."""
+
+    def __init__(self, result: GroundedChatResult) -> None:
+        super().__init__("PROVIDER_RESPONSE_REJECTED")
+        self.result = result
 
 
 def create_upstage_chat_client(settings: UpstageChatSettings) -> httpx.AsyncClient:
@@ -93,16 +103,35 @@ class UpstageChatGenerator:
         }
         try:
             if isinstance(self._budget, AttemptBudget):
-                reservation = self._budget.reserve()
-            else:
-                reservation = self._budget.reserve_generator()
-            async with reservation:
-                response = await self._client.post(
-                    _CHAT_COMPLETIONS_PATH,
-                    json=payload,
+                async with self._budget.reserve():
+                    response = await self._client.post(
+                        _CHAT_COMPLETIONS_PATH,
+                        json=payload,
+                    )
+                return _parse_response(
+                    response,
+                    max_input_tokens=self._settings.max_input_tokens,
+                    max_output_tokens=self._settings.max_output_tokens,
                 )
+            else:
+                async with self._budget.reserve_generator() as reservation:
+                    response = await self._client.post(
+                        _CHAT_COMPLETIONS_PATH,
+                        json=payload,
+                    )
+                    result = _parse_response(
+                        response,
+                        max_input_tokens=self._settings.max_input_tokens,
+                        max_output_tokens=self._settings.max_output_tokens,
+                        reservation=reservation,
+                    )
+                    if result.code is not GroundedChatOutcomeCode.SUCCESS:
+                        raise _GroundedResponseRejected(result)
+                    return result
         except AttemptCapReached:
             return _failure(GroundedChatOutcomeCode.ATTEMPT_CAP)
+        except _GroundedResponseRejected as exc:
+            return exc.result
         except httpx.TimeoutException:
             return _failure(GroundedChatOutcomeCode.TIMEOUT)
         except httpx.TransportError:
@@ -111,11 +140,6 @@ class UpstageChatGenerator:
             # Provider/transport failures cross this boundary only as a content-free enum.
             # Cancellation and other BaseException subclasses intentionally remain unhandled.
             return _failure(GroundedChatOutcomeCode.TRANSPORT)
-        return _parse_response(
-            response,
-            max_input_tokens=self._settings.max_input_tokens,
-            max_output_tokens=self._settings.max_output_tokens,
-        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,6 +181,7 @@ def _parse_response(
     *,
     max_input_tokens: int,
     max_output_tokens: int,
+    reservation: ProviderCostReservation | None = None,
 ) -> GroundedChatResult:
     status_code = response.status_code
     if status_code in (401, 403):
@@ -173,13 +198,15 @@ def _parse_response(
     if type(envelope) is not dict:
         return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
 
-    usage = _reported_usage(envelope.get("usage"))
+    usage = parse_provider_token_usage(
+        envelope.get("usage"),
+        max_input_tokens=max_input_tokens,
+        max_output_tokens=max_output_tokens,
+    )
     if usage is None:
         return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
-    if usage.input_tokens > max_input_tokens:
-        return _failure(GroundedChatOutcomeCode.INPUT_LIMIT, usage=usage)
-    if usage.output_tokens > max_output_tokens:
-        return _failure(GroundedChatOutcomeCode.TRUNCATED, usage=usage)
+    if reservation is not None:
+        reservation.record_usage(usage)
 
     choice = _first_choice(envelope.get("choices"))
     if choice is None:
@@ -212,25 +239,6 @@ def _first_choice(value: object) -> dict[str, Any] | None:
         return None
     choice = value[0]
     return choice if type(choice) is dict else None
-
-
-def _reported_usage(value: object) -> TokenUsage | None:
-    if type(value) is not dict:
-        return None
-    prompt_tokens = value.get("prompt_tokens")
-    completion_tokens = value.get("completion_tokens")
-    if (
-        type(prompt_tokens) is not int
-        or prompt_tokens < 0
-        or type(completion_tokens) is not int
-        or completion_tokens < 0
-    ):
-        return None
-    return TokenUsage(
-        input_tokens=prompt_tokens,
-        cached_input_tokens=0,
-        output_tokens=completion_tokens,
-    )
 
 
 def _failure(

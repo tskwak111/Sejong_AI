@@ -4,6 +4,10 @@ from uuid import UUID
 
 import pytest
 
+import sejong_ai_api.llm.evaluation as evaluation_module
+from sejong_ai_api.chat.classification import SafeQuestion
+from sejong_ai_api.chat.grounding import GroundingDecision, evaluate_grounding
+from sejong_ai_api.chat.retrieval import TopicSelection
 from sejong_ai_api.db.models import AnswerStatus, Intent, KnowledgeRecord
 from sejong_ai_api.llm.contracts import (
     GeneratedAnswer,
@@ -54,13 +58,34 @@ class SpyProvider:
         return self._outcomes.pop(0)
 
 
-def _fixture(
-    fixture_id: str = "T-01",
+def _fixture(fixture_id: str = "T-01") -> SyntheticFixture:
+    canonical_fields = {
+        "T-01": (
+            "이사했는데 전입신고 어떻게 해요?",
+            Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        ),
+        "T-02": (
+            "전입신고에 필요한 서류가 뭐예요?",
+            Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        ),
+    }
+    question, intent = canonical_fields[fixture_id]
+    return SyntheticFixture(
+        fixture_id=fixture_id,
+        question=question,
+        expected_intent=intent,
+        expected_status=AnswerStatus.SUCCESS,
+        contains_pii=False,
+    )
+
+
+def _non_provider_fixture(
+    *,
     question: str = "이사했는데 전입신고 어떻게 해요?",
     intent: Intent = Intent.MOVE_IN_RESIDENT_REGISTRATION,
 ) -> SyntheticFixture:
     return SyntheticFixture(
-        fixture_id=fixture_id,
+        fixture_id="T-01",
         question=question,
         expected_intent=intent,
         expected_status=AnswerStatus.SUCCESS,
@@ -331,7 +356,7 @@ def test_provider_preflight_result_accepts_empty_trace_with_official_source(
 async def test_privacy_unresolved_stops_before_repository_and_provider() -> None:
     repository = FakeRepository((_move_in_record(),))
     provider = SpyProvider((_outcome(),))
-    fixture = _fixture(question="질문\u202e값")
+    fixture = _non_provider_fixture(question="질문\u202e값")
     service = SyntheticEvaluationService(
         fixtures=(fixture,),
         repository=repository,
@@ -362,7 +387,7 @@ async def test_non_success_classification_stops_before_repository_and_provider()
     repository = FakeRepository((_move_in_record(),))
     provider = SpyProvider((_outcome(),))
     service = SyntheticEvaluationService(
-        fixtures=(_fixture(question="신고하고 싶어요."),),
+        fixtures=(_non_provider_fixture(question="신고하고 싶어요."),),
         repository=repository,
         provider=provider,
     )
@@ -388,7 +413,7 @@ async def test_classification_that_disagrees_with_canonical_expectation_stops() 
     repository = FakeRepository((_move_in_record(),))
     provider = SpyProvider((_outcome(),))
     service = SyntheticEvaluationService(
-        fixtures=(_fixture(intent=Intent.LOCAL_TAX_GENERAL),),
+        fixtures=(_non_provider_fixture(intent=Intent.LOCAL_TAX_GENERAL),),
         repository=repository,
         provider=provider,
     )
@@ -461,8 +486,21 @@ async def test_grounding_failure_stops_before_provider() -> None:
 
 
 @pytest.mark.asyncio
-async def test_grounded_success_calls_provider_and_binds_server_source() -> None:
+async def test_grounded_success_calls_provider_and_binds_server_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     record = _move_in_record()
+    observed_selections: list[TopicSelection | None] = []
+
+    def observe_typed_selection(
+        question: SafeQuestion,
+        intent: Intent,
+        selection: TopicSelection | None,
+    ) -> GroundingDecision:
+        observed_selections.append(selection)
+        return evaluate_grounding(question, intent, selection)
+
+    monkeypatch.setattr(evaluation_module, "evaluate_grounding", observe_typed_selection)
     trace = (OutcomeCode.RATE_LIMIT, OutcomeCode.SUCCESS)
     provider = SpyProvider((_outcome(attempts_used=2, attempt_outcomes=trace),))
     service = SyntheticEvaluationService(
@@ -474,6 +512,8 @@ async def test_grounded_success_calls_provider_and_binds_server_source() -> None
     run = await service.run(repetitions=1)
 
     assert provider.calls == 1
+    assert len(observed_selections) == 1
+    assert type(observed_selections[0]) is TopicSelection
     assert provider.fixtures[0] == GroundedFixture(
         fixture_id="T-01",
         masked_question="이사했는데 전입신고 어떻게 해요?",
@@ -522,10 +562,7 @@ async def test_provider_failure_uses_server_template_fallback_without_review_sam
 @pytest.mark.asyncio
 async def test_run_sorts_fixture_ids_and_repeats_sequentially() -> None:
     first = _fixture()
-    second = _fixture(
-        fixture_id="T-02",
-        question="전입신고에 필요한 서류가 뭐예요?",
-    )
+    second = _fixture("T-02")
     provider = SpyProvider(tuple(_outcome() for _ in range(4)))
     service = SyntheticEvaluationService(
         fixtures=(second, first),

@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import sys
+from collections import Counter
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
@@ -13,7 +14,17 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+import sejong_ai_api.llm.evaluation as evaluation_module
+from sejong_ai_api.chat.classification import SafeQuestion
+from sejong_ai_api.chat.grounding import GroundingDecision, evaluate_grounding
+from sejong_ai_api.chat.retrieval import (
+    GroundingEvidenceKind,
+    TopicSelection,
+    validate_semantic_selection,
+)
+from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.db.models import AnswerStatus, Intent, KnowledgeRecord
+from sejong_ai_api.llm.classifier_contracts import ClassifierDecision
 from sejong_ai_api.llm.contracts import (
     GeneratedAnswer,
     GenerationOutcome,
@@ -154,7 +165,17 @@ def _official_records() -> tuple[KnowledgeRecord, ...]:
     )
 
 
-def _fixture(*, question: str = "이사했는데 전입신고 어떻게 해요?") -> SyntheticFixture:
+def _fixture() -> SyntheticFixture:
+    return SyntheticFixture(
+        fixture_id="T-01",
+        question="이사했는데 전입신고 어떻게 해요?",
+        expected_intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        expected_status=AnswerStatus.SUCCESS,
+        contains_pii=False,
+    )
+
+
+def _non_provider_fixture(*, question: str) -> SyntheticFixture:
     return SyntheticFixture(
         fixture_id="T-01",
         question=question,
@@ -250,21 +271,28 @@ async def test_api_key_is_header_only_and_absent_from_outcome_report_repr_and_lo
 
 
 @pytest.mark.asyncio
-async def test_raw_pre_redaction_pii_never_reaches_provider() -> None:
+async def test_noncanonical_raw_pii_never_reaches_provider_or_logs(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     provider = _CaptureProvider()
     service = SyntheticEvaluationService(
-        fixtures=(_fixture(question=f"전입신고 어떻게 해요? 연락처 {RAW_PHONE}"),),
+        fixtures=(_non_provider_fixture(question=f"전입신고 어떻게 해요? 연락처 {RAW_PHONE}"),),
         repository=_Repository((_move_in_record(),)),
         provider=provider,
-        monotonic_ns=iter((0, 1_000_000)).__next__,
     )
+    caplog.set_level(logging.DEBUG)
 
-    run = await service.run(repetitions=1)
+    with pytest.raises(ValueError, match="^SYNTHETIC_FIXTURE_NOT_ALLOWED$") as error:
+        await service.run(repetitions=1)
 
-    assert run.cases[0].outcome_code is OutcomeCode.SUCCESS
-    assert len(provider.fixtures) == 1
-    assert RAW_PHONE not in provider.fixtures[0].masked_question
-    assert "[전화번호]" in provider.fixtures[0].masked_question
+    assert str(error.value) == "SYNTHETIC_FIXTURE_NOT_ALLOWED"
+    assert provider.fixtures == []
+    assert RAW_PHONE not in caplog.text
+    assert all(
+        RAW_PHONE not in representation
+        for record in caplog.records
+        for representation in _log_record_representations(record)
+    )
 
 
 @pytest.mark.asyncio
@@ -358,6 +386,163 @@ async def test_t11_through_t20_have_zero_provider_calls() -> None:
     assert loaded_ids.isdisjoint(excluded_ids)
     assert len(run.cases) == 10
     assert sum(fixture.fixture_id in excluded_ids for fixture in provider.fixtures) == 0
+
+
+@pytest.mark.asyncio
+async def test_frozen_generation_fixtures_use_exact_typed_topics_once_without_logging(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    fixtures = load_allowed_fixtures(SAMPLE_PATH)
+    provider = _CaptureProvider()
+    selections: list[TopicSelection | None] = []
+
+    def capture_selection(
+        question: SafeQuestion,
+        intent: Intent,
+        selection: TopicSelection | None,
+    ) -> GroundingDecision:
+        selections.append(selection)
+        return evaluate_grounding(question, intent, selection)
+
+    monkeypatch.setattr(evaluation_module, "evaluate_grounding", capture_selection)
+    caplog.set_level(logging.DEBUG)
+    service = SyntheticEvaluationService(
+        fixtures=fixtures,
+        repository=_Repository(_official_records()),
+        provider=provider,
+    )
+
+    run = await service.run(repetitions=1)
+
+    allowed_ids = tuple(f"T-{number:02d}" for number in range(1, 11))
+    excluded_ids = tuple(f"T-{number:02d}" for number in range(11, 21))
+    expected_sources = {
+        "T-01": "KB-MOVE-01",
+        "T-02": "KB-MOVE-02",
+        "T-03": "KB-MOVE-03",
+        "T-04": "KB-CERT-02",
+        "T-05": "KB-CERT-01",
+        "T-06": "KB-CERT-05",
+        "T-07": "KB-WASTE-01",
+        "T-08": "KB-WASTE-02",
+        "T-09": "KB-TAX-02",
+        "T-10": "KB-TAX-03",
+    }
+
+    call_counts = Counter(fixture.fixture_id for fixture in provider.fixtures)
+    assert call_counts == Counter({fixture_id: 1 for fixture_id in allowed_ids})
+    assert all(call_counts[fixture_id] == 0 for fixture_id in excluded_ids)
+    assert tuple(case.fixture_id for case in run.cases) == allowed_ids
+    assert tuple(case.source_id for case in run.cases) == tuple(
+        expected_sources[fixture_id] for fixture_id in allowed_ids
+    )
+    assert all(type(selection) is TopicSelection for selection in selections)
+    semantic_fixture_ids = {
+        fixture_id
+        for fixture_id, selection in zip(allowed_ids, selections, strict=True)
+        if selection is not None
+        and selection.evidence.kind is GroundingEvidenceKind.VALIDATED_SEMANTIC_COVERAGE
+    }
+    assert semantic_fixture_ids == {"T-02", "T-07", "T-08"}
+
+    forbidden_content = tuple(fixture.question for fixture in fixtures) + (
+        _answer().summary,
+        *_answer().procedure_steps,
+        *_answer().required_documents,
+    )
+    assert all(value not in caplog.text for value in forbidden_content)
+    assert all(
+        value not in representation
+        for record in caplog.records
+        for representation in _log_record_representations(record)
+        for value in forbidden_content
+    )
+
+
+@pytest.mark.asyncio
+async def test_caller_semantic_topic_input_cannot_reach_selection_or_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = _CaptureProvider()
+    semantic_calls = 0
+    fixture_values: dict[str, object] = {
+        "fixture_id": "T-99",
+        "question": "전입신고에 필요한 서류가 뭐예요?",
+        "expected_intent": Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        "expected_status": AnswerStatus.SUCCESS,
+        "contains_pii": False,
+        "expected_topic_id": "KB-MOVE-02",
+    }
+
+    def capture_semantic_selection(
+        decision: ClassifierDecision,
+        catalog: TopicCatalog,
+    ) -> TopicSelection | None:
+        nonlocal semantic_calls
+        semantic_calls += 1
+        return validate_semantic_selection(decision, catalog)
+
+    monkeypatch.setattr(
+        evaluation_module,
+        "validate_semantic_selection",
+        capture_semantic_selection,
+    )
+
+    with pytest.raises((TypeError, ValueError), match="expected_topic_id"):
+        fixture = SyntheticFixture(**fixture_values)  # type: ignore[arg-type]
+        service = SyntheticEvaluationService(
+            fixtures=(fixture,),
+            repository=_Repository(_official_records()),
+            provider=provider,
+        )
+        await service.run(repetitions=1)
+
+    assert semantic_calls == 0
+    assert provider.fixtures == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("fixture_id", "question"),
+    (
+        ("T-99", "전입신고에 필요한 서류가 뭐예요?"),
+        ("T-02", "전입신고에 필요한 서류가 뭐예요? "),
+    ),
+)
+async def test_noncanonical_fixture_fails_value_free_before_provider(
+    fixture_id: str,
+    question: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    provider = _CaptureProvider()
+    fixture = SyntheticFixture(
+        fixture_id=fixture_id,
+        question=question,
+        expected_intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        expected_status=AnswerStatus.SUCCESS,
+        contains_pii=False,
+    )
+    service = SyntheticEvaluationService(
+        fixtures=(fixture,),
+        repository=_Repository(_official_records()),
+        provider=provider,
+    )
+    caplog.set_level(logging.DEBUG)
+
+    with pytest.raises(ValueError, match="^SYNTHETIC_FIXTURE_NOT_ALLOWED$") as error:
+        await service.run(repetitions=1)
+
+    assert str(error.value) == "SYNTHETIC_FIXTURE_NOT_ALLOWED"
+    assert provider.fixtures == []
+    assert fixture_id not in caplog.text
+    assert question not in caplog.text
+    assert all(
+        value not in representation
+        for record in caplog.records
+        for representation in _log_record_representations(record)
+        for value in (fixture_id, question)
+    )
 
 
 def test_modified_t01_projection_fails_before_provider_construction(tmp_path: Path) -> None:

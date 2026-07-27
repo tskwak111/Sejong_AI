@@ -236,8 +236,10 @@ describe("citizen chat screen", () => {
     const localStorageSpy = vi.spyOn(Storage.prototype, "setItem");
     render(<ChatScreen transport={transportWith(send)} />);
 
-    const regionGroup = screen.getByRole("group", { name: "거주 지역" });
-    fireEvent.click(within(regionGroup).getByRole("button", { name: "도담동" }));
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "거주 지역 선택 · 선택사항" }),
+      { target: { value: "도담동" } },
+    );
     ask("전입신고 알려줘");
 
     await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
@@ -268,6 +270,98 @@ describe("citizen chat screen", () => {
     expect(screen.queryByText("전입신고 알려줘")).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "질문 입력" })).toHaveFocus();
     expect(send).toHaveBeenCalledTimes(callsBeforeReset);
+  });
+
+  it("keeps the always-visible selected region through a new conversation but resets it on remount", async () => {
+    const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
+    const { unmount } = render(<ChatScreen transport={transportWith(send)} />);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "거주 지역 선택 · 선택사항" }), {
+      target: { value: "도담동" },
+    });
+    ask("전입신고 알려줘");
+    await screen.findByText(SUCCESS_RESPONSE.sources[0].title);
+    expect(screen.getByRole("combobox", { name: "도담동 · 변경" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "새 대화" }));
+    expect(screen.getByRole("combobox", { name: "도담동 · 변경" })).toBeInTheDocument();
+    expect(screen.queryByText(SUCCESS_RESPONSE.sources[0].title)).not.toBeInTheDocument();
+
+    unmount();
+    render(<ChatScreen transport={transportWith(send)} />);
+    expect(
+      screen.getByRole("combobox", { name: "거주 지역 선택 · 선택사항" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps region in React only while visible before and after messages", async () => {
+    const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
+    const localStorageSpy = vi.spyOn(Storage.prototype, "setItem");
+    const sessionStorageSpy = vi.spyOn(Storage.prototype, "setItem");
+    render(<ChatScreen transport={transportWith(send)} />);
+
+    expect(screen.getByRole("combobox", { name: "거주 지역 선택 · 선택사항" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "아름동" } });
+    ask("전입신고 알려줘");
+    await screen.findByText(SUCCESS_RESPONSE.sources[0].title);
+
+    expect(screen.getByRole("combobox", { name: "아름동 · 변경" })).toBeInTheDocument();
+    expect(localStorageSpy).not.toHaveBeenCalled();
+    expect(sessionStorageSpy).not.toHaveBeenCalled();
+    expect(document.cookie).toBe("");
+  });
+
+  it("binds each simultaneous footer and inline region label to a unique native select", async () => {
+    const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
+    render(<ChatScreen transport={transportWith(send)} />);
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "아름동" } });
+    ask("전입신고 알려줘");
+    await screen.findByText(SUCCESS_RESPONSE.sources[0].title);
+    fireEvent.click(screen.getByRole("button", { name: "동 변경" }));
+
+    const selects = screen.getAllByRole("combobox");
+    expect(selects).toHaveLength(2);
+    expect(new Set(selects.map((select) => select.id)).size).toBe(selects.length);
+    for (const select of selects) {
+      const label = document.querySelector<HTMLLabelElement>(
+        `label[for="${select.id}"]`,
+      );
+      expect(label).toHaveTextContent("아름동 · 변경");
+      expect(label?.htmlFor).toBe(select.id);
+      expect(select).toHaveAccessibleName("아름동 · 변경");
+    }
+  });
+
+  it("sends a certificate navigation question with its response context and a fresh idempotency key", async () => {
+    const certificateResponse = {
+      ...SUCCESS_RESPONSE,
+      request_id: "77777777-7777-4777-8777-777777777777",
+      intent: "CERTIFICATE_ISSUANCE",
+      sources: [{ ...SUCCESS_RESPONSE.sources[0], source_id: "KB-CERT-01" }],
+      context_token: "signed-certificate-context",
+    } satisfies ChatResponse;
+    const send = vi.fn().mockResolvedValueOnce(certificateResponse).mockResolvedValueOnce(SUCCESS_RESPONSE);
+    const createIdempotencyKey = vi.fn()
+      .mockReturnValueOnce("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+      .mockReturnValueOnce("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+    render(
+      <ChatScreen
+        transport={transportWith(send)}
+        createIdempotencyKey={createIdempotencyKey}
+      />,
+    );
+
+    ask("등본과 초본의 차이");
+    fireEvent.click(await screen.findByRole("button", { name: "주민등록표 열람" }));
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    expect(send.mock.calls[1][0]).toMatchObject({
+      question: "주민등록표 열람",
+      context_token: "signed-certificate-context",
+    } satisfies Partial<ChatRequest>);
+    expect(send.mock.calls[0][1]).toEqual({ idempotencyKey: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
+    expect(send.mock.calls[1][1]).toEqual({ idempotencyKey: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" });
   });
 
   it("replaces the polite waiting message at 2 and 6 seconds and clears stale timers", async () => {

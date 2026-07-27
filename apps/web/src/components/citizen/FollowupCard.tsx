@@ -32,7 +32,7 @@ export default function FollowupCard({
   const prompt = options.every(isRegion)
     ? "안내는 사시는 동에 따라 달라요. 어느 동에 거주하시나요?"
     : intent === "CERTIFICATE_ISSUANCE"
-      ? "어떤 증명서를 발급하려고 하시나요?"
+      ? "어떤 주민등록 증명서가 필요하신가요?"
       : "어떤 것부터 안내해 드릴까요?";
 
   /* ---- 선택 직후 요약형 (§6-2) ---- */

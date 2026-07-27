@@ -10,11 +10,11 @@
 
 | ID | 요구사항 | 제안 기능 | 구현 수준 | 검증 방법 | 비고 |
 | --- | --- | --- | --- | --- | --- |
-| SFR-001 | 자연어 질의응답 | 4개 우선 분야의 일상어 질문을 공식 ACTIVE KB에 연결하고 구조화 답변과 출처 제공 | P0 실제 구현 + LLM-003 local actual PASS | 정상 질문 10개에서 GENERATED 4/TEMPLATE 6, 출처 10/10, 공식 mismatch 0 | Upstage `solar-pro3`는 local/private에서 supported+masked+ACTIVE/OFFICIAL+grounded일 때만 사용; server-issued fact ID 검증 실패 시 전체 template, public/remote 금지 |
-| SFR-002 | 민원 의도 분류 | 전입·주민등록, 증명서, 대형폐기물, 지방세, 범위 밖으로 분류 | P0 실제 구현 | 표본 질문의 기대 라벨과 비교 | 모호 질문은 FOLLOWUP으로 분리 |
+| SFR-001 | 자연어 질의응답 | 4개 우선 분야의 일상어 질문을 request-local ACTIVE/OFFICIAL topic에 연결하고 구조화 답변과 출처 제공 | P0 실제 구현 + LLM-003 actual + bounded Hybrid RAG offline PASS / 새 selector actual FAIL | historical generated/template actual 10/10·출처 10/10, synthetic UAT 48/48, official examples 57/57, 새 actual 20 selected·9 outbound·strict accepted 0 | immutable `.2` runtime 교집합 19, top-1만 사용. 새 selector actual은 재실행하지 않았고 public/remote 금지 |
+| SFR-002 | 민원 의도 분류 | 전입·주민등록, 증명서, 대형폐기물, 지방세, 범위 밖과 topic/coverage를 closed enum으로 분류 | P0 실제 구현 | frozen classifier 60/60, Hybrid UAT route/intent/topic 48/48 | 모호 질문은 exact FOLLOWUP, topic 없음은 INSUFFICIENT_GROUNDING |
 | SFR-003 | 절차·서류 안내 | 신청 방법, 필요 서류, 처리 기간, 수수료, 담당 기관 카드 | P0 실제 구현 | 민원별 필수 필드 표시 여부 전수 점검 | 해당 정보가 없는 필드는 공란 대신 공식 확인 필요 표시 |
 | SFR-004 | 기관·담당 연결 | 아름동·도담동·조치원읍 직접 선택과 민원 유형을 조합해 공식 기관 카드 표시 | 대체·부분 구현(P0) | 지역×민원 매핑 케이스와 공식 기관 데이터 확인 | GPS·거리 기반 가까운 기관 계산은 P2 |
-| SFR-005 | 대화형 후속질문 | 모호 질문에 4개 지원 분야와 그 밖의 민원 선택지 제공; 현재 탭의 15분 서명형 문맥 token으로 연속성 제공 | P0 실제 구현 | 모호 질문 2개에서 단정 답변 없이 FOLLOWUP 반환, 새로고침 후 문맥 소멸, token tamper/expiry 안전 reset | 후속질문은 실패 질문으로 저장하지 않음; 서버 세션·raw transcript 저장 없음 |
+| SFR-005 | 대화형 후속질문 | domain 또는 intent별 ACTIVE topic 선택지와 현재 탭의 15분 서명형 문맥 token으로 연속성 제공 | P0 실제 구현 | certificate/move/waste/property-tax exact option·pending-slot 4/4, context 4/4, Web 68와 E2E 27/27 | 후속질문은 실패 질문으로 저장하지 않음; 서버 세션·raw transcript 저장 없음 |
 | SFR-006 | 폴백 처리 | 근거 부족·개인 조회·법적 판단·지원 범위 밖의 4개 행정-domain 사유와 별도 `PRIVACY_UNRESOLVED` 안전 재질문 | P0 실제 구현 | 폴백 질문 8개와 마스킹 불능 표본에서 사유·행동·후보/저장 경계 평가 | 근거 부족만 KB 후보 가능; privacy outcome은 실패 질문 행 없음 |
 | SFR-007 | 신청 상태 조회(선택) | 본인 인증 및 내부 행정 시스템 연계 후 구현 | P2 로드맵 | 연계 전제·API 경계·개인정보 처리 계획 설명 | MVP에는 mock 상태조회도 넣지 않음 |
 | SFR-008 | 다국어·음성(선택) | 영어·중국어·베트남어, 음성 입력·읽기, 고령자 모드 | P2 로드맵 | 확장 조건과 사람 검수 체계 제시 | MVP 핵심 흐름 완성도 우선 |
@@ -25,10 +25,10 @@
 | SIR-002 | 지도·위치 API | 지역 선택과 공식 지도 링크 제공 | 부분 구현(P0)+P2 | 기관 카드와 링크 동작 확인 | 내장 지도·GPS·거리 정렬은 P2 |
 | PER-001 | 평균 응답시간 3초 | 평균·p95·오류율 측정, 캐시·템플릿 폴백 | P1 확정 검증 | 표본 요청의 평균·p95 기록 | 외부 LLM 상태에 따른 병목 공개 |
 | PER-002 | 동시 사용자 100명 | 100 VU·60초 제한 스모크: read-only harness preflight 뒤 cached/fixed chat | P1 실행계획 Ready / chat DB-write gate Pending | locked Python/httpx aggregate의 request·error rate·average·p50·p95·max 기록 | Phase A provider-off·DB write 0. Phase B는 A-052 인간 선택 전 HOLD; 실서비스 용량 보증이 아닌 구조 검증 |
-| SER-001 | 개인정보 최소수집 | 외부 LLM 호출 전 마스킹, 원문 DB 미저장, 앱 DB IP·기기ID 미수집 | P0 실제 구현 + LLM-003 local actual PASS | PII-free actual 10건 typed write-boundary raw fixture/API key 위반 0, aggregate-only stdout, local DB exact single-loopback | local/private 시민 chat은 D-072~D-075 승인 gate만; public/remote/실제 기관 운영 금지. actual metric은 post-read DB forensic scan이 아니며 정적 schema/repository tests와 함께 해석. DB tooling은 D-031/D-032의 pinned patched CLI와 short checkout path-budget을 통과해야 함 |
+| SER-001 | 개인정보 최소수집 | 외부 LLM 호출 전 마스킹, 원문 DB 미저장, 앱 DB IP·기기ID 미수집 | P0 실제 구현 + LLM-003 actual + offline privacy UAT PASS | historical PII-free actual 10건 forbidden-value 0; synthetic phone-shaped MOVE canonical 값 provider/repository/response/report 0; Task 10 report의 question/provider content/key/DSN 0 | Task 10 actual도 PII-free 20만 사용했고 privacy/policy outbound 0; public/remote/실제 기관 운영 금지 |
 | SER-002 | 비식별화 | 이름·주민번호·전화·이메일·상세주소·차량번호·접수번호 등 보수적 마스킹과 마스킹 불능 전용 safe-rephrase | P0 실제 구현 | PII 포함 테스트·provider payload·30일 expires_at·`PRIVACY_UNRESOLVED` no-text/no-row 확인 | PII 누락 방지 우선; 완화는 품질 근거와 인간 재승인 필요 |
 | SER-003 | 환각 방지 | 출처 없는 직접 답변 금지, 서버가 KB 메타데이터를 출처 카드로 결합 | P0 실제 구현 | 출처 표기율 100%, 근거 부족 폴백 검사 | LLM이 출처명·URL을 생성하지 않음 |
 | QUR-001 | 접근성 | 쉬운말 사전, 16→20px 큰 글씨, 본문 대비 4.5:1 이상, 키보드 포커스 | P1 확정 구현 | 390/430px, 200% 확대, 명도 대비, 키보드 모달 점검 | 별도 고대비 토글 대신 기본 대비 준수 |
-| QUR-002 | 정확성 점검 | 표본 20개 + 개선 전후 회귀 테스트 1개 | P1 확정 검증 | 답변 성공률·출처 표기율·폴백률·마스킹률 | 전체 민원 정확도로 일반화 금지 |
+| QUR-002 | 정확성 점검 | 표본 20개 + 개선 전후 회귀 + bounded synthetic 48-case | P1 확정 검증 | sample 20/20, official 57/57, classifier 60/60, Hybrid UAT 48/48·focused 91/91 skip 0 | synthetic/local 결과를 전체 민원·public 정확도로 일반화 금지 |
 | COR-001 | 근거 기반 | ACTIVE KB 검색, 후속질문, 안전 폴백, 사람 승인 | P0 실제 구현 | 정상·모호·폴백·승인·재질의 통합 테스트 | 핵심 차별점 |
 | COR-002 | 모바일 우선 | /, /chat, /admin 3페이지 반응형, 탭·카드·모달 통합 | P0 실제 구현 | 390px·430px 가로 스크롤/겹침 0건 | 데스크톱 관리자 화면 병행 |

@@ -1,10 +1,12 @@
 from collections.abc import Callable, Mapping
+from decimal import Decimal
 from pathlib import Path
 from typing import cast
 
 import pytest
 
 from sejong_ai_api.llm import settings as settings_module
+from sejong_ai_api.llm.cost import RUN_COST_CAP_USD
 from sejong_ai_api.llm.settings import (
     UpstageChatSettings,
     UpstageClassifierSettings,
@@ -57,6 +59,20 @@ CLASSIFIER_VALID = {
     "LLM_COMBINED_ATTEMPT_CAP": "40",
 }
 
+COMBINED_VALID = {
+    **CHAT_VALID,
+    "LLM_API_KEY": "combined-test-key-not-a-real-secret",
+    "UPSTAGE_CLASSIFIER_MODE": "true",
+    "LLM_CLASSIFIER_TIMEOUT_SECONDS": "3",
+    "LLM_CLASSIFIER_MAX_RETRIES": "0",
+    "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
+    "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
+    "LLM_CLASSIFIER_ATTEMPT_CAP": "80",
+    "LLM_GENERATOR_ATTEMPT_CAP": "100",
+    "LLM_COMBINED_ATTEMPT_CAP": "160",
+    "LLM_SESSION_COST_CAP_USD": "0.20",
+}
+
 
 def test_exact_synthetic_settings_load_without_exposing_key() -> None:
     settings = load_upstage_synthetic_settings(environ=VALID, env_path=Path("missing"))
@@ -70,6 +86,7 @@ def test_exact_synthetic_settings_load_without_exposing_key() -> None:
     assert settings.max_input_tokens == 4096
     assert settings.max_output_tokens == 1024
     assert settings.run_attempt_cap == 30
+    assert Decimal("0.05") == RUN_COST_CAP_USD
     assert VALID["LLM_API_KEY"] not in repr(settings)
 
 
@@ -88,17 +105,9 @@ def test_exact_grounded_chat_settings_load_without_exposing_key() -> None:
     assert CHAT_VALID["LLM_API_KEY"] not in repr(settings)
 
 
-@pytest.mark.parametrize("grounded_mode", ["false", "true"])
-def test_exact_classifier_settings_load_without_exposing_key(
-    grounded_mode: str,
-) -> None:
-    profile = {
-        **CLASSIFIER_VALID,
-        "UPSTAGE_GROUNDED_CHAT_MODE": grounded_mode,
-    }
-
+def test_exact_historical_classifier_only_settings_load_without_exposing_key() -> None:
     settings = load_upstage_classifier_settings(
-        environ=profile,
+        environ=CLASSIFIER_VALID,
         env_path=Path("missing"),
     )
 
@@ -113,24 +122,29 @@ def test_exact_classifier_settings_load_without_exposing_key(
     assert settings.classifier_attempt_cap == 20
     assert settings.generator_attempt_cap == 30
     assert settings.combined_attempt_cap == 40
-    assert profile["LLM_API_KEY"] not in repr(settings)
-    if grounded_mode == "true":
-        combined_chat_profile = {
-            **CHAT_VALID,
-            **profile,
-            "LLM_TIMEOUT_SECONDS": "8",
-            "LLM_MAX_RETRIES": "0",
-            "LLM_MAX_INPUT_TOKENS": "4096",
-            "LLM_MAX_OUTPUT_TOKENS": "1024",
-            "LLM_RUN_ATTEMPT_CAP": "30",
-        }
-        assert isinstance(
-            load_upstage_chat_settings(
-                environ=combined_chat_profile,
-                env_path=Path("missing"),
-            ),
-            UpstageChatSettings,
-        )
+    assert settings.session_cost_cap_usd == Decimal("0.05")
+    assert CLASSIFIER_VALID["LLM_API_KEY"] not in repr(settings)
+
+
+def test_exact_local_interactive_combined_profile_loads_for_both_lanes() -> None:
+    classifier = load_upstage_classifier_settings(
+        environ=COMBINED_VALID,
+        env_path=Path("missing"),
+    )
+    chat = load_upstage_chat_settings(
+        environ=COMBINED_VALID,
+        env_path=Path("missing"),
+    )
+
+    assert isinstance(classifier, UpstageClassifierSettings)
+    assert isinstance(chat, UpstageChatSettings)
+    assert classifier.classifier_attempt_cap == 80
+    assert classifier.generator_attempt_cap == 100
+    assert classifier.combined_attempt_cap == 160
+    assert classifier.session_cost_cap_usd == Decimal("0.20")
+    assert chat.run_attempt_cap == 30
+    assert COMBINED_VALID["LLM_API_KEY"] not in repr(classifier)
+    assert COMBINED_VALID["LLM_API_KEY"] not in repr(chat)
 
 
 def test_classifier_disabled_or_non_exact_profile_fails_closed() -> None:
@@ -159,6 +173,36 @@ def test_classifier_disabled_or_non_exact_profile_fails_closed() -> None:
             )
             is None
         )
+
+
+def test_combined_profile_rejects_every_non_exact_budget_value() -> None:
+    for key, invalid in (
+        ("LLM_CLASSIFIER_ATTEMPT_CAP", "79"),
+        ("LLM_CLASSIFIER_ATTEMPT_CAP", "080"),
+        ("LLM_GENERATOR_ATTEMPT_CAP", "101"),
+        ("LLM_COMBINED_ATTEMPT_CAP", "161"),
+        ("LLM_SESSION_COST_CAP_USD", "0.2"),
+        ("LLM_SESSION_COST_CAP_USD", "0.200"),
+        ("LLM_SESSION_COST_CAP_USD", '"0.20"'),
+        ("LLM_SESSION_COST_CAP_USD", " 0.20"),
+    ):
+        candidate = {**COMBINED_VALID, key: invalid}
+
+        assert (
+            load_upstage_classifier_settings(
+                environ=candidate,
+                env_path=Path("missing"),
+            )
+            is None
+        )
+        assert load_upstage_chat_settings(environ=candidate, env_path=Path("missing")) is None
+
+
+def test_invalid_combined_budget_is_rejected_before_api_key_read() -> None:
+    invalid = _KeyReadFailsMapping({**COMBINED_VALID, "LLM_SESSION_COST_CAP_USD": "0.200"})
+
+    assert load_upstage_classifier_settings(environ=invalid, env_path=Path("missing")) is None
+    assert load_upstage_chat_settings(environ=invalid, env_path=Path("missing")) is None
 
 
 def test_modes_are_mutually_exclusive_and_disabled_by_default() -> None:
@@ -355,6 +399,22 @@ def test_duplicate_chat_mode_dotenv_assignment_fails_closed(tmp_path: Path) -> N
         encoding="utf-8",
     )
 
+    assert load_upstage_chat_settings(environ={}, env_path=env_path) is None
+
+
+def test_duplicate_combined_cost_cap_dotenv_assignment_fails_closed(tmp_path: Path) -> None:
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        "\n".join(
+            [
+                *(f"{key}={value}" for key, value in COMBINED_VALID.items()),
+                "LLM_SESSION_COST_CAP_USD=0.20",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert load_upstage_classifier_settings(environ={}, env_path=env_path) is None
     assert load_upstage_chat_settings(environ={}, env_path=env_path) is None
 
 

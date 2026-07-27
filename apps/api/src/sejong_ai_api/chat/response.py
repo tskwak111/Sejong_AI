@@ -7,6 +7,7 @@ from uuid import UUID
 
 from pydantic import AnyUrl
 
+from sejong_ai_api.chat.followup import FollowupPlan
 from sejong_ai_api.contracts.chat import (
     AnswerMode,
     Fallback,
@@ -19,21 +20,6 @@ from sejong_ai_api.db.models import Intent, KnowledgeRecord, OfficeRecord
 from sejong_ai_api.llm.chat_contracts import MaterializedChatAnswer
 from sejong_ai_api.office.response import build_public_office
 
-type FollowupOptionId = Literal[
-    "intent.move-in",
-    "intent.certificate",
-    "intent.bulky-waste",
-    "intent.local-tax",
-    "certificate.resident-copy",
-    "certificate.resident-abstract",
-    "certificate.copy-vs-abstract",
-    "certificate.resident-register-inspection",
-    "certificate.unmanned-kiosk",
-    "region.areum",
-    "region.dodam",
-    "region.jochiwon",
-    "waste.item.describe",
-]
 type PublicFallbackReason = Literal[
     "INSUFFICIENT_GROUNDING",
     "PERSONAL_LOOKUP",
@@ -43,25 +29,10 @@ type PublicFallbackReason = Literal[
     "PRIVACY_UNRESOLVED",
 ]
 
-_FOLLOWUP_LABELS: dict[FollowupOptionId, str] = {
-    "intent.move-in": "전입·주민등록",
-    "intent.certificate": "증명서 발급",
-    "intent.bulky-waste": "대형폐기물",
-    "intent.local-tax": "지방세 일반 안내",
-    "certificate.resident-copy": "주민등록등본 발급",
-    "certificate.resident-abstract": "주민등록초본 발급",
-    "certificate.copy-vs-abstract": "등본과 초본의 차이",
-    "certificate.resident-register-inspection": "주민등록표 열람",
-    "certificate.unmanned-kiosk": "무인민원발급기 이용",
-    "region.areum": "아름동",
-    "region.dodam": "도담동",
-    "region.jochiwon": "조치원읍",
-    "waste.item.describe": "버리려는 물품을 적어 주세요",
-}
 _FALLBACK_COPY: dict[PublicFallbackReason, tuple[str, str, tuple[str, ...]]] = {
     "INSUFFICIENT_GROUNDING": (
         "확인된 근거가 부족해요",
-        "현재 승인된 공식 자료만으로는 정확히 안내하기 어려워요.",
+        "지원 분야이지만 현재 승인된 공식 자료에서 직접 답할 근거를 찾지 못했어요.",
         ("질문의 대상과 목적을 조금 더 구체적으로 적어 주세요.",),
     ),
     "PERSONAL_LOOKUP": (
@@ -173,15 +144,19 @@ def build_success_response(
 def build_followup_response(
     *,
     request_id: UUID,
-    intent: Intent,
     confidence: float | None,
-    option_ids: tuple[FollowupOptionId, ...],
+    plan: FollowupPlan,
     context_token: str | None,
 ) -> FollowupResponse:
-    """Build a bounded follow-up response from server-defined option IDs."""
+    """Build FOLLOWUP only from a source-backed server-owned plan."""
 
-    if not option_ids or any(option_id not in _FOLLOWUP_LABELS for option_id in option_ids):
-        raise ValueError("FOLLOWUP_OPTION_INVALID")
+    if type(plan) is not FollowupPlan:
+        raise ValueError("SERVER_OWNED_FOLLOWUP_PLAN_REQUIRED")
+    intent = plan.intent
+    try:
+        options = plan.options
+    except (AttributeError, ValueError):
+        raise ValueError("SERVER_OWNED_FOLLOWUP_PLAN_REQUIRED") from None
     if intent not in {
         Intent.MOVE_IN_RESIDENT_REGISTRATION,
         Intent.CERTIFICATE_ISSUANCE,
@@ -207,7 +182,7 @@ def build_followup_response(
         confidence=confidence,
         sources=[],
         office=None,
-        followup_options=[_FOLLOWUP_LABELS[option_id] for option_id in option_ids],
+        followup_options=list(options),
         context_token=context_token,
     )
 

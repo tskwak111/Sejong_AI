@@ -8,7 +8,8 @@ from typing import Any
 
 from sejong_ai_api.chat.classification import SafeQuestion, classify_question
 from sejong_ai_api.chat.grounding import evaluate_grounding
-from sejong_ai_api.chat.retrieval import rank_active_knowledge
+from sejong_ai_api.chat.retrieval import select_deterministic_topic
+from sejong_ai_api.chat.topic_catalog import build_topic_catalog, load_topic_coverage
 from sejong_ai_api.db.models import Intent, KnowledgeRecord
 from sejong_ai_api.privacy.redaction import redact_question
 
@@ -16,6 +17,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 RELEASE_PATH = (
     REPOSITORY_ROOT / "data" / "official" / "releases" / "0.1.0-initial.2" / "kb_records.json"
 )
+COVERAGE_PATH = REPOSITORY_ROOT / "data" / "retrieval" / "topic-coverage.v1.json"
 
 
 def load_records() -> tuple[KnowledgeRecord, ...]:
@@ -60,17 +62,21 @@ def test_every_approved_initial_question_example_reaches_its_grounded_record() -
             assert classification.followup_required is False
             assert classification.fallback_reason is None
 
-            ranked = rank_active_knowledge(
+            catalog = build_topic_catalog(
+                records_by_intent[expected_record.category],
+                load_topic_coverage(COVERAGE_PATH),
+            )
+            selection = select_deterministic_topic(
                 safe_question,
                 expected_record.category,
-                records_by_intent[expected_record.category],
+                catalog,
             )
-            assert ranked
-            assert ranked[0].record.public_id == expected_record.public_id
+            assert selection is not None
+            assert selection.topic.record.public_id == expected_record.public_id
             decision = evaluate_grounding(
                 safe_question,
                 expected_record.category,
-                ranked[0].record,
+                selection,
             )
             assert decision.is_grounded is True, (expected_record.public_id, example)
             checked += 1

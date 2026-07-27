@@ -6,9 +6,15 @@ import re
 import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import Enum
 
 from sejong_ai_api.chat.classification import SafeQuestion
+from sejong_ai_api.chat.topic_catalog import RuntimeTopic, TopicCatalog
 from sejong_ai_api.db.models import Intent, KnowledgeRecord
+from sejong_ai_api.llm.classifier_contracts import (
+    ClassifierDecision,
+    ClassifierRoute,
+)
 
 _SUPPORTED_INTENTS = frozenset(
     {
@@ -101,6 +107,78 @@ _APPROVED_SEMANTIC_TERMS = frozenset(
         "신청서",
     }
 )
+_INTENT_ANCHORS: dict[Intent, frozenset[str]] = {
+    Intent.MOVE_IN_RESIDENT_REGISTRATION: frozenset(
+        {"전입신고", "주소이전", "주소변경", "주민등록", "통보서비스"}
+    ),
+    Intent.CERTIFICATE_ISSUANCE: frozenset(
+        {"주민등록", "주민등록표", "등본", "초본", "무인민원발급", "무인발급기"}
+    ),
+    Intent.BULKY_WASTE: frozenset(
+        {"대형폐기물", "폐기물", "침대", "프레임", "매트리스", "소파", "가구", "배출"}
+    ),
+    Intent.LOCAL_TAX_GENERAL: frozenset(
+        {
+            "지방세",
+            "자동차세",
+            "재산세",
+            "주민세",
+            "취득세",
+            "체납",
+            "납세증명",
+            "전자납부번호",
+            "과세증명서",
+            "납부확인서",
+        }
+    ),
+}
+
+
+class GroundingEvidenceKind(str, Enum):  # noqa: UP042 - approved public enum shape
+    EXACT_APPROVED_EXAMPLE = "EXACT_APPROVED_EXAMPLE"
+    UNIQUE_LEXICAL_MATCH = "UNIQUE_LEXICAL_MATCH"
+    VALIDATED_SEMANTIC_COVERAGE = "VALIDATED_SEMANTIC_COVERAGE"
+    VALIDATED_CONTEXT_FACET = "VALIDATED_CONTEXT_FACET"
+
+
+@dataclass(frozen=True, slots=True)
+class GroundingEvidence:
+    kind: GroundingEvidenceKind
+    topic_id: str
+    coverage_id: str | None
+    matched_tokens: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.kind) is not GroundingEvidenceKind
+            or type(self.topic_id) is not str
+            or not self.topic_id
+            or (
+                self.coverage_id is not None
+                and (type(self.coverage_id) is not str or not self.coverage_id)
+            )
+            or type(self.matched_tokens) is not tuple
+            or any(type(token) is not str or not token for token in self.matched_tokens)
+        ):
+            raise ValueError("GROUNDING_EVIDENCE_INVALID")
+        if self.kind in {
+            GroundingEvidenceKind.VALIDATED_SEMANTIC_COVERAGE,
+            GroundingEvidenceKind.VALIDATED_CONTEXT_FACET,
+        }:
+            if self.coverage_id is None:
+                raise ValueError("GROUNDING_EVIDENCE_INVALID")
+        elif self.coverage_id is not None:
+            raise ValueError("GROUNDING_EVIDENCE_INVALID")
+
+
+@dataclass(frozen=True, slots=True)
+class TopicSelection:
+    topic: RuntimeTopic
+    evidence: GroundingEvidence
+
+    def __post_init__(self) -> None:
+        if type(self.topic) is not RuntimeTopic or type(self.evidence) is not GroundingEvidence:
+            raise ValueError("TOPIC_SELECTION_INVALID")
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,6 +260,113 @@ def rank_active_knowledge(
     )
 
 
+def select_deterministic_topic(
+    question: SafeQuestion,
+    intent: Intent,
+    catalog: TopicCatalog,
+) -> TopicSelection | None:
+    """Select only exact or uniquely anchored lexical evidence from this catalog."""
+
+    if type(question) is not SafeQuestion:
+        raise TypeError("SAFE_QUESTION_REQUIRED")
+    if type(intent) is not Intent or intent not in _SUPPORTED_INTENTS:
+        raise ValueError("SUPPORTED_INTENT_REQUIRED")
+    if type(catalog) is not TopicCatalog:
+        raise TypeError("TOPIC_CATALOG_REQUIRED")
+
+    topics_by_id = {
+        topic.record.public_id: topic for topic in catalog.topics if topic.record.category is intent
+    }
+    ranked = rank_active_knowledge(
+        question,
+        intent,
+        tuple(topic.record for topic in topics_by_id.values()),
+    )
+    if not ranked:
+        return None
+
+    top = ranked[0]
+    topic = topics_by_id.get(top.record.public_id)
+    if topic is None:
+        return None
+    matched_tokens = _matched_service_or_example_tokens(question, top.record)
+    if top.exact_question_match:
+        return TopicSelection(
+            topic=topic,
+            evidence=GroundingEvidence(
+                kind=GroundingEvidenceKind.EXACT_APPROVED_EXAMPLE,
+                topic_id=topic.record.public_id,
+                coverage_id=None,
+                matched_tokens=matched_tokens,
+            ),
+        )
+
+    top_score = (top.service_or_example_overlap, top.procedure_document_overlap)
+    if (
+        top_score == (0, 0)
+        or top.service_or_example_overlap == 0
+        or not (meaningful_tokens(question.text) & _INTENT_ANCHORS[intent])
+    ):
+        return None
+    if len(ranked) > 1:
+        second = ranked[1]
+        second_score = (second.service_or_example_overlap, second.procedure_document_overlap)
+        if top_score <= second_score:
+            return None
+    return TopicSelection(
+        topic=topic,
+        evidence=GroundingEvidence(
+            kind=GroundingEvidenceKind.UNIQUE_LEXICAL_MATCH,
+            topic_id=topic.record.public_id,
+            coverage_id=None,
+            matched_tokens=matched_tokens,
+        ),
+    )
+
+
+def validate_semantic_selection(
+    decision: ClassifierDecision,
+    catalog: TopicCatalog,
+) -> TopicSelection | None:
+    """Accept only the current catalog's exact supported topic and coverage pair."""
+
+    if type(decision) is not ClassifierDecision or type(catalog) is not TopicCatalog:
+        return None
+    if (
+        decision.route is not ClassifierRoute.SUPPORTED
+        or decision.intent is None
+        or decision.topic_id is None
+        or decision.coverage_id is None
+    ):
+        return None
+    topic = catalog.find(decision.topic_id)
+    if (
+        topic is None
+        or topic.record.category is not decision.intent
+        or topic.coverage.intent is not decision.intent
+        or topic.coverage.coverage_id != decision.coverage_id
+    ):
+        return None
+    return TopicSelection(
+        topic=topic,
+        evidence=GroundingEvidence(
+            kind=GroundingEvidenceKind.VALIDATED_SEMANTIC_COVERAGE,
+            topic_id=decision.topic_id,
+            coverage_id=decision.coverage_id,
+        ),
+    )
+
+
+def _matched_service_or_example_tokens(
+    question: SafeQuestion,
+    record: KnowledgeRecord,
+) -> tuple[str, ...]:
+    service_or_examples = meaningful_tokens(
+        " ".join((record.service_name, *record.question_examples))
+    )
+    return tuple(sorted(meaningful_tokens(question.text) & service_or_examples))
+
+
 def normalize_for_exact(value: str) -> str:
     """Normalize whitespace and punctuation for exact example comparison."""
 
@@ -211,8 +396,13 @@ def _strip_particle(token: str) -> str:
 
 
 __all__ = [
+    "GroundingEvidence",
+    "GroundingEvidenceKind",
     "RankedKnowledge",
+    "TopicSelection",
     "meaningful_tokens",
     "normalize_for_exact",
     "rank_active_knowledge",
+    "select_deterministic_topic",
+    "validate_semantic_selection",
 ]

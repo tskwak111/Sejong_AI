@@ -25,6 +25,7 @@ import {
 import SourceBadge from "@/components/citizen/SourceBadge";
 import FeedbackButtons from "@/components/citizen/FeedbackButtons";
 import RegionSelect from "@/components/citizen/RegionSelect";
+import type { ChatResponse } from "@/lib/chat-api";
 
 type SuccessResponse = components["schemas"]["SuccessResponse"];
 type Office = components["schemas"]["Office"];
@@ -36,6 +37,17 @@ const ANSWER_MODE_LABEL = {
 
 const ANSWER_MODE_DISCLOSURE =
   "AI가 표현을 정리할 수 있지만 행정 사실과 출처는 승인된 공식 자료에서 확인하며, 오류가 있으면 공식 안내 형식을 사용합니다.";
+
+const CERTIFICATE_RELATED_QUESTIONS = [
+  "주민등록표 열람",
+  "무인민원발급기 이용",
+] as const;
+
+export function relatedQuestions(response: ChatResponse): readonly string[] {
+  return response.sources.some((source) => source.source_id === "KB-CERT-01")
+    ? CERTIFICATE_RELATED_QUESTIONS
+    : [];
+}
 
 function isNonBlankText(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -168,11 +180,16 @@ export default function AnswerCard({
   response,
   region,
   onRegionChange,
+  onRelatedQuestion,
+  relatedQuestionsDisabled = false,
 }: {
   response: SuccessResponse;
   /** 이 답변을 만든 요청의 selected_region - 있으면 "동 변경" 인라인 노출 (SFR-004) */
   region?: Region | null;
   onRegionChange?: (dong: Region) => void;
+  /** KB-CERT-01에만 붙는 다음 탐색 질문 - 답변 사실이 아니다. */
+  onRelatedQuestion?: (question: string) => void;
+  relatedQuestionsDisabled?: boolean;
 }) {
   const [showRegionSelect, setShowRegionSelect] = useState(false);
 
@@ -221,6 +238,7 @@ export default function AnswerCard({
   const steps = response.procedure_steps ?? [];
   const documents = response.required_documents ?? [];
   const deepLink = DEEP_LINK_BY_INTENT[response.intent];
+  const navigationQuestions = relatedQuestions(response);
 
   return (
     <article className="card-enter overflow-hidden rounded-card border border-border bg-white shadow-card">
@@ -325,13 +343,31 @@ export default function AnswerCard({
             <div className="rounded-cell bg-bg-sub p-3">
               <RegionSelect
                 current={region}
-                label="다른 동으로 변경"
                 onSelect={(dong) => {
                   setShowRegionSelect(false);
                   if (dong !== region) onRegionChange(dong);
                 }}
               />
             </div>
+          )}
+
+          {navigationQuestions.length > 0 && onRelatedQuestion && (
+            <section aria-label="관련 안내" className="flex flex-col gap-2">
+              <SectionLabel>다음 안내도 확인해 보세요</SectionLabel>
+              <div className="flex flex-wrap gap-2">
+                {navigationQuestions.map((question) => (
+                  <button
+                    key={question}
+                    type="button"
+                    disabled={relatedQuestionsDisabled}
+                    onClick={() => onRelatedQuestion(question)}
+                    className="min-h-11 rounded-btn-s border border-primary-border bg-white px-3 text-body font-bold text-primary hover:border-primary hover:bg-hover-tint active:bg-hover-tint disabled:opacity-60"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
         </div>
 

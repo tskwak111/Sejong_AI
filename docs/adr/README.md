@@ -33,3 +33,5 @@
 - 0023: local/private 근거 제한형 Upstage 시민 답변 생성
 - 0024: 현재 지원 범위 밖 행정 민원의 별도 범위확대 검토 큐
 - 0025: deterministic safety gate와 bounded LLM의 hybrid 질문 분류
+- 0026: controlled public 시민 경로 검증과 admin/provider fail-closed
+- 0027: ACTIVE topic catalog와 coverage grounding을 사용하는 제한형 Hybrid RAG

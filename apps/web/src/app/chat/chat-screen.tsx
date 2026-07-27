@@ -247,7 +247,6 @@ export default function ChatScreen({
     setMessages([]);
     setInput("");
     setFailedDraft(null);
-    setSelectedRegion(null);
     setWaitingMessage(INITIAL_WAITING_MESSAGE);
     contextTokenRef.current = null;
     idRef.current = 0;
@@ -297,6 +296,9 @@ export default function ChatScreen({
                     displayText: `${dong} 기준으로 다시 알려주세요`,
                   });
                 }
+              }
+              onRelatedQuestion={(message, question) =>
+                ask(question, { contextToken: message.response.context_token })
               }
             />
           ),
@@ -367,15 +369,9 @@ export default function ChatScreen({
           className="mx-auto w-full max-w-[680px] px-5 pt-1 pb-3"
         >
           {/* 개인정보 경고 한 줄 - 입력 위 (§8) */}
-          {messages.length === 0 && !loading && (
-            <div className="pt-2">
-              <RegionSelect
-                current={selectedRegion}
-                label="거주 지역"
-                onSelect={setSelectedRegion}
-              />
-            </div>
-          )}
+          <div className="pt-2">
+            <RegionSelect current={selectedRegion} onSelect={setSelectedRegion} />
+          </div>
           <PrivacyNotice />
           <div className="mt-2 flex gap-2">
             <label htmlFor="chat-input" className="sr-only">
@@ -411,11 +407,13 @@ function BotResponse({
   disabled,
   onSelectFollowup,
   onRegionChange,
+  onRelatedQuestion,
 }: {
   message: BotMessage;
   disabled: boolean;
   onSelectFollowup: (message: BotMessage, option: string) => void;
   onRegionChange: (message: BotMessage, dong: Region) => void;
+  onRelatedQuestion: (message: BotMessage, question: string) => void;
 }) {
   const { response } = message;
 
@@ -428,6 +426,8 @@ function BotResponse({
           onRegionChange={
             message.region ? (dong) => onRegionChange(message, dong) : undefined
           }
+          onRelatedQuestion={(question) => onRelatedQuestion(message, question)}
+          relatedQuestionsDisabled={disabled}
         />
       );
     case "FOLLOWUP":

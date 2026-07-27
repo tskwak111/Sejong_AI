@@ -55,16 +55,16 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.9
-application: 0.11.1-classifier-runtime
-web: 0.7.0-natural-dialogue
+application: 0.12.1-bounded-hybrid-rag
+web: 0.8.0-guided-chat
 api: 4.0.0-draft
 shared_contracts: 1.0.0
 database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.3.1-hybrid-classifier
-test_suite: 1.9.2-classifier-runtime
-documentation: 2.25.1
+prompt_set: 0.4.0-topic-coverage
+test_suite: 2.1.1-bounded-hybrid-rag-closeout
+documentation: 2.29.0
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -75,14 +75,45 @@ DATA-SEED `.2` baseline·identity·A/B concurrency·19/3/10·replay·cleanup PAS
 first attempt는 stale Web env expectation 1건(집중 수정/통과)과 Windows PowerShell subprocess timeout
 9건 때문에 최종 green으로 주장하지 않는다. 별도 final local application rehearsal의 `/ready=200`과
 20번째 ACTIVE, sample 20/20, final API/Web/contracts/E2E/scanner, clean disposable DB와 root offline은
-PASS했다. current application/Web/API는 CHAT-NATURAL Slice 1~3 구현을 뜻한다.
-manual demo·formal actual Upstage aggregate와 configured remote smoke 완료를 뜻하지 않는다.
+PASS했다. current application/Web는 CHAT-NATURAL Slice 1~3 위에 CHAT-HYBRID-RAG
+Tasks 1~10 구현·검증을 포함하고 API는 `4.0.0-draft`를 유지한다. Task 10 actual은
+정확히 한 번 실행했으나 strict accepted usage/provider match 0으로 FAIL했으며 재실행하지 않았다.
+manual demo·actual PASS·configured remote smoke 완료를 뜻하지 않는다.
 `local` suffix는 공개·원격·production release가 아님을 명시한다. D-046/D-092의 `00700`
 local 구현·검증은 끝났고, remote 운영은 ADR-0026 gate가 별도다.
 
 `0.11.1-classifier-runtime`은 `CLASSIFIER-RUNTIME-WIRING-001`에서 누락됐던 실제 local factory
 classifier 주입과 combined shared ledger를 교정한 patch다. 공개 API·DB·공식 데이터는 바꾸지
 않았고, provider-disabled default와 public/remote 금지는 유지한다.
+
+Documentation `2.26.0`은 Q-RAG-001=A/Q-DATA-RAG-001=A와 설계 1~3부 승인에 따라
+ACTIVE topic catalog, coverage grounding, same-tab region UX, certificate 3-option hierarchy,
+local interactive 80/100/160·USD0.20 budget과 48-case synthetic UAT를 하나의 written
+specification과 ADR-0027로 동결한 minor documentation release다. Application/Web/API/shared/DB,
+official/mock data, prompt/test runtime은 아직 변경하지 않았다. written specification review와
+실행계획 승인 전 구현·actual provider 호출은 0이다.
+
+Documentation `2.26.1`은 사용자의 `명세 승인`으로 위 written specification을 Approved로
+전환하고 11개 reviewer-worthy task의 exact RED/GREEN 실행계획을 게시한 patch다. plan은
+ACTIVE catalog→closed selector→typed grounding→chat/context→Web→cost→48 offline→20 actual→
+final gate 순서와 파일·명령·커밋 경계를 고정한다. Application/Web/API/shared/DB/data/prompt/test
+runtime은 변경하지 않았으며 실행계획 승인 전 제품 코드와 actual provider 호출은 계속 0이다.
+
+Application `0.12.1-bounded-hybrid-rag`, Web `0.8.0-guided-chat`, prompt set
+`0.4.0-topic-coverage`, test suite `2.1.1-bounded-hybrid-rag-closeout`, documentation `2.29.0`은
+CHAT-HYBRID-RAG-001 Tasks 1~11의 local/private 구현·검증 기준선이다. request-local
+ACTIVE/OFFICIAL catalog, closed topic+coverage selector, typed grounding, intent별 FOLLOWUP,
+bounded context와 same-tab region UX, 80/100/160·USD0.20 local budget, 48-case synthetic UAT를
+포함한다. immutable official `.2`의 runtime 교집합은 19이고 local DB의 별도 승인 20번째
+ACTIVE를 official `.2`에 역기록하지 않는다. API `4.0.0-draft`, shared contracts `1.0.0`,
+DB `0.5.0-local`, official/mock data는 불변이다. offline UAT는 91 PASS·skip 0,
+official examples 57/57, classifier 60/60이다. 실제 Upstage 20-case는 한 번 실행해
+20 selected·skip 0·11 provider-free·9 outbound였으나 strict accepted usage/provider match
+0으로 FAIL했다. durable SUCCESS/REGION FOLLOWUP replay는 validated topic을 보존한다.
+browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96, Mypy 114와
+secret/bundle/protected diff 0을 기록했다. final wrapper는 FORMAT-API exit 1이라 PASS가 아니고,
+formatter 교정 뒤 미실행 constituent를 별도로 모두 통과했다. public/remote, DB reset/seed,
+automatic merge 완료를 뜻하지 않는다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

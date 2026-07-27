@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 /**
  * 지역(동) 선택 UI - SFR-004.
  * 사용처: ① FOLLOWUP의 지역 선택지 ② 답변 카드 "동 변경" 인라인.
@@ -7,46 +9,41 @@
  * 선택 칩 규칙 (DESIGN.md v3 §11): 기본 outline / 선택 = primary 채움 + ✓.
  * 목록은 계약 selected_region enum 3개동 한정 (lib/labels.ts REGION_OPTIONS).
  */
-import { REGION_OPTIONS, type Region } from "@/lib/labels";
+import { REGION_OPTIONS, isRegion, regionSelectCopy, type Region } from "@/lib/labels";
 
 export default function RegionSelect({
   current,
   onSelect,
-  label = "동 선택",
+  label,
 }: {
   current?: string | null;
   onSelect: (dong: Region) => void;
   label?: string;
 }) {
+  const controlId = `region-select-${useId()}`;
+  const selectedRegion = isRegion(current ?? "") ? (current as Region) : null;
+  const copy = label ?? regionSelectCopy(selectedRegion);
+
   return (
-    <fieldset>
-      <legend className="mb-2 text-body font-bold text-text">{label}</legend>
-      <ul className="grid grid-cols-3 gap-2">
-        {REGION_OPTIONS.map((dong) => {
-          const selected = dong === current;
-          return (
-            <li key={dong}>
-              <button
-                type="button"
-                aria-pressed={selected}
-                onClick={() => onSelect(dong)}
-                className={`flex min-h-11 w-full items-center justify-center gap-1 rounded-btn-s px-2 py-2 text-body ${
-                  selected
-                    ? "bg-primary font-bold text-white"
-                    : "border border-border bg-white text-text hover:border-primary hover:bg-hover-tint active:bg-hover-tint"
-                }`}
-              >
-                {selected && (
-                  <span aria-hidden="true" className="text-[13px] font-extrabold">
-                    ✓
-                  </span>
-                )}
-                {dong}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </fieldset>
+    <div>
+      <label className="mb-1 block text-label font-bold text-text" htmlFor={controlId}>
+        {copy}
+      </label>
+      <select
+        id={controlId}
+        value={selectedRegion ?? ""}
+        onChange={(event) => {
+          if (isRegion(event.target.value)) onSelect(event.target.value);
+        }}
+        className="min-h-11 w-full rounded-btn-s border border-border bg-white px-3 text-body font-semibold text-text focus:border-primary"
+      >
+        <option value="">거주 지역 선택 · 선택사항</option>
+        {REGION_OPTIONS.map((dong) => (
+          <option key={dong} value={dong}>
+            {dong} · 변경
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
