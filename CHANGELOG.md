@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed — local hybrid classifier runtime composition
+
+- Wired the approved bounded Upstage classifier into the actual local/private
+  `create_local_app()` citizen route instead of leaving it available only to direct adapter tests.
+- Shared one non-resettable `ProviderAttemptLedger` across classifier and grounded generation in
+  the combined profile while preserving deterministic provider-zero safety routes and bounded
+  fallback on provider failure.
+- Added local factory regression tests for provider startup/probe zero-use, ambiguous classification,
+  combined caps, client lifecycle, failure fallback and no-row policy routes.
+- Advanced application to `0.11.1-classifier-runtime`, tests to
+  `1.9.2-classifier-runtime` and documentation to `2.25.1`; API, contracts, DB and data are unchanged.
+
 ### Implemented — natural civic dialogue and governed scope operations
 
 - Added privacy-first hybrid classification, exact certificate follow-up choices, text-free signed

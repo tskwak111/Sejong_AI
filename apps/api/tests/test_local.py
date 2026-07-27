@@ -361,6 +361,41 @@ def _grounded_chat_config() -> dict[str, str]:
     }
 
 
+def _classifier_config() -> dict[str, str]:
+    return {
+        **_config(),
+        "LLM_PROVIDER": "upstage",
+        "LLM_MODEL": "solar-pro3",
+        "LLM_API_KEY": "test-only-classifier-sentinel",
+        "LLM_BASE_URL": "https://api.upstage.ai/v1",
+        "LLM_MAX_CONCURRENCY": "1",
+        "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
+        "UPSTAGE_CLASSIFIER_MODE": "true",
+        "UPSTAGE_GROUNDED_CHAT_MODE": "false",
+        "LLM_CLASSIFIER_TIMEOUT_SECONDS": "3",
+        "LLM_CLASSIFIER_MAX_RETRIES": "0",
+        "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
+        "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
+        "LLM_CLASSIFIER_ATTEMPT_CAP": "20",
+        "LLM_GENERATOR_ATTEMPT_CAP": "30",
+        "LLM_COMBINED_ATTEMPT_CAP": "40",
+    }
+
+
+def _combined_provider_config() -> dict[str, str]:
+    return {
+        **_grounded_chat_config(),
+        "UPSTAGE_CLASSIFIER_MODE": "true",
+        "LLM_CLASSIFIER_TIMEOUT_SECONDS": "3",
+        "LLM_CLASSIFIER_MAX_RETRIES": "0",
+        "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
+        "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
+        "LLM_CLASSIFIER_ATTEMPT_CAP": "20",
+        "LLM_GENERATOR_ATTEMPT_CAP": "30",
+        "LLM_COMBINED_ATTEMPT_CAP": "40",
+    }
+
+
 def test_process_environment_wins_over_the_known_env_file(tmp_path: Path) -> None:
     env_path = tmp_path / ".env"
     env_path.write_text(
@@ -708,6 +743,343 @@ def test_exact_grounded_profile_injects_generator_without_startup_or_probe_calls
         assert len(runtime.generator.requests) == 1
 
     assert runtime.close_count == 1
+    assert pool.close_count == 1
+
+
+def test_exact_classifier_profile_routes_ambiguous_local_chat_through_one_provider_call(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pool = FakePool()
+    post_calls = 0
+    close_calls = 0
+    original_close = httpx.AsyncClient.aclose
+
+    async def classify_once(
+        _client: httpx.AsyncClient,
+        *_args: object,
+        **_kwargs: object,
+    ) -> httpx.Response:
+        nonlocal post_calls
+        post_calls += 1
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {
+                            "content": (
+                                '{"route":"CIVIC_SCOPE_GAP","intent":null,'
+                                '"topic_id":null,"pending_slot":null}'
+                            )
+                        },
+                    }
+                ]
+            },
+        )
+
+    async def observe_close(client: httpx.AsyncClient) -> None:
+        nonlocal close_calls
+        close_calls += 1
+        await original_close(client)
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", classify_once)
+    monkeypatch.setattr(httpx.AsyncClient, "aclose", observe_close)
+
+    app = create_local_app(
+        environ=_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    assert post_calls == 0
+    with TestClient(app) as client:
+        assert client.get("/ready").status_code == 200
+        assert post_calls == 0
+        response = client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["fallback"]["reason"] == "CIVIC_SCOPE_GAP"
+    assert post_calls == 1
+    assert close_calls == 1
+    assert pool.close_count == 1
+
+
+def test_classifier_provider_failure_returns_safe_followup_without_persistence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pool = FakePool()
+    repositories: list[FakeRepository] = []
+    post_calls = 0
+
+    async def fail_once(
+        _client: httpx.AsyncClient,
+        *_args: object,
+        **_kwargs: object,
+    ) -> httpx.Response:
+        nonlocal post_calls
+        post_calls += 1
+        return httpx.Response(500)
+
+    def repository_factory(value: object) -> FakeRepository:
+        repository = FakeRepository(value)
+        repositories.append(repository)
+        return repository
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fail_once)
+    app = create_local_app(
+        environ=_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=repository_factory,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer_status"] == "FOLLOWUP"
+    assert response.json()["fallback"] is None
+    assert post_calls == 1
+    assert repositories[0].events == []
+    assert pool.close_count == 1
+
+
+def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.upstage_chat as upstage_chat_module
+    import sejong_ai_api.llm.upstage_classifier as classifier_module
+
+    pool = FakePool()
+    grounded_runtime = FakeGroundedRuntime()
+    captured_ledgers: dict[str, object] = {}
+    classifier_close_calls = 0
+    original_close = httpx.AsyncClient.aclose
+
+    class CapturingClassifier:
+        def __init__(
+            self,
+            *,
+            settings: object,
+            client: object,
+            ledger: object,
+        ) -> None:
+            del settings, client
+            captured_ledgers["classifier"] = ledger
+
+        async def classify(self, _question: object) -> None:
+            return None
+
+    def build_grounded_with_shared_ledger(
+        _settings: object,
+        *,
+        ledger: object,
+    ) -> FakeGroundedRuntime:
+        captured_ledgers["generator"] = ledger
+        return grounded_runtime
+
+    async def observe_classifier_close(client: httpx.AsyncClient) -> None:
+        nonlocal classifier_close_calls
+        classifier_close_calls += 1
+        await original_close(client)
+
+    monkeypatch.setattr(classifier_module, "QuestionClassifier", CapturingClassifier)
+    monkeypatch.setattr(
+        upstage_chat_module,
+        "build_upstage_chat_runtime",
+        build_grounded_with_shared_ledger,
+    )
+    monkeypatch.setattr(httpx.AsyncClient, "aclose", observe_classifier_close)
+
+    app = create_local_app(
+        environ=_combined_provider_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    with TestClient(app) as client:
+        assert client.get("/ready").status_code == 200
+        response = client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+
+    assert response.status_code == 200
+    assert captured_ledgers["classifier"] is captured_ledgers["generator"]
+    assert grounded_runtime.close_count == 1
+    assert classifier_close_calls == 1
+    assert pool.close_count == 1
+
+
+def test_combined_profile_rejects_legacy_custom_grounded_factory_without_shared_ledger(
+    tmp_path: Path,
+) -> None:
+    pool = FakePool()
+    factory_calls: list[object] = []
+
+    def legacy_factory(settings: object) -> FakeGroundedRuntime:
+        factory_calls.append(settings)
+        return FakeGroundedRuntime()
+
+    app = create_local_app(
+        environ=_combined_provider_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+        grounded_chat_runtime_factory=cast(Any, legacy_factory),
+    )
+
+    assert factory_calls == []
+    with TestClient(app) as client:
+        assert client.get("/ready").status_code == 200
+
+    assert pool.close_count == 1
+
+
+def test_classifier_constructor_failure_closes_created_client(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.upstage_classifier as classifier_module
+
+    pool = FakePool()
+    client = httpx.AsyncClient()
+    close_calls = 0
+    original_close = httpx.AsyncClient.aclose
+
+    def fail_classifier(**_kwargs: object) -> None:
+        raise RuntimeError("CLASSIFIER-CONSTRUCTION-FAILURE")
+
+    async def observe_close(value: httpx.AsyncClient) -> None:
+        nonlocal close_calls
+        close_calls += 1
+        await original_close(value)
+
+    monkeypatch.setattr(
+        classifier_module,
+        "create_upstage_classifier_client",
+        lambda _settings: client,
+    )
+    monkeypatch.setattr(classifier_module, "QuestionClassifier", fail_classifier)
+    monkeypatch.setattr(httpx.AsyncClient, "aclose", observe_close)
+
+    app = create_local_app(
+        environ=_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer_status"] == "FOLLOWUP"
+    assert close_calls == 1
+    assert client.is_closed
+    assert pool.close_count == 1
+
+
+def test_classifier_client_is_not_created_when_later_app_composition_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.upstage_classifier as classifier_module
+
+    pool = FakePool()
+    client_factory_calls = 0
+
+    def observe_client_factory(_settings: object) -> httpx.AsyncClient:
+        nonlocal client_factory_calls
+        client_factory_calls += 1
+        return httpx.AsyncClient()
+
+    def fail_service(**_kwargs: object) -> None:
+        raise RuntimeError("SERVICE-CONSTRUCTION-FAILURE")
+
+    monkeypatch.setattr(
+        classifier_module,
+        "create_upstage_classifier_client",
+        observe_client_factory,
+    )
+    monkeypatch.setattr(local_module, "ChatService", fail_service)
+
+    app = create_local_app(
+        environ=_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    with TestClient(app) as client:
+        assert client.get("/health").status_code == 200
+        assert client.get("/ready").status_code == 503
+
+    assert client_factory_calls == 0
+
+
+@pytest.mark.parametrize(
+    ("question", "reason"),
+    [
+        ("오늘 날씨 어때요?", "OUT_OF_SCOPE"),
+        ("접수번호 SJ-2026-123456 처리됐어?", "PERSONAL_LOOKUP"),
+        ("이 행정처분이 법적으로 부당한가요?", "LEGAL_JUDGMENT"),
+    ],
+)
+def test_classifier_profile_keeps_deterministic_safety_routes_provider_free(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    question: str,
+    reason: str,
+) -> None:
+    pool = FakePool()
+    repositories: list[FakeRepository] = []
+    post_calls = 0
+
+    async def unexpected_post(
+        _client: httpx.AsyncClient,
+        *_args: object,
+        **_kwargs: object,
+    ) -> httpx.Response:
+        nonlocal post_calls
+        post_calls += 1
+        raise AssertionError("PROVIDER_CALL_ON_DETERMINISTIC_SAFETY_ROUTE")
+
+    def repository_factory(value: object) -> FakeRepository:
+        repository = FakeRepository(value)
+        repositories.append(repository)
+        return repository
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", unexpected_post)
+    app = create_local_app(
+        environ=_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=repository_factory,
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/api/v1/chat", json={"question": question})
+
+    assert response.status_code == 200
+    assert response.json()["fallback"]["reason"] == reason
+    assert post_calls == 0
+    assert repositories[0].events == []
     assert pool.close_count == 1
 
 

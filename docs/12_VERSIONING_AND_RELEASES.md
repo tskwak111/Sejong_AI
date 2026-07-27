@@ -55,16 +55,16 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.9
-application: 0.11.0-natural-dialogue
+application: 0.11.1-classifier-runtime
 web: 0.7.0-natural-dialogue
 api: 4.0.0-draft
 shared_contracts: 1.0.0
 database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.3.0-hybrid-classifier
-test_suite: 1.9.0-natural-dialogue
-documentation: 2.24.0
+prompt_set: 0.3.1-hybrid-classifier
+test_suite: 1.9.2-classifier-runtime
+documentation: 2.25.1
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -79,6 +79,10 @@ PASS했다. current application/Web/API는 CHAT-NATURAL Slice 1~3 구현을 뜻�
 manual demo·formal actual Upstage aggregate와 configured remote smoke 완료를 뜻하지 않는다.
 `local` suffix는 공개·원격·production release가 아님을 명시한다. D-046/D-092의 `00700`
 local 구현·검증은 끝났고, remote 운영은 ADR-0026 gate가 별도다.
+
+`0.11.1-classifier-runtime`은 `CLASSIFIER-RUNTIME-WIRING-001`에서 누락됐던 실제 local factory
+classifier 주입과 combined shared ledger를 교정한 patch다. 공개 API·DB·공식 데이터는 바꾸지
+않았고, provider-disabled default와 public/remote 금지는 유지한다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

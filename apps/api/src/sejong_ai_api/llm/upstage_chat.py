@@ -18,7 +18,11 @@ from sejong_ai_api.llm.chat_prompt import (
     estimate_grounded_input_upper_bound,
 )
 from sejong_ai_api.llm.contracts import TokenUsage
-from sejong_ai_api.llm.limits import AttemptBudget, AttemptCapReached
+from sejong_ai_api.llm.limits import (
+    AttemptBudget,
+    AttemptCapReached,
+    ProviderAttemptLedger,
+)
 from sejong_ai_api.llm.settings import (
     UPSTAGE_BASE_URL,
     UPSTAGE_CHAT_TIMEOUT_SECONDS,
@@ -60,13 +64,13 @@ class UpstageChatGenerator:
         *,
         settings: UpstageChatSettings,
         client: httpx.AsyncClient,
-        budget: AttemptBudget,
+        budget: AttemptBudget | ProviderAttemptLedger,
     ) -> None:
         if type(settings) is not UpstageChatSettings:
             raise ValueError("UPSTAGE_CHAT_SETTINGS_INVALID")
         if not isinstance(client, httpx.AsyncClient):
             raise ValueError("UPSTAGE_CHAT_CLIENT_INVALID")
-        if type(budget) is not AttemptBudget:
+        if type(budget) not in (AttemptBudget, ProviderAttemptLedger):
             raise ValueError("ATTEMPT_BUDGET_INVALID")
         self._settings = settings
         self._client = client
@@ -88,7 +92,11 @@ class UpstageChatGenerator:
             "max_tokens": UPSTAGE_MAX_OUTPUT_TOKENS,
         }
         try:
-            async with self._budget.reserve():
+            if isinstance(self._budget, AttemptBudget):
+                reservation = self._budget.reserve()
+            else:
+                reservation = self._budget.reserve_generator()
+            async with reservation:
                 response = await self._client.post(
                     _CHAT_COMPLETIONS_PATH,
                     json=payload,
@@ -119,18 +127,27 @@ class GroundedChatRuntime:
         await self.client.aclose()
 
 
-def build_upstage_chat_runtime(settings: UpstageChatSettings) -> GroundedChatRuntime:
+def build_upstage_chat_runtime(
+    settings: UpstageChatSettings,
+    *,
+    ledger: ProviderAttemptLedger | None = None,
+) -> GroundedChatRuntime:
     """Build one process-scoped generator, attempt budget and owned client."""
     if type(settings) is not UpstageChatSettings:
         raise ValueError("UPSTAGE_CHAT_SETTINGS_INVALID")
     client = create_upstage_chat_client(settings)
+    budget = (
+        ledger
+        if ledger is not None
+        else AttemptBudget(
+            cap=settings.run_attempt_cap,
+            concurrency=settings.max_concurrency,
+        )
+    )
     generator = UpstageChatGenerator(
         settings=settings,
         client=client,
-        budget=AttemptBudget(
-            cap=settings.run_attempt_cap,
-            concurrency=settings.max_concurrency,
-        ),
+        budget=budget,
     )
     return GroundedChatRuntime(generator=generator, client=client)
 

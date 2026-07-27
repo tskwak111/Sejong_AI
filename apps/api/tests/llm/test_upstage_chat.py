@@ -13,7 +13,7 @@ from sejong_ai_api.llm.chat_contracts import (
 )
 from sejong_ai_api.llm.chat_prompt import build_grounded_chat_messages
 from sejong_ai_api.llm.contracts import TokenUsage
-from sejong_ai_api.llm.limits import AttemptBudget
+from sejong_ai_api.llm.limits import AttemptBudget, ProviderAttemptLedger
 from sejong_ai_api.llm.settings import UpstageChatSettings
 from sejong_ai_api.llm.upstage_chat import (
     GroundedChatRuntime,
@@ -488,6 +488,74 @@ async def test_exhausted_attempt_cap_returns_without_request() -> None:
     assert result.code is GroundedChatOutcomeCode.ATTEMPT_CAP
     assert result.draft is None
     assert requests == 0
+
+
+@pytest.mark.asyncio
+async def test_generator_honors_combined_attempt_cap_shared_with_classifier() -> None:
+    settings = UpstageChatSettings(api_key=SECRET)
+    ledger = ProviderAttemptLedger(
+        classifier_cap=1,
+        generator_cap=1,
+        combined_cap=1,
+    )
+    async with ledger.reserve_classifier():
+        pass
+    requests = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal requests
+        requests += 1
+        return _provider_response()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        result = await UpstageChatGenerator(
+            settings=settings,
+            client=client,
+            budget=ledger,
+        ).generate(_request())
+
+    assert result.code is GroundedChatOutcomeCode.ATTEMPT_CAP
+    assert requests == 0
+    assert ledger.classifier_attempts_used == 1
+    assert ledger.generator_attempts_used == 0
+
+
+@pytest.mark.asyncio
+async def test_runtime_uses_supplied_shared_attempt_ledger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ledger = ProviderAttemptLedger(
+        classifier_cap=20,
+        generator_cap=30,
+        combined_cap=40,
+    )
+    post_calls = 0
+
+    async def generate_once(
+        _client: httpx.AsyncClient,
+        *_args: object,
+        **_kwargs: object,
+    ) -> httpx.Response:
+        nonlocal post_calls
+        post_calls += 1
+        return _provider_response()
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", generate_once)
+    runtime = build_upstage_chat_runtime(
+        UpstageChatSettings(api_key=SECRET),
+        ledger=ledger,
+    )
+
+    result = await runtime.generator.generate(_request())
+    await runtime.aclose()
+
+    assert result.code is GroundedChatOutcomeCode.SUCCESS
+    assert post_calls == 1
+    assert ledger.classifier_attempts_used == 0
+    assert ledger.generator_attempts_used == 1
 
 
 def test_production_client_uses_exact_chat_profile(
