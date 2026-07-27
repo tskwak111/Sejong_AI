@@ -138,6 +138,49 @@ def test_issue_omits_optional_claims_when_absent() -> None:
     }
 
 
+@pytest.mark.parametrize(
+    ("last_intent", "pending_slot"),
+    [
+        ("UNKNOWN", "DOMAIN"),
+        ("BULKY_WASTE", "TOPIC_CHOICE"),
+    ],
+)
+def test_v2_round_trip_allows_only_closed_domain_and_topic_choice_slots(
+    last_intent: str,
+    pending_slot: str,
+) -> None:
+    codec = ContextTokenCodec(
+        secret=SECRET,
+        clock=_clock(),
+        nonce_factory=lambda: UUID("00000000-0000-4000-8000-000000000004"),
+    )
+
+    token = codec.issue(
+        last_intent=last_intent,  # type: ignore[arg-type]
+        selected_region=None,
+        answer_status="FOLLOWUP",
+        pending_slot=pending_slot,  # type: ignore[arg-type]
+        dialog_act="ASKING_SLOT",
+    )
+
+    payload = _decode_payload(token)
+    assert set(payload) == {
+        "answer_status",
+        "dialog_act",
+        "exp",
+        "iat",
+        "last_intent",
+        "nonce",
+        "pending_slot",
+        "schema_version",
+        "selected_region",
+    }
+    context = codec.read(token)
+    assert context is not None
+    assert context.last_intent == last_intent
+    assert context.pending_slot == pending_slot
+
+
 def test_payload_has_only_closed_non_sensitive_claims() -> None:
     token = ContextTokenCodec(
         secret=SECRET,

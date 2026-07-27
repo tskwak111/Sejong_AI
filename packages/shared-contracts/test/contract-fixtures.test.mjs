@@ -3,10 +3,34 @@ import test from "node:test";
 
 import {
   createContractValidators,
+  loadContracts,
   readFixture,
 } from "../src/contract-validator.mjs";
 
 const validators = createContractValidators();
+const validFollowup = readFixture("chat-response/valid-followup.json");
+const { openApi, standaloneChatResponse } = loadContracts();
+
+test("FOLLOWUP behavioral fixture uses the approved current tax topic labels", () => {
+  assert.equal(validFollowup.intent, "LOCAL_TAX_GENERAL");
+  assert.deepEqual(validFollowup.followup_options, [
+    "지방세 온라인 납부 공식 경로 안내",
+    "자동차세 개인 고지 확인·납부의 공식 로그인 경로",
+    "지방세 납세증명서 발급 안내",
+    "지방세 세목별 과세증명서 발급 안내",
+    "지방세 납부확인서 발급 안내",
+  ]);
+});
+
+test("OpenAPI and standalone schema expose the same FOLLOWUP behavioral example", () => {
+  assert.deepEqual(
+    openApi.paths["/api/v1/chat"].post.responses["200"].content[
+      "application/json"
+    ].example,
+    validFollowup,
+  );
+  assert.deepEqual(standaloneChatResponse.examples, [validFollowup]);
+});
 
 const requestCases = [
   ["valid-first-request.json", true],

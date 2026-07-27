@@ -1074,6 +1074,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "request_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                     *       "answer_status": "FOLLOWUP",
+                     *       "intent": "LOCAL_TAX_GENERAL",
+                     *       "sources": [],
+                     *       "office": null,
+                     *       "followup_options": [
+                     *         "지방세 온라인 납부 공식 경로 안내",
+                     *         "자동차세 개인 고지 확인·납부의 공식 로그인 경로",
+                     *         "지방세 납세증명서 발급 안내",
+                     *         "지방세 세목별 과세증명서 발급 안내",
+                     *         "지방세 납부확인서 발급 안내"
+                     *       ],
+                     *       "context_token": "synthetic-context-token"
+                     *     }
+                     */
                     "application/json": components["schemas"]["ChatResponse"];
                 };
             };

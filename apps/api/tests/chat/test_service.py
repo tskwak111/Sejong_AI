@@ -21,7 +21,7 @@ from sejong_ai_api.chat.response import (
     build_followup_response,
     build_success_response,
 )
-from sejong_ai_api.chat.service import ChatService, ChatUnavailableError
+from sejong_ai_api.chat.service import ChatService, ChatUnavailableError, FollowupPlan
 from sejong_ai_api.chat.topic_catalog import TopicCatalog, TopicCoverage
 from sejong_ai_api.contracts.chat import ChatRequest, FollowupResponse, SuccessResponse
 from sejong_ai_api.db.errors import (
@@ -43,6 +43,7 @@ from sejong_ai_api.llm.chat_contracts import GroundedAnswerGenerator
 from sejong_ai_api.llm.classifier_contracts import (
     ClassifierDecision,
     ClassifierRoute,
+    PendingSlot,
 )
 
 REQUEST_ID = UUID("11111111-1111-4111-8111-111111111111")
@@ -123,6 +124,21 @@ def topic_coverage_for(
             ),
             start=1,
         )
+    )
+
+
+def followup_records(
+    intent: Intent,
+    topic_labels: Sequence[tuple[str, str]],
+) -> tuple[KnowledgeRecord, ...]:
+    return tuple(
+        knowledge_record(
+            public_id=topic_id,
+            intent=intent,
+            service_name=label,
+            question_examples=(f"{topic_id} 승인 예시",),
+        )
+        for topic_id, label in topic_labels
     )
 
 
@@ -343,6 +359,40 @@ def insufficient_grounding_setup() -> tuple[FakeRepository, FakeQuestionClassifi
     return repository, classifier
 
 
+@pytest.mark.parametrize(
+    ("intent", "pending_slot", "options"),
+    [
+        (Intent.MOVE_IN_RESIDENT_REGISTRATION, PendingSlot.DOMAIN, ("전입",)),
+        (Intent.UNKNOWN, PendingSlot.TOPIC_CHOICE, ("전입",)),
+        (
+            Intent.MOVE_IN_RESIDENT_REGISTRATION,
+            PendingSlot.CERTIFICATE_KIND,
+            ("등본",),
+        ),
+        (
+            Intent.MOVE_IN_RESIDENT_REGISTRATION,
+            PendingSlot.WASTE_ITEM,
+            ("폐기물",),
+        ),
+        (Intent.UNKNOWN, PendingSlot.DOMAIN, ()),
+        (Intent.UNKNOWN, PendingSlot.DOMAIN, ("중복", "중복")),
+        (
+            Intent.UNKNOWN,
+            PendingSlot.DOMAIN,
+            tuple(f"선택지 {index}" for index in range(6)),
+        ),
+        (Intent.UNKNOWN, PendingSlot.DOMAIN, (" 앞뒤 공백",)),
+    ],
+)
+def test_followup_plan_rejects_invalid_closed_combinations_and_options(
+    intent: Intent,
+    pending_slot: PendingSlot,
+    options: tuple[str, ...],
+) -> None:
+    with pytest.raises(ValueError, match="^FOLLOWUP_PLAN_INVALID$"):
+        FollowupPlan(intent=intent, pending_slot=pending_slot, options=options)
+
+
 @pytest.mark.asyncio
 async def test_success_uses_masked_text_for_lookup_and_server_bound_metadata() -> None:
     raw_phone = "010-1234-5678"
@@ -409,6 +459,9 @@ async def test_ambiguous_question_is_followup_and_never_creates_a_failed_questio
     assert response.intent == Intent.UNKNOWN.value
     assert len(response.followup_options) == 4
     assert response.context_token is not None
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(response.context_token)
+    assert context is not None
+    assert context.pending_slot == "DOMAIN"
     assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
     assert repository.events == []
     assert repository.scope_gaps == []
@@ -416,7 +469,18 @@ async def test_ambiguous_question_is_followup_and_never_creates_a_failed_questio
 
 @pytest.mark.asyncio
 async def test_generic_certificate_requests_exact_certificate_kind() -> None:
-    repository = FakeRepository()
+    repository = FakeRepository(
+        records=followup_records(
+            Intent.CERTIFICATE_ISSUANCE,
+            (
+                ("KB-CERT-05", "무인민원발급기 이용 안내"),
+                ("KB-CERT-03", "주민등록초본 발급 방법"),
+                ("KB-CERT-01", "등본과 초본의 차이"),
+                ("KB-CERT-04", "주민등록표 열람"),
+                ("KB-CERT-02", "주민등록등본 발급 방법"),
+            ),
+        )
+    )
     classifier = FakeQuestionClassifier(result=None)
 
     response = await service(
@@ -430,8 +494,6 @@ async def test_generic_certificate_requests_exact_certificate_kind() -> None:
         "주민등록등본 발급",
         "주민등록초본 발급",
         "등본과 초본의 차이",
-        "주민등록표 열람",
-        "무인민원발급기 이용",
     ]
     assert response.context_token is not None
     context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(response.context_token)
@@ -441,8 +503,149 @@ async def test_generic_certificate_requests_exact_certificate_kind() -> None:
     assert context.pending_slot == "CERTIFICATE_KIND"
     assert context.dialog_act == "ASKING_SLOT"
     assert classifier.calls == []
-    assert repository.active_intents == []
+    assert repository.active_intents == [Intent.CERTIFICATE_ISSUANCE]
+    assert len(repository.events) == 1
+    assert repository.events[0].answer_status is AnswerStatus.FOLLOWUP
+    assert repository.events[0].masked_question is None
     assert repository.scope_gaps == []
+
+
+@pytest.mark.asyncio
+async def test_generic_move_uses_first_four_current_service_labels_in_topic_order() -> None:
+    records = followup_records(
+        Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        (
+            ("KB-MOVE-05", "주민등록법상 신고 일반 원칙·주의사항"),
+            ("KB-MOVE-03", "온라인 전입신고"),
+            ("KB-MOVE-01", "전입신고 개요·신청방법"),
+            ("KB-MOVE-04", "주민등록 관련 통보서비스"),
+            ("KB-MOVE-02", "방문 전입신고 준비물"),
+        ),
+    )
+    repository = FakeRepository(records=records)
+
+    response = await service(repository).answer(ChatRequest(question="전입·주민등록 안내"))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.MOVE_IN_RESIDENT_REGISTRATION.value
+    assert response.followup_options == [
+        "전입신고 개요·신청방법",
+        "방문 전입신고 준비물",
+        "온라인 전입신고",
+        "주민등록 관련 통보서비스",
+    ]
+    assert response.context_token is not None
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(response.context_token)
+    assert context is not None
+    assert context.pending_slot == "TOPIC_CHOICE"
+    assert repository.active_intents == [Intent.MOVE_IN_RESIDENT_REGISTRATION]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("include_bed_frame", [False, True])
+async def test_generic_waste_uses_only_current_topics_in_fixed_order(
+    include_bed_frame: bool,
+) -> None:
+    labels = [
+        ("KB-WASTE-05", "대형폐기물 배출요일·수거 문의"),
+        ("KB-WASTE-01", "대형폐기물 배출신청 절차"),
+        ("KB-WASTE-04", "매트리스 배출 수수료"),
+        ("KB-WASTE-02", "대형폐기물 결제·스티커·변경·환불 안내"),
+    ]
+    if include_bed_frame:
+        labels.append(("KB-WASTE-03", "침대 프레임 배출 수수료"))
+    repository = FakeRepository(records=followup_records(Intent.BULKY_WASTE, tuple(labels)))
+
+    response = await service(repository).answer(ChatRequest(question="대형폐기물 안내"))
+
+    expected = [
+        "대형폐기물 배출신청 절차",
+        "대형폐기물 결제·스티커·변경·환불 안내",
+    ]
+    if include_bed_frame:
+        expected.append("침대 프레임 배출 수수료")
+    expected.extend(
+        [
+            "매트리스 배출 수수료",
+            "대형폐기물 배출요일·수거 문의",
+        ]
+    )
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.BULKY_WASTE.value
+    assert response.followup_options == expected
+    assert len(response.followup_options) <= 5
+    assert ("침대 프레임 배출 수수료" in response.followup_options) is include_bed_frame
+    assert response.context_token is not None
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(response.context_token)
+    assert context is not None
+    assert context.pending_slot == "TOPIC_CHOICE"
+
+
+@pytest.mark.asyncio
+async def test_generic_tax_uses_all_five_current_service_labels_in_topic_order() -> None:
+    records = followup_records(
+        Intent.LOCAL_TAX_GENERAL,
+        (
+            ("KB-TAX-04", "지방세 세목별 과세증명서 발급 안내"),
+            ("KB-TAX-02", "자동차세 개인 고지 확인·납부의 공식 로그인 경로"),
+            ("KB-TAX-05", "지방세 납부확인서 발급 안내"),
+            ("KB-TAX-01", "지방세 온라인 납부 공식 경로 안내"),
+            ("KB-TAX-03", "지방세 납세증명서 발급 안내"),
+        ),
+    )
+    repository = FakeRepository(records=records)
+
+    response = await service(repository).answer(ChatRequest(question="재산세 일반 안내"))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.LOCAL_TAX_GENERAL.value
+    assert response.followup_options == [
+        "지방세 온라인 납부 공식 경로 안내",
+        "자동차세 개인 고지 확인·납부의 공식 로그인 경로",
+        "지방세 납세증명서 발급 안내",
+        "지방세 세목별 과세증명서 발급 안내",
+        "지방세 납부확인서 발급 안내",
+    ]
+    assert response.context_token is not None
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(response.context_token)
+    assert context is not None
+    assert context.pending_slot == "TOPIC_CHOICE"
+
+
+@pytest.mark.asyncio
+async def test_provider_topic_choice_uses_only_current_server_catalog_labels() -> None:
+    records = followup_records(
+        Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        (
+            ("KB-MOVE-02", "방문 전입신고 준비물"),
+            ("KB-MOVE-01", "전입신고 개요·신청방법"),
+        ),
+    )
+    repository = FakeRepository(records=records)
+    classifier = FakeQuestionClassifier(
+        result=ClassifierDecision(
+            route=ClassifierRoute.NEEDS_FOLLOWUP,
+            intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+            topic_id=None,
+            coverage_id=None,
+            pending_slot=PendingSlot.TOPIC_CHOICE,
+        )
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question="이사 뒤 주민 행정 안내가 필요해요"))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.followup_options == [
+        "전입신고 개요·신청방법",
+        "방문 전입신고 준비물",
+    ]
+    assert classifier.calls == ["이사 뒤 주민 행정 안내가 필요해요"]
+    assert len(repository.events) == 1
+    assert repository.events[0].answer_status is AnswerStatus.FOLLOWUP
+    assert repository.events[0].masked_question is None
 
 
 @pytest.mark.asyncio
@@ -639,9 +842,7 @@ async def test_deterministic_intent_loads_one_snapshot_and_reuses_selected_recor
     )
     repository = FakeRepository(records=(record,))
 
-    response = await service(repository).answer(
-        ChatRequest(question="대형폐기물은 어떻게 버려요?")
-    )
+    response = await service(repository).answer(ChatRequest(question="대형폐기물은 어떻게 버려요?"))
 
     assert response.answer_status == "SUCCESS"
     assert [source.source_id for source in response.sources] == ["KB-WASTE-01"]
@@ -664,9 +865,9 @@ async def test_unknown_safe_question_loads_all_intents_concurrently_once() -> No
     assert response.answer_status == "FOLLOWUP"
     assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
     assert classifier.calls == ["이 민원은 어디에 물어봐요?"]
-    assert tuple(
-        topic.record.public_id for topic in classifier.catalogs[0].topics
-    ) == ("KB-WASTE-01",)
+    assert tuple(topic.record.public_id for topic in classifier.catalogs[0].topics) == (
+        "KB-WASTE-01",
+    )
     assert repository.events == []
     assert repository.scope_gaps == []
 
@@ -781,6 +982,63 @@ async def test_no_topic_match_returns_one_safe_insufficient_grounding_failure() 
     assert event.fallback_reason is FallbackReason.INSUFFICIENT_GROUNDING
     assert event.masked_question == "냉장고 전용 수거를 알려줘"
     assert repository.scope_gaps == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("question", "intent", "record"),
+    [
+        (
+            "냉장고 폐가전 전용 수거를 알려줘",
+            Intent.BULKY_WASTE,
+            knowledge_record(public_id="KB-WASTE-01"),
+        ),
+        (
+            "재산세 세율을 알려줘",
+            Intent.LOCAL_TAX_GENERAL,
+            knowledge_record(
+                public_id="KB-TAX-01",
+                intent=Intent.LOCAL_TAX_GENERAL,
+                service_name="지방세 온라인 납부 공식 경로 안내",
+            ),
+        ),
+        (
+            "재산세 감면 기준을 알려줘",
+            Intent.LOCAL_TAX_GENERAL,
+            knowledge_record(
+                public_id="KB-TAX-01",
+                intent=Intent.LOCAL_TAX_GENERAL,
+                service_name="지방세 온라인 납부 공식 경로 안내",
+            ),
+        ),
+    ],
+)
+async def test_unapproved_specific_details_are_insufficient_grounding(
+    question: str,
+    intent: Intent,
+    record: KnowledgeRecord,
+) -> None:
+    repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(
+        result=None,
+        error=AssertionError("KNOWN_UNSUPPORTED_DETAIL_MUST_NOT_CALL_PROVIDER"),
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question=question))
+
+    assert response.answer_status == "FALLBACK"
+    assert response.intent == intent.value
+    assert response.fallback.reason == "INSUFFICIENT_GROUNDING"
+    assert response.sources == []
+    assert response.context_token is None
+    assert classifier.calls == []
+    assert repository.active_intents == [intent]
+    assert len(repository.events) == 1
+    assert repository.events[0].fallback_reason is FallbackReason.INSUFFICIENT_GROUNDING
+    assert repository.events[0].masked_question == question
 
 
 @pytest.mark.asyncio
@@ -1376,6 +1634,77 @@ async def test_explicit_new_intent_takes_precedence_over_prior_topic() -> None:
 
 
 @pytest.mark.asyncio
+async def test_bounded_cancel_followup_changes_to_current_waste_refund_topic() -> None:
+    old_record = knowledge_record(
+        public_id="KB-WASTE-01",
+        service_name="대형폐기물 배출신청 절차",
+    )
+    cancel_record = knowledge_record(
+        public_id="KB-WASTE-02",
+        service_name="대형폐기물 결제·스티커·변경·환불 안내",
+        question_examples=("대형폐기물 신청을 취소하고 싶어요.",),
+    )
+    repository = FakeRepository(records=(cancel_record, old_record))
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=old_record.public_id,
+    )
+    classifier = FakeQuestionClassifier(
+        result=None,
+        error=AssertionError("BOUNDED_TOPIC_CHANGE_MUST_NOT_CALL_PROVIDER"),
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question="취소하려면?", context_token=token))
+
+    assert response.answer_status == "SUCCESS"
+    assert [source.source_id for source in response.sources] == ["KB-WASTE-02"]
+    assert classifier.calls == []
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
+    assert response.context_token is not None
+    next_context = codec.read(response.context_token)
+    assert next_context is not None
+    assert next_context.topic_id == "KB-WASTE-02"
+    assert next_context.dialog_act == "CHANGING_TOPIC"
+
+
+@pytest.mark.asyncio
+async def test_cancel_followup_rejects_a_stale_prior_context_topic() -> None:
+    cancel_record = knowledge_record(
+        public_id="KB-WASTE-02",
+        service_name="대형폐기물 결제·스티커·변경·환불 안내",
+    )
+    repository = FakeRepository(records=(cancel_record,))
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id="KB-WASTE-RETIRED",
+    )
+    classifier = FakeQuestionClassifier(result=None)
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question="취소하려면?", context_token=token))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.UNKNOWN.value
+    assert response.sources == []
+    assert classifier.calls == ["취소하려면?"]
+    assert repository.events == []
+    assert repository.scope_gaps == []
+
+
+@pytest.mark.asyncio
 async def test_invalid_context_silently_resets_to_followup() -> None:
     repository = FakeRepository()
 
@@ -1386,6 +1715,31 @@ async def test_invalid_context_silently_resets_to_followup() -> None:
     assert response.answer_status == "FOLLOWUP"
     assert response.intent == Intent.UNKNOWN.value
     assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
+
+
+@pytest.mark.asyncio
+async def test_expired_context_silently_resets_to_no_context_domain_followup() -> None:
+    expired_token = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 0).issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id="KB-WASTE-01",
+    )
+    repository = FakeRepository()
+
+    response = await service(repository).answer(
+        ChatRequest(question="준비물은요?", context_token=expired_token)
+    )
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.UNKNOWN.value
+    assert response.context_token is not None
+    context = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000).read(response.context_token)
+    assert context is not None
+    assert context.pending_slot == "DOMAIN"
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
+    assert repository.events == []
 
 
 @pytest.mark.asyncio
@@ -1584,7 +1938,7 @@ async def test_completed_conversational_replay_reissues_a_memory_only_context_to
             request_id=REQUEST_ID,
             intent=Intent.UNKNOWN,
             confidence=None,
-            option_ids=("intent.bulky-waste",),
+            options=("대형폐기물",),
             context_token="old-token-must-not-persist",
         )
     stored = stored_response.model_dump(

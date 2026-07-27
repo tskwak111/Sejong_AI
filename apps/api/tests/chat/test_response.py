@@ -139,7 +139,7 @@ def test_followup_is_value_free_and_requires_server_options() -> None:
         request_id=REQUEST_ID,
         intent=Intent.UNKNOWN,
         confidence=None,
-        option_ids=("intent.move-in", "intent.certificate"),
+        options=("전입·주민등록", "증명서 발급"),
         context_token="signed-followup",
     )
 
@@ -199,17 +199,15 @@ def test_fallback_matrix_is_closed_and_never_returns_context_or_sources(
         )
 
 
-def test_certificate_followup_uses_exact_five_server_owned_options() -> None:
+def test_certificate_followup_uses_exact_three_approved_short_labels() -> None:
     response = build_followup_response(
         request_id=REQUEST_ID,
         intent=Intent.CERTIFICATE_ISSUANCE,
         confidence=None,
-        option_ids=(
-            "certificate.resident-copy",
-            "certificate.resident-abstract",
-            "certificate.copy-vs-abstract",
-            "certificate.resident-register-inspection",
-            "certificate.unmanned-kiosk",
+        options=(
+            "주민등록등본 발급",
+            "주민등록초본 발급",
+            "등본과 초본의 차이",
         ),
         context_token="signed-certificate-followup",
     )
@@ -218,21 +216,33 @@ def test_certificate_followup_uses_exact_five_server_owned_options() -> None:
         "주민등록등본 발급",
         "주민등록초본 발급",
         "등본과 초본의 차이",
-        "주민등록표 열람",
-        "무인민원발급기 이용",
     ]
 
 
-def test_response_builders_reject_unknown_server_values() -> None:
+@pytest.mark.parametrize(
+    "options",
+    [
+        (),
+        ("",),
+        (" 앞뒤 공백",),
+        ("중복", "중복"),
+        tuple(f"선택지 {index}" for index in range(6)),
+    ],
+)
+def test_followup_rejects_malformed_or_unbounded_server_options(
+    options: tuple[str, ...],
+) -> None:
     with pytest.raises(ValueError, match="^FOLLOWUP_OPTION_INVALID$"):
         build_followup_response(
             request_id=REQUEST_ID,
             intent=Intent.UNKNOWN,
             confidence=None,
-            option_ids=("citizen-controlled-value",),  # type: ignore[arg-type]
+            options=options,
             context_token=None,
         )
 
+
+def test_response_builders_reject_unknown_server_values() -> None:
     with pytest.raises(ValueError, match="^FALLBACK_REASON_INVALID$"):
         build_fallback_response(
             request_id=REQUEST_ID,
