@@ -148,3 +148,4 @@
 | [IMP-20260727-016](IMP-20260727-016-현재-시스템-가능-범위-상태-확인.md) | 2026-07-27 | STATUS-CAPABILITY-001 | status-assessment | 시민·관리자·AI·DB·public 현재 가능 범위와 경계 확인 | versions unchanged | Done — PR #18 merge와 A-063 Pending |
 | [IMP-20260727-017](IMP-20260727-017-pr-18-이후-로컬-시스템-실행-안내.md) | 2026-07-27 | LOCAL-RUN-GUIDE-001 | runbook-status | PR #18 병합 후 local API/Web actual 실행 절차와 현재 PC preflight | versions unchanged | Done — merge 후 실행 |
 | [IMP-20260727-018](IMP-20260727-018-실제-upstage-시민-채팅-사용-경계와-설정-진단.md) | 2026-07-27 | LOCAL-AI-RUN-001 | diagnostic-guidance | grounded answer는 설정 가능, classifier local runtime composition gap 확인 | versions unchanged | Done — classifier wiring Pending |
+| [IMP-20260727-019](IMP-20260727-019-local-backend-db-비밀번호-불일치-진단.md) | 2026-07-27 | LOCAL-DB-AUTH-001 | diagnostic-guidance | admin OK/backend FAIL로 stale local login DSN 확정, 안전 provision 안내 | versions/data unchanged | Done — user provision result Pending |
