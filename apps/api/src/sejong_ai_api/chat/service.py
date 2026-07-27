@@ -18,6 +18,14 @@ from sejong_ai_api.chat.classification import (
     classify_question,
 )
 from sejong_ai_api.chat.context import ChatContext, ContextTokenCodec
+from sejong_ai_api.chat.followup import (
+    _REGION_FOLLOWUP_OPTIONS,
+    _WASTE_ITEM_FOLLOWUP_OPTIONS,
+    FollowupPlan,
+    _domain_followup_plan,
+    _followup_plan_from_catalog,
+    _region_followup_plan,
+)
 from sejong_ai_api.chat.grounding import evaluate_grounding
 from sejong_ai_api.chat.idempotency import (
     ChatIdempotencyRepository,
@@ -100,49 +108,11 @@ _SUPPORTED_INTENT_ORDER = (
     Intent.LOCAL_TAX_GENERAL,
 )
 _SUPPORTED_INTENTS = frozenset(_SUPPORTED_INTENT_ORDER)
-_DOMAIN_FOLLOWUP_OPTIONS = (
-    "전입·주민등록",
-    "증명서 발급",
-    "대형폐기물",
-    "지방세 일반 안내",
-)
-_REGION_FOLLOWUP_OPTIONS = ("아름동", "도담동", "조치원읍")
-_WASTE_ITEM_FOLLOWUP_OPTIONS = ("버리려는 물품을 적어 주세요",)
-_TOPIC_FOLLOWUP_ORDER: dict[Intent, tuple[str, ...]] = {
-    Intent.MOVE_IN_RESIDENT_REGISTRATION: (
-        "KB-MOVE-01",
-        "KB-MOVE-02",
-        "KB-MOVE-03",
-        "KB-MOVE-04",
-    ),
-    Intent.CERTIFICATE_ISSUANCE: (
-        "KB-CERT-02",
-        "KB-CERT-03",
-        "KB-CERT-01",
-    ),
-    Intent.BULKY_WASTE: (
-        "KB-WASTE-01",
-        "KB-WASTE-02",
-        "KB-WASTE-03",
-        "KB-WASTE-04",
-        "KB-WASTE-05",
-    ),
-    Intent.LOCAL_TAX_GENERAL: (
-        "KB-TAX-01",
-        "KB-TAX-02",
-        "KB-TAX-03",
-        "KB-TAX-04",
-        "KB-TAX-05",
-    ),
-}
-_CERTIFICATE_SHORT_LABELS = {
-    "KB-CERT-02": "주민등록등본 발급",
-    "KB-CERT-03": "주민등록초본 발급",
-    "KB-CERT-01": "등본과 초본의 차이",
-}
 _GENERIC_TOPIC_CHOICE_UTTERANCES: dict[Intent, frozenset[str]] = {
     Intent.MOVE_IN_RESIDENT_REGISTRATION: frozenset(
         {
+            "전입신고",
+            "전입신고알려주세요",
             "전입주민등록안내",
             "전입신고일반안내",
             "주민등록일반안내",
@@ -250,40 +220,6 @@ class _ChatExecution:
     response: ChatResult
     interaction: InteractionWrite | None
     scope_gap_question: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class FollowupPlan:
-    intent: Intent
-    pending_slot: PendingSlot
-    options: tuple[str, ...]
-
-    def __post_init__(self) -> None:
-        if (
-            type(self.intent) is not Intent
-            or type(self.pending_slot) is not PendingSlot
-            or type(self.options) is not tuple
-            or not 1 <= len(self.options) <= 5
-            or len(set(self.options)) != len(self.options)
-            or any(
-                type(option) is not str or not option or option.strip() != option
-                for option in self.options
-            )
-        ):
-            raise ValueError("FOLLOWUP_PLAN_INVALID")
-        if self.pending_slot is PendingSlot.DOMAIN:
-            if self.intent is not Intent.UNKNOWN:
-                raise ValueError("FOLLOWUP_PLAN_INVALID")
-            return
-        if self.intent not in _SUPPORTED_INTENTS:
-            raise ValueError("FOLLOWUP_PLAN_INVALID")
-        if (
-            self.pending_slot is PendingSlot.CERTIFICATE_KIND
-            and self.intent is not Intent.CERTIFICATE_ISSUANCE
-        ):
-            raise ValueError("FOLLOWUP_PLAN_INVALID")
-        if self.pending_slot is PendingSlot.WASTE_ITEM and self.intent is not Intent.BULKY_WASTE:
-            raise ValueError("FOLLOWUP_PLAN_INVALID")
 
 
 @dataclass(slots=True)
@@ -578,11 +514,7 @@ class ChatService:
         if contextual_action == "OFFICE" and selected_region is None:
             return self._build_followup_execution(
                 request_id=selected_request_id,
-                plan=FollowupPlan(
-                    intent=intent,
-                    pending_slot=PendingSlot.REGION,
-                    options=_REGION_FOLLOWUP_OPTIONS,
-                ),
+                plan=_region_followup_plan(intent),
                 selected_region=None,
                 started_ns=started_ns,
                 persist_event=True,
@@ -966,9 +898,8 @@ class ChatService:
         )
         response = build_followup_response(
             request_id=request_id,
-            intent=plan.intent,
             confidence=None,
-            options=plan.options,
+            plan=plan,
             context_token=token,
         )
         interaction = (
@@ -1191,53 +1122,6 @@ def _confidence(selection: TopicSelection | None) -> float:
     if selection.evidence.kind is GroundingEvidenceKind.UNIQUE_LEXICAL_MATCH:
         return min(0.95, 0.7 + len(selection.evidence.matched_tokens) * 0.05)
     return 0.9
-
-
-def _domain_followup_plan() -> FollowupPlan:
-    return FollowupPlan(
-        intent=Intent.UNKNOWN,
-        pending_slot=PendingSlot.DOMAIN,
-        options=_DOMAIN_FOLLOWUP_OPTIONS,
-    )
-
-
-def _followup_plan_from_catalog(
-    intent: Intent,
-    pending_slot: PendingSlot,
-    catalog: TopicCatalog,
-) -> FollowupPlan | None:
-    if pending_slot is PendingSlot.DOMAIN:
-        return _domain_followup_plan()
-    if pending_slot is PendingSlot.REGION and intent in _SUPPORTED_INTENTS:
-        return FollowupPlan(intent, pending_slot, _REGION_FOLLOWUP_OPTIONS)
-    if pending_slot is PendingSlot.WASTE_ITEM and intent is Intent.BULKY_WASTE:
-        return FollowupPlan(intent, pending_slot, _WASTE_ITEM_FOLLOWUP_OPTIONS)
-    if pending_slot not in {
-        PendingSlot.TOPIC_CHOICE,
-        PendingSlot.CERTIFICATE_KIND,
-    }:
-        return None
-    if intent not in _SUPPORTED_INTENTS:
-        return None
-    if pending_slot is PendingSlot.CERTIFICATE_KIND and intent is not Intent.CERTIFICATE_ISSUANCE:
-        return None
-
-    topics_by_id = {
-        topic.record.public_id: topic for topic in catalog.topics if topic.record.category is intent
-    }
-    ordered_ids = _TOPIC_FOLLOWUP_ORDER[intent]
-    options = tuple(
-        (
-            _CERTIFICATE_SHORT_LABELS[topic_id]
-            if pending_slot is PendingSlot.CERTIFICATE_KIND
-            else topics_by_id[topic_id].record.service_name
-        )
-        for topic_id in ordered_ids
-        if topic_id in topics_by_id
-    )
-    if not options:
-        return None
-    return FollowupPlan(intent, pending_slot, options)
 
 
 def _is_generic_topic_choice(value: str, intent: Intent) -> bool:

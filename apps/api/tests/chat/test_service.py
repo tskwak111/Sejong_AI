@@ -393,6 +393,15 @@ def test_followup_plan_rejects_invalid_closed_combinations_and_options(
         FollowupPlan(intent=intent, pending_slot=pending_slot, options=options)
 
 
+def test_followup_plan_rejects_arbitrary_caller_owned_options() -> None:
+    with pytest.raises(ValueError, match="^FOLLOWUP_PLAN_FACTORY_REQUIRED$"):
+        FollowupPlan(
+            intent=Intent.UNKNOWN,
+            pending_slot=PendingSlot.DOMAIN,
+            options=("provider supplied arbitrary option",),
+        )
+
+
 @pytest.mark.asyncio
 async def test_success_uses_masked_text_for_lookup_and_server_bound_metadata() -> None:
     raw_phone = "010-1234-5678"
@@ -646,6 +655,78 @@ async def test_provider_topic_choice_uses_only_current_server_catalog_labels() -
     assert len(repository.events) == 1
     assert repository.events[0].answer_status is AnswerStatus.FOLLOWUP
     assert repository.events[0].masked_question is None
+
+
+@pytest.mark.asyncio
+async def test_provider_certificate_topic_choice_uses_exact_current_short_labels() -> None:
+    records = followup_records(
+        Intent.CERTIFICATE_ISSUANCE,
+        (
+            ("KB-CERT-04", "주민등록표 열람"),
+            ("KB-CERT-03", "주민등록초본 발급 방법"),
+            ("KB-CERT-01", "등본과 초본의 차이"),
+            ("KB-CERT-02", "주민등록등본 발급 방법"),
+        ),
+    )
+    repository = FakeRepository(records=records)
+    classifier = FakeQuestionClassifier(
+        result=ClassifierDecision(
+            route=ClassifierRoute.NEEDS_FOLLOWUP,
+            intent=Intent.CERTIFICATE_ISSUANCE,
+            topic_id=None,
+            coverage_id=None,
+            pending_slot=PendingSlot.TOPIC_CHOICE,
+        )
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question="행정 서류를 떼고 싶어요"))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.CERTIFICATE_ISSUANCE.value
+    assert response.followup_options == [
+        "주민등록등본 발급",
+        "주민등록초본 발급",
+        "등본과 초본의 차이",
+    ]
+    assert classifier.calls == ["행정 서류를 떼고 싶어요"]
+    assert len(repository.events) == 1
+    assert repository.events[0].answer_status is AnswerStatus.FOLLOWUP
+    assert repository.events[0].masked_question is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("question", ["전입신고", "전입신고 알려주세요"])
+async def test_generic_move_base_forms_use_current_ordered_options_without_failed_row(
+    question: str,
+) -> None:
+    records = followup_records(
+        Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        (
+            ("KB-MOVE-04", "주민등록 관련 통보서비스"),
+            ("KB-MOVE-02", "방문 전입신고 준비물"),
+            ("KB-MOVE-01", "전입신고 개요·신청방법"),
+            ("KB-MOVE-03", "온라인 전입신고"),
+        ),
+    )
+    repository = FakeRepository(records=records)
+
+    response = await service(repository).answer(ChatRequest(question=question))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.MOVE_IN_RESIDENT_REGISTRATION.value
+    assert response.followup_options == [
+        "전입신고 개요·신청방법",
+        "방문 전입신고 준비물",
+        "온라인 전입신고",
+        "주민등록 관련 통보서비스",
+    ]
+    assert len(repository.events) == 1
+    assert repository.events[0].answer_status is AnswerStatus.FOLLOWUP
+    assert repository.events[0].masked_question is None
+    assert repository.scope_gaps == []
 
 
 @pytest.mark.asyncio
@@ -1936,9 +2017,8 @@ async def test_completed_conversational_replay_reissues_a_memory_only_context_to
     else:
         stored_response = build_followup_response(
             request_id=REQUEST_ID,
-            intent=Intent.UNKNOWN,
             confidence=None,
-            options=("대형폐기물",),
+            plan=service_module._domain_followup_plan(),
             context_token="old-token-must-not-persist",
         )
     stored = stored_response.model_dump(

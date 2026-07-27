@@ -4,13 +4,20 @@ from uuid import UUID
 
 import pytest
 
+from sejong_ai_api.chat.followup import (
+    FollowupPlan,
+    _domain_followup_plan,
+    _followup_plan_from_catalog,
+)
 from sejong_ai_api.chat.response import (
     build_fallback_response,
     build_followup_response,
     build_success_response,
 )
+from sejong_ai_api.chat.topic_catalog import TopicCoverage, build_topic_catalog
 from sejong_ai_api.contracts.chat import SuccessResponse
 from sejong_ai_api.db.models import Intent, KnowledgeRecord, OfficeRecord, Region
+from sejong_ai_api.llm.classifier_contracts import PendingSlot
 
 REQUEST_ID = UUID("11111111-1111-4111-8111-111111111111")
 
@@ -137,9 +144,8 @@ def test_success_omits_unavailable_optional_high_risk_fields() -> None:
 def test_followup_is_value_free_and_requires_server_options() -> None:
     response = build_followup_response(
         request_id=REQUEST_ID,
-        intent=Intent.UNKNOWN,
         confidence=None,
-        options=("전입·주민등록", "증명서 발급"),
+        plan=_domain_followup_plan(),
         context_token="signed-followup",
     )
 
@@ -147,7 +153,12 @@ def test_followup_is_value_free_and_requires_server_options() -> None:
     assert response.intent == "UNKNOWN"
     assert response.summary is None
     assert response.sources == []
-    assert response.followup_options == ["전입·주민등록", "증명서 발급"]
+    assert response.followup_options == [
+        "전입·주민등록",
+        "증명서 발급",
+        "대형폐기물",
+        "지방세 일반 안내",
+    ]
     assert response.context_token == "signed-followup"
 
 
@@ -200,15 +211,41 @@ def test_fallback_matrix_is_closed_and_never_returns_context_or_sources(
 
 
 def test_certificate_followup_uses_exact_three_approved_short_labels() -> None:
+    records = tuple(
+        knowledge_record(
+            public_id=topic_id,
+            category=Intent.CERTIFICATE_ISSUANCE,
+            service_name=service_name,
+        )
+        for topic_id, service_name in (
+            ("KB-CERT-01", "등본과 초본의 차이"),
+            ("KB-CERT-02", "주민등록등본 발급 방법"),
+            ("KB-CERT-03", "주민등록초본 발급 방법"),
+        )
+    )
+    catalog = build_topic_catalog(
+        records,
+        tuple(
+            TopicCoverage(
+                topic_id=record.public_id,
+                intent=record.category,
+                coverage_id=f"COVERAGE-{index}",
+                coverage_label="증명서 발급 테스트 경계",
+            )
+            for index, record in enumerate(records, start=1)
+        ),
+    )
+    plan = _followup_plan_from_catalog(
+        Intent.CERTIFICATE_ISSUANCE,
+        PendingSlot.CERTIFICATE_KIND,
+        catalog,
+    )
+    assert plan is not None
+
     response = build_followup_response(
         request_id=REQUEST_ID,
-        intent=Intent.CERTIFICATE_ISSUANCE,
         confidence=None,
-        options=(
-            "주민등록등본 발급",
-            "주민등록초본 발급",
-            "등본과 초본의 차이",
-        ),
+        plan=plan,
         context_token="signed-certificate-followup",
     )
 
@@ -217,6 +254,17 @@ def test_certificate_followup_uses_exact_three_approved_short_labels() -> None:
         "주민등록초본 발급",
         "등본과 초본의 차이",
     ]
+
+
+def test_followup_builder_rejects_raw_caller_owned_options() -> None:
+    with pytest.raises(TypeError):
+        build_followup_response(
+            request_id=REQUEST_ID,
+            intent=Intent.UNKNOWN,
+            confidence=None,
+            options=("provider supplied arbitrary option",),
+            context_token=None,
+        )
 
 
 @pytest.mark.parametrize(
@@ -232,13 +280,11 @@ def test_certificate_followup_uses_exact_three_approved_short_labels() -> None:
 def test_followup_rejects_malformed_or_unbounded_server_options(
     options: tuple[str, ...],
 ) -> None:
-    with pytest.raises(ValueError, match="^FOLLOWUP_OPTION_INVALID$"):
-        build_followup_response(
-            request_id=REQUEST_ID,
+    with pytest.raises(ValueError, match="^FOLLOWUP_PLAN_INVALID$"):
+        FollowupPlan(
             intent=Intent.UNKNOWN,
-            confidence=None,
+            pending_slot=PendingSlot.DOMAIN,
             options=options,
-            context_token=None,
         )
 
 

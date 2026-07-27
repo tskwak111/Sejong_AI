@@ -7,6 +7,10 @@ from uuid import UUID
 
 from pydantic import AnyUrl
 
+from sejong_ai_api.chat.followup import (
+    FollowupPlan,
+    _is_server_owned_followup_plan,
+)
 from sejong_ai_api.contracts.chat import (
     AnswerMode,
     Fallback,
@@ -143,22 +147,15 @@ def build_success_response(
 def build_followup_response(
     *,
     request_id: UUID,
-    intent: Intent,
     confidence: float | None,
-    options: tuple[str, ...],
+    plan: FollowupPlan,
     context_token: str | None,
 ) -> FollowupResponse:
-    """Build a bounded follow-up response from server-owned option labels."""
+    """Build FOLLOWUP only from a capability-backed server-owned plan."""
 
-    if (
-        type(options) is not tuple
-        or not 1 <= len(options) <= 5
-        or len(set(options)) != len(options)
-        or any(
-            type(option) is not str or not option or option.strip() != option for option in options
-        )
-    ):
-        raise ValueError("FOLLOWUP_OPTION_INVALID")
+    if not _is_server_owned_followup_plan(plan):
+        raise ValueError("SERVER_OWNED_FOLLOWUP_PLAN_REQUIRED")
+    intent = plan.intent
     if intent not in {
         Intent.MOVE_IN_RESIDENT_REGISTRATION,
         Intent.CERTIFICATE_ISSUANCE,
@@ -184,7 +181,7 @@ def build_followup_response(
         confidence=confidence,
         sources=[],
         office=None,
-        followup_options=list(options),
+        followup_options=list(plan.options),
         context_token=context_token,
     )
 
