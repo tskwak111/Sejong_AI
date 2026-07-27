@@ -1,9 +1,11 @@
+import inspect
 from datetime import date
 from typing import Literal
 from uuid import UUID
 
 import pytest
 
+import sejong_ai_api.chat.followup as followup_module
 from sejong_ai_api.chat.followup import (
     FollowupPlan,
     _domain_followup_plan,
@@ -256,13 +258,40 @@ def test_certificate_followup_uses_exact_three_approved_short_labels() -> None:
     ]
 
 
-def test_followup_builder_rejects_raw_caller_owned_options() -> None:
-    with pytest.raises(TypeError):
+def test_followup_module_exposes_only_fixed_or_catalog_plan_factories() -> None:
+    plan_factories = {
+        name: tuple(inspect.signature(value).parameters)
+        for name, value in vars(followup_module).items()
+        if inspect.isfunction(value)
+        and value.__module__ == followup_module.__name__
+        and str(inspect.signature(value).return_annotation)
+        in {"FollowupPlan", "FollowupPlan | None"}
+    }
+
+    assert plan_factories == {
+        "_domain_followup_plan": (),
+        "_followup_plan_from_catalog": ("intent", "pending_slot", "catalog"),
+    }
+
+
+def test_followup_builder_rejects_a_forged_caller_owned_plan() -> None:
+    forged_plan = object.__new__(FollowupPlan)
+    object.__setattr__(forged_plan, "intent", Intent.UNKNOWN)
+    object.__setattr__(forged_plan, "pending_slot", PendingSlot.DOMAIN)
+    object.__setattr__(
+        forged_plan,
+        "options",
+        ("provider supplied arbitrary option",),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="^SERVER_OWNED_FOLLOWUP_PLAN_REQUIRED$",
+    ):
         build_followup_response(
             request_id=REQUEST_ID,
-            intent=Intent.UNKNOWN,
             confidence=None,
-            options=("provider supplied arbitrary option",),
+            plan=forged_plan,
             context_token=None,
         )
 

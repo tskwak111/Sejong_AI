@@ -24,7 +24,6 @@ from sejong_ai_api.chat.followup import (
     FollowupPlan,
     _domain_followup_plan,
     _followup_plan_from_catalog,
-    _region_followup_plan,
 )
 from sejong_ai_api.chat.grounding import evaluate_grounding
 from sejong_ai_api.chat.idempotency import (
@@ -512,9 +511,18 @@ class ChatService:
             return _ChatExecution(response=fallback_response, interaction=interaction)
 
         if contextual_action == "OFFICE" and selected_region is None:
+            if selected_topic is None:
+                raise ChatUnavailableError()
+            region_plan = _followup_plan_from_catalog(
+                intent,
+                PendingSlot.REGION,
+                TopicCatalog((selected_topic.topic,)),
+            )
+            if region_plan is None:
+                raise ChatUnavailableError()
             return self._build_followup_execution(
                 request_id=selected_request_id,
-                plan=_region_followup_plan(intent),
+                plan=region_plan,
                 selected_region=None,
                 started_ns=started_ns,
                 persist_event=True,

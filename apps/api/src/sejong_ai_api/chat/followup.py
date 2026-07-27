@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TypeGuard
 
@@ -57,7 +58,6 @@ _CERTIFICATE_SHORT_LABELS = {
     "KB-CERT-03": "주민등록초본 발급",
     "KB-CERT-01": "등본과 초본의 차이",
 }
-_FOLLOWUP_PLAN_PROVENANCE = object()
 
 
 def _validate_followup_plan(
@@ -107,87 +107,100 @@ class FollowupPlan:
         raise ValueError("FOLLOWUP_PLAN_FACTORY_REQUIRED")
 
 
-def _mint_followup_plan(
-    intent: Intent,
-    pending_slot: PendingSlot,
-    options: tuple[str, ...],
-) -> FollowupPlan:
-    _validate_followup_plan(intent, pending_slot, options)
-    plan = object.__new__(FollowupPlan)
-    object.__setattr__(plan, "intent", intent)
-    object.__setattr__(plan, "pending_slot", pending_slot)
-    object.__setattr__(plan, "options", options)
-    object.__setattr__(plan, "_provenance", _FOLLOWUP_PLAN_PROVENANCE)
-    return plan
+def _create_followup_boundaries() -> tuple[
+    Callable[[], FollowupPlan],
+    Callable[[Intent, PendingSlot, TopicCatalog], FollowupPlan | None],
+    Callable[[object], TypeGuard[FollowupPlan]],
+]:
+    provenance = object()
 
+    def materialize(
+        intent: Intent,
+        pending_slot: PendingSlot,
+        options: tuple[str, ...],
+    ) -> FollowupPlan:
+        _validate_followup_plan(intent, pending_slot, options)
+        plan = object.__new__(FollowupPlan)
+        object.__setattr__(plan, "intent", intent)
+        object.__setattr__(plan, "pending_slot", pending_slot)
+        object.__setattr__(plan, "options", options)
+        object.__setattr__(plan, "_provenance", provenance)
+        return plan
 
-def _is_server_owned_followup_plan(value: object) -> TypeGuard[FollowupPlan]:
-    return (
-        type(value) is FollowupPlan
-        and getattr(value, "_provenance", None) is _FOLLOWUP_PLAN_PROVENANCE
-    )
-
-
-def _domain_followup_plan() -> FollowupPlan:
-    return _mint_followup_plan(
-        Intent.UNKNOWN,
-        PendingSlot.DOMAIN,
-        _DOMAIN_FOLLOWUP_OPTIONS,
-    )
-
-
-def _region_followup_plan(intent: Intent) -> FollowupPlan:
-    return _mint_followup_plan(intent, PendingSlot.REGION, _REGION_FOLLOWUP_OPTIONS)
-
-
-def _waste_item_followup_plan() -> FollowupPlan:
-    return _mint_followup_plan(
-        Intent.BULKY_WASTE,
-        PendingSlot.WASTE_ITEM,
-        _WASTE_ITEM_FOLLOWUP_OPTIONS,
-    )
-
-
-def _followup_plan_from_catalog(
-    intent: Intent,
-    pending_slot: PendingSlot,
-    catalog: TopicCatalog,
-) -> FollowupPlan | None:
-    if type(catalog) is not TopicCatalog:
-        return None
-    if pending_slot is PendingSlot.DOMAIN:
-        return _domain_followup_plan()
-    if pending_slot is PendingSlot.REGION:
-        return _region_followup_plan(intent)
-    if pending_slot is PendingSlot.WASTE_ITEM:
-        return _waste_item_followup_plan() if intent is Intent.BULKY_WASTE else None
-    if pending_slot not in {
-        PendingSlot.TOPIC_CHOICE,
-        PendingSlot.CERTIFICATE_KIND,
-    }:
-        return None
-    if intent not in _SUPPORTED_INTENTS:
-        return None
-    if pending_slot is PendingSlot.CERTIFICATE_KIND and intent is not Intent.CERTIFICATE_ISSUANCE:
-        return None
-
-    topics_by_id = {
-        topic.record.public_id: topic for topic in catalog.topics if topic.record.category is intent
-    }
-    ordered_ids = _TOPIC_FOLLOWUP_ORDER[intent]
-    use_certificate_short_labels = intent is Intent.CERTIFICATE_ISSUANCE
-    options = tuple(
-        (
-            _CERTIFICATE_SHORT_LABELS[topic_id]
-            if use_certificate_short_labels
-            else topics_by_id[topic_id].record.service_name
+    def domain_followup_plan() -> FollowupPlan:
+        return materialize(
+            Intent.UNKNOWN,
+            PendingSlot.DOMAIN,
+            _DOMAIN_FOLLOWUP_OPTIONS,
         )
-        for topic_id in ordered_ids
-        if topic_id in topics_by_id
+
+    def followup_plan_from_catalog(
+        intent: Intent,
+        pending_slot: PendingSlot,
+        catalog: TopicCatalog,
+    ) -> FollowupPlan | None:
+        if type(catalog) is not TopicCatalog:
+            return None
+        if pending_slot is PendingSlot.DOMAIN:
+            return domain_followup_plan()
+        if intent not in _SUPPORTED_INTENTS:
+            return None
+
+        topics_by_id = {
+            topic.record.public_id: topic
+            for topic in catalog.topics
+            if topic.record.category is intent
+        }
+        if not topics_by_id:
+            return None
+        if pending_slot is PendingSlot.REGION:
+            return materialize(intent, pending_slot, _REGION_FOLLOWUP_OPTIONS)
+        if pending_slot is PendingSlot.WASTE_ITEM:
+            if intent is not Intent.BULKY_WASTE:
+                return None
+            return materialize(intent, pending_slot, _WASTE_ITEM_FOLLOWUP_OPTIONS)
+        if pending_slot not in {
+            PendingSlot.TOPIC_CHOICE,
+            PendingSlot.CERTIFICATE_KIND,
+        }:
+            return None
+        if (
+            pending_slot is PendingSlot.CERTIFICATE_KIND
+            and intent is not Intent.CERTIFICATE_ISSUANCE
+        ):
+            return None
+
+        ordered_ids = _TOPIC_FOLLOWUP_ORDER[intent]
+        use_certificate_short_labels = intent is Intent.CERTIFICATE_ISSUANCE
+        options = tuple(
+            (
+                _CERTIFICATE_SHORT_LABELS[topic_id]
+                if use_certificate_short_labels
+                else topics_by_id[topic_id].record.service_name
+            )
+            for topic_id in ordered_ids
+            if topic_id in topics_by_id
+        )
+        if not options:
+            return None
+        return materialize(intent, pending_slot, options)
+
+    def is_server_owned_followup_plan(value: object) -> TypeGuard[FollowupPlan]:
+        return type(value) is FollowupPlan and getattr(value, "_provenance", None) is provenance
+
+    return (
+        domain_followup_plan,
+        followup_plan_from_catalog,
+        is_server_owned_followup_plan,
     )
-    if not options:
-        return None
-    return _mint_followup_plan(intent, pending_slot, options)
+
+
+(
+    _domain_followup_plan,
+    _followup_plan_from_catalog,
+    _is_server_owned_followup_plan,
+) = _create_followup_boundaries()
+del _create_followup_boundaries
 
 
 __all__ = ["FollowupPlan"]
