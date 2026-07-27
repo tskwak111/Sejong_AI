@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TypeGuard
 
 from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.db.models import Intent
@@ -60,118 +58,62 @@ _CERTIFICATE_SHORT_LABELS = {
 }
 
 
-def _validate_followup_plan(
-    intent: Intent,
-    pending_slot: PendingSlot,
-    options: tuple[str, ...],
-) -> None:
-    if (
-        type(intent) is not Intent
-        or type(pending_slot) is not PendingSlot
-        or type(options) is not tuple
-        or not 1 <= len(options) <= 5
-        or len(set(options)) != len(options)
-        or any(
-            type(option) is not str or not option or option.strip() != option for option in options
-        )
-    ):
-        raise ValueError("FOLLOWUP_PLAN_INVALID")
-    if pending_slot is PendingSlot.DOMAIN:
-        if intent is not Intent.UNKNOWN:
-            raise ValueError("FOLLOWUP_PLAN_INVALID")
-        return
-    if intent not in _SUPPORTED_INTENTS:
-        raise ValueError("FOLLOWUP_PLAN_INVALID")
-    if pending_slot is PendingSlot.CERTIFICATE_KIND and intent is not Intent.CERTIFICATE_ISSUANCE:
-        raise ValueError("FOLLOWUP_PLAN_INVALID")
-    if pending_slot is PendingSlot.WASTE_ITEM and intent is not Intent.BULKY_WASTE:
-        raise ValueError("FOLLOWUP_PLAN_INVALID")
-
-
 @dataclass(frozen=True, slots=True, init=False)
 class FollowupPlan:
-    """A follow-up plan that only this module's closed factories can mint."""
+    """A follow-up plan backed only by a fixed source or current typed catalog."""
 
     intent: Intent
     pending_slot: PendingSlot
-    options: tuple[str, ...]
-    _provenance: object = field(repr=False, compare=False)
+    _catalog: TopicCatalog | None = field(repr=False)
 
-    def __init__(
-        self,
-        intent: Intent,
-        pending_slot: PendingSlot,
-        options: tuple[str, ...],
-    ) -> None:
-        _validate_followup_plan(intent, pending_slot, options)
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        del args, kwargs
         raise ValueError("FOLLOWUP_PLAN_FACTORY_REQUIRED")
 
+    @property
+    def options(self) -> tuple[str, ...]:
+        """Derive public labels from the fixed domain or current catalog source."""
 
-def _create_followup_boundaries() -> tuple[
-    Callable[[], FollowupPlan],
-    Callable[[Intent, PendingSlot, TopicCatalog], FollowupPlan | None],
-    Callable[[object], TypeGuard[FollowupPlan]],
-]:
-    provenance = object()
-
-    def materialize(
-        intent: Intent,
-        pending_slot: PendingSlot,
-        options: tuple[str, ...],
-    ) -> FollowupPlan:
-        _validate_followup_plan(intent, pending_slot, options)
-        plan = object.__new__(FollowupPlan)
-        object.__setattr__(plan, "intent", intent)
-        object.__setattr__(plan, "pending_slot", pending_slot)
-        object.__setattr__(plan, "options", options)
-        object.__setattr__(plan, "_provenance", provenance)
-        return plan
-
-    def domain_followup_plan() -> FollowupPlan:
-        return materialize(
-            Intent.UNKNOWN,
-            PendingSlot.DOMAIN,
-            _DOMAIN_FOLLOWUP_OPTIONS,
-        )
-
-    def followup_plan_from_catalog(
-        intent: Intent,
-        pending_slot: PendingSlot,
-        catalog: TopicCatalog,
-    ) -> FollowupPlan | None:
-        if type(catalog) is not TopicCatalog:
-            return None
-        if pending_slot is PendingSlot.DOMAIN:
-            return domain_followup_plan()
-        if intent not in _SUPPORTED_INTENTS:
-            return None
+        if (
+            self.intent is Intent.UNKNOWN
+            and self.pending_slot is PendingSlot.DOMAIN
+            and self._catalog is None
+        ):
+            return _DOMAIN_FOLLOWUP_OPTIONS
+        if (
+            type(self.intent) is not Intent
+            or self.intent not in _SUPPORTED_INTENTS
+            or type(self.pending_slot) is not PendingSlot
+            or type(self._catalog) is not TopicCatalog
+        ):
+            raise ValueError("FOLLOWUP_PLAN_SOURCE_INVALID")
 
         topics_by_id = {
             topic.record.public_id: topic
-            for topic in catalog.topics
-            if topic.record.category is intent
+            for topic in self._catalog.topics
+            if topic.record.category is self.intent
         }
         if not topics_by_id:
-            return None
-        if pending_slot is PendingSlot.REGION:
-            return materialize(intent, pending_slot, _REGION_FOLLOWUP_OPTIONS)
-        if pending_slot is PendingSlot.WASTE_ITEM:
-            if intent is not Intent.BULKY_WASTE:
-                return None
-            return materialize(intent, pending_slot, _WASTE_ITEM_FOLLOWUP_OPTIONS)
-        if pending_slot not in {
+            raise ValueError("FOLLOWUP_PLAN_SOURCE_INVALID")
+        if self.pending_slot is PendingSlot.REGION:
+            return _REGION_FOLLOWUP_OPTIONS
+        if self.pending_slot is PendingSlot.WASTE_ITEM:
+            if self.intent is not Intent.BULKY_WASTE:
+                raise ValueError("FOLLOWUP_PLAN_SOURCE_INVALID")
+            return _WASTE_ITEM_FOLLOWUP_OPTIONS
+        if self.pending_slot not in {
             PendingSlot.TOPIC_CHOICE,
             PendingSlot.CERTIFICATE_KIND,
         }:
-            return None
+            raise ValueError("FOLLOWUP_PLAN_SOURCE_INVALID")
         if (
-            pending_slot is PendingSlot.CERTIFICATE_KIND
-            and intent is not Intent.CERTIFICATE_ISSUANCE
+            self.pending_slot is PendingSlot.CERTIFICATE_KIND
+            and self.intent is not Intent.CERTIFICATE_ISSUANCE
         ):
-            return None
+            raise ValueError("FOLLOWUP_PLAN_SOURCE_INVALID")
 
-        ordered_ids = _TOPIC_FOLLOWUP_ORDER[intent]
-        use_certificate_short_labels = intent is Intent.CERTIFICATE_ISSUANCE
+        ordered_ids = _TOPIC_FOLLOWUP_ORDER[self.intent]
+        use_certificate_short_labels = self.intent is Intent.CERTIFICATE_ISSUANCE
         options = tuple(
             (
                 _CERTIFICATE_SHORT_LABELS[topic_id]
@@ -181,26 +123,44 @@ def _create_followup_boundaries() -> tuple[
             for topic_id in ordered_ids
             if topic_id in topics_by_id
         )
-        if not options:
-            return None
-        return materialize(intent, pending_slot, options)
-
-    def is_server_owned_followup_plan(value: object) -> TypeGuard[FollowupPlan]:
-        return type(value) is FollowupPlan and getattr(value, "_provenance", None) is provenance
-
-    return (
-        domain_followup_plan,
-        followup_plan_from_catalog,
-        is_server_owned_followup_plan,
-    )
+        if (
+            not 1 <= len(options) <= 5
+            or len(set(options)) != len(options)
+            or any(
+                type(option) is not str or not option or option.strip() != option
+                for option in options
+            )
+        ):
+            raise ValueError("FOLLOWUP_PLAN_SOURCE_INVALID")
+        return options
 
 
-(
-    _domain_followup_plan,
-    _followup_plan_from_catalog,
-    _is_server_owned_followup_plan,
-) = _create_followup_boundaries()
-del _create_followup_boundaries
+def _domain_followup_plan() -> FollowupPlan:
+    plan = object.__new__(FollowupPlan)
+    object.__setattr__(plan, "intent", Intent.UNKNOWN)
+    object.__setattr__(plan, "pending_slot", PendingSlot.DOMAIN)
+    object.__setattr__(plan, "_catalog", None)
+    return plan
+
+
+def _followup_plan_from_catalog(
+    intent: Intent,
+    pending_slot: PendingSlot,
+    catalog: TopicCatalog,
+) -> FollowupPlan | None:
+    if type(catalog) is not TopicCatalog:
+        return None
+    if pending_slot is PendingSlot.DOMAIN:
+        return _domain_followup_plan()
+    plan = object.__new__(FollowupPlan)
+    object.__setattr__(plan, "intent", intent)
+    object.__setattr__(plan, "pending_slot", pending_slot)
+    object.__setattr__(plan, "_catalog", catalog)
+    try:
+        _ = plan.options
+    except (AttributeError, ValueError):
+        return None
+    return plan
 
 
 __all__ = ["FollowupPlan"]

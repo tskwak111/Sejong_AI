@@ -7,10 +7,7 @@ from uuid import UUID
 
 from pydantic import AnyUrl
 
-from sejong_ai_api.chat.followup import (
-    FollowupPlan,
-    _is_server_owned_followup_plan,
-)
+from sejong_ai_api.chat.followup import FollowupPlan
 from sejong_ai_api.contracts.chat import (
     AnswerMode,
     Fallback,
@@ -151,11 +148,15 @@ def build_followup_response(
     plan: FollowupPlan,
     context_token: str | None,
 ) -> FollowupResponse:
-    """Build FOLLOWUP only from a capability-backed server-owned plan."""
+    """Build FOLLOWUP only from a source-backed server-owned plan."""
 
-    if not _is_server_owned_followup_plan(plan):
+    if type(plan) is not FollowupPlan:
         raise ValueError("SERVER_OWNED_FOLLOWUP_PLAN_REQUIRED")
     intent = plan.intent
+    try:
+        options = plan.options
+    except (AttributeError, ValueError):
+        raise ValueError("SERVER_OWNED_FOLLOWUP_PLAN_REQUIRED") from None
     if intent not in {
         Intent.MOVE_IN_RESIDENT_REGISTRATION,
         Intent.CERTIFICATE_ISSUANCE,
@@ -181,7 +182,7 @@ def build_followup_response(
         confidence=confidence,
         sources=[],
         office=None,
-        followup_options=list(plan.options),
+        followup_options=list(options),
         context_token=context_token,
     )
 

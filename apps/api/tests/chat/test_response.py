@@ -1,4 +1,5 @@
 import inspect
+from dataclasses import fields
 from datetime import date
 from typing import Literal
 from uuid import UUID
@@ -272,17 +273,63 @@ def test_followup_module_exposes_only_fixed_or_catalog_plan_factories() -> None:
         "_domain_followup_plan": (),
         "_followup_plan_from_catalog": ("intent", "pending_slot", "catalog"),
     }
+    retained_raw_materializers = [
+        value.__name__
+        for factory in (
+            followup_module._domain_followup_plan,
+            followup_module._followup_plan_from_catalog,
+        )
+        for cell in (factory.__closure__ or ())
+        if inspect.isfunction(value := cell.cell_contents)
+        and "options" in inspect.signature(value).parameters
+    ]
+    assert retained_raw_materializers == []
+
+
+def test_followup_plan_stores_only_typed_sources_not_options_or_provenance() -> None:
+    plan = _domain_followup_plan()
+
+    assert tuple(field.name for field in fields(plan)) == (
+        "intent",
+        "pending_slot",
+        "_catalog",
+    )
+    assert "options" not in FollowupPlan.__slots__
+    assert "_provenance" not in FollowupPlan.__slots__
+    assert not hasattr(plan, "_provenance")
+
+
+def test_legitimate_followup_plan_options_cannot_be_replaced() -> None:
+    plan = _domain_followup_plan()
+
+    with pytest.raises((AttributeError, TypeError)):
+        plan.options = ("provider supplied arbitrary option",)  # type: ignore[misc]
+    with pytest.raises(AttributeError):
+        object.__setattr__(
+            plan,
+            "options",
+            ("provider supplied arbitrary option",),
+        )
+
+    response = build_followup_response(
+        request_id=REQUEST_ID,
+        confidence=None,
+        plan=plan,
+        context_token=None,
+    )
+    assert response.followup_options == [
+        "전입·주민등록",
+        "증명서 발급",
+        "대형폐기물",
+        "지방세 일반 안내",
+    ]
 
 
 def test_followup_builder_rejects_a_forged_caller_owned_plan() -> None:
     forged_plan = object.__new__(FollowupPlan)
     object.__setattr__(forged_plan, "intent", Intent.UNKNOWN)
     object.__setattr__(forged_plan, "pending_slot", PendingSlot.DOMAIN)
-    object.__setattr__(
-        forged_plan,
-        "options",
-        ("provider supplied arbitrary option",),
-    )
+    object.__setattr__(forged_plan, "_catalog", object())
 
     with pytest.raises(
         ValueError,
@@ -293,27 +340,6 @@ def test_followup_builder_rejects_a_forged_caller_owned_plan() -> None:
             confidence=None,
             plan=forged_plan,
             context_token=None,
-        )
-
-
-@pytest.mark.parametrize(
-    "options",
-    [
-        (),
-        ("",),
-        (" 앞뒤 공백",),
-        ("중복", "중복"),
-        tuple(f"선택지 {index}" for index in range(6)),
-    ],
-)
-def test_followup_rejects_malformed_or_unbounded_server_options(
-    options: tuple[str, ...],
-) -> None:
-    with pytest.raises(ValueError, match="^FOLLOWUP_PLAN_INVALID$"):
-        FollowupPlan(
-            intent=Intent.UNKNOWN,
-            pending_slot=PendingSlot.DOMAIN,
-            options=options,
         )
 
 

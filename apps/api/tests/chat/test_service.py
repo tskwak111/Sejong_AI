@@ -384,12 +384,12 @@ def insufficient_grounding_setup() -> tuple[FakeRepository, FakeQuestionClassifi
         (Intent.UNKNOWN, PendingSlot.DOMAIN, (" 앞뒤 공백",)),
     ],
 )
-def test_followup_plan_rejects_invalid_closed_combinations_and_options(
+def test_followup_plan_direct_construction_is_always_rejected(
     intent: Intent,
     pending_slot: PendingSlot,
     options: tuple[str, ...],
 ) -> None:
-    with pytest.raises(ValueError, match="^FOLLOWUP_PLAN_INVALID$"):
+    with pytest.raises(ValueError, match="^FOLLOWUP_PLAN_FACTORY_REQUIRED$"):
         FollowupPlan(intent=intent, pending_slot=pending_slot, options=options)
 
 
