@@ -653,10 +653,21 @@ class ChatService:
                     if replay.answer_status == "SUCCESS"
                     else _replayed_followup_pending_slot(replay)
                 )
+                topic_id = (
+                    replay.sources[0].source_id
+                    if replay.answer_status == "SUCCESS"
+                    else (
+                        prior_context.topic_id
+                        if pending_slot is PendingSlot.REGION
+                        and prior_context is not None
+                        else None
+                    )
+                )
                 payload["context_token"] = self._issue_context(
                     intent=Intent(replay.intent),
                     selected_region=selected_region,
                     answer_status=replay.answer_status,
+                    topic_id=topic_id,
                     pending_slot=pending_slot,
                     dialog_act=("ANSWERED" if replay.answer_status == "SUCCESS" else "ASKING_SLOT"),
                 )

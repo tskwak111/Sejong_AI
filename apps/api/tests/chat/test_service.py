@@ -22,7 +22,7 @@ from sejong_ai_api.chat.response import (
     build_success_response,
 )
 from sejong_ai_api.chat.service import ChatService, ChatUnavailableError, FollowupPlan
-from sejong_ai_api.chat.topic_catalog import TopicCatalog, TopicCoverage
+from sejong_ai_api.chat.topic_catalog import TopicCatalog, TopicCoverage, build_topic_catalog
 from sejong_ai_api.contracts.chat import ChatRequest, FollowupResponse, SuccessResponse
 from sejong_ai_api.db.errors import (
     DatabaseRuleCode,
@@ -2051,7 +2051,72 @@ async def test_completed_conversational_replay_reissues_a_memory_only_context_to
     assert replayed_context.answer_status == answer_status
     assert replayed_context.last_intent == response.intent
     assert replayed_context.selected_region == "아름동"
+    if answer_status == "SUCCESS":
+        assert replayed_context.topic_id == knowledge_record().public_id
     assert "old-token-must-not-persist" not in repr(idempotency.claim.response_payload)
+
+
+@pytest.mark.asyncio
+async def test_completed_region_followup_replay_preserves_the_validated_topic() -> None:
+    record = replace(
+        knowledge_record(public_id="KB-WASTE-REGION-01"),
+        department="읍면동 행정복지센터 민원창구",
+    )
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    prior_token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=record.public_id,
+    )
+    catalog = build_topic_catalog(
+        (record,),
+        topic_coverage_for((record,)),
+    )
+    plan = service_module._followup_plan_from_catalog(
+        Intent.BULKY_WASTE,
+        PendingSlot.REGION,
+        catalog,
+    )
+    assert plan is not None
+    stored = build_followup_response(
+        request_id=REQUEST_ID,
+        confidence=None,
+        plan=plan,
+        context_token="old-token-must-not-persist",
+    ).model_dump(mode="json", exclude={"request_id", "context_token"})
+    idempotency = FakeIdempotencyRepository(
+        IdempotencyClaim(
+            status=IdempotencyClaimStatus.COMPLETED,
+            response_payload=stored,
+        )
+    )
+    repository = FakeRepository(records=(record,))
+    chat_service = service(
+        repository,
+        idempotency_repository=idempotency,
+    )
+
+    replay = await chat_service.answer(
+        ChatRequest(question="어디에서 하나요?", context_token=prior_token),
+        request_id=RETRY_REQUEST_ID,
+        idempotency_key=IDEMPOTENCY_KEY,
+    )
+
+    assert replay.answer_status == "FOLLOWUP"
+    assert replay.context_token is not None
+    replayed_context = codec.read(replay.context_token)
+    assert replayed_context is not None
+    assert replayed_context.pending_slot == "REGION"
+    assert replayed_context.topic_id == record.public_id
+
+    resolved = await chat_service.answer(
+        ChatRequest(question="아름동", context_token=replay.context_token),
+    )
+
+    assert resolved.answer_status == "SUCCESS"
+    assert resolved.sources[0].source_id == record.public_id
 
 
 @pytest.mark.asyncio
