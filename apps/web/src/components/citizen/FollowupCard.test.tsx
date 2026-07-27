@@ -6,18 +6,29 @@ import { describe, expect, it, vi } from "vitest";
 import FollowupCard from "./FollowupCard";
 
 describe("FollowupCard", () => {
-  it("asks the exact certificate-kind question for certificate options", () => {
+  it("asks the exact certificate-kind question and preserves the three server options", () => {
+    const options = [
+      "주민등록등본 발급",
+      "주민등록초본 발급",
+      "등본과 초본의 차이",
+    ];
     render(
       <FollowupCard
         intent="CERTIFICATE_ISSUANCE"
-        options={["주민등록등본 발급", "주민등록초본 발급"]}
+        options={options}
         onSelect={vi.fn()}
       />,
     );
 
     expect(
-      screen.getByText("어떤 증명서를 발급하려고 하시나요?"),
+      screen.getByText("어떤 주민등록 증명서가 필요하신가요?"),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("button")
+        .filter((button) => options.includes(button.textContent ?? ""))
+        .map((button) => button.textContent),
+    ).toEqual(options);
   });
 
   it("prioritizes the residence-region prompt when every option is a region", () => {

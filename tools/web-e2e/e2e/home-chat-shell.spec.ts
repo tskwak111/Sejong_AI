@@ -42,7 +42,7 @@ async function submit(page: Page, question: string) {
   await submitButton.click();
 }
 
-test("region choice is keyboard-operable and new conversation clears all tab memory", async ({ page }) => {
+test("region choice is native-keyboard-operable and new conversation preserves only region tab memory", async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
   await page.route("**/api/v1/chat", async (route) => {
     requests.push(route.request().postDataJSON() as Record<string, unknown>);
@@ -54,11 +54,15 @@ test("region choice is keyboard-operable and new conversation clears all tab mem
   });
 
   await page.goto("/chat");
-  const regionGroup = page.getByRole("group", { name: "거주 지역" });
-  const dodam = regionGroup.getByRole("button", { name: "도담동" });
-  await dodam.focus();
-  await page.keyboard.press("Enter");
-  await expect(dodam).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("combobox", {
+    name: "거주 지역 선택 · 선택사항",
+  })).toBeVisible();
+  const regionSelect = page.locator("#region-select");
+  await regionSelect.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(regionSelect).toHaveValue("아름동");
+  await page.keyboard.press("ArrowDown");
+  await expect(regionSelect).toHaveValue("도담동");
 
   await submit(page, "전입신고 알려줘");
   await expect(page.getByText(successResponse.sources[0].title)).toBeVisible();
@@ -69,16 +73,53 @@ test("region choice is keyboard-operable and new conversation clears all tab mem
   await expect(page.getByText(successResponse.sources[0].title)).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "질문 입력" })).toBeFocused();
   await expect(
-    page.getByRole("group", { name: "거주 지역" }).getByRole("button", {
-      name: "도담동",
-    }),
-  ).toHaveAttribute("aria-pressed", "false");
+    page.getByRole("combobox", { name: "도담동 · 변경" }),
+  ).toHaveValue("도담동");
   expect(requests).toHaveLength(1);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
     ),
   ).toBe(true);
+});
+
+test("certificate navigation suggestion sends fresh context-bound request without browser storage", async ({ page }) => {
+  const requests: Array<{ body: Record<string, unknown>; idempotencyKey: string | undefined }> = [];
+  await page.route("**/api/v1/chat", async (route) => {
+    requests.push({
+      body: route.request().postDataJSON() as Record<string, unknown>,
+      idempotencyKey: route.request().headers()["idempotency-key"],
+    });
+    const response = requests.length === 1
+      ? {
+          ...successResponse,
+          request_id: "88888888-8888-4888-8888-888888888888",
+          intent: "CERTIFICATE_ISSUANCE",
+          sources: [{
+            source_id: "KB-CERT-01",
+            title: "주민등록표 등본 공식 안내",
+            url: "https://example.invalid/official/certificate",
+            last_verified_at: "2026-07-20",
+          }],
+          context_token: "signed-certificate-context",
+        }
+      : successResponse;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(response) });
+  });
+
+  await page.goto("/chat");
+  await submit(page, "등본과 초본의 차이");
+  await page.getByRole("button", { name: "주민등록표 열람" }).click();
+  await expect(page.getByText(successResponse.summary)).toHaveCount(2);
+
+  expect(requests).toHaveLength(2);
+  expect(requests[1].body.question).toBe("주민등록표 열람");
+  expect(requests[1].body.context_token).toBe("signed-certificate-context");
+  expect(requests[1].idempotencyKey).not.toBe(requests[0].idempotencyKey);
+  expect(await page.context().cookies()).toEqual([]);
+  expect(
+    await page.evaluate(() => ({ localStorageCount: localStorage.length, sessionStorageCount: sessionStorage.length })),
+  ).toEqual({ localStorageCount: 0, sessionStorageCount: 0 });
 });
 
 test("recommended question reaches chat via tab memory - exact /chat, empty search, no raw question in URL/history/storage", async ({ page }) => {

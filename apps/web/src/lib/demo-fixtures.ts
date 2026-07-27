@@ -227,6 +227,27 @@ function moveFollowup(): ChatResponse {
   };
 }
 
+/** 증명서의 generic 질문은 서버 순서 그대로 세 가지 선택지로 좁힌다. */
+function certificateFollowup(): ChatResponse {
+  return {
+    request_id: uuid(),
+    answer_status: "FOLLOWUP",
+    intent: "CERTIFICATE_ISSUANCE",
+    confidence: null,
+    summary: null,
+    procedure_steps: [],
+    required_documents: [],
+    processing_time: null,
+    fee: null,
+    department: null,
+    sources: [],
+    followup_options: ["주민등록등본 발급", "주민등록초본 발급", "등본과 초본의 차이"],
+    fallback: null,
+    office: null,
+    context_token: CONTEXT_TOKEN,
+  };
+}
+
 /** 데모 #3 파생: 증명서 발급 SUCCESS (선택지 완주용) */
 function certificateAnswer(region: Region | null): ChatResponse {
   return {
@@ -457,9 +478,11 @@ export function routeDemoAnswer(request: ChatRequest): ChatResponse {
   }
 
   // 데모 #3 파생 - 증명서
-  if (q.includes("등본") || q.includes("증명서")) {
+  if (q.includes("등본") || q.includes("초본")) {
     return certificateAnswer(region);
   }
+
+  if (q.includes("증명서")) return certificateFollowup();
 
   // 데모 #4 - PERSONAL_LOOKUP은 완전 미저장 (Q-MVP-002/D-059: 행 미생성)
   if (q.includes("자동차세") || q.includes("재산세") || q.includes("지방세")) {

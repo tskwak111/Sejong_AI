@@ -50,6 +50,11 @@ export function isRegion(value: string): value is Region {
   return (REGION_OPTIONS as readonly string[]).includes(value);
 }
 
+/** 채팅 입력 바로 위의 탭-메모리 지역 선택 표시 문구. */
+export function regionSelectCopy(region: Region | null | undefined): string {
+  return region ? `${region} · 변경` : "거주 지역 선택 · 선택사항";
+}
+
 /**
  * 공식 조회·신청 채널 딥링크 - 계약 응답에 deep_link 필드가 없어(보고 항목)
  * UI 상수로 유지한다. 값은 공식 채널 대표 주소만 사용한다.
