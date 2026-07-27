@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "data_kind": "NON_FACTUAL_RETRIEVAL_METADATA",
+  "topics": [
+    {"topic_id": "KB-CERT-01", "intent": "CERTIFICATE_ISSUANCE", "coverage_id": "CERTIFICATE_KIND_DIFFERENCE", "coverage_label": "등본과 초본의 구분 범위, 개별 발급 경로와 열람 항목은 제외"},
+    {"topic_id": "KB-CERT-02", "intent": "CERTIFICATE_ISSUANCE", "coverage_id": "RESIDENT_REGISTER_COPY_ISSUANCE", "coverage_label": "주민등록등본 발급 경로 범위, 초본·열람·기기별 이용 범위는 제외"},
+    {"topic_id": "KB-CERT-03", "intent": "CERTIFICATE_ISSUANCE", "coverage_id": "RESIDENT_REGISTER_TRANSCRIPT_ISSUANCE", "coverage_label": "주민등록초본 발급 경로 범위, 등본·열람·기기별 이용 범위는 제외"},
+    {"topic_id": "KB-CERT-04", "intent": "CERTIFICATE_ISSUANCE", "coverage_id": "RESIDENT_REGISTER_VIEWING", "coverage_label": "주민등록표 열람 범위, 발급 경로와 다른 증명서 종류는 제외"},
+    {"topic_id": "KB-CERT-05", "intent": "CERTIFICATE_ISSUANCE", "coverage_id": "KIOSK_CERTIFICATE_USE", "coverage_label": "무인민원발급기 이용 범위, 개별 증명서 발급 경로와 기기별 운영 정보는 제외"},
+    {"topic_id": "KB-MOVE-01", "intent": "MOVE_IN_RESIDENT_REGISTRATION", "coverage_id": "MOVE_IN_OVERVIEW_APPLICATION", "coverage_label": "전입신고의 일반 신청 범위, 온라인·방문별 세부와 통보서비스는 제외"},
+    {"topic_id": "KB-MOVE-02", "intent": "MOVE_IN_RESIDENT_REGISTRATION", "coverage_id": "MOVE_IN_VISIT_REQUIREMENTS", "coverage_label": "방문 전입신고 준비 범위, 온라인 신청과 신고 일반 원칙은 제외"},
+    {"topic_id": "KB-MOVE-03", "intent": "MOVE_IN_RESIDENT_REGISTRATION", "coverage_id": "MOVE_IN_ONLINE_APPLICATION", "coverage_label": "온라인 전입신고 범위, 방문 신청 준비와 통보서비스는 제외"},
+    {"topic_id": "KB-MOVE-04", "intent": "MOVE_IN_RESIDENT_REGISTRATION", "coverage_id": "RESIDENT_NOTIFICATION_SERVICE", "coverage_label": "주민등록 관련 통보서비스 범위, 전입신고 신청 경로와 신고 원칙은 제외"},
+    {"topic_id": "KB-MOVE-05", "intent": "MOVE_IN_RESIDENT_REGISTRATION", "coverage_id": "RESIDENT_REPORTING_PRINCIPLES", "coverage_label": "주민등록 신고 일반 원칙 범위, 전입신고 개별 신청 경로와 통보서비스는 제외"},
+    {"topic_id": "KB-TAX-01", "intent": "LOCAL_TAX_GENERAL", "coverage_id": "LOCAL_TAX_ONLINE_PAYMENT_PATH", "coverage_label": "지방세 온라인 납부 경로 범위, 개인 고지와 증명서 종류는 제외"},
+    {"topic_id": "KB-TAX-02", "intent": "LOCAL_TAX_GENERAL", "coverage_id": "VEHICLE_TAX_NOTICE_PAYMENT_PATH", "coverage_label": "자동차세 고지 확인·납부 경로 범위, 개인 조회 결과와 다른 세목은 제외"},
+    {"topic_id": "KB-TAX-03", "intent": "LOCAL_TAX_GENERAL", "coverage_id": "LOCAL_TAX_PAYMENT_CERTIFICATE", "coverage_label": "지방세 납세증명서 범위, 과세증명서·납부확인서와 개인 자격 판단은 제외"},
+    {"topic_id": "KB-TAX-04", "intent": "LOCAL_TAX_GENERAL", "coverage_id": "LOCAL_TAX_ASSESSMENT_CERTIFICATE", "coverage_label": "지방세 세목별 과세증명서 범위, 납세증명서·납부확인서와 개인 자격 판단은 제외"},
+    {"topic_id": "KB-TAX-05", "intent": "LOCAL_TAX_GENERAL", "coverage_id": "LOCAL_TAX_PAYMENT_CONFIRMATION", "coverage_label": "지방세 납부확인서 범위, 납세증명서·과세증명서와 개인 납부 결과는 제외"},
+    {"topic_id": "KB-WASTE-01", "intent": "BULKY_WASTE", "coverage_id": "GENERAL_BULKY_DISPOSAL", "coverage_label": "일반 가구류 대형폐기물 배출 절차 범위, 전용 수거와 품목별 미승인 항목은 제외"},
+    {"topic_id": "KB-WASTE-02", "intent": "BULKY_WASTE", "coverage_id": "PAYMENT_STICKER_CHANGE_REFUND", "coverage_label": "대형폐기물 결제·스티커·변경·환불 범위, 품목별 미승인 항목과 수거 일정은 제외"},
+    {"topic_id": "KB-WASTE-03", "intent": "BULKY_WASTE", "coverage_id": "BED_FRAME_APPROVED_FEE", "coverage_label": "승인된 침대 프레임 항목 범위, 다른 가구류와 미승인 항목은 제외"},
+    {"topic_id": "KB-WASTE-04", "intent": "BULKY_WASTE", "coverage_id": "MATTRESS_APPROVED_FEE", "coverage_label": "승인된 매트리스 항목 범위, 다른 가구류와 미승인 항목은 제외"},
+    {"topic_id": "KB-WASTE-05", "intent": "BULKY_WASTE", "coverage_id": "COLLECTION_DAY_CONTACT", "coverage_label": "대형폐기물 배출요일·수거 문의 범위, 신청 절차와 품목별 미승인 항목은 제외"}
+  ]
+}
