@@ -299,8 +299,12 @@
 - 상세 권위는 ADR-0027과
   `docs/superpowers/specs/2026-07-27-bounded-hybrid-rag-conversation-design.md`다.
 - 사용자의 2026-07-27 `명세 승인`으로 written specification은 Approved다. exact RED/GREEN
-  실행계획은 `docs/superpowers/plans/2026-07-27-bounded-hybrid-rag-conversation.md`이며
-  별도 계획 승인 전 제품 코드와 actual provider 호출은 시작하지 않는다.
+  실행계획은 `docs/superpowers/plans/2026-07-27-bounded-hybrid-rag-conversation.md`다.
+  이어진 `계획 승인, Subagent-Driven으로 구현 시작`에 따라 D-104의 Tasks 1~9
+  local/offline 구현·독립 검토가 완료됐다. immutable official `.2`의 runtime 교집합은 19이고
+  synthetic UAT 48/48·official 57/57·classifier 60/60·focused 91 PASS/skip 0이다. 실제
+  PII-free provider 20건과 final full gate/Draft PR은 Tasks 10~11이며 public/remote,
+  DB reset/seed, official `.2` 변경, 자동 merge는 계속 미실행이다.
 
 ## 제출 정보
 

@@ -2,17 +2,23 @@
 
 ## [Unreleased]
 
-### Designed — bounded ACTIVE-topic Hybrid RAG
+### Implemented — bounded ACTIVE-topic Hybrid RAG
 
-- Approved an ACTIVE/OFFICIAL runtime topic catalog with closed topic-and-coverage selection,
-  server-validated grounding evidence and top-1 KB answers.
-- Defined intent-specific follow-ups, same-tab-only region retention, a three-choice certificate
-  entry, local interactive provider caps of 80/100/160 with a VAT-inclusive USD 0.20 stop, and a
-  48-case non-factual synthetic UAT corpus.
-- Kept vector/embedding, new dependencies, DB migrations, official data changes, multi-KB
-  synthesis and public provider operation out of scope. Runtime code and provider state are
-  unchanged pending written-spec review and an approved implementation plan.
-- Advanced documentation from `2.25.1` to `2.26.0`; all other version axes are unchanged.
+- Added a versioned 20-topic metadata catalog whose runtime view is the request-local
+  ACTIVE/OFFICIAL intersection (19 in immutable official `.2`) and a closed
+  route/intent/topic/coverage/pending-slot selector with server-side membership and typed grounding.
+- Added intent-specific exact follow-ups, bounded structured context, always-visible same-tab region
+  selection, the three-choice certificate entry and source-backed related questions.
+- Added local interactive provider limits of classifier 80, generator 100, combined 160 and a
+  VAT-inclusive USD 0.20 pre-reservation stop; retry remains 0 and failures remain value-free.
+- Froze a 48-case synthetic UAT with an independent provider oracle, phone-shaped redaction-to-MOVE
+  success, exact follow-up options/pending slots and aggregate-only privacy reporting. Offline
+  acceptance passed 91 tests with skip 0; official examples are 57/57 and classifier fixtures 60/60.
+- Kept vector/embedding, new dependencies, DB migrations, official `.2` changes, multi-KB synthesis,
+  public/remote provider operation and automatic merge out of scope. The approved PII-free 20-case
+  local provider run remains a separate gate.
+- Advanced application `0.11.1→0.12.0`, Web `0.7.0→0.8.0`, prompt set `0.3.1→0.4.0`, tests
+  `1.9.2→2.0.0` and documentation `2.26.1→2.27.0`; API/shared/DB/data axes are unchanged.
 
 ### Fixed — local hybrid classifier runtime composition
 

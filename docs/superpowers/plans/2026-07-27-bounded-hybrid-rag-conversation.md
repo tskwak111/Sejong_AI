@@ -264,6 +264,15 @@ Assert at most two examples, max 1,024 masked-question chars, no facts/source/of
 catalog sizes 0 and 21 reject without transport, and conservative total estimate above 4,096
 rejects.
 
+**Implemented internal serialization note (controller-approved during Task 2):** the semantic
+fields above are unchanged, but the provider-bound `topic_catalog` uses one exact six-column header
+(`topic_id`, `intent`, `service_name`, `coverage_id`, `coverage_label`, `approved_examples`) plus
+deterministically ordered row arrays. Repeating those six JSON keys for all 19/20 topics made the
+real governed catalog exceed the conservative 4,096 input bound. The columnar form preserves every
+topic and value without truncation or sampling and keeps the real 20-topic, 1,024-character-question
+payload at 4,094/4,096. This is an internal prompt encoding only; the provider output schema, public
+API, DB and official-data contracts are unchanged.
+
 - [ ] **Step 3: Run RED**
 
 ```powershell

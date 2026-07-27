@@ -55,16 +55,16 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.9
-application: 0.11.1-classifier-runtime
-web: 0.7.0-natural-dialogue
+application: 0.12.0-bounded-hybrid-rag
+web: 0.8.0-guided-chat
 api: 4.0.0-draft
 shared_contracts: 1.0.0
 database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.3.1-hybrid-classifier
-test_suite: 1.9.2-classifier-runtime
-documentation: 2.26.0
+prompt_set: 0.4.0-topic-coverage
+test_suite: 2.0.0-bounded-hybrid-rag
+documentation: 2.27.0
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -96,6 +96,17 @@ Documentation `2.26.1`은 사용자의 `명세 승인`으로 위 written specifi
 ACTIVE catalog→closed selector→typed grounding→chat/context→Web→cost→48 offline→20 actual→
 final gate 순서와 파일·명령·커밋 경계를 고정한다. Application/Web/API/shared/DB/data/prompt/test
 runtime은 변경하지 않았으며 실행계획 승인 전 제품 코드와 actual provider 호출은 계속 0이다.
+
+Application `0.12.0-bounded-hybrid-rag`, Web `0.8.0-guided-chat`, prompt set
+`0.4.0-topic-coverage`, test suite `2.0.0-bounded-hybrid-rag`, documentation `2.27.0`은
+CHAT-HYBRID-RAG-001 Tasks 1~9의 local/offline 구현 기준선이다. request-local
+ACTIVE/OFFICIAL catalog, closed topic+coverage selector, typed grounding, intent별 FOLLOWUP,
+bounded context와 same-tab region UX, 80/100/160·USD0.20 local budget, 48-case synthetic UAT를
+포함한다. immutable official `.2`의 runtime 교집합은 19이고 local DB의 별도 승인 20번째
+ACTIVE를 official `.2`에 역기록하지 않는다. API `4.0.0-draft`, shared contracts `1.0.0`,
+DB `0.5.0-local`, official/mock data는 불변이다. offline UAT는 91 PASS·skip 0,
+official examples 57/57, classifier 60/60이다. 실제 Upstage 20-case run, public/remote,
+DB reset/seed, automatic merge 완료를 뜻하지 않는다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
