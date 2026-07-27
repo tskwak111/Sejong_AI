@@ -14,7 +14,7 @@
 | Approved official examples | 57/57 grounded records passed |
 | Approved sample questions | 20/20 passed |
 | Frozen classifier evaluation | 60/60 correct; skip 0 |
-| Focused pytest total | 86 passed; skipped 0 |
+| Focused pytest total | 91 passed; skipped 0 |
 
 The runtime ACTIVE/OFFICIAL intersection loaded from immutable official `.2` is 19 topics, not 20; `KB-WASTE-03` is absent from that release. The fixture therefore uses only the 19 current topics and does not modify official data, seed data, or production behavior.
 
