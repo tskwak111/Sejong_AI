@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 /**
  * 지역(동) 선택 UI - SFR-004.
  * 사용처: ① FOLLOWUP의 지역 선택지 ② 답변 카드 "동 변경" 인라인.
@@ -18,16 +20,17 @@ export default function RegionSelect({
   onSelect: (dong: Region) => void;
   label?: string;
 }) {
+  const controlId = `region-select-${useId()}`;
   const selectedRegion = isRegion(current ?? "") ? (current as Region) : null;
   const copy = label ?? regionSelectCopy(selectedRegion);
 
   return (
     <div>
-      <label className="mb-1 block text-label font-bold text-text" htmlFor="region-select">
+      <label className="mb-1 block text-label font-bold text-text" htmlFor={controlId}>
         {copy}
       </label>
       <select
-        id="region-select"
+        id={controlId}
         value={selectedRegion ?? ""}
         onChange={(event) => {
           if (isRegion(event.target.value)) onSelect(event.target.value);

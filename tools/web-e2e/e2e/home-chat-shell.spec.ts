@@ -57,7 +57,7 @@ test("region choice is native-keyboard-operable and new conversation preserves o
   await expect(page.getByRole("combobox", {
     name: "거주 지역 선택 · 선택사항",
   })).toBeVisible();
-  const regionSelect = page.locator("#region-select");
+  const regionSelect = page.getByRole("combobox");
   await regionSelect.focus();
   await page.keyboard.press("ArrowDown");
   await expect(regionSelect).toHaveValue("아름동");

@@ -311,6 +311,28 @@ describe("citizen chat screen", () => {
     expect(document.cookie).toBe("");
   });
 
+  it("binds each simultaneous footer and inline region label to a unique native select", async () => {
+    const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
+    render(<ChatScreen transport={transportWith(send)} />);
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "아름동" } });
+    ask("전입신고 알려줘");
+    await screen.findByText(SUCCESS_RESPONSE.sources[0].title);
+    fireEvent.click(screen.getByRole("button", { name: "동 변경" }));
+
+    const selects = screen.getAllByRole("combobox");
+    expect(selects).toHaveLength(2);
+    expect(new Set(selects.map((select) => select.id)).size).toBe(selects.length);
+    for (const select of selects) {
+      const label = document.querySelector<HTMLLabelElement>(
+        `label[for="${select.id}"]`,
+      );
+      expect(label).toHaveTextContent("아름동 · 변경");
+      expect(label?.htmlFor).toBe(select.id);
+      expect(select).toHaveAccessibleName("아름동 · 변경");
+    }
+  });
+
   it("sends a certificate navigation question with its response context and a fresh idempotency key", async () => {
     const certificateResponse = {
       ...SUCCESS_RESPONSE,
