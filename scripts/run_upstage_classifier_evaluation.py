@@ -13,9 +13,10 @@ import time
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
-from typing import NoReturn, Protocol
+from typing import Any, NoReturn, Protocol
 
 import httpx
 
@@ -27,6 +28,15 @@ _FIXTURE_PATH = (
 _REPORT_PATH = (
     _REPOSITORY_ROOT / "docs" / "test-reports" / "CHAT-NATURAL-001-UPSTAGE-ACTUAL.md"
 )
+_OFFICIAL_RECORDS_PATH = (
+    _REPOSITORY_ROOT
+    / "data"
+    / "official"
+    / "releases"
+    / "0.1.0-initial.2"
+    / "kb_records.json"
+)
+_COVERAGE_PATH = _REPOSITORY_ROOT / "data" / "retrieval" / "topic-coverage.v1.json"
 if str(_API_SOURCE) not in sys.path:
     sys.path.insert(0, str(_API_SOURCE))
 
@@ -35,7 +45,16 @@ from sejong_ai_api.chat.classification import (  # noqa: E402
     SafeQuestion,
     classify_question,
 )
-from sejong_ai_api.db.models import FallbackReason, Intent  # noqa: E402
+from sejong_ai_api.chat.topic_catalog import (  # noqa: E402
+    TopicCatalog,
+    build_topic_catalog,
+    load_topic_coverage,
+)
+from sejong_ai_api.db.models import (  # noqa: E402
+    FallbackReason,
+    Intent,
+    KnowledgeRecord,
+)
 from sejong_ai_api.llm.classifier_contracts import (  # noqa: E402
     ClassifierDecision,
     ClassifierRoute,
@@ -73,6 +92,18 @@ _EXPECTED_GROUPS = {
     "CIVIC_SCOPE_GAP": 10,
     "NEEDS_FOLLOWUP": 10,
     "POLICY_PRIVACY": 10,
+}
+_EXPECTED_SUPPORTED_TOPIC_COVERAGE = {
+    "C-11": ("KB-MOVE-01", "MOVE_IN_OVERVIEW_APPLICATION"),
+    "C-12": ("KB-MOVE-02", "MOVE_IN_VISIT_REQUIREMENTS"),
+    "C-13": ("KB-MOVE-01", "MOVE_IN_OVERVIEW_APPLICATION"),
+    "C-14": ("KB-MOVE-03", "MOVE_IN_ONLINE_APPLICATION"),
+    "C-15": ("KB-MOVE-01", "MOVE_IN_OVERVIEW_APPLICATION"),
+    "C-16": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
+    "C-17": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
+    "C-18": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
+    "C-19": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
+    "C-20": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
 }
 _FIXTURE_KEYS = frozenset(
     {
@@ -241,6 +272,14 @@ def _load_fixtures(path: Path) -> tuple[_Fixture, ...]:
         fixture.group == "POLICY_PRIVACY" and fixture.execution != "DETERMINISTIC"
         for fixture in fixtures
     ):
+        raise _FixturesInvalid
+    supported_provider_ids = {
+        fixture.fixture_id
+        for fixture in fixtures
+        if fixture.execution == "PROVIDER"
+        and fixture.expected_code == ClassifierRoute.SUPPORTED.value
+    }
+    if supported_provider_ids != set(_EXPECTED_SUPPORTED_TOPIC_COVERAGE):
         raise _FixturesInvalid
     return tuple(fixtures)
 
@@ -414,6 +453,7 @@ def _outcome_matches(fixture: _Fixture, outcome: ClassificationOutcome) -> bool:
 
 
 def _decision_matches(fixture: _Fixture, decision: ClassifierDecision) -> bool:
+    expected_pair = _EXPECTED_SUPPORTED_TOPIC_COVERAGE.get(fixture.fixture_id)
     return (
         decision.route.value == fixture.expected_code
         and (decision.intent.value if decision.intent is not None else None)
@@ -423,11 +463,12 @@ def _decision_matches(fixture: _Fixture, decision: ClassifierDecision) -> bool:
         and (
             (
                 decision.route is ClassifierRoute.SUPPORTED
-                and decision.topic_id is not None
-                and decision.coverage_id is not None
+                and expected_pair is not None
+                and (decision.topic_id, decision.coverage_id) == expected_pair
             )
             or (
                 decision.route is not ClassifierRoute.SUPPORTED
+                and expected_pair is None
                 and decision.topic_id is None
                 and decision.coverage_id is None
             )
@@ -493,6 +534,82 @@ def _build_historical_ledger(
     )
 
 
+def _build_current_test_catalog() -> TopicCatalog:
+    """Build the immutable governed 20-topic catalog used by current tests."""
+
+    try:
+        payload: dict[str, Any] = json.loads(
+            _OFFICIAL_RECORDS_PATH.read_text(encoding="utf-8")
+        )
+        records = tuple(_parse_knowledge_record(item) for item in payload["records"])
+        catalog = build_topic_catalog(
+            (*records, _canonical_waste_03()),
+            load_topic_coverage(_COVERAGE_PATH),
+        )
+    except (KeyError, OSError, TypeError, UnicodeError, ValueError):
+        raise _ConfigurationInvalid from None
+    governed_pairs = {
+        (topic.record.public_id, topic.coverage.coverage_id)
+        for topic in catalog.topics
+    }
+    if (
+        len(catalog.topics) != 20
+        or not catalog.provider_eligible
+        or not set(_EXPECTED_SUPPORTED_TOPIC_COVERAGE.values()) <= governed_pairs
+    ):
+        raise _ConfigurationInvalid
+    return catalog
+
+
+def _parse_knowledge_record(raw: dict[str, Any]) -> KnowledgeRecord:
+    return KnowledgeRecord(
+        public_id=raw["id"],
+        category=Intent(raw["category"]),
+        service_name=raw["service_name"],
+        answer_summary=raw["answer_summary"],
+        procedure_steps=tuple(raw["procedure_steps"]),
+        required_documents=tuple(raw["required_documents"]),
+        processing_time=raw["processing_time"],
+        fee=raw["fee"],
+        department=raw["department"],
+        source_title=raw["source_title"],
+        source_url=raw["source_url"],
+        last_verified_at=date.fromisoformat(raw["last_verified_at"]),
+        caution=raw["caution"],
+        question_examples=tuple(raw["question_examples"]),
+    )
+
+
+def _canonical_waste_03() -> KnowledgeRecord:
+    return KnowledgeRecord(
+        public_id="KB-WASTE-03",
+        category=Intent.BULKY_WASTE,
+        service_name="침대 프레임 배출 수수료",
+        answer_summary=(
+            "공식 품목표의 침대 프레임 수수료는 1인용침대 8,000원, "
+            "2인용침대 10,000원으로 표시됩니다."
+        ),
+        procedure_steps=(
+            "공식 품목표에서 침대 프레임의 1인용침대 또는 2인용침대 항목을 확인합니다.",
+            "해당 수수료로 공식 배출 절차를 진행합니다.",
+        ),
+        required_documents=(),
+        processing_time=None,
+        fee="1인용침대 8,000원; 2인용침대 10,000원",
+        department="세종특별자치시시설관리공단",
+        source_title="배출항목선택",
+        source_url=(
+            "https://www.sjwaste.kr/wasteApp/appCategoryPopup.do?menuId=MENU00305"
+        ),
+        last_verified_at=date(2026, 7, 18),
+        caution=(
+            "공식 품목표의 1인용침대·2인용침대 항목을 그대로 따릅니다. "
+            "매트리스 포함 가격이나 실제 규격을 단정하지 않습니다."
+        ),
+        question_examples=("침대 2인용 프레임 수수료가 얼마예요?",),
+    )
+
+
 class _UsageRecorder:
     def __init__(self) -> None:
         self.input_tokens = 0
@@ -536,11 +653,15 @@ class _ActualClassifier:
         ledger: ProviderAttemptLedger,
         recorder: _UsageRecorder,
         settings: UpstageClassifierSettings,
+        catalog: TopicCatalog,
     ) -> None:
+        if type(catalog) is not TopicCatalog or not catalog.provider_eligible:
+            raise _ConfigurationInvalid
         self._classifier = classifier
         self._ledger = ledger
         self._recorder = recorder
         self._settings = settings
+        self._catalog = catalog
 
     @property
     def usage(self) -> TokenUsage:
@@ -565,7 +686,7 @@ class _ActualClassifier:
             raise _RuntimeFailed
 
     async def classify(self, question: SafeQuestion) -> ClassifierDecision | None:
-        return await self._classifier.classify(question)
+        return await self._classifier.classify(question, self._catalog)
 
 
 def _build_report(
@@ -685,6 +806,7 @@ async def _execute_actual(options: _RunnerOptions) -> dict[str, object]:
     provider_case_count = sum(case.execution == "PROVIDER" for case in fixtures)
     _validate_settings(settings, provider_case_count=provider_case_count)
 
+    catalog = _build_current_test_catalog()
     ledger = _build_historical_ledger(settings)
     recorder = _UsageRecorder()
     timeout = httpx.Timeout(
@@ -714,6 +836,7 @@ async def _execute_actual(options: _RunnerOptions) -> dict[str, object]:
             ledger=ledger,
             recorder=recorder,
             settings=settings,
+            catalog=catalog,
         )
         result = await _evaluate(
             fixtures,

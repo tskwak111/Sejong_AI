@@ -206,6 +206,46 @@ async def test_provider_ledger_charges_valid_actual_usage_exactly_once() -> None
 
 
 @pytest.mark.asyncio
+async def test_provider_reservation_accepts_exact_lane_maximum_usage() -> None:
+    ledger = _provider_ledger(cost_cap_usd=CLASSIFIER_WORST_CASE_USD)
+    usage = TokenUsage(4096, 0, 128)
+
+    async with ledger.reserve_classifier() as reservation:
+        reservation.record_usage(usage)
+
+    assert ledger.actual_cost_usd == CLASSIFIER_WORST_CASE_USD
+    assert ledger.actual_cost_usd <= CLASSIFIER_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_provider_reservation_rejects_usage_cost_above_reserved_maximum() -> None:
+    ledger = _provider_ledger()
+
+    async with ledger.reserve_classifier() as reservation:
+        with pytest.raises(
+            ValueError,
+            match="^PROVIDER_USAGE_EXCEEDS_RESERVATION$",
+        ):
+            reservation.record_usage(TokenUsage(4096, 0, 129))
+
+    assert ledger.actual_cost_usd == CLASSIFIER_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_provider_ledger_exact_cap_finalization_never_overshoots() -> None:
+    ledger = _provider_ledger(cost_cap_usd=CLASSIFIER_WORST_CASE_USD)
+
+    async with ledger.reserve_classifier() as reservation:
+        reservation.record_usage(TokenUsage(4096, 0, 128))
+
+    assert ledger.actual_cost_usd == CLASSIFIER_WORST_CASE_USD
+    with pytest.raises(AttemptCapReached, match="^ATTEMPT_CAP_REACHED$"):
+        async with ledger.reserve_classifier():
+            raise AssertionError("cost cap equality must block the next reservation")
+    assert ledger.actual_cost_usd <= CLASSIFIER_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
 async def test_provider_ledger_charges_lane_worst_case_for_missing_usage() -> None:
     ledger = _provider_ledger()
 
@@ -218,15 +258,16 @@ async def test_provider_ledger_charges_lane_worst_case_for_missing_usage() -> No
 
 
 @pytest.mark.asyncio
-async def test_provider_ledger_charges_worst_case_when_reserved_operation_fails() -> None:
+async def test_provider_ledger_keeps_recorded_actual_when_operation_later_fails() -> None:
     ledger = _provider_ledger()
+    usage = TokenUsage(20, 0, 10)
 
     with pytest.raises(RuntimeError, match="^VALUE_FREE_PROVIDER_FAILURE$"):
         async with ledger.reserve_classifier() as reservation:
-            reservation.record_usage(TokenUsage(20, 0, 10))
+            reservation.record_usage(usage)
             raise RuntimeError("VALUE_FREE_PROVIDER_FAILURE")
 
-    assert ledger.actual_cost_usd == CLASSIFIER_WORST_CASE_USD
+    assert ledger.actual_cost_usd == estimate_cost_usd(usage)
 
 
 @pytest.mark.asyncio

@@ -361,8 +361,8 @@ async def test_malformed_or_truncated_output_fails_closed_after_one_request(
         (
             {"prompt_tokens": 4097, "completion_tokens": 10},
             True,
-            GroundedChatOutcomeCode.INPUT_LIMIT,
-            TokenUsage(4097, 0, 10),
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
         ),
         (
             {"prompt_tokens": 20, "completion_tokens": 1024},
@@ -373,8 +373,8 @@ async def test_malformed_or_truncated_output_fails_closed_after_one_request(
         (
             {"prompt_tokens": 20, "completion_tokens": 1025},
             True,
-            GroundedChatOutcomeCode.TRUNCATED,
-            TokenUsage(20, 0, 1025),
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
         ),
         (
             {"prompt_tokens": 20, "completion_tokens": True},
@@ -384,6 +384,118 @@ async def test_malformed_or_truncated_output_fails_closed_after_one_request(
         ),
         (
             {"prompt_tokens": 20, "completion_tokens": -1},
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 4096,
+                "completion_tokens": 1024,
+                "total_tokens": 5120,
+                "cached_tokens": 1024,
+            },
+            True,
+            GroundedChatOutcomeCode.SUCCESS,
+            TokenUsage(4096, 1024, 1024),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": True,
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": 30.0,
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": -1,
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": 31,
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": [],
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": True},
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": 1.0},
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": -1},
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": 21},
+            },
+            True,
+            GroundedChatOutcomeCode.SCHEMA_INVALID,
+            TokenUsage(0, 0, 0),
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "cached_tokens": 2,
+                "prompt_tokens_details": {"cached_tokens": 1},
+            },
             True,
             GroundedChatOutcomeCode.SCHEMA_INVALID,
             TokenUsage(0, 0, 0),
@@ -459,7 +571,7 @@ async def test_conservative_input_overflow_returns_without_request() -> None:
 
 
 @pytest.mark.asyncio
-async def test_provider_reported_input_overflow_fails_closed_after_one_request() -> None:
+async def test_provider_reported_input_overflow_is_schema_invalid_after_one_request() -> None:
     settings = UpstageChatSettings(api_key=SECRET)
     requests = 0
 
@@ -478,7 +590,8 @@ async def test_provider_reported_input_overflow_fails_closed_after_one_request()
             budget=AttemptBudget(cap=30, concurrency=1),
         ).generate(_request())
 
-    assert result.code is GroundedChatOutcomeCode.INPUT_LIMIT
+    assert result.code is GroundedChatOutcomeCode.SCHEMA_INVALID
+    assert result.usage == TokenUsage(0, 0, 0)
     assert result.draft is None
     assert requests == 1
 
@@ -599,7 +712,7 @@ async def test_shared_ledger_charges_generator_worst_case_for_invalid_usage() ->
 
 
 @pytest.mark.asyncio
-async def test_shared_ledger_charges_generator_worst_case_for_parser_failure() -> None:
+async def test_shared_ledger_charges_generator_actual_once_for_parser_failure() -> None:
     settings = UpstageChatSettings(api_key=SECRET)
     ledger = _ledger()
 
@@ -617,16 +730,31 @@ async def test_shared_ledger_charges_generator_worst_case_for_parser_failure() -
         ).generate(_request())
 
     assert result.code is GroundedChatOutcomeCode.SCHEMA_INVALID
-    assert ledger.actual_cost_usd == GENERATOR_WORST_CASE_USD
+    assert ledger.actual_cost_usd == estimate_cost_usd(TokenUsage(20, 0, 10))
 
 
 @pytest.mark.asyncio
-async def test_shared_ledger_charges_generator_worst_case_for_timeout() -> None:
+@pytest.mark.parametrize(
+    "exception_factory",
+    [
+        lambda request: httpx.ReadTimeout(
+            "PRIVATE-TIMEOUT-SENTINEL",
+            request=request,
+        ),
+        lambda request: httpx.ConnectError(
+            "PRIVATE-TRANSPORT-SENTINEL",
+            request=request,
+        ),
+    ],
+)
+async def test_shared_ledger_charges_generator_worst_case_before_usage(
+    exception_factory: Callable[[httpx.Request], httpx.TransportError],
+) -> None:
     settings = UpstageChatSettings(api_key=SECRET)
     ledger = _ledger()
 
     def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.ReadTimeout("PRIVATE-TIMEOUT-SENTINEL", request=request)
+        raise exception_factory(request)
 
     async with httpx.AsyncClient(
         base_url=settings.base_url,
@@ -638,7 +766,10 @@ async def test_shared_ledger_charges_generator_worst_case_for_timeout() -> None:
             budget=ledger,
         ).generate(_request())
 
-    assert result.code is GroundedChatOutcomeCode.TIMEOUT
+    assert result.code in {
+        GroundedChatOutcomeCode.TIMEOUT,
+        GroundedChatOutcomeCode.TRANSPORT,
+    }
     assert ledger.actual_cost_usd == GENERATOR_WORST_CASE_USD
 
 

@@ -23,6 +23,7 @@ from sejong_ai_api.llm.limits import (
     AttemptCapReached,
     ProviderAttemptLedger,
     ProviderCostReservation,
+    parse_provider_token_usage,
 )
 from sejong_ai_api.llm.settings import (
     UPSTAGE_BASE_URL,
@@ -197,15 +198,15 @@ def _parse_response(
     if type(envelope) is not dict:
         return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
 
-    usage = _reported_usage(envelope.get("usage"))
+    usage = parse_provider_token_usage(
+        envelope.get("usage"),
+        max_input_tokens=max_input_tokens,
+        max_output_tokens=max_output_tokens,
+    )
     if usage is None:
         return _failure(GroundedChatOutcomeCode.SCHEMA_INVALID)
     if reservation is not None:
         reservation.record_usage(usage)
-    if usage.input_tokens > max_input_tokens:
-        return _failure(GroundedChatOutcomeCode.INPUT_LIMIT, usage=usage)
-    if usage.output_tokens > max_output_tokens:
-        return _failure(GroundedChatOutcomeCode.TRUNCATED, usage=usage)
 
     choice = _first_choice(envelope.get("choices"))
     if choice is None:
@@ -238,25 +239,6 @@ def _first_choice(value: object) -> dict[str, Any] | None:
         return None
     choice = value[0]
     return choice if type(choice) is dict else None
-
-
-def _reported_usage(value: object) -> TokenUsage | None:
-    if type(value) is not dict:
-        return None
-    prompt_tokens = value.get("prompt_tokens")
-    completion_tokens = value.get("completion_tokens")
-    if (
-        type(prompt_tokens) is not int
-        or prompt_tokens < 0
-        or type(completion_tokens) is not int
-        or completion_tokens < 0
-    ):
-        return None
-    return TokenUsage(
-        input_tokens=prompt_tokens,
-        cached_input_tokens=0,
-        output_tokens=completion_tokens,
-    )
 
 
 def _failure(

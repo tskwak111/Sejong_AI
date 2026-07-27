@@ -281,8 +281,92 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
         ({"prompt_tokens": True, "completion_tokens": 10}, True),
         ({"prompt_tokens": 20.0, "completion_tokens": 10}, True),
         ({"prompt_tokens": -1, "completion_tokens": 10}, True),
+        ({"prompt_tokens": 4097, "completion_tokens": 10}, True),
         ({"prompt_tokens": 20, "completion_tokens": True}, True),
+        ({"prompt_tokens": 20, "completion_tokens": 10.0}, True),
         ({"prompt_tokens": 20, "completion_tokens": -1}, True),
+        ({"prompt_tokens": 20, "completion_tokens": 129}, True),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": True,
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": 30.0,
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": -1,
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": 31,
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": [],
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": True},
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": 1.0},
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": -1},
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": 21},
+            },
+            True,
+        ),
+        (
+            {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "cached_tokens": 2,
+                "prompt_tokens_details": {"cached_tokens": 1},
+            },
+            True,
+        ),
     ],
 )
 async def test_classifier_usage_is_strict_and_invalid_usage_charges_worst_case(
@@ -315,7 +399,38 @@ async def test_classifier_usage_is_strict_and_invalid_usage_charges_worst_case(
 
 
 @pytest.mark.asyncio
-async def test_classifier_parser_failure_after_valid_usage_charges_worst_case() -> None:
+async def test_classifier_accepts_exact_usage_maxima_and_metered_details() -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    ledger = _ledger()
+    usage = {
+        "prompt_tokens": 4096,
+        "completion_tokens": 128,
+        "total_tokens": 4224,
+        "cached_tokens": 1024,
+        "prompt_tokens_details": {"cached_tokens": 1024},
+    }
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return _provider_response(usage=usage)
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+        ).classify(_question(), _catalog())
+
+    assert decision is not None
+    assert decision.route is ClassifierRoute.CIVIC_SCOPE_GAP
+    assert ledger.actual_cost_usd == estimate_cost_usd(TokenUsage(4096, 1024, 128))
+    assert ledger.actual_cost_usd <= CLASSIFIER_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_classifier_parser_failure_after_valid_usage_charges_actual_once() -> None:
     settings = UpstageClassifierSettings(api_key=SECRET)
     ledger = _ledger()
 
@@ -333,7 +448,7 @@ async def test_classifier_parser_failure_after_valid_usage_charges_worst_case() 
         ).classify(_question(), _catalog())
 
     assert decision is None
-    assert ledger.actual_cost_usd == CLASSIFIER_WORST_CASE_USD
+    assert ledger.actual_cost_usd == estimate_cost_usd(TokenUsage(20, 0, 10))
 
 
 @pytest.mark.asyncio

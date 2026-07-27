@@ -71,10 +71,12 @@ class ProviderCostReservation:
             raise ValueError("TOKEN_USAGE_INVALID")
         if self._usage is not None:
             raise ValueError("PROVIDER_USAGE_ALREADY_RECORDED")
+        if estimate_cost_usd(usage) > self.worst_case_usd:
+            raise ValueError("PROVIDER_USAGE_EXCEEDS_RESERVATION")
         self._usage = usage
 
-    def _final_cost_usd(self, *, failed: bool) -> Decimal:
-        if failed or self._usage is None:
+    def _final_cost_usd(self) -> Decimal:
+        if self._usage is None:
             return self.worst_case_usd
         return estimate_cost_usd(self._usage)
 
@@ -175,21 +177,19 @@ class ProviderAttemptLedger:
             try:
                 yield reservation
             except BaseException:
-                await self._finalize(reservation, failed=True)
+                await self._finalize(reservation)
                 raise
             else:
-                await self._finalize(reservation, failed=False)
+                await self._finalize(reservation)
         finally:
             self._semaphore.release()
 
     async def _finalize(
         self,
         reservation: ProviderCostReservation,
-        *,
-        failed: bool,
     ) -> None:
         async with self._state_lock:
-            self._actual_cost_usd += reservation._final_cost_usd(failed=failed)
+            self._actual_cost_usd += reservation._final_cost_usd()
 
 
 def _valid_positive_decimal(value: object) -> bool:
@@ -197,4 +197,79 @@ def _valid_positive_decimal(value: object) -> bool:
         type(value) is Decimal
         and value.is_finite()
         and value > Decimal("0")
+    )
+
+
+def parse_provider_token_usage(
+    value: object,
+    *,
+    max_input_tokens: int,
+    max_output_tokens: int,
+) -> TokenUsage | None:
+    """Parse one bounded provider usage envelope without coercion."""
+
+    if (
+        type(value) is not dict
+        or type(max_input_tokens) is not int
+        or max_input_tokens < 0
+        or type(max_output_tokens) is not int
+        or max_output_tokens < 0
+    ):
+        return None
+    prompt_tokens = value.get("prompt_tokens")
+    completion_tokens = value.get("completion_tokens")
+    if (
+        type(prompt_tokens) is not int
+        or prompt_tokens < 0
+        or prompt_tokens > max_input_tokens
+        or type(completion_tokens) is not int
+        or completion_tokens < 0
+        or completion_tokens > max_output_tokens
+    ):
+        return None
+
+    if "total_tokens" in value:
+        total_tokens = value["total_tokens"]
+        if (
+            type(total_tokens) is not int
+            or total_tokens < 0
+            or total_tokens != prompt_tokens + completion_tokens
+        ):
+            return None
+
+    reported_cached_tokens: int | None = None
+    if "cached_tokens" in value:
+        cached_tokens = value["cached_tokens"]
+        if (
+            type(cached_tokens) is not int
+            or cached_tokens < 0
+            or cached_tokens > prompt_tokens
+        ):
+            return None
+        reported_cached_tokens = cached_tokens
+
+    if "prompt_tokens_details" in value:
+        details = value["prompt_tokens_details"]
+        if type(details) is not dict or "cached_tokens" not in details:
+            return None
+        cached_tokens = details["cached_tokens"]
+        if (
+            type(cached_tokens) is not int
+            or cached_tokens < 0
+            or cached_tokens > prompt_tokens
+        ):
+            return None
+        if (
+            reported_cached_tokens is not None
+            and reported_cached_tokens != cached_tokens
+        ):
+            return None
+        reported_cached_tokens = cached_tokens
+
+    return TokenUsage(
+        input_tokens=prompt_tokens,
+        cached_input_tokens=(
+            0 if reported_cached_tokens is None else reported_cached_tokens
+        ),
+        output_tokens=completion_tokens,
     )

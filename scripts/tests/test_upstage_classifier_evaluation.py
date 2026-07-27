@@ -9,6 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 from types import ModuleType
 
+import httpx
 import pytest
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -16,6 +17,7 @@ _API_SOURCE = _REPOSITORY_ROOT / "apps" / "api" / "src"
 if str(_API_SOURCE) not in sys.path:
     sys.path.insert(0, str(_API_SOURCE))
 
+from sejong_ai_api.chat.classification import SafeQuestion  # noqa: E402
 from sejong_ai_api.db.models import Intent  # noqa: E402
 from sejong_ai_api.llm.classifier_contracts import (  # noqa: E402
     ClassifierDecision,
@@ -24,6 +26,8 @@ from sejong_ai_api.llm.classifier_contracts import (  # noqa: E402
 from sejong_ai_api.llm.contracts import TokenUsage  # noqa: E402
 from sejong_ai_api.llm.cost import estimate_cost_usd  # noqa: E402
 from sejong_ai_api.llm.settings import UpstageClassifierSettings  # noqa: E402
+from sejong_ai_api.llm.upstage_classifier import QuestionClassifier  # noqa: E402
+from sejong_ai_api.privacy.redaction import redact_question  # noqa: E402
 
 _RUNNER_MODULE_NAME = "_sejong_upstage_classifier_evaluation_test"
 _RUNNER_PATH = _REPOSITORY_ROOT / "scripts" / "run_upstage_classifier_evaluation.py"
@@ -142,27 +146,28 @@ def test_evaluation_calls_only_provider_cases_and_keeps_policy_outbound_zero(
     path = tmp_path / "classifier-60.json"
     path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     fixtures = runner._load_fixtures(path)
-    decisions = [
-        ClassifierDecision(
-            route=(
-                ClassifierRoute.SUPPORTED
-                if case.expected_code == "SUPPORTED"
-                else ClassifierRoute.CIVIC_SCOPE_GAP
-            ),
-            intent=(
-                Intent(case.expected_intent)
-                if case.expected_code == "SUPPORTED"
-                else None
-            ),
-            topic_id=("KB-TEST-01" if case.expected_code == "SUPPORTED" else None),
-            coverage_id=(
-                "TEST_COVERAGE" if case.expected_code == "SUPPORTED" else None
-            ),
-            pending_slot=None,
+    decisions: list[ClassifierDecision | None] = []
+    for case in fixtures:
+        if case.execution != "PROVIDER":
+            continue
+        expected_pair = runner._EXPECTED_SUPPORTED_TOPIC_COVERAGE.get(case.fixture_id)
+        decisions.append(
+            ClassifierDecision(
+                route=(
+                    ClassifierRoute.SUPPORTED
+                    if case.expected_code == "SUPPORTED"
+                    else ClassifierRoute.CIVIC_SCOPE_GAP
+                ),
+                intent=(
+                    Intent(case.expected_intent)
+                    if case.expected_code == "SUPPORTED"
+                    else None
+                ),
+                topic_id=expected_pair[0] if expected_pair is not None else None,
+                coverage_id=expected_pair[1] if expected_pair is not None else None,
+                pending_slot=None,
+            )
         )
-        for case in fixtures
-        if case.execution == "PROVIDER"
-    ]
     classifier = _FakeClassifier(decisions)
 
     result = asyncio.run(
@@ -180,6 +185,143 @@ def test_evaluation_calls_only_provider_cases_and_keeps_policy_outbound_zero(
     assert result.policy_privacy_outbound_count == 0
     assert result.correct_count == 60
     assert result.skip_count == 0
+
+
+def test_supported_mapping_is_exact_and_catalog_governed() -> None:
+    runner = _runner()
+    fixtures = runner._load_fixtures(
+        _REPOSITORY_ROOT
+        / "apps"
+        / "api"
+        / "tests"
+        / "fixtures"
+        / "classifier-60.json"
+    )
+    supported_provider_ids = {
+        case.fixture_id
+        for case in fixtures
+        if case.execution == "PROVIDER" and case.expected_code == "SUPPORTED"
+    }
+    catalog = runner._build_current_test_catalog()
+    governed_pairs = {
+        (topic.record.public_id, topic.coverage.coverage_id)
+        for topic in catalog.topics
+    }
+
+    assert len(catalog.topics) == 20
+    assert set(runner._EXPECTED_SUPPORTED_TOPIC_COVERAGE) == supported_provider_ids
+    assert set(runner._EXPECTED_SUPPORTED_TOPIC_COVERAGE.values()) <= governed_pairs
+
+
+def test_decision_match_requires_the_exact_supported_topic_coverage_pair() -> None:
+    runner = _runner()
+    fixture = next(
+        case
+        for case in runner._load_fixtures(
+            _REPOSITORY_ROOT
+            / "apps"
+            / "api"
+            / "tests"
+            / "fixtures"
+            / "classifier-60.json"
+        )
+        if case.fixture_id == "C-11"
+    )
+    topic_id, coverage_id = runner._EXPECTED_SUPPORTED_TOPIC_COVERAGE["C-11"]
+    exact = ClassifierDecision(
+        route=ClassifierRoute.SUPPORTED,
+        intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        topic_id=topic_id,
+        coverage_id=coverage_id,
+        pending_slot=None,
+    )
+    wrong = ClassifierDecision(
+        route=ClassifierRoute.SUPPORTED,
+        intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        topic_id="KB-MOVE-02",
+        coverage_id="MOVE_IN_VISIT_REQUIREMENTS",
+        pending_slot=None,
+    )
+
+    assert runner._decision_matches(fixture, exact) is True
+    assert runner._decision_matches(fixture, wrong) is False
+
+
+def test_actual_classifier_passes_current_catalog_through_real_adapter_offline() -> None:
+    runner = _runner()
+    fixtures = runner._load_fixtures(
+        _REPOSITORY_ROOT
+        / "apps"
+        / "api"
+        / "tests"
+        / "fixtures"
+        / "classifier-60.json"
+    )
+    fixture = next(case for case in fixtures if case.fixture_id == "C-11")
+    topic_id, coverage_id = runner._EXPECTED_SUPPORTED_TOPIC_COVERAGE[fixture.fixture_id]
+    settings = UpstageClassifierSettings(
+        api_key="historical-test-key-not-a-real-secret"
+    )
+    catalog = runner._build_current_test_catalog()
+    calls = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "route": "SUPPORTED",
+                                    "intent": fixture.expected_intent,
+                                    "topic_id": topic_id,
+                                    "coverage_id": coverage_id,
+                                    "pending_slot": None,
+                                }
+                            )
+                        },
+                    }
+                ],
+                "usage": {"prompt_tokens": 20, "completion_tokens": 10},
+            },
+        )
+
+    async def exercise() -> ClassifierDecision | None:
+        recorder = runner._UsageRecorder()
+        ledger = runner._build_historical_ledger(settings)
+        async with httpx.AsyncClient(
+            base_url=settings.base_url,
+            transport=httpx.MockTransport(handler),
+            event_hooks={"response": [recorder.capture]},
+        ) as client:
+            actual = runner._ActualClassifier(
+                classifier=QuestionClassifier(
+                    settings=settings,
+                    client=client,
+                    ledger=ledger,
+                ),
+                ledger=ledger,
+                recorder=recorder,
+                settings=settings,
+                catalog=catalog,
+            )
+            decision = await actual.classify(
+                SafeQuestion(redact_question(fixture.question))
+            )
+            assert actual.outbound_attempt_count == 1
+            assert actual.usage_response_count == 1
+            return decision
+
+    decision = asyncio.run(exercise())
+
+    assert calls == 1
+    assert decision is not None
+    assert runner._decision_matches(fixture, decision) is True
 
 
 def test_report_contains_aggregates_only_and_no_payload() -> None:
