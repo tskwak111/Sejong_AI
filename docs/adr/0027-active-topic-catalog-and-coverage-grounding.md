@@ -1,6 +1,6 @@
 # ADR-0027: ACTIVE topic catalog와 coverage grounding을 사용하는 제한형 Hybrid RAG
 
-- Status: Accepted — plan approved; Tasks 1~9 local/offline complete; Tasks 10~11 pending
+- Status: Accepted — Tasks 1~9 local/offline complete; Task 10 actual FAIL recorded; Task 11 pending
 - Date: 2026-07-27
 - Extends: ADR-0006, ADR-0010, ADR-0023, ADR-0025
 - Preserves: provider 전 PII 마스킹, ACTIVE/OFFICIAL-only, server-owned facts/sources/offices,
@@ -69,7 +69,7 @@ USD0.20 pre-reservation stop을 사용한다. historical 20/30/40·USD0.05 actua
 
 - Q-RAG-001=A, Q-DATA-RAG-001=A, Q-UX-REGION-001=A,
   Q-UX-CERT-001=A, Q-COST-001=A
-- D-096~D-104, A-064~A-068
+- D-096~D-105, A-064~A-068
 - `docs/superpowers/specs/2026-07-27-bounded-hybrid-rag-conversation-design.md`
 - `docs/superpowers/plans/2026-07-27-bounded-hybrid-rag-conversation.md`
-- `docs/implementation-notes/IMP-20260727-021-*` through `IMP-20260727-033-*`
+- `docs/implementation-notes/IMP-20260727-021-*` through `IMP-20260728-001-*`

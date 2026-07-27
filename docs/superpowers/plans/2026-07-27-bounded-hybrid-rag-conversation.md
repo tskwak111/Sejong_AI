@@ -3,10 +3,11 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Execution status (2026-07-27 KST):** 사용자가 계획과 Subagent-Driven 구현을 명시 승인했다.
-Tasks 1~9의 local/offline 구현·task-scoped 독립 검토·area/version gate는 `096dd20`까지
-완료했다. 아래 checkbox는 실행 명세를 보존하기 위한 것이며 live status 권위는 이 문단,
-`TASKS.md`, D-104와 구현 노트다. Task 10 actual provider 20건과 Task 11 final gate/Draft PR은
-Pending이다.
+Tasks 1~9의 local/offline 구현·task-scoped 독립 검토·area/version gate는 `e0b5bc2`까지
+완료했다. Task 10 runner는 `5130b1e`에서 독립 review를 통과했고 actual은 정확히 한 번 실행해
+20 selected·skip 0·11 provider-free·9 outbound 뒤 strict accepted usage/provider match 0으로
+FAIL했다. 아래 checkbox는 실행 명세를 보존하기 위한 것이며 live status 권위는 이 문단,
+`TASKS.md`, D-104/D-105와 구현 노트다. Task 11 final gate/Draft PR만 Pending이다.
 
 **Goal:** 현재 ACTIVE/OFFICIAL KB 최대 20건만 사용해 일상어 paraphrase와 후속질문을 정확한 top-1 공식 안내로 연결하고, 근거가 없거나 모호한 질문은 route별 안전 FOLLOWUP/FALLBACK으로 닫는다.
 
@@ -1324,8 +1325,8 @@ and commit boundaries. Ellipses in Python protocol bodies are type-stub syntax, 
 ## Execution Status and Remaining Handoff
 
 Explicit plan approval was received and `superpowers:subagent-driven-development` was used for
-Tasks 1~9. The primary agent retained shared contracts, catalog types, `service.py`, provider budget
+Tasks 1~10. The primary agent retained shared contracts, catalog types, `service.py`, provider budget
 integration, versions and integration commits; independent agents implemented or reviewed bounded
-non-overlapping slices. Task 10 must run the reviewed PII-free actual subset once, and Task 11 must
-run the final repository-wide/security/browser gates, independent review, push and Draft PR. No
-automatic merge is allowed.
+non-overlapping slices. Task 10's reviewed PII-free actual subset was run exactly once and recorded
+FAIL without rerun. Task 11 must run the final repository-wide/security/browser gates, independent
+review, push and Draft PR. No automatic merge is allowed.

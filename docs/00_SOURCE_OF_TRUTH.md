@@ -132,9 +132,11 @@ concurrency 1, request hard wall 12초, VAT 포함 USD0.20 pre-reservation stop�
 20/30/40·USD0.05 actual은 과거 evidence로 보존한다. D-103의 명세·계획 승인 뒤 Tasks 1~9
 local/offline 구현과 독립 검토가 끝났고 D-104가 이를 통합한다. immutable official `.2`의
 runtime ACTIVE/OFFICIAL 교집합은 19이며 metadata의 20번째 topic을 허위 ACTIVE로 만들지 않는다.
-offline UAT는 48/48, official 57/57, classifier 60/60, focused 91 PASS·skip 0이다. 실제
-PII-free Upstage 20-case run과 final full gate/Draft PR은 후속 Task 10~11이며 public/remote,
-DB reset/seed, official `.2` 수정과 자동 merge는 아직 완료가 아니다. 상세 권위는 ADR-0027과
+offline UAT는 48/48, official 57/57, classifier 60/60, focused 91 PASS·skip 0이다. Task 10
+PII-free Upstage actual은 정확히 한 번 실행해 20 selected·skip 0·11 provider-free·9 outbound를
+기록했지만 strict accepted usage와 provider match가 0이라 FAIL했고 재실행하지 않았다.
+final full gate/Draft PR은 Task 11이며 public/remote, DB reset/seed, official `.2` 수정과
+자동 merge는 아직 완료가 아니다. 상세 권위는 ADR-0027과
 `2026-07-27-bounded-hybrid-rag-conversation-design.md`다.
 
 ## 4. 변경 절차

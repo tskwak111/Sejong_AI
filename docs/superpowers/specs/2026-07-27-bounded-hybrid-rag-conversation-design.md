@@ -1,11 +1,11 @@
 # Bounded Hybrid RAG Conversation — 통합 Written Specification
 
 - Task ID: `CHAT-HYBRID-RAG-001`
-- Status: Approved — Tasks 1~9 local/offline complete; Tasks 10~11 pending
+- Status: Approved — Tasks 1~9 local/offline complete; Task 10 actual FAIL recorded; Task 11 pending
 - Date: 2026-07-27 KST
 - Human authority: Q-RAG-001=A, Q-UX-REGION-001=A, Q-UX-CERT-001=A,
   Q-COST-001=A, Q-DATA-RAG-001=A, 설계 1·2·3부 승인
-- Decision authority: D-096~D-104
+- Decision authority: D-096~D-105
 - Extends: ADR-0025 and
   `2026-07-27-natural-civic-dialogue-and-operations-design.md`
 - Preserves: 질문 원문 DB 미저장, provider 전 PII 마스킹, ACTIVE/OFFICIAL-only,
@@ -342,8 +342,9 @@ scope/failed queue write는 best-effort이므로 저장 성공을 단정하는 �
 
 기존 20/30/40·USD0.05 actual acceptance evidence는 역사적 결과로 보존한다. 새
 80/100/160·USD0.20 target의 local/offline 구현·metering 검증은 D-104/Tasks 1~9에서
-완료했고, PII-free actual 20-case 증거는 Task 10 전까지 Pending이다. production rate limit과
-public provider 운영은 별도 결정이다.
+완료했다. D-105/Task 10 PII-free actual 20-case는 정확히 한 번 실행해 20 selected·skip 0,
+11 provider-free·9 outbound였으나 strict accepted usage/provider match 0으로 FAIL했다.
+재실행은 새 인간 승인이 필요하며 production rate limit과 public provider 운영은 별도 결정이다.
 
 ## 14. versioned UAT와 acceptance
 
@@ -495,5 +496,5 @@ GREEN: integration corrections, full gate, version/doc/note/handoff.
 사용자가 2026-07-27 `명세 승인`으로 이 written specification을 승인했고 이어서 계획과
 Subagent-Driven 구현을 명시 승인했다. 별도 실행계획
 `2026-07-27-bounded-hybrid-rag-conversation.md`가 RED/GREEN task, exact file, 명령과
-checkpoint를 고정한다. D-104 기준 Tasks 1~9 local/offline은 완료됐고 Task 10 actual과
-Task 11 final/Draft PR은 Pending이다.
+checkpoint를 고정한다. D-104 기준 Tasks 1~9 local/offline은 완료됐고 D-105/Task 10
+actual FAIL은 aggregate-only evidence로 기록했다. Task 11 final/Draft PR은 Pending이다.

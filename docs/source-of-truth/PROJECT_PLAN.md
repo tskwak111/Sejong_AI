@@ -302,7 +302,8 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
 - Q-CLASS-001=A의 local/private hybrid classifier는 PII/policy deterministic gate 뒤
   ambiguous current question만 closed enum 분류에 사용한다. D-095의 PII-free frozen 60 actual은
   완료됐고 current local interactive 상한은 D-099/D-104의 classifier 80, generator 100,
-  combined 160, VAT 포함 USD 0.20이다. Task 10의 새 PII-free 20-case selector actual은 Pending이다.
+  combined 160, VAT 포함 USD 0.20이다. Task 10의 새 PII-free 20-case selector actual은
+  정확히 한 번 실행했으나 strict accepted usage/provider match 0으로 FAIL해 재실행 금지 상태다.
 - 화면상 대화 기록과 15분 서명형 `context_token`은 현재 브라우저 탭 메모리에만 둔다. 서버 세션·raw 대화문·token을 DB/로그에 저장하지 않고 새로고침·탭 종료 시 화면 기록을 없앤다.
 - token에는 서버 정의 enum/ID와 발급·만료 시각만 허용하며 질문·답변·PII·URL·공식 사실을 넣지 않는다. 만료·위변조 token은 문맥 없는 새 요청으로 처리하고 인증·권한·ACTIVE KB·근거 판단에 사용하지 않는다.
 - 정책 폴백은 HTTP 200이다. provider/DB 장애라도 ACTIVE KB·검증 snapshot으로 안전 응답이 가능하면 200이고, 안전 대체가 없을 때만 HTTP 503 `SERVICE_UNAVAILABLE`을 반환한다.

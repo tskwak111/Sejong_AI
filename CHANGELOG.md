@@ -14,11 +14,16 @@
 - Froze a 48-case synthetic UAT with an independent provider oracle, phone-shaped redaction-to-MOVE
   success, exact follow-up options/pending slots and aggregate-only privacy reporting. Offline
   acceptance passed 91 tests with skip 0; official examples are 57/57 and classifier fixtures 60/60.
+- Added a content-pinned, one-run-locked, aggregate-only actual selector runner. Its single approved
+  local execution selected 20 with skip 0, kept 11 deterministic cases provider-free and made the
+  expected 9 outbound attempts, but accepted 0 strict usage responses and matched 0 provider routes;
+  the recorded outcome is FAIL and was not rerun.
 - Kept vector/embedding, new dependencies, DB migrations, official `.2` changes, multi-KB synthesis,
-  public/remote provider operation and automatic merge out of scope. The approved PII-free 20-case
-  local provider run remains a separate gate.
+  public/remote provider operation and automatic merge out of scope. The actual FAIL does not
+  invalidate offline/template behavior, but provider configuration/availability must be diagnosed
+  and a new human authorization obtained before any corrective actual rerun.
 - Advanced application `0.11.1→0.12.0`, Web `0.7.0→0.8.0`, prompt set `0.3.1→0.4.0`, tests
-  `1.9.2→2.0.0` and documentation `2.26.1→2.27.0`; API/shared/DB/data axes are unchanged.
+  `1.9.2→2.1.0` and documentation `2.26.1→2.28.0`; API/shared/DB/data axes are unchanged.
 
 ### Fixed — local hybrid classifier runtime composition
 

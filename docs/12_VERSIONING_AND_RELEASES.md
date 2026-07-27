@@ -63,8 +63,8 @@ database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.0-topic-coverage
-test_suite: 2.0.0-bounded-hybrid-rag
-documentation: 2.27.0
+test_suite: 2.1.0-bounded-hybrid-rag-actual
+documentation: 2.28.0
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -76,8 +76,9 @@ first attempt는 stale Web env expectation 1건(집중 수정/통과)과 Windows
 9건 때문에 최종 green으로 주장하지 않는다. 별도 final local application rehearsal의 `/ready=200`과
 20번째 ACTIVE, sample 20/20, final API/Web/contracts/E2E/scanner, clean disposable DB와 root offline은
 PASS했다. current application/Web는 CHAT-NATURAL Slice 1~3 위에 CHAT-HYBRID-RAG
-Tasks 1~9 local/offline 구현을 포함하고 API는 `4.0.0-draft`를 유지한다.
-manual demo·새 PII-free 20-case actual selector와 configured remote smoke 완료를 뜻하지 않는다.
+Tasks 1~10 구현·검증을 포함하고 API는 `4.0.0-draft`를 유지한다. Task 10 actual은
+정확히 한 번 실행했으나 strict accepted usage/provider match 0으로 FAIL했으며 재실행하지 않았다.
+manual demo·actual PASS·configured remote smoke 완료를 뜻하지 않는다.
 `local` suffix는 공개·원격·production release가 아님을 명시한다. D-046/D-092의 `00700`
 local 구현·검증은 끝났고, remote 운영은 ADR-0026 gate가 별도다.
 
@@ -99,15 +100,16 @@ final gate 순서와 파일·명령·커밋 경계를 고정한다. Application/
 runtime은 변경하지 않았으며 실행계획 승인 전 제품 코드와 actual provider 호출은 계속 0이다.
 
 Application `0.12.0-bounded-hybrid-rag`, Web `0.8.0-guided-chat`, prompt set
-`0.4.0-topic-coverage`, test suite `2.0.0-bounded-hybrid-rag`, documentation `2.27.0`은
-CHAT-HYBRID-RAG-001 Tasks 1~9의 local/offline 구현 기준선이다. request-local
+`0.4.0-topic-coverage`, test suite `2.1.0-bounded-hybrid-rag-actual`, documentation `2.28.0`은
+CHAT-HYBRID-RAG-001 Tasks 1~10의 구현·검증 기준선이다. request-local
 ACTIVE/OFFICIAL catalog, closed topic+coverage selector, typed grounding, intent별 FOLLOWUP,
 bounded context와 same-tab region UX, 80/100/160·USD0.20 local budget, 48-case synthetic UAT를
 포함한다. immutable official `.2`의 runtime 교집합은 19이고 local DB의 별도 승인 20번째
 ACTIVE를 official `.2`에 역기록하지 않는다. API `4.0.0-draft`, shared contracts `1.0.0`,
 DB `0.5.0-local`, official/mock data는 불변이다. offline UAT는 91 PASS·skip 0,
-official examples 57/57, classifier 60/60이다. 실제 Upstage 20-case run, public/remote,
-DB reset/seed, automatic merge 완료를 뜻하지 않는다.
+official examples 57/57, classifier 60/60이다. 실제 Upstage 20-case는 한 번 실행해
+20 selected·skip 0·11 provider-free·9 outbound였으나 strict accepted usage/provider match
+0으로 FAIL했다. public/remote, DB reset/seed, automatic merge 완료를 뜻하지 않는다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

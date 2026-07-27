@@ -10,7 +10,7 @@
 
 | ID | 요구사항 | 제안 기능 | 구현 수준 | 검증 방법 | 비고 |
 | --- | --- | --- | --- | --- | --- |
-| SFR-001 | 자연어 질의응답 | 4개 우선 분야의 일상어 질문을 request-local ACTIVE/OFFICIAL topic에 연결하고 구조화 답변과 출처 제공 | P0 실제 구현 + LLM-003 actual + bounded Hybrid RAG offline PASS | historical generated/template actual 10/10·출처 10/10, synthetic UAT 48/48, official examples 57/57 | immutable `.2` runtime 교집합 19, top-1만 사용. 새 selector actual 20은 별도 Task 10; public/remote 금지 |
+| SFR-001 | 자연어 질의응답 | 4개 우선 분야의 일상어 질문을 request-local ACTIVE/OFFICIAL topic에 연결하고 구조화 답변과 출처 제공 | P0 실제 구현 + LLM-003 actual + bounded Hybrid RAG offline PASS / 새 selector actual FAIL | historical generated/template actual 10/10·출처 10/10, synthetic UAT 48/48, official examples 57/57, 새 actual 20 selected·9 outbound·strict accepted 0 | immutable `.2` runtime 교집합 19, top-1만 사용. 새 selector actual은 재실행하지 않았고 public/remote 금지 |
 | SFR-002 | 민원 의도 분류 | 전입·주민등록, 증명서, 대형폐기물, 지방세, 범위 밖과 topic/coverage를 closed enum으로 분류 | P0 실제 구현 | frozen classifier 60/60, Hybrid UAT route/intent/topic 48/48 | 모호 질문은 exact FOLLOWUP, topic 없음은 INSUFFICIENT_GROUNDING |
 | SFR-003 | 절차·서류 안내 | 신청 방법, 필요 서류, 처리 기간, 수수료, 담당 기관 카드 | P0 실제 구현 | 민원별 필수 필드 표시 여부 전수 점검 | 해당 정보가 없는 필드는 공란 대신 공식 확인 필요 표시 |
 | SFR-004 | 기관·담당 연결 | 아름동·도담동·조치원읍 직접 선택과 민원 유형을 조합해 공식 기관 카드 표시 | 대체·부분 구현(P0) | 지역×민원 매핑 케이스와 공식 기관 데이터 확인 | GPS·거리 기반 가까운 기관 계산은 P2 |
@@ -25,7 +25,7 @@
 | SIR-002 | 지도·위치 API | 지역 선택과 공식 지도 링크 제공 | 부분 구현(P0)+P2 | 기관 카드와 링크 동작 확인 | 내장 지도·GPS·거리 정렬은 P2 |
 | PER-001 | 평균 응답시간 3초 | 평균·p95·오류율 측정, 캐시·템플릿 폴백 | P1 확정 검증 | 표본 요청의 평균·p95 기록 | 외부 LLM 상태에 따른 병목 공개 |
 | PER-002 | 동시 사용자 100명 | 100 VU·60초 제한 스모크: read-only harness preflight 뒤 cached/fixed chat | P1 실행계획 Ready / chat DB-write gate Pending | locked Python/httpx aggregate의 request·error rate·average·p50·p95·max 기록 | Phase A provider-off·DB write 0. Phase B는 A-052 인간 선택 전 HOLD; 실서비스 용량 보증이 아닌 구조 검증 |
-| SER-001 | 개인정보 최소수집 | 외부 LLM 호출 전 마스킹, 원문 DB 미저장, 앱 DB IP·기기ID 미수집 | P0 실제 구현 + LLM-003 actual + offline privacy UAT PASS | historical PII-free actual 10건 forbidden-value 0; synthetic phone-shaped MOVE canonical 값 provider/repository/response/report 0; policy outbound/text row 0 | Task 10 actual subset도 PII-free만 허용; public/remote/실제 기관 운영 금지 |
+| SER-001 | 개인정보 최소수집 | 외부 LLM 호출 전 마스킹, 원문 DB 미저장, 앱 DB IP·기기ID 미수집 | P0 실제 구현 + LLM-003 actual + offline privacy UAT PASS | historical PII-free actual 10건 forbidden-value 0; synthetic phone-shaped MOVE canonical 값 provider/repository/response/report 0; Task 10 report의 question/provider content/key/DSN 0 | Task 10 actual도 PII-free 20만 사용했고 privacy/policy outbound 0; public/remote/실제 기관 운영 금지 |
 | SER-002 | 비식별화 | 이름·주민번호·전화·이메일·상세주소·차량번호·접수번호 등 보수적 마스킹과 마스킹 불능 전용 safe-rephrase | P0 실제 구현 | PII 포함 테스트·provider payload·30일 expires_at·`PRIVACY_UNRESOLVED` no-text/no-row 확인 | PII 누락 방지 우선; 완화는 품질 근거와 인간 재승인 필요 |
 | SER-003 | 환각 방지 | 출처 없는 직접 답변 금지, 서버가 KB 메타데이터를 출처 카드로 결합 | P0 실제 구현 | 출처 표기율 100%, 근거 부족 폴백 검사 | LLM이 출처명·URL을 생성하지 않음 |
 | QUR-001 | 접근성 | 쉬운말 사전, 16→20px 큰 글씨, 본문 대비 4.5:1 이상, 키보드 포커스 | P1 확정 구현 | 390/430px, 200% 확대, 명도 대비, 키보드 모달 점검 | 별도 고대비 토글 대신 기본 대비 준수 |

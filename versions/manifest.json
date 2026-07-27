@@ -1,6 +1,6 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-27T23:18:35+09:00",
+  "updated_at": "2026-07-28T00:55:00+09:00",
   "versions": {
     "product_spec": "2.6.0",
     "repo_guidance": "1.7.9",
@@ -12,8 +12,8 @@
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.4.0-topic-coverage",
-    "test_suite": "2.0.0-bounded-hybrid-rag",
-    "documentation": "2.27.0"
+    "test_suite": "2.1.0-bounded-hybrid-rag-actual",
+    "documentation": "2.28.0"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

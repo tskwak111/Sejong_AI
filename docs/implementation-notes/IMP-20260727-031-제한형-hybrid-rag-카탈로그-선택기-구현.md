@@ -178,7 +178,8 @@ ADR-0027의 서버 권한 경계를 유지한다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- PII-free actual provider 20-case는 Task 10에서만 실행한다.
+- PII-free actual provider 20-case는 후속 Task 10에서 정확히 한 번 실행했지만 strict
+  accepted usage/provider match 0으로 FAIL했다. 상세는 IMP-20260728-001을 따른다.
 - same-intent의 catalog-valid semantic topic 선택은 provider 책임이며 UAT 독립 oracle이 감시한다.
 - public/remote rate limit·provider 운영은 미승인이다.
 

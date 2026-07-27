@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-27T23:18:35+09:00
 - Task ID: CHAT-HYBRID-RAG-001-T7-T9
 - Type: testing-integration
-- Status: Done — local/offline; actual provider Task 10 Pending
+- Status: Done — local/offline; later Task 10 actual FAIL recorded in IMP-20260728-001
 - Author/Agent: 사용자 승인 / Codex main 통합 / gate·구현·독립 검토 에이전트
 - Branch: `codex/CHAT-HYBRID-RAG-001`
 - Base commit: `9b90919`
@@ -135,7 +135,8 @@ workspace-root 자동 추론이며 build failure가 아니다.
 - Privacy: privacy case text는 report에 없고 canonical phone은 provider/repository/response/report 0이다.
 - Security: invalid usage/ID/coverage/intent와 budget 초과는 transport/저장 없이 닫힌다.
 - Accessibility: Task 6 Web gate와 390/430/desktop E2E가 통과했다.
-- Performance/cost: actual 비용은 Task 10 전 Pending; 이 단계의 provider/network 호출은 0이다.
+- Performance/cost: 이 단계의 provider/network 호출은 0이었다. 후속 Task 10은 한 번 실행해
+  ledger conservative charge USD 0.00684288, strict accepted usage 0으로 FAIL했다.
 
 ## 10. 데이터와 출처 영향
 
@@ -146,7 +147,8 @@ workspace-root 자동 추론이며 build failure가 아니다.
 
 ## 11. 인간이 반드시 알아야 하거나 승인할 내용
 
-- offline green은 실제 Upstage 품질·비용 PASS가 아니다. Task 10 한정 actual 결과를 별도 본다.
+- offline green은 실제 Upstage 품질·비용 PASS가 아니다. Task 10 한정 actual도 FAIL했으며
+  offline/template 안전 경계와 actual provider 상태를 분리해서 본다.
 - public/remote, DB reset/seed, official data 승격, 자동 merge는 실행하지 않았다.
 - local DB의 별도 20번째 ACTIVE와 immutable `.2` tracked 19를 혼동하면 안 된다.
 
@@ -172,11 +174,11 @@ workspace-root 자동 추론이며 build failure가 아니다.
 
 ### 다음 개발자 시작점
 
-Task 10 runner의 allowlist·PII-free·pre-reservation·aggregate-only report RED를 먼저 확인한다.
+Task 10 runner와 aggregate-only FAIL 증거는 IMP-20260728-001에서 확인한다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- Task 10: 승인된 PII-free 20-case actual selector run.
+- Task 10: 정확히 한 번 실행 완료, actual FAIL, 새 인간 승인 전 재실행 금지.
 - Task 11: final full/root/security/E2E, 독립 review, push와 Draft PR.
 - warning 2종은 선행 부채이며 기능 실패는 아니지만 후속 dependency maintenance에서 제거한다.
 

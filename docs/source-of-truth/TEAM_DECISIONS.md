@@ -112,8 +112,10 @@
   유지하고 안전한 ambiguous 질문만 Upstage closed-enum classifier에 전달한다. 모델은
   답변·출처·저장·candidate 여부를 결정하지 않는다. historical actual acceptance는
   Q-CLASS-002=A/D-087의 20/30/40·USD 0.05이고 D-095에서 PII-free frozen 60 actual을 통과했다.
-  current local interactive profile은 D-099/D-104의 80/100/160·USD 0.20이며 Task 10의 새
-  PII-free 20-case selector actual은 아직 실행하지 않았다.
+  current local interactive profile은 D-099/D-104의 80/100/160·USD 0.20이다. D-105의 새
+  PII-free 20-case selector actual은 정확히 한 번 실행해 20 selected·skip 0·11
+  provider-free·9 outbound였으나 strict accepted usage/provider match 0으로 FAIL했고
+  재실행하지 않았다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
@@ -303,9 +305,10 @@
   실행계획은 `docs/superpowers/plans/2026-07-27-bounded-hybrid-rag-conversation.md`다.
   이어진 `계획 승인, Subagent-Driven으로 구현 시작`에 따라 D-104의 Tasks 1~9
   local/offline 구현·독립 검토가 완료됐다. immutable official `.2`의 runtime 교집합은 19이고
-  synthetic UAT 48/48·official 57/57·classifier 60/60·focused 91 PASS/skip 0이다. 실제
-  PII-free provider 20건과 final full gate/Draft PR은 Tasks 10~11이며 public/remote,
-  DB reset/seed, official `.2` 변경, 자동 merge는 계속 미실행이다.
+  synthetic UAT 48/48·official 57/57·classifier 60/60·focused 91 PASS/skip 0이다.
+  D-105/Task 10 actual은 20 selected·skip 0·11 provider-free·9 outbound 뒤 strict accepted
+  usage/provider match 0으로 FAIL했고 재실행하지 않았다. final full gate/Draft PR은 Task 11이며
+  public/remote, DB reset/seed, official `.2` 변경, 자동 merge는 계속 미실행이다.
 
 ## 제출 정보
 
