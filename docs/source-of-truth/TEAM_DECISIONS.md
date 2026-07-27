@@ -298,6 +298,9 @@
   data/PM approval cycle 전까지 근거 부족으로 닫는다.
 - 상세 권위는 ADR-0027과
   `docs/superpowers/specs/2026-07-27-bounded-hybrid-rag-conversation-design.md`다.
+- 사용자의 2026-07-27 `명세 승인`으로 written specification은 Approved다. exact RED/GREEN
+  실행계획은 `docs/superpowers/plans/2026-07-27-bounded-hybrid-rag-conversation.md`이며
+  별도 계획 승인 전 제품 코드와 actual provider 호출은 시작하지 않는다.
 
 ## 제출 정보
 

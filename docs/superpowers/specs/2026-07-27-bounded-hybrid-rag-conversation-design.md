@@ -1,7 +1,7 @@
 # Bounded Hybrid RAG Conversation — 통합 Written Specification
 
 - Task ID: `CHAT-HYBRID-RAG-001`
-- Status: Review — design sections 1~3 approved, written specification awaiting user review
+- Status: Approved — execution plan Review
 - Date: 2026-07-27 KST
 - Human authority: Q-RAG-001=A, Q-UX-REGION-001=A, Q-UX-CERT-001=A,
   Q-COST-001=A, Q-DATA-RAG-001=A, 설계 1·2·3부 승인
@@ -490,5 +490,6 @@ GREEN: integration corrections, full gate, version/doc/note/handoff.
 - Privacy/security check: PASS — provider 전 redaction, invalid model output 무저장, source 생성 금지.
 - Compatibility check: PASS — public response field는 유지하며 option behavior만 synchronized update한다.
 
-이 문서는 사용자 written-spec review 전 구현 권위가 아니다. 승인 후 별도 실행계획이 RED/GREEN
-task, exact file, 명령, checkpoint를 고정한다.
+사용자가 2026-07-27 `명세 승인`으로 이 written specification을 승인했다. 별도 실행계획
+`2026-07-27-bounded-hybrid-rag-conversation.md`가 RED/GREEN task, exact file, 명령과
+checkpoint를 고정하며, 그 계획의 명시적 승인 전 제품 코드는 변경하지 않는다.

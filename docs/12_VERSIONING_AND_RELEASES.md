@@ -91,6 +91,12 @@ specification과 ADR-0027로 동결한 minor documentation release다. Applicati
 official/mock data, prompt/test runtime은 아직 변경하지 않았다. written specification review와
 실행계획 승인 전 구현·actual provider 호출은 0이다.
 
+Documentation `2.26.1`은 사용자의 `명세 승인`으로 위 written specification을 Approved로
+전환하고 11개 reviewer-worthy task의 exact RED/GREEN 실행계획을 게시한 patch다. plan은
+ACTIVE catalog→closed selector→typed grounding→chat/context→Web→cost→48 offline→20 actual→
+final gate 순서와 파일·명령·커밋 경계를 고정한다. Application/Web/API/shared/DB/data/prompt/test
+runtime은 변경하지 않았으며 실행계획 승인 전 제품 코드와 actual provider 호출은 계속 0이다.
+
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
 D-074의 plan 승인·Subagent-Driven 구현 시작 checkpoint는 documentation `2.19.2`다. Tasks 1~7은
