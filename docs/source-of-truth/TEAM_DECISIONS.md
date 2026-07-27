@@ -276,6 +276,29 @@
   remote discovery에서 application/DB target·credential·origin·saved version이 모두 0이므로
   migration·seed·deploy·smoke는 `Not executed: target not configured`다.
 
+## 2026-07-27 제한형 Hybrid RAG 후속 결정
+
+- Q-RAG-001=A/Q-DATA-RAG-001=A와 D-096/D-100~D-102로 current ACTIVE/OFFICIAL KB 최대
+  20개를 사용하는 bounded topic catalog를 선택한다. vector DB, embedding, 새 production
+  dependency, DB migration과 official `.2` 변경은 하지 않는다.
+- Upstage는 마스킹 질문과 최소 catalog를 받아 closed route/intent/topic/coverage/pending-slot만
+  제안한다. server가 current ACTIVE membership·intent·coverage와 source를 재검증하고 typed
+  evidence가 없으면 성공시키지 않는다. 최초 구현은 top-1 KB만 사용한다.
+- 지원 분야이지만 대응 topic이 없으면 `INSUFFICIENT_GROUNDING`, 모호하면 무실패-row
+  FOLLOWUP, 범위 밖 행정은 별도 `CIVIC_SCOPE_GAP` queue, 비행정·policy/provider 장애는
+  기존 무저장 경계를 유지한다.
+- generic certificate는 등본/초본/차이 3개로 시작하고, generic move/waste/tax는 해당
+  intent의 bounded topic 선택지를 반환한다. 지역 selector는 입력창 위 상시 표시, same-tab
+  새 대화에서만 React memory로 유지하며 storage/DB에는 저장하지 않는다.
+- local interactive provider target은 classifier 80, generator 100, combined 160,
+  3초/8초, retry 0, concurrency 1, hard wall 12초, VAT 포함 USD0.20 pre-reservation stop이다.
+  historical 20/30/40·USD0.05 actual evidence를 덮어쓰지 않는다.
+- 데이터 사실은 추가하지 않는다. retrieval coverage metadata와 48-case synthetic UAT는
+  non-factual artifact로 분리하고, 냉장고 폐가전·재산세 세율 같은 새 사실은 후속 official
+  data/PM approval cycle 전까지 근거 부족으로 닫는다.
+- 상세 권위는 ADR-0027과
+  `docs/superpowers/specs/2026-07-27-bounded-hybrid-rag-conversation-design.md`다.
+
 ## 제출 정보
 
 - 팀명: [직접 입력]

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Designed — bounded ACTIVE-topic Hybrid RAG
+
+- Approved an ACTIVE/OFFICIAL runtime topic catalog with closed topic-and-coverage selection,
+  server-validated grounding evidence and top-1 KB answers.
+- Defined intent-specific follow-ups, same-tab-only region retention, a three-choice certificate
+  entry, local interactive provider caps of 80/100/160 with a VAT-inclusive USD 0.20 stop, and a
+  48-case non-factual synthetic UAT corpus.
+- Kept vector/embedding, new dependencies, DB migrations, official data changes, multi-KB
+  synthesis and public provider operation out of scope. Runtime code and provider state are
+  unchanged pending written-spec review and an approved implementation plan.
+- Advanced documentation from `2.25.1` to `2.26.0`; all other version axes are unchanged.
+
 ### Fixed — local hybrid classifier runtime composition
 
 - Wired the approved bounded Upstage classifier into the actual local/private

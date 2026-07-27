@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.3.1-hybrid-classifier
 test_suite: 1.9.2-classifier-runtime
-documentation: 2.25.1
+documentation: 2.26.0
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -83,6 +83,13 @@ local 구현·검증은 끝났고, remote 운영은 ADR-0026 gate가 별도다.
 `0.11.1-classifier-runtime`은 `CLASSIFIER-RUNTIME-WIRING-001`에서 누락됐던 실제 local factory
 classifier 주입과 combined shared ledger를 교정한 patch다. 공개 API·DB·공식 데이터는 바꾸지
 않았고, provider-disabled default와 public/remote 금지는 유지한다.
+
+Documentation `2.26.0`은 Q-RAG-001=A/Q-DATA-RAG-001=A와 설계 1~3부 승인에 따라
+ACTIVE topic catalog, coverage grounding, same-tab region UX, certificate 3-option hierarchy,
+local interactive 80/100/160·USD0.20 budget과 48-case synthetic UAT를 하나의 written
+specification과 ADR-0027로 동결한 minor documentation release다. Application/Web/API/shared/DB,
+official/mock data, prompt/test runtime은 아직 변경하지 않았다. written specification review와
+실행계획 승인 전 구현·actual provider 호출은 0이다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
