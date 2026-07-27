@@ -33,6 +33,7 @@ from sejong_ai_api.llm.fixtures import (
     PreparationCode,
     PreparedCaseFailure,
     SyntheticFixture,
+    lookup_canonical_semantic_topic_id,
 )
 from sejong_ai_api.privacy.redaction import redact_question
 
@@ -194,14 +195,15 @@ class SyntheticEvaluationService:
             classification.intent,
             catalog,
         )
-        if selection is None and fixture.expected_topic_id is not None:
-            topic = catalog.find(fixture.expected_topic_id)
+        semantic_topic_id = lookup_canonical_semantic_topic_id(fixture)
+        if selection is None and semantic_topic_id is not None:
+            topic = catalog.find(semantic_topic_id)
             if topic is not None:
                 selection = validate_semantic_selection(
                     ClassifierDecision(
                         route=ClassifierRoute.SUPPORTED,
                         intent=classification.intent,
-                        topic_id=fixture.expected_topic_id,
+                        topic_id=semantic_topic_id,
                         coverage_id=topic.coverage.coverage_id,
                         pending_slot=None,
                     ),

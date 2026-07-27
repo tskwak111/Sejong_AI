@@ -17,8 +17,14 @@ from fastapi.testclient import TestClient
 import sejong_ai_api.llm.evaluation as evaluation_module
 from sejong_ai_api.chat.classification import SafeQuestion
 from sejong_ai_api.chat.grounding import GroundingDecision, evaluate_grounding
-from sejong_ai_api.chat.retrieval import GroundingEvidenceKind, TopicSelection
+from sejong_ai_api.chat.retrieval import (
+    GroundingEvidenceKind,
+    TopicSelection,
+    validate_semantic_selection,
+)
+from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.db.models import AnswerStatus, Intent, KnowledgeRecord
+from sejong_ai_api.llm.classifier_contracts import ClassifierDecision
 from sejong_ai_api.llm.contracts import (
     GeneratedAnswer,
     GenerationOutcome,
@@ -159,7 +165,17 @@ def _official_records() -> tuple[KnowledgeRecord, ...]:
     )
 
 
-def _fixture(*, question: str = "이사했는데 전입신고 어떻게 해요?") -> SyntheticFixture:
+def _fixture() -> SyntheticFixture:
+    return SyntheticFixture(
+        fixture_id="T-01",
+        question="이사했는데 전입신고 어떻게 해요?",
+        expected_intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        expected_status=AnswerStatus.SUCCESS,
+        contains_pii=False,
+    )
+
+
+def _non_provider_fixture(*, question: str) -> SyntheticFixture:
     return SyntheticFixture(
         fixture_id="T-01",
         question=question,
@@ -255,21 +271,30 @@ async def test_api_key_is_header_only_and_absent_from_outcome_report_repr_and_lo
 
 
 @pytest.mark.asyncio
-async def test_raw_pre_redaction_pii_never_reaches_provider() -> None:
+async def test_noncanonical_raw_pii_never_reaches_provider_or_logs(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     provider = _CaptureProvider()
     service = SyntheticEvaluationService(
-        fixtures=(_fixture(question=f"전입신고 어떻게 해요? 연락처 {RAW_PHONE}"),),
+        fixtures=(
+            _non_provider_fixture(question=f"전입신고 어떻게 해요? 연락처 {RAW_PHONE}"),
+        ),
         repository=_Repository((_move_in_record(),)),
         provider=provider,
-        monotonic_ns=iter((0, 1_000_000)).__next__,
     )
+    caplog.set_level(logging.DEBUG)
 
-    run = await service.run(repetitions=1)
+    with pytest.raises(ValueError, match="^SYNTHETIC_FIXTURE_NOT_ALLOWED$") as error:
+        await service.run(repetitions=1)
 
-    assert run.cases[0].outcome_code is OutcomeCode.SUCCESS
-    assert len(provider.fixtures) == 1
-    assert RAW_PHONE not in provider.fixtures[0].masked_question
-    assert "[전화번호]" in provider.fixtures[0].masked_question
+    assert str(error.value) == "SYNTHETIC_FIXTURE_NOT_ALLOWED"
+    assert provider.fixtures == []
+    assert RAW_PHONE not in caplog.text
+    assert all(
+        RAW_PHONE not in representation
+        for record in caplog.records
+        for representation in _log_record_representations(record)
+    )
 
 
 @pytest.mark.asyncio
@@ -435,6 +460,91 @@ async def test_frozen_generation_fixtures_use_exact_typed_topics_once_without_lo
         for record in caplog.records
         for representation in _log_record_representations(record)
         for value in forbidden_content
+    )
+
+
+@pytest.mark.asyncio
+async def test_caller_semantic_topic_input_cannot_reach_selection_or_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = _CaptureProvider()
+    semantic_calls = 0
+    fixture_values: dict[str, object] = {
+        "fixture_id": "T-99",
+        "question": "전입신고에 필요한 서류가 뭐예요?",
+        "expected_intent": Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        "expected_status": AnswerStatus.SUCCESS,
+        "contains_pii": False,
+        "expected_topic_id": "KB-MOVE-02",
+    }
+
+    def capture_semantic_selection(
+        decision: ClassifierDecision,
+        catalog: TopicCatalog,
+    ) -> TopicSelection | None:
+        nonlocal semantic_calls
+        semantic_calls += 1
+        return validate_semantic_selection(decision, catalog)
+
+    monkeypatch.setattr(
+        evaluation_module,
+        "validate_semantic_selection",
+        capture_semantic_selection,
+    )
+
+    with pytest.raises((TypeError, ValueError), match="expected_topic_id"):
+        fixture = SyntheticFixture(**fixture_values)  # type: ignore[arg-type]
+        service = SyntheticEvaluationService(
+            fixtures=(fixture,),
+            repository=_Repository(_official_records()),
+            provider=provider,
+        )
+        await service.run(repetitions=1)
+
+    assert semantic_calls == 0
+    assert provider.fixtures == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("fixture_id", "question"),
+    (
+        ("T-99", "전입신고에 필요한 서류가 뭐예요?"),
+        ("T-02", "전입신고에 필요한 서류가 뭐예요? "),
+    ),
+)
+async def test_noncanonical_fixture_fails_value_free_before_provider(
+    fixture_id: str,
+    question: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    provider = _CaptureProvider()
+    fixture = SyntheticFixture(
+        fixture_id=fixture_id,
+        question=question,
+        expected_intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        expected_status=AnswerStatus.SUCCESS,
+        contains_pii=False,
+    )
+    service = SyntheticEvaluationService(
+        fixtures=(fixture,),
+        repository=_Repository(_official_records()),
+        provider=provider,
+    )
+    caplog.set_level(logging.DEBUG)
+
+    with pytest.raises(ValueError, match="^SYNTHETIC_FIXTURE_NOT_ALLOWED$") as error:
+        await service.run(repetitions=1)
+
+    assert str(error.value) == "SYNTHETIC_FIXTURE_NOT_ALLOWED"
+    assert provider.fixtures == []
+    assert fixture_id not in caplog.text
+    assert question not in caplog.text
+    assert all(
+        value not in representation
+        for record in caplog.records
+        for representation in _log_record_representations(record)
+        for value in (fixture_id, question)
     )
 
 
