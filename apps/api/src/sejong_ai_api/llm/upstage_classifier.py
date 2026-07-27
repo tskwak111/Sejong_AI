@@ -16,11 +16,20 @@ from sejong_ai_api.llm.classifier_prompt import (
     build_classifier_messages,
     estimate_classifier_input_upper_bound,
 )
-from sejong_ai_api.llm.limits import AttemptCapReached, ProviderAttemptLedger
+from sejong_ai_api.llm.contracts import TokenUsage
+from sejong_ai_api.llm.limits import (
+    AttemptCapReached,
+    ProviderAttemptLedger,
+    ProviderCostReservation,
+)
 from sejong_ai_api.llm.settings import UpstageClassifierSettings
 
 _CHAT_COMPLETIONS_PATH = "/chat/completions"
 _MAX_INPUT_ESTIMATE = 4096
+
+
+class _ClassifierResponseRejected(RuntimeError):
+    """Value-free control flow for a reserved provider response failure."""
 
 
 def create_upstage_classifier_client(
@@ -89,13 +98,18 @@ class QuestionClassifier:
                 "max_tokens": self._settings.max_output_tokens,
                 "response_format": {"type": "json_object"},
             }
-            async with self._ledger.reserve_classifier():
+            async with self._ledger.reserve_classifier() as reservation:
                 response = await self._client.post(
                     _CHAT_COMPLETIONS_PATH,
                     json=payload,
                 )
+                decision = _parse_response(response, catalog, reservation)
+                if decision is None:
+                    raise _ClassifierResponseRejected("PROVIDER_RESPONSE_REJECTED")
+                return decision
         except (
             AttemptCapReached,
+            _ClassifierResponseRejected,
             httpx.TimeoutException,
             httpx.TransportError,
             TypeError,
@@ -105,12 +119,12 @@ class QuestionClassifier:
         except Exception:
             # No provider exception, prompt content, or response body crosses this boundary.
             return None
-        return _parse_response(response, catalog)
 
 
 def _parse_response(
     response: httpx.Response,
     catalog: TopicCatalog,
+    reservation: ProviderCostReservation,
 ) -> ClassifierDecision | None:
     if response.status_code < 200 or response.status_code >= 300:
         return None
@@ -120,6 +134,10 @@ def _parse_response(
         return None
     if type(envelope) is not dict:
         return None
+    usage = _reported_usage(envelope.get("usage"))
+    if usage is None:
+        return None
+    reservation.record_usage(usage)
     choice = _first_choice(envelope.get("choices"))
     if choice is None or choice.get("finish_reason") != "stop":
         return None
@@ -140,6 +158,25 @@ def _first_choice(value: object) -> dict[str, Any] | None:
         return None
     choice = value[0]
     return choice if type(choice) is dict else None
+
+
+def _reported_usage(value: object) -> TokenUsage | None:
+    if type(value) is not dict:
+        return None
+    prompt_tokens = value.get("prompt_tokens")
+    completion_tokens = value.get("completion_tokens")
+    if (
+        type(prompt_tokens) is not int
+        or prompt_tokens < 0
+        or type(completion_tokens) is not int
+        or completion_tokens < 0
+    ):
+        return None
+    return TokenUsage(
+        input_tokens=prompt_tokens,
+        cached_input_tokens=0,
+        output_tokens=completion_tokens,
+    )
 
 
 __all__ = ["QuestionClassifier", "create_upstage_classifier_client"]

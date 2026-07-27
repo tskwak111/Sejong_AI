@@ -54,6 +54,8 @@ from sejong_ai_api.llm.settings import (  # noqa: E402
     UPSTAGE_COMBINED_ATTEMPT_CAP,
     UPSTAGE_GENERATOR_ATTEMPT_CAP,
     UPSTAGE_MAX_CONCURRENCY,
+    UPSTAGE_MAX_INPUT_TOKENS,
+    UPSTAGE_MAX_OUTPUT_TOKENS,
     UPSTAGE_MODEL,
     UPSTAGE_PROVIDER,
     UpstageClassifierSettings,
@@ -418,7 +420,18 @@ def _decision_matches(fixture: _Fixture, decision: ClassifierDecision) -> bool:
         == fixture.expected_intent
         and (decision.pending_slot.value if decision.pending_slot is not None else None)
         == fixture.expected_pending_slot
-        and decision.topic_id is None
+        and (
+            (
+                decision.route is ClassifierRoute.SUPPORTED
+                and decision.topic_id is not None
+                and decision.coverage_id is not None
+            )
+            or (
+                decision.route is not ClassifierRoute.SUPPORTED
+                and decision.topic_id is None
+                and decision.coverage_id is None
+            )
+        )
     )
 
 
@@ -440,6 +453,7 @@ def _validate_settings(
         or settings.classifier_attempt_cap != UPSTAGE_CLASSIFIER_ATTEMPT_CAP
         or settings.generator_attempt_cap != UPSTAGE_GENERATOR_ATTEMPT_CAP
         or settings.combined_attempt_cap != UPSTAGE_COMBINED_ATTEMPT_CAP
+        or settings.session_cost_cap_usd != RUN_COST_CAP_USD
         or provider_case_count != _EXPECTED_PROVIDER_CASES
         or provider_case_count > settings.classifier_attempt_cap
         or provider_case_count > settings.combined_attempt_cap
@@ -452,6 +466,31 @@ def _validate_settings(
     )
     if estimate_cost_usd(worst_case) > RUN_COST_CAP_USD:
         raise _ConfigurationInvalid
+
+
+def _build_historical_ledger(
+    settings: UpstageClassifierSettings,
+) -> ProviderAttemptLedger:
+    return ProviderAttemptLedger(
+        classifier_cap=settings.classifier_attempt_cap,
+        generator_cap=settings.generator_attempt_cap,
+        combined_cap=settings.combined_attempt_cap,
+        cost_cap_usd=RUN_COST_CAP_USD,
+        classifier_worst_case_usd=estimate_cost_usd(
+            TokenUsage(
+                input_tokens=UPSTAGE_MAX_INPUT_TOKENS,
+                cached_input_tokens=0,
+                output_tokens=settings.max_output_tokens,
+            )
+        ),
+        generator_worst_case_usd=estimate_cost_usd(
+            TokenUsage(
+                input_tokens=UPSTAGE_MAX_INPUT_TOKENS,
+                cached_input_tokens=0,
+                output_tokens=UPSTAGE_MAX_OUTPUT_TOKENS,
+            )
+        ),
+    )
 
 
 class _UsageRecorder:
@@ -646,11 +685,7 @@ async def _execute_actual(options: _RunnerOptions) -> dict[str, object]:
     provider_case_count = sum(case.execution == "PROVIDER" for case in fixtures)
     _validate_settings(settings, provider_case_count=provider_case_count)
 
-    ledger = ProviderAttemptLedger(
-        classifier_cap=settings.classifier_attempt_cap,
-        generator_cap=settings.generator_attempt_cap,
-        combined_cap=settings.combined_attempt_cap,
-    )
+    ledger = _build_historical_ledger(settings)
     recorder = _UsageRecorder()
     timeout = httpx.Timeout(
         settings.timeout_seconds,

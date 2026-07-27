@@ -22,6 +22,7 @@ from sejong_ai_api.llm.classifier_contracts import (  # noqa: E402
     ClassifierRoute,
 )
 from sejong_ai_api.llm.contracts import TokenUsage  # noqa: E402
+from sejong_ai_api.llm.cost import estimate_cost_usd  # noqa: E402
 from sejong_ai_api.llm.settings import UpstageClassifierSettings  # noqa: E402
 
 _RUNNER_MODULE_NAME = "_sejong_upstage_classifier_evaluation_test"
@@ -98,6 +99,41 @@ def test_policy_privacy_fixture_cannot_be_marked_for_provider(
         runner._load_fixtures(path)
 
 
+def test_historical_actual_runner_constructs_exact_cost_aware_ledger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = _runner()
+    builder = getattr(runner, "_build_historical_ledger", None)
+    assert callable(builder)
+    settings = UpstageClassifierSettings(
+        api_key="historical-test-key-not-a-real-secret"
+    )
+    real_ledger = builder(settings)
+    assert type(real_ledger) is runner.ProviderAttemptLedger
+    assert real_ledger.actual_cost_usd == Decimal("0")
+
+    captured: dict[str, object] = {}
+    sentinel = object()
+
+    def capture_ledger(**kwargs: object) -> object:
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(runner, "ProviderAttemptLedger", capture_ledger)
+
+    ledger = builder(settings)
+
+    assert ledger is sentinel
+    assert captured == {
+        "classifier_cap": 20,
+        "generator_cap": 30,
+        "combined_cap": 40,
+        "cost_cap_usd": Decimal("0.05"),
+        "classifier_worst_case_usd": estimate_cost_usd(TokenUsage(4096, 0, 128)),
+        "generator_worst_case_usd": estimate_cost_usd(TokenUsage(4096, 0, 1024)),
+    }
+
+
 def test_evaluation_calls_only_provider_cases_and_keeps_policy_outbound_zero(
     tmp_path: Path,
 ) -> None:
@@ -118,7 +154,10 @@ def test_evaluation_calls_only_provider_cases_and_keeps_policy_outbound_zero(
                 if case.expected_code == "SUPPORTED"
                 else None
             ),
-            topic_id=None,
+            topic_id=("KB-TEST-01" if case.expected_code == "SUPPORTED" else None),
+            coverage_id=(
+                "TEST_COVERAGE" if case.expected_code == "SUPPORTED" else None
+            ),
             pending_slot=None,
         )
         for case in fixtures

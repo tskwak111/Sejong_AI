@@ -3,8 +3,12 @@
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from decimal import Decimal
 from pathlib import Path
 from typing import TextIO
+
+from sejong_ai_api.llm.cost import RUN_COST_CAP_USD
+from sejong_ai_api.llm.limits import LOCAL_INTERACTIVE_COST_CAP_USD
 
 UPSTAGE_PROVIDER = "upstage"
 UPSTAGE_MODEL = "solar-pro3"
@@ -26,6 +30,9 @@ UPSTAGE_CLASSIFIER_MAX_OUTPUT_TOKENS = 128
 UPSTAGE_CLASSIFIER_ATTEMPT_CAP = 20
 UPSTAGE_GENERATOR_ATTEMPT_CAP = 30
 UPSTAGE_COMBINED_ATTEMPT_CAP = 40
+UPSTAGE_LOCAL_INTERACTIVE_CLASSIFIER_ATTEMPT_CAP = 80
+UPSTAGE_LOCAL_INTERACTIVE_GENERATOR_ATTEMPT_CAP = 100
+UPSTAGE_LOCAL_INTERACTIVE_COMBINED_ATTEMPT_CAP = 160
 
 _KEY_NAME = "LLM_API_KEY"
 _SETTINGS_KEYS = (
@@ -46,6 +53,7 @@ _SETTINGS_KEYS = (
     "LLM_CLASSIFIER_ATTEMPT_CAP",
     "LLM_GENERATOR_ATTEMPT_CAP",
     "LLM_COMBINED_ATTEMPT_CAP",
+    "LLM_SESSION_COST_CAP_USD",
     "UPSTAGE_SYNTHETIC_EVALUATION_MODE",
     "UPSTAGE_CLASSIFIER_MODE",
     "UPSTAGE_GROUNDED_CHAT_MODE",
@@ -91,6 +99,10 @@ _CLASSIFIER_EXACT_VALUES = {
 _COMBINED_CLASSIFIER_EXACT_VALUES = {
     **_CLASSIFIER_EXACT_VALUES,
     "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+    "LLM_CLASSIFIER_ATTEMPT_CAP": "80",
+    "LLM_GENERATOR_ATTEMPT_CAP": "100",
+    "LLM_COMBINED_ATTEMPT_CAP": "160",
+    "LLM_SESSION_COST_CAP_USD": "0.20",
 }
 _COMBINED_CHAT_EXACT_VALUES = {
     **_CHAT_EXACT_VALUES,
@@ -99,9 +111,10 @@ _COMBINED_CHAT_EXACT_VALUES = {
     "LLM_CLASSIFIER_MAX_RETRIES": "0",
     "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
     "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
-    "LLM_CLASSIFIER_ATTEMPT_CAP": "20",
-    "LLM_GENERATOR_ATTEMPT_CAP": "30",
-    "LLM_COMBINED_ATTEMPT_CAP": "40",
+    "LLM_CLASSIFIER_ATTEMPT_CAP": "80",
+    "LLM_GENERATOR_ATTEMPT_CAP": "100",
+    "LLM_COMBINED_ATTEMPT_CAP": "160",
+    "LLM_SESSION_COST_CAP_USD": "0.20",
 }
 
 
@@ -147,6 +160,7 @@ class UpstageClassifierSettings:
     classifier_attempt_cap: int = UPSTAGE_CLASSIFIER_ATTEMPT_CAP
     generator_attempt_cap: int = UPSTAGE_GENERATOR_ATTEMPT_CAP
     combined_attempt_cap: int = UPSTAGE_COMBINED_ATTEMPT_CAP
+    session_cost_cap_usd: Decimal = RUN_COST_CAP_USD
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,7 +220,23 @@ def load_upstage_classifier_settings(
             env_path=env_path,
         )
         if api_key is not None:
-            return UpstageClassifierSettings(api_key=api_key)
+            return UpstageClassifierSettings(
+                api_key=api_key,
+                classifier_attempt_cap=int(
+                    expected_values["LLM_CLASSIFIER_ATTEMPT_CAP"]
+                ),
+                generator_attempt_cap=int(
+                    expected_values["LLM_GENERATOR_ATTEMPT_CAP"]
+                ),
+                combined_attempt_cap=int(
+                    expected_values["LLM_COMBINED_ATTEMPT_CAP"]
+                ),
+                session_cost_cap_usd=(
+                    LOCAL_INTERACTIVE_COST_CAP_USD
+                    if "LLM_SESSION_COST_CAP_USD" in expected_values
+                    else RUN_COST_CAP_USD
+                ),
+            )
     return None
 
 

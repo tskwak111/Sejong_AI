@@ -386,8 +386,15 @@ def _compose_optional_classifier_runtime(
     """Lazily compose the exact classifier profile without an eager request."""
 
     try:
+        from sejong_ai_api.llm.contracts import TokenUsage
+        from sejong_ai_api.llm.cost import estimate_cost_usd
         from sejong_ai_api.llm.limits import ProviderAttemptLedger
-        from sejong_ai_api.llm.settings import load_upstage_classifier_settings
+        from sejong_ai_api.llm.settings import (
+            UPSTAGE_MAX_INPUT_TOKENS,
+            UPSTAGE_MAX_OUTPUT_TOKENS,
+            load_upstage_classifier_settings,
+        )
+
         classifier_settings = load_upstage_classifier_settings(
             environ=environ,
             env_path=env_path,
@@ -398,6 +405,21 @@ def _compose_optional_classifier_runtime(
             classifier_cap=classifier_settings.classifier_attempt_cap,
             generator_cap=classifier_settings.generator_attempt_cap,
             combined_cap=classifier_settings.combined_attempt_cap,
+            cost_cap_usd=classifier_settings.session_cost_cap_usd,
+            classifier_worst_case_usd=estimate_cost_usd(
+                TokenUsage(
+                    input_tokens=UPSTAGE_MAX_INPUT_TOKENS,
+                    cached_input_tokens=0,
+                    output_tokens=classifier_settings.max_output_tokens,
+                )
+            ),
+            generator_worst_case_usd=estimate_cost_usd(
+                TokenUsage(
+                    input_tokens=UPSTAGE_MAX_INPUT_TOKENS,
+                    cached_input_tokens=0,
+                    output_tokens=UPSTAGE_MAX_OUTPUT_TOKENS,
+                )
+            ),
         )
         return _ClassifierRuntime(
             classifier=_LazyQuestionClassifier(

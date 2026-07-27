@@ -4,6 +4,7 @@ import json
 import time
 from collections.abc import Sequence
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID, uuid4
@@ -38,6 +39,8 @@ from sejong_ai_api.llm.chat_contracts import (
     GroundedChatRequest,
     GroundedChatResult,
 )
+from sejong_ai_api.llm.contracts import TokenUsage
+from sejong_ai_api.llm.cost import estimate_cost_usd
 from sejong_ai_api.local import create_local_app, load_local_settings
 
 
@@ -391,9 +394,10 @@ def _combined_provider_config() -> dict[str, str]:
         "LLM_CLASSIFIER_MAX_RETRIES": "0",
         "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
         "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
-        "LLM_CLASSIFIER_ATTEMPT_CAP": "20",
-        "LLM_GENERATOR_ATTEMPT_CAP": "30",
-        "LLM_COMBINED_ATTEMPT_CAP": "40",
+        "LLM_CLASSIFIER_ATTEMPT_CAP": "80",
+        "LLM_GENERATOR_ATTEMPT_CAP": "100",
+        "LLM_COMBINED_ATTEMPT_CAP": "160",
+        "LLM_SESSION_COST_CAP_USD": "0.20",
     }
 
 
@@ -805,7 +809,8 @@ def test_exact_classifier_profile_routes_ambiguous_local_chat_through_one_provid
                             )
                         },
                     }
-                ]
+                ],
+                "usage": {"prompt_tokens": 20, "completion_tokens": 10},
             },
         )
 
@@ -893,14 +898,22 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import sejong_ai_api.llm.limits as limits_module
     import sejong_ai_api.llm.upstage_chat as upstage_chat_module
     import sejong_ai_api.llm.upstage_classifier as classifier_module
 
     pool = FakePool()
     grounded_runtime = FakeGroundedRuntime()
     captured_ledgers: dict[str, object] = {}
+    captured_ledger_arguments: dict[str, object] = {}
     classifier_close_calls = 0
     original_close = httpx.AsyncClient.aclose
+    original_ledger = limits_module.ProviderAttemptLedger
+
+    class CapturingProviderAttemptLedger(original_ledger):
+        def __init__(self, **kwargs: object) -> None:
+            captured_ledger_arguments.update(kwargs)
+            super().__init__(**kwargs)  # type: ignore[arg-type]
 
     class CapturingClassifier:
         def __init__(
@@ -933,6 +946,11 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
 
     monkeypatch.setattr(classifier_module, "QuestionClassifier", CapturingClassifier)
     monkeypatch.setattr(
+        limits_module,
+        "ProviderAttemptLedger",
+        CapturingProviderAttemptLedger,
+    )
+    monkeypatch.setattr(
         upstage_chat_module,
         "build_upstage_chat_runtime",
         build_grounded_with_shared_ledger,
@@ -955,6 +973,14 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
 
     assert response.status_code == 200
     assert captured_ledgers["classifier"] is captured_ledgers["generator"]
+    assert captured_ledger_arguments == {
+        "classifier_cap": 80,
+        "generator_cap": 100,
+        "combined_cap": 160,
+        "cost_cap_usd": Decimal("0.20"),
+        "classifier_worst_case_usd": estimate_cost_usd(TokenUsage(4096, 0, 128)),
+        "generator_worst_case_usd": estimate_cost_usd(TokenUsage(4096, 0, 1024)),
+    }
     assert grounded_runtime.close_count == 1
     assert classifier_close_calls == 1
     assert pool.close_count == 1

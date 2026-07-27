@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from decimal import Decimal
 
 import httpx
 import pytest
@@ -13,6 +14,7 @@ from sejong_ai_api.llm.chat_contracts import (
 )
 from sejong_ai_api.llm.chat_prompt import build_grounded_chat_messages
 from sejong_ai_api.llm.contracts import TokenUsage
+from sejong_ai_api.llm.cost import estimate_cost_usd
 from sejong_ai_api.llm.limits import AttemptBudget, ProviderAttemptLedger
 from sejong_ai_api.llm.settings import UpstageChatSettings
 from sejong_ai_api.llm.upstage_chat import (
@@ -24,6 +26,25 @@ from sejong_ai_api.llm.upstage_chat import (
 
 Handler = Callable[[httpx.Request], httpx.Response]
 SECRET = "chat-test-key-not-a-real-secret"
+CLASSIFIER_WORST_CASE_USD = estimate_cost_usd(TokenUsage(4096, 0, 128))
+GENERATOR_WORST_CASE_USD = estimate_cost_usd(TokenUsage(4096, 0, 1024))
+
+
+def _ledger(
+    *,
+    classifier_cap: int = 80,
+    generator_cap: int = 100,
+    combined_cap: int = 160,
+    cost_cap_usd: Decimal = Decimal("0.20"),
+) -> ProviderAttemptLedger:
+    return ProviderAttemptLedger(
+        classifier_cap=classifier_cap,
+        generator_cap=generator_cap,
+        combined_cap=combined_cap,
+        cost_cap_usd=cost_cap_usd,
+        classifier_worst_case_usd=CLASSIFIER_WORST_CASE_USD,
+        generator_worst_case_usd=GENERATOR_WORST_CASE_USD,
+    )
 
 
 def _request(*, question: str = "전입신고 방법을 알려 주세요.") -> GroundedChatRequest:
@@ -493,7 +514,7 @@ async def test_exhausted_attempt_cap_returns_without_request() -> None:
 @pytest.mark.asyncio
 async def test_generator_honors_combined_attempt_cap_shared_with_classifier() -> None:
     settings = UpstageChatSettings(api_key=SECRET)
-    ledger = ProviderAttemptLedger(
+    ledger = _ledger(
         classifier_cap=1,
         generator_cap=1,
         combined_cap=1,
@@ -527,11 +548,7 @@ async def test_generator_honors_combined_attempt_cap_shared_with_classifier() ->
 async def test_runtime_uses_supplied_shared_attempt_ledger(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    ledger = ProviderAttemptLedger(
-        classifier_cap=20,
-        generator_cap=30,
-        combined_cap=40,
-    )
+    ledger = _ledger()
     post_calls = 0
 
     async def generate_once(
@@ -555,6 +572,102 @@ async def test_runtime_uses_supplied_shared_attempt_ledger(
     assert result.code is GroundedChatOutcomeCode.SUCCESS
     assert post_calls == 1
     assert ledger.classifier_attempts_used == 0
+    assert ledger.generator_attempts_used == 1
+    assert ledger.actual_cost_usd == estimate_cost_usd(TokenUsage(20, 0, 10))
+
+
+@pytest.mark.asyncio
+async def test_shared_ledger_charges_generator_worst_case_for_invalid_usage() -> None:
+    settings = UpstageChatSettings(api_key=SECRET)
+    ledger = _ledger()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return _provider_response(prompt_tokens=True)
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        result = await UpstageChatGenerator(
+            settings=settings,
+            client=client,
+            budget=ledger,
+        ).generate(_request())
+
+    assert result.code is GroundedChatOutcomeCode.SCHEMA_INVALID
+    assert ledger.actual_cost_usd == GENERATOR_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_shared_ledger_charges_generator_worst_case_for_parser_failure() -> None:
+    settings = UpstageChatSettings(api_key=SECRET)
+    ledger = _ledger()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return _provider_response(content="{not-json")
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        result = await UpstageChatGenerator(
+            settings=settings,
+            client=client,
+            budget=ledger,
+        ).generate(_request())
+
+    assert result.code is GroundedChatOutcomeCode.SCHEMA_INVALID
+    assert ledger.actual_cost_usd == GENERATOR_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_shared_ledger_charges_generator_worst_case_for_timeout() -> None:
+    settings = UpstageChatSettings(api_key=SECRET)
+    ledger = _ledger()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("PRIVATE-TIMEOUT-SENTINEL", request=request)
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        result = await UpstageChatGenerator(
+            settings=settings,
+            client=client,
+            budget=ledger,
+        ).generate(_request())
+
+    assert result.code is GroundedChatOutcomeCode.TIMEOUT
+    assert ledger.actual_cost_usd == GENERATOR_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_shared_ledger_cost_cap_blocks_next_generator_before_transport() -> None:
+    settings = UpstageChatSettings(api_key=SECRET)
+    ledger = _ledger(cost_cap_usd=GENERATOR_WORST_CASE_USD)
+    calls = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _provider_response()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        generator = UpstageChatGenerator(
+            settings=settings,
+            client=client,
+            budget=ledger,
+        )
+        first = await generator.generate(_request())
+        second = await generator.generate(_request())
+
+    assert first.code is GroundedChatOutcomeCode.SUCCESS
+    assert second.code is GroundedChatOutcomeCode.ATTEMPT_CAP
+    assert calls == 1
     assert ledger.generator_attempts_used == 1
 
 

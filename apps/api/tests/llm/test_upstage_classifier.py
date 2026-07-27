@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import date
+from decimal import Decimal
 
 import httpx
 import pytest
@@ -16,6 +17,8 @@ from sejong_ai_api.llm.classifier_contracts import (
     ClassifierRoute,
 )
 from sejong_ai_api.llm.classifier_prompt import build_classifier_messages
+from sejong_ai_api.llm.contracts import TokenUsage
+from sejong_ai_api.llm.cost import estimate_cost_usd
 from sejong_ai_api.llm.limits import ProviderAttemptLedger
 from sejong_ai_api.llm.settings import UpstageClassifierSettings
 from sejong_ai_api.llm.upstage_classifier import QuestionClassifier
@@ -23,6 +26,8 @@ from sejong_ai_api.privacy.redaction import redact_question
 
 Handler = Callable[[httpx.Request], httpx.Response]
 SECRET = "classifier-test-key-not-a-real-secret"
+CLASSIFIER_WORST_CASE_USD = estimate_cost_usd(TokenUsage(4096, 0, 128))
+GENERATOR_WORST_CASE_USD = estimate_cost_usd(TokenUsage(4096, 0, 1024))
 
 
 def _question(text: str = "청년 월세 지원 어떻게 해요?") -> SafeQuestion:
@@ -96,25 +101,41 @@ def _provider_response(
     ),
     *,
     finish_reason: str = "stop",
+    usage: object = None,
+    include_usage: bool = True,
 ) -> httpx.Response:
+    envelope: dict[str, object] = {
+        "choices": [
+            {
+                "finish_reason": finish_reason,
+                "message": {"content": content},
+            }
+        ],
+    }
+    if include_usage:
+        envelope["usage"] = (
+            {"prompt_tokens": 20, "completion_tokens": 10}
+            if usage is None
+            else usage
+        )
     return httpx.Response(
         200,
-        json={
-            "choices": [
-                {
-                    "finish_reason": finish_reason,
-                    "message": {"content": content},
-                }
-            ]
-        },
+        json=envelope,
     )
 
 
-def _ledger(*, classifier_cap: int = 20) -> ProviderAttemptLedger:
+def _ledger(
+    *,
+    classifier_cap: int = 20,
+    cost_cap_usd: Decimal = Decimal("0.05"),
+) -> ProviderAttemptLedger:
     return ProviderAttemptLedger(
         classifier_cap=classifier_cap,
         generator_cap=30,
         combined_cap=min(40, classifier_cap + 30),
+        cost_cap_usd=cost_cap_usd,
+        classifier_worst_case_usd=CLASSIFIER_WORST_CASE_USD,
+        generator_worst_case_usd=GENERATOR_WORST_CASE_USD,
     )
 
 
@@ -193,6 +214,7 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
     settings = UpstageClassifierSettings(api_key=SECRET)
     seen: list[httpx.Request] = []
     safe = _question()
+    ledger = _ledger()
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)
@@ -205,7 +227,7 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
         decision = await QuestionClassifier(
             settings=settings,
             client=client,
-            ledger=_ledger(),
+            ledger=ledger,
         ).classify(safe, _catalog())
 
     assert decision == ClassifierDecision(
@@ -246,6 +268,101 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
         "CAUTION-SENTINEL",
     ):
         assert forbidden not in serialized
+    assert ledger.actual_cost_usd == estimate_cost_usd(TokenUsage(20, 0, 10))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("usage", "include_usage"),
+    [
+        (None, False),
+        ([], True),
+        ({}, True),
+        ({"prompt_tokens": True, "completion_tokens": 10}, True),
+        ({"prompt_tokens": 20.0, "completion_tokens": 10}, True),
+        ({"prompt_tokens": -1, "completion_tokens": 10}, True),
+        ({"prompt_tokens": 20, "completion_tokens": True}, True),
+        ({"prompt_tokens": 20, "completion_tokens": -1}, True),
+    ],
+)
+async def test_classifier_usage_is_strict_and_invalid_usage_charges_worst_case(
+    usage: object,
+    include_usage: bool,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    ledger = _ledger()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return _provider_response(
+            usage=usage,
+            include_usage=include_usage,
+        )
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+        ).classify(_question(), _catalog())
+
+    assert decision is None
+    assert ledger.actual_cost_usd == CLASSIFIER_WORST_CASE_USD
+    assert SECRET not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_classifier_parser_failure_after_valid_usage_charges_worst_case() -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    ledger = _ledger()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return _provider_response(content="not-json")
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+        ).classify(_question(), _catalog())
+
+    assert decision is None
+    assert ledger.actual_cost_usd == CLASSIFIER_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_classifier_cost_cap_blocks_next_request_before_transport() -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    ledger = _ledger(cost_cap_usd=CLASSIFIER_WORST_CASE_USD)
+    calls = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _provider_response()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        classifier = QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+        )
+        first = await classifier.classify(_question(), _catalog())
+        second = await classifier.classify(_question(), _catalog())
+
+    assert first is not None
+    assert second is None
+    assert calls == 1
+    assert ledger.classifier_attempts_used == 1
 
 
 @pytest.mark.asyncio
