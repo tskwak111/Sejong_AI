@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -201,7 +202,10 @@ def test_runtime_catalog_is_a_sorted_active_projection_intersection() -> None:
             knowledge("KB-MOVE-01", Intent.MOVE_IN_RESIDENT_REGISTRATION),
             knowledge("KB-WASTE-01"),
             knowledge("KB-WASTE-NOT-GOVERNED"),
-            UntrustedKnowledgeProjection(knowledge("KB-WASTE-02")),
+            cast(
+                KnowledgeRecord,
+                UntrustedKnowledgeProjection(knowledge("KB-WASTE-02")),
+            ),
         ),
         (
             coverage("KB-WASTE-02"),

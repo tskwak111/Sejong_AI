@@ -11,6 +11,10 @@ import pytest
 import sejong_ai_api.chat.service as service_module
 from sejong_ai_api.chat.classification import SafeQuestion
 from sejong_ai_api.chat.context import ContextTokenCodec
+from sejong_ai_api.chat.followup import (
+    _domain_followup_plan,
+    _followup_plan_from_catalog,
+)
 from sejong_ai_api.chat.idempotency import (
     IdempotencyClaim,
     IdempotencyClaimStatus,
@@ -2018,7 +2022,7 @@ async def test_completed_conversational_replay_reissues_a_memory_only_context_to
         stored_response = build_followup_response(
             request_id=REQUEST_ID,
             confidence=None,
-            plan=service_module._domain_followup_plan(),
+            plan=_domain_followup_plan(),
             context_token="old-token-must-not-persist",
         )
     stored = stored_response.model_dump(
@@ -2074,7 +2078,7 @@ async def test_completed_region_followup_replay_preserves_the_validated_topic() 
         (record,),
         topic_coverage_for((record,)),
     )
-    plan = service_module._followup_plan_from_catalog(
+    plan = _followup_plan_from_catalog(
         Intent.BULKY_WASTE,
         PendingSlot.REGION,
         catalog,

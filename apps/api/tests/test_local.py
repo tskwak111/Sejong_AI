@@ -908,12 +908,36 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
     captured_ledger_arguments: dict[str, object] = {}
     classifier_close_calls = 0
     original_close = httpx.AsyncClient.aclose
-    original_ledger = limits_module.ProviderAttemptLedger
 
-    class CapturingProviderAttemptLedger(original_ledger):
-        def __init__(self, **kwargs: object) -> None:
-            captured_ledger_arguments.update(kwargs)
-            super().__init__(**kwargs)  # type: ignore[arg-type]
+    class CapturingProviderAttemptLedger(limits_module.ProviderAttemptLedger):
+        def __init__(
+            self,
+            *,
+            classifier_cap: int = 80,
+            generator_cap: int = 100,
+            combined_cap: int = 160,
+            cost_cap_usd: Decimal = limits_module.LOCAL_INTERACTIVE_COST_CAP_USD,
+            classifier_worst_case_usd: Decimal,
+            generator_worst_case_usd: Decimal,
+        ) -> None:
+            captured_ledger_arguments.update(
+                {
+                    "classifier_cap": classifier_cap,
+                    "generator_cap": generator_cap,
+                    "combined_cap": combined_cap,
+                    "cost_cap_usd": cost_cap_usd,
+                    "classifier_worst_case_usd": classifier_worst_case_usd,
+                    "generator_worst_case_usd": generator_worst_case_usd,
+                }
+            )
+            super().__init__(
+                classifier_cap=classifier_cap,
+                generator_cap=generator_cap,
+                combined_cap=combined_cap,
+                cost_cap_usd=cost_cap_usd,
+                classifier_worst_case_usd=classifier_worst_case_usd,
+                generator_worst_case_usd=generator_worst_case_usd,
+            )
 
     class CapturingClassifier:
         def __init__(
