@@ -463,10 +463,14 @@ git commit -m "feat(chat): require typed grounding evidence"
 **Files:**
 - Modify: `apps/api/src/sejong_ai_api/chat/service.py`
 - Modify: `apps/api/src/sejong_ai_api/chat/response.py`
+- Modify: `apps/api/src/sejong_ai_api/llm/evaluation.py`
 - Modify: `apps/api/src/sejong_ai_api/local.py`
 - Modify: `apps/api/tests/chat/test_service.py`
 - Modify: `apps/api/tests/chat/test_response.py`
 - Modify: `apps/api/tests/chat/test_grounded_generation.py`
+- Modify: `apps/api/tests/chat/test_official_examples.py`
+- Modify: `apps/api/tests/chat/test_sample_questions_20.py`
+- Modify: `apps/api/tests/llm/test_evaluation.py`
 - Modify: `apps/api/tests/test_local.py`
 
 **Interfaces:**
@@ -503,6 +507,8 @@ Cover:
 - `NON_CIVIC`, policy, privacy and provider failure write no interaction/failed/scope row;
 - invalid topic/coverage returns provider-failure domain FOLLOWUP, not lexical success;
 - generator failure returns the complete selected KB template and official source.
+- every remaining production and test call site uses `TopicSelection`; the synthetic evaluator,
+  official-example test and 20-sample test do not restore a record/boolean compatibility overload.
 
 - [ ] **Step 2: Run RED**
 
@@ -511,6 +517,9 @@ apps/api/.venv/Scripts/python.exe -m pytest `
   apps/api/tests/chat/test_service.py `
   apps/api/tests/chat/test_response.py `
   apps/api/tests/chat/test_grounded_generation.py `
+  apps/api/tests/chat/test_official_examples.py `
+  apps/api/tests/chat/test_sample_questions_20.py `
+  apps/api/tests/llm/test_evaluation.py `
   apps/api/tests/test_local.py `
   -q
 ```
@@ -520,6 +529,10 @@ apps/api/.venv/Scripts/python.exe -m pytest `
 For known supported intent, load only that intent. For provider/domain selection, load all four
 supported intents concurrently, flatten by `public_id`, then call `build_topic_catalog`. Do not
 cache beyond `_execute_once`.
+
+Migrate the synthetic evaluator and the official/sample test helpers through the same
+`TopicCatalog` → `TopicSelection` boundary. No caller may pass a bare `KnowledgeRecord` to
+`evaluate_grounding`, and no permissive compatibility overload is added.
 
 - [ ] **Step 4: Integrate the exact decision order**
 
@@ -556,8 +569,10 @@ apps/api/.venv/Scripts/python.exe -m pytest `
 ```powershell
 git add apps/api/src/sejong_ai_api/chat/service.py `
   apps/api/src/sejong_ai_api/chat/response.py `
+  apps/api/src/sejong_ai_api/llm/evaluation.py `
   apps/api/src/sejong_ai_api/local.py `
   apps/api/tests/chat `
+  apps/api/tests/llm/test_evaluation.py `
   apps/api/tests/test_local.py
 git commit -m "feat(chat): orchestrate active topic selection"
 ```
