@@ -16,6 +16,15 @@ from sejong_ai_api.llm.prompt import (
 )
 from sejong_ai_api.privacy.redaction import redact_question
 
+CLASSIFIER_CATALOG_COLUMNS = [
+    "topic_id",
+    "intent",
+    "service_name",
+    "coverage_id",
+    "coverage_label",
+    "approved_examples",
+]
+
 
 def _safe_question(text: str = "안전한 질문") -> SafeQuestion:
     return SafeQuestion(redact_question(text))
@@ -131,16 +140,19 @@ def test_classifier_prompt_contains_only_masked_question_and_governed_catalog_fi
 
     assert json.loads(messages[1]["content"]) == {
         "masked_question": "안전한 질문",
-        "topic_catalog": [
-            {
-                "topic_id": "KB-WASTE-01",
-                "intent": "BULKY_WASTE",
-                "service_name": "대형폐기물 배출신청 절차",
-                "coverage_id": "GENERAL_BULKY_DISPOSAL",
-                "coverage_label": "일반 가구류 배출 절차",
-                "approved_examples": ["대형폐기물은 어떻게 신청하나요?"],
-            }
-        ],
+        "topic_catalog": {
+            "columns": CLASSIFIER_CATALOG_COLUMNS,
+            "rows": [
+                [
+                    "KB-WASTE-01",
+                    "BULKY_WASTE",
+                    "대형폐기물 배출신청 절차",
+                    "GENERAL_BULKY_DISPOSAL",
+                    "일반 가구류 배출 절차",
+                    ["대형폐기물은 어떻게 신청하나요?"],
+                ]
+            ],
+        },
     }
     serialized = json.dumps(messages, ensure_ascii=False, separators=(",", ":"))
     for forbidden in (
@@ -179,15 +191,55 @@ def test_classifier_prompt_uses_at_most_two_approved_examples_without_sampling_t
     )
     payload = json.loads(messages[1]["content"])
 
-    assert len(payload["topic_catalog"]) == 2
-    assert payload["topic_catalog"][0]["approved_examples"] == [
+    assert len(payload["topic_catalog"]["rows"]) == 2
+    assert payload["topic_catalog"]["rows"][0][5] == [
         "첫 번째 승인 예시",
         "두 번째 승인 예시",
     ]
-    assert payload["topic_catalog"][1]["approved_examples"] == [
+    assert payload["topic_catalog"]["rows"][1][5] == [
         "첫 번째 승인 예시",
         "두 번째 승인 예시",
     ]
+
+
+@pytest.mark.parametrize(
+    ("catalog_fixture", "expected_size"),
+    [
+        ("governed_catalog_19", 19),
+        ("governed_catalog_20", 20),
+    ],
+)
+def test_real_governed_catalog_fits_and_preserves_every_approved_value(
+    request: pytest.FixtureRequest,
+    catalog_fixture: str,
+    expected_size: int,
+) -> None:
+    catalog: TopicCatalog = request.getfixturevalue(catalog_fixture)
+    messages = build_classifier_messages(
+        _safe_question(),
+        catalog,
+        max_input_chars=1024,
+    )
+
+    assert len(catalog.topics) == expected_size
+    assert classifier_prompt_module.estimate_classifier_input_upper_bound(messages) <= 4096
+    assert json.loads(messages[1]["content"]) == {
+        "masked_question": "안전한 질문",
+        "topic_catalog": {
+            "columns": CLASSIFIER_CATALOG_COLUMNS,
+            "rows": [
+                [
+                    topic.record.public_id,
+                    topic.record.category.value,
+                    topic.record.service_name,
+                    topic.coverage.coverage_id,
+                    topic.coverage.coverage_label,
+                    list(topic.record.question_examples[:2]),
+                ]
+                for topic in catalog.topics
+            ],
+        },
+    }
 
 
 def test_classifier_prompt_rejects_question_over_1024_chars_without_truncation() -> None:

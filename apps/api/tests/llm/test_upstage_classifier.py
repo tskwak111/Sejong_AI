@@ -198,6 +198,77 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
 
 
 @pytest.mark.asyncio
+async def test_real_governed_20_catalog_reaches_transport_and_ledger(
+    governed_catalog_20: TopicCatalog,
+) -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    calls = 0
+    ledger = _ledger()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _provider_response()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+        ).classify(_question("안전한 질문"), governed_catalog_20)
+
+    assert decision == ClassifierDecision(
+        route=ClassifierRoute.CIVIC_SCOPE_GAP,
+        intent=None,
+        topic_id=None,
+        coverage_id=None,
+        pending_slot=None,
+    )
+    assert calls == 1
+    assert ledger.classifier_attempts_used == 1
+
+
+@pytest.mark.asyncio
+async def test_real_governed_20_catalog_with_256_chars_reaches_transport_and_ledger(
+    governed_catalog_20: TopicCatalog,
+) -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    safe = _question(("How do I get general public service guidance? " * 10)[:256])
+    messages = build_classifier_messages(
+        safe,
+        governed_catalog_20,
+        max_input_chars=1024,
+    )
+    calls = 0
+    ledger = _ledger()
+
+    assert len(safe.text) == 256
+    assert classifier_prompt_module.estimate_classifier_input_upper_bound(messages) <= 4096
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _provider_response()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+        ).classify(safe, governed_catalog_20)
+
+    assert decision is not None
+    assert calls == 1
+    assert ledger.classifier_attempts_used == 1
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("status_code", [429, 500])
 async def test_http_failures_return_none_without_retry(
     status_code: int,
