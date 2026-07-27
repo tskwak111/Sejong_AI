@@ -129,12 +129,17 @@ _REGION_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = (
 )
 _WASTE_ITEM_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = ("waste.item.describe",)
 _PROVIDER_HARD_WALL_SECONDS = 12.0
-_CONTEXT_FACET_TERMS: tuple[tuple[str, ContextualAction], ...] = (
+_CONTEXT_FACET_ROOTS: tuple[tuple[str, ContextualAction], ...] = (
     ("수수료", "FEE"),
     ("준비물", "REQUIRED_DOCUMENTS"),
     ("처리기간", "PROCESSING_TIME"),
     ("어디", "OFFICE"),
     ("온라인", "ONLINE"),
+)
+_CONTEXT_FACET_UTTERANCE_PATTERN = re.compile(
+    r"(?P<facet>수수료|준비물|처리기간|어디|온라인)"
+    r"(?:으로는|로는|에서는|에서|으로|로|은|는|이|가|서|도)?"
+    r"(?:가능한가요|가능해요|인가요|하나요|되나요|돼요|가요|예요|요)?\Z"
 )
 _EXPLICIT_INTENT_TERMS = (
     "전입",
@@ -991,13 +996,14 @@ def _resolve_contextual_action(
         return None
     if _contextual_region(value, context) is not None:
         return "CHANGING_REGION"
+    match = _CONTEXT_FACET_UTTERANCE_PATTERN.fullmatch(compact)
+    if match is None:
+        return None
+    facet_root = match.group("facet")
     return next(
-        (
-            action
-            for term, action in _CONTEXT_FACET_TERMS
-            if term in compact
-        ),
-        None,
+        action
+        for root, action in _CONTEXT_FACET_ROOTS
+        if root == facet_root
     )
 
 
