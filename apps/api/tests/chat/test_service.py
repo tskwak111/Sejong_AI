@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from uuid import UUID
 
@@ -928,18 +928,47 @@ async def test_signed_context_resolves_a_short_followup_without_storing_transcri
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "question",
-    ["비용은요?", "준비물은요?", "온라인도 돼요?"],
+    ("question", "record"),
+    [
+        (
+            "수수료는요?",
+            replace(
+                knowledge_record(public_id="KB-WASTE-FEE-01"),
+                fee="품목별 수수료",
+            ),
+        ),
+        (
+            "준비물은요?",
+            replace(
+                knowledge_record(public_id="KB-WASTE-DOCUMENTS-01"),
+                required_documents=("배출 품목과 규격",),
+            ),
+        ),
+        (
+            "처리기간은요?",
+            replace(
+                knowledge_record(public_id="KB-WASTE-TIME-01"),
+                processing_time="신고 후 지정된 수거일",
+            ),
+        ),
+        (
+            "온라인은요?",
+            replace(
+                knowledge_record(public_id="KB-WASTE-ONLINE-01"),
+                procedure_steps=("온라인 신청 화면에서 배출 품목을 선택합니다.",),
+            ),
+        ),
+    ],
 )
 async def test_v2_context_resolves_bounded_detail_against_same_current_active_topic(
     question: str,
+    record: KnowledgeRecord,
 ) -> None:
-    record = knowledge_record(
-        public_id="KB-WASTE-CONTEXT-01",
-        required_documents=("배출 품목과 규격",),
-        fee="품목별 수수료",
-    )
     repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(
+        result=None,
+        error=AssertionError("VALID_CONTEXT_FACET_MUST_NOT_CALL_PROVIDER"),
+    )
     codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
     token = codec.issue(
         last_intent=Intent.BULKY_WASTE.value,
@@ -949,16 +978,132 @@ async def test_v2_context_resolves_bounded_detail_against_same_current_active_to
         topic_id=record.public_id,
     )
 
-    response = await service(repository).answer(ChatRequest(question=question, context_token=token))
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question=question, context_token=token))
 
     assert response.answer_status == "SUCCESS"
     assert [source.source_id for source in response.sources] == [record.public_id]
     assert repository.active_intents == [Intent.BULKY_WASTE]
+    assert classifier.calls == []
     assert response.context_token is not None
     context = codec.read(response.context_token)
     assert context is not None
     assert context.topic_id == record.public_id
     assert context.dialog_act == "ANSWERED"
+
+
+@pytest.mark.asyncio
+async def test_unrelated_safe_question_with_current_topic_uses_scope_classifier_route() -> None:
+    record = knowledge_record(
+        public_id="KB-MOVE-CONTEXT-01",
+        intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        service_name="전입신고 일반 안내",
+        question_examples=("전입신고는 어떻게 하나요?",),
+    )
+    repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(
+        result=ClassifierDecision(
+            route=ClassifierRoute.CIVIC_SCOPE_GAP,
+            intent=None,
+            topic_id=None,
+            coverage_id=None,
+            pending_slot=None,
+        )
+    )
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.MOVE_IN_RESIDENT_REGISTRATION.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=record.public_id,
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question="청년 월세 신청은요?", context_token=token))
+
+    assert response.answer_status == "FALLBACK"
+    assert response.intent == Intent.OUT_OF_SCOPE.value
+    assert response.fallback.reason == "CIVIC_SCOPE_GAP"
+    assert response.sources == []
+    assert classifier.calls == ["청년 월세 신청은요?"]
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
+    assert repository.scope_gaps == ["청년 월세 신청은요?"]
+    assert repository.events == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "question",
+    ["수수료는요?", "준비물은요?", "처리기간은요?", "어디인가요?", "온라인은요?"],
+)
+async def test_current_topic_without_requested_approved_field_uses_provider_fail_closed(
+    question: str,
+) -> None:
+    record = knowledge_record(public_id="KB-WASTE-NO-FACET-01")
+    repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(result=None)
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.BULKY_WASTE.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=record.public_id,
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question=question, context_token=token))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.UNKNOWN.value
+    assert response.sources == []
+    assert classifier.calls == [question]
+    assert repository.active_intents == [Intent.BULKY_WASTE]
+    assert repository.events == []
+    assert repository.scope_gaps == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("question", ["신청은요?", "발급은요?", "배출은요?", "납부는요?"])
+async def test_generic_action_word_never_inherits_prior_intent_or_topic(
+    question: str,
+) -> None:
+    record = knowledge_record(
+        public_id="KB-MOVE-CONTEXT-01",
+        intent=Intent.MOVE_IN_RESIDENT_REGISTRATION,
+        service_name="전입신고 일반 안내",
+        question_examples=("전입신고는 어떻게 하나요?",),
+    )
+    repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(result=None)
+    codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
+    token = codec.issue(
+        last_intent=Intent.MOVE_IN_RESIDENT_REGISTRATION.value,
+        selected_region=None,
+        answer_status="SUCCESS",
+        dialog_act="ANSWERED",
+        topic_id=record.public_id,
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question=question, context_token=token))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.UNKNOWN.value
+    assert response.sources == []
+    assert classifier.calls == [question]
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
+    assert repository.events == []
+    assert repository.scope_gaps == []
 
 
 @pytest.mark.asyncio
@@ -975,7 +1120,7 @@ async def test_stale_context_topic_never_falls_through_to_another_active_record(
     )
 
     response = await service(repository).answer(
-        ChatRequest(question="비용은요?", context_token=token)
+        ChatRequest(question="수수료는요?", context_token=token)
     )
 
     assert response.answer_status == "FALLBACK"
@@ -986,8 +1131,15 @@ async def test_stale_context_topic_never_falls_through_to_another_active_record(
 
 @pytest.mark.asyncio
 async def test_office_followup_without_region_asks_only_for_allowed_region() -> None:
-    record = knowledge_record(public_id="KB-WASTE-OFFICE-01")
+    record = replace(
+        knowledge_record(public_id="KB-WASTE-OFFICE-01"),
+        department="아름동 행정복지센터",
+    )
     repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(
+        result=None,
+        error=AssertionError("VALID_CONTEXT_FACET_MUST_NOT_CALL_PROVIDER"),
+    )
     codec = ContextTokenCodec(secret=b"x" * 32, clock=lambda: 1_000)
     token = codec.issue(
         last_intent=Intent.BULKY_WASTE.value,
@@ -997,7 +1149,7 @@ async def test_office_followup_without_region_asks_only_for_allowed_region() -> 
         topic_id=record.public_id,
     )
 
-    response = await service(repository).answer(
+    response = await service(repository, question_classifier=classifier).answer(
         ChatRequest(question="어디로 가요?", context_token=token)
     )
 
@@ -1005,6 +1157,7 @@ async def test_office_followup_without_region_asks_only_for_allowed_region() -> 
     assert response.followup_options == ["아름동", "도담동", "조치원읍"]
     assert response.sources == []
     assert repository.office_queries == []
+    assert classifier.calls == []
     assert response.context_token is not None
     context = codec.read(response.context_token)
     assert context is not None

@@ -86,6 +86,14 @@ type SupportedIntentValue = Literal[
     "BULKY_WASTE",
     "LOCAL_TAX_GENERAL",
 ]
+type ContextualAction = Literal[
+    "FEE",
+    "REQUIRED_DOCUMENTS",
+    "PROCESSING_TIME",
+    "OFFICE",
+    "ONLINE",
+    "CHANGING_REGION",
+]
 _SUPPORTED_INTENT_ORDER = (
     Intent.MOVE_IN_RESIDENT_REGISTRATION,
     Intent.CERTIFICATE_ISSUANCE,
@@ -121,20 +129,12 @@ _REGION_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = (
 )
 _WASTE_ITEM_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = ("waste.item.describe",)
 _PROVIDER_HARD_WALL_SECONDS = 12.0
-_CONTEXT_DETAIL_TERMS = (
-    "준비물",
-    "서류",
-    "수수료",
-    "비용",
-    "기간",
-    "처리시간",
-    "어디",
-    "방문",
-    "온라인",
-    "신청",
-    "발급",
-    "배출",
-    "납부",
+_CONTEXT_FACET_TERMS: tuple[tuple[str, ContextualAction], ...] = (
+    ("수수료", "FEE"),
+    ("준비물", "REQUIRED_DOCUMENTS"),
+    ("처리기간", "PROCESSING_TIME"),
+    ("어디", "OFFICE"),
+    ("온라인", "ONLINE"),
 )
 _EXPLICIT_INTENT_TERMS = (
     "전입",
@@ -150,8 +150,27 @@ _EXPLICIT_INTENT_TERMS = (
     "주민세",
     "취득세",
 )
-_CONTEXT_OFFICE_TERMS = ("어디", "방문", "주민센터", "행정복지센터")
 _CONTEXT_REGION_CHANGE_TERMS = ("바꿔", "변경", "옮겨")
+_APPROVED_OFFICE_CONTENT_TERMS = (
+    "행정복지센터",
+    "주민센터",
+    "행정안전부",
+    "정부24",
+    "위택스",
+    "국가법령정보센터",
+    "담당기관",
+    "출장소",
+    "공단",
+    "시청",
+    "군청",
+    "구청",
+    "주민과",
+    "정책과",
+    "읍",
+    "면",
+    "동",
+)
+_APPROVED_ONLINE_CONTENT_TERMS = ("온라인", "인터넷")
 
 
 class ChatRepository(Protocol):
@@ -749,11 +768,15 @@ class ChatService:
             if deterministic is not None:
                 return deterministic
 
+            contextual_action = _resolve_contextual_action(
+                question.text,
+                prior_context,
+            )
             if (
                 prior_context is not None
                 and prior_context.last_intent == known_intent.value
                 and prior_context.topic_id is not None
-                and _resolve_contextual_action(question.text, prior_context) is not None
+                and contextual_action is not None
             ):
                 contextual_topic = catalog.find(prior_context.topic_id)
                 if contextual_topic is None:
@@ -764,14 +787,21 @@ class ChatService:
                         coverage_id=None,
                         pending_slot=None,
                     )
-                return TopicSelection(
-                    topic=contextual_topic,
-                    evidence=GroundingEvidence(
-                        kind=GroundingEvidenceKind.VALIDATED_CONTEXT_FACET,
-                        topic_id=contextual_topic.record.public_id,
-                        coverage_id=contextual_topic.coverage.coverage_id,
-                    ),
-                )
+                if (
+                    contextual_action == "CHANGING_REGION"
+                    or _record_supports_context_facet(
+                        contextual_topic.record,
+                        contextual_action,
+                    )
+                ):
+                    return TopicSelection(
+                        topic=contextual_topic,
+                        evidence=GroundingEvidence(
+                            kind=GroundingEvidenceKind.VALIDATED_CONTEXT_FACET,
+                            topic_id=contextual_topic.record.public_id,
+                            coverage_id=contextual_topic.coverage.coverage_id,
+                        ),
+                    )
 
         classifier = self._question_classifier
         if classifier is None or not catalog.provider_eligible:
@@ -953,7 +983,7 @@ def _compact_context_input(value: str) -> str:
 def _resolve_contextual_action(
     value: str,
     context: ChatContext | None,
-) -> Literal["DETAIL", "OFFICE", "CHANGING_REGION"] | None:
+) -> ContextualAction | None:
     if context is None:
         return None
     compact = _compact_context_input(value)
@@ -961,11 +991,49 @@ def _resolve_contextual_action(
         return None
     if _contextual_region(value, context) is not None:
         return "CHANGING_REGION"
-    if any(term in compact for term in _CONTEXT_OFFICE_TERMS):
-        return "OFFICE"
-    if any(term in compact for term in _CONTEXT_DETAIL_TERMS):
-        return "DETAIL"
-    return None
+    return next(
+        (
+            action
+            for term, action in _CONTEXT_FACET_TERMS
+            if term in compact
+        ),
+        None,
+    )
+
+
+def _record_supports_context_facet(
+    record: KnowledgeRecord,
+    action: ContextualAction,
+) -> bool:
+    if type(record) is not KnowledgeRecord:
+        return False
+    if action == "FEE":
+        return record.fee is not None
+    if action == "REQUIRED_DOCUMENTS":
+        return bool(record.required_documents)
+    if action == "PROCESSING_TIME":
+        return record.processing_time is not None
+    if action == "OFFICE":
+        department = _compact_context_input(record.department)
+        return any(term in department for term in _APPROVED_OFFICE_CONTENT_TERMS)
+    if action == "ONLINE":
+        approved_content = _compact_context_input(
+            " ".join(
+                (
+                    record.service_name,
+                    record.answer_summary,
+                    *record.procedure_steps,
+                    *record.required_documents,
+                    record.processing_time or "",
+                    record.fee or "",
+                    record.department,
+                    record.caution or "",
+                    *record.question_examples,
+                )
+            )
+        )
+        return any(term in approved_content for term in _APPROVED_ONLINE_CONTENT_TERMS)
+    return False
 
 
 def _contextual_region(
