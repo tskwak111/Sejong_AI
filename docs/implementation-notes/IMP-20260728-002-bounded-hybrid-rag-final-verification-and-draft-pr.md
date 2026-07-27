@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-28T01:51:00+09:00
 - Task ID: `CHAT-HYBRID-RAG-001-T11`
 - Type: final-verification-handoff
-- Status: Done — local/private evidence complete; Draft PR publication pending
+- Status: Done — local/private evidence complete; Draft PR #20 published, human merge pending
 - Author/Agent: 사용자 승인 / Codex main 통합 / 독립 리뷰·검증 에이전트
 - Branch: `codex/CHAT-HYBRID-RAG-001`
 - Base commit: `940d1df396009b813281448e239b1f91d8c74374`
@@ -13,6 +13,7 @@
   [ADR-0027](../adr/0027-active-topic-catalog-and-coverage-grounding.md),
   [offline UAT](../test-reports/CHAT-HYBRID-RAG-001-OFFLINE-UAT.md),
   [actual evidence](../test-reports/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL.md)
+- Draft PR: [#20](https://github.com/tskwak111/Sejong_AI/pull/20)
 
 ## 1. 사용자 요청과 완료 기준
 
@@ -202,7 +203,7 @@ strict accepted usage와 topic match가 0이라 FAIL이며 자동 재실행하�
 
 ## 14. 남은 위험·다음 단계
 
-- Pending: Draft PR URL 기록과 사람 merge.
+- Pending: Draft PR #20 사람 review/merge.
 - Pending: A-069 actual provider 원인 진단·corrective rerun.
 - Pending: public/remote 배포·DB·운영 보안.
 - 기존 Starlette/httpx deprecation warning 1건은 기능 실패가 아니며 후속 dependency 정책에서 처리한다.
@@ -214,4 +215,4 @@ strict accepted usage와 topic match가 0이라 FAIL이며 자동 재실행하�
 - [x] source-of-truth/계약/버전 동기화
 - [x] 개인정보 원문·secret 노출 없음
 - [x] 구현 노트 INDEX 갱신
-- [ ] Draft PR URL 기록
+- [x] Draft PR URL 기록

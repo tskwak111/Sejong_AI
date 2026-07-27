@@ -1277,7 +1277,7 @@ git add CHANGELOG.md TASKS.md versions/manifest.json docs
 git commit -m "docs(chat): close bounded hybrid rag delivery"
 ```
 
-- [ ] **Step 7: Push and create Draft PR**
+- [x] **Step 7: Push and create Draft PR**
 
 ```powershell
 git push -u origin codex/CHAT-HYBRID-RAG-001
@@ -1331,4 +1331,6 @@ non-overlapping slices. Task 10's reviewed PII-free actual subset was run exactl
 FAIL without rerun. Task 11 recorded browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114 and zero secret/bundle/protected findings. The one final aggregate wrapper stopped at
 FORMAT-API and is not PASS; after formatting, every constituent that the wrapper had not run passed
-independently. Push and Draft PR publication remain Step 7. No automatic merge is allowed.
+independently. Branch `codex/CHAT-HYBRID-RAG-001` was pushed and Draft PR
+[#20](https://github.com/tskwak111/Sejong_AI/pull/20) was created. Human review/merge is pending;
+no automatic merge is allowed.
