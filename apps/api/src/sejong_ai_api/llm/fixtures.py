@@ -32,6 +32,11 @@ _INTENT_LABELS = {
     "지방세 일반 안내": Intent.LOCAL_TAX_GENERAL,
 }
 _PII_LABELS = {"아니오": False, "예": True}
+_EXPECTED_TOPIC_IDS_BY_FIXTURE = {
+    "T-02": "KB-MOVE-02",
+    "T-07": "KB-WASTE-01",
+    "T-08": "KB-WASTE-02",
+}
 
 
 class PreparationCode(str, Enum):  # noqa: UP042 - approved str/Enum contract
@@ -47,6 +52,7 @@ class SyntheticFixture:
     expected_intent: Intent
     expected_status: AnswerStatus
     contains_pii: bool
+    expected_topic_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +95,7 @@ def load_allowed_fixtures(path: Path) -> tuple[SyntheticFixture, ...]:
                 expected_intent=_INTENT_LABELS[row["기대 intent"]],
                 expected_status=AnswerStatus(row["기대 상태"]),
                 contains_pii=_PII_LABELS[row["PII 포함"]],
+                expected_topic_id=_EXPECTED_TOPIC_IDS_BY_FIXTURE.get(row["test_id"]),
             )
             for row in allowed_rows
         )

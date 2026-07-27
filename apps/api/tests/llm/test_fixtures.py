@@ -29,6 +29,18 @@ def test_canonical_loader_returns_only_exact_success_ids() -> None:
         Intent.LOCAL_TAX_GENERAL,
         Intent.LOCAL_TAX_GENERAL,
     )
+    assert tuple(item.expected_topic_id for item in fixtures) == (
+        None,
+        "KB-MOVE-02",
+        None,
+        None,
+        None,
+        None,
+        "KB-WASTE-01",
+        "KB-WASTE-02",
+        None,
+        None,
+    )
 
 
 def test_changed_allowed_projection_fails_closed(tmp_path: Path) -> None:

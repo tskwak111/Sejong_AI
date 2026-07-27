@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import sys
+from collections import Counter
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
@@ -13,6 +14,10 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+import sejong_ai_api.llm.evaluation as evaluation_module
+from sejong_ai_api.chat.classification import SafeQuestion
+from sejong_ai_api.chat.grounding import GroundingDecision, evaluate_grounding
+from sejong_ai_api.chat.retrieval import GroundingEvidenceKind, TopicSelection
 from sejong_ai_api.db.models import AnswerStatus, Intent, KnowledgeRecord
 from sejong_ai_api.llm.contracts import (
     GeneratedAnswer,
@@ -358,6 +363,79 @@ async def test_t11_through_t20_have_zero_provider_calls() -> None:
     assert loaded_ids.isdisjoint(excluded_ids)
     assert len(run.cases) == 10
     assert sum(fixture.fixture_id in excluded_ids for fixture in provider.fixtures) == 0
+
+
+@pytest.mark.asyncio
+async def test_frozen_generation_fixtures_use_exact_typed_topics_once_without_logging(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    fixtures = load_allowed_fixtures(SAMPLE_PATH)
+    provider = _CaptureProvider()
+    selections: list[TopicSelection | None] = []
+
+    def capture_selection(
+        question: SafeQuestion,
+        intent: Intent,
+        selection: TopicSelection | None,
+    ) -> GroundingDecision:
+        selections.append(selection)
+        return evaluate_grounding(question, intent, selection)
+
+    monkeypatch.setattr(evaluation_module, "evaluate_grounding", capture_selection)
+    caplog.set_level(logging.DEBUG)
+    service = SyntheticEvaluationService(
+        fixtures=fixtures,
+        repository=_Repository(_official_records()),
+        provider=provider,
+    )
+
+    run = await service.run(repetitions=1)
+
+    allowed_ids = tuple(f"T-{number:02d}" for number in range(1, 11))
+    excluded_ids = tuple(f"T-{number:02d}" for number in range(11, 21))
+    expected_sources = {
+        "T-01": "KB-MOVE-01",
+        "T-02": "KB-MOVE-02",
+        "T-03": "KB-MOVE-03",
+        "T-04": "KB-CERT-02",
+        "T-05": "KB-CERT-01",
+        "T-06": "KB-CERT-05",
+        "T-07": "KB-WASTE-01",
+        "T-08": "KB-WASTE-02",
+        "T-09": "KB-TAX-02",
+        "T-10": "KB-TAX-03",
+    }
+
+    call_counts = Counter(fixture.fixture_id for fixture in provider.fixtures)
+    assert call_counts == Counter({fixture_id: 1 for fixture_id in allowed_ids})
+    assert all(call_counts[fixture_id] == 0 for fixture_id in excluded_ids)
+    assert tuple(case.fixture_id for case in run.cases) == allowed_ids
+    assert tuple(case.source_id for case in run.cases) == tuple(
+        expected_sources[fixture_id] for fixture_id in allowed_ids
+    )
+    assert all(type(selection) is TopicSelection for selection in selections)
+    semantic_fixture_ids = {
+        fixture_id
+        for fixture_id, selection in zip(allowed_ids, selections, strict=True)
+        if selection is not None
+        and selection.evidence.kind
+        is GroundingEvidenceKind.VALIDATED_SEMANTIC_COVERAGE
+    }
+    assert semantic_fixture_ids == {"T-02", "T-07", "T-08"}
+
+    forbidden_content = tuple(fixture.question for fixture in fixtures) + (
+        _answer().summary,
+        *_answer().procedure_steps,
+        *_answer().required_documents,
+    )
+    assert all(value not in caplog.text for value in forbidden_content)
+    assert all(
+        value not in representation
+        for record in caplog.records
+        for representation in _log_record_representations(record)
+        for value in forbidden_content
+    )
 
 
 def test_modified_t01_projection_fails_before_provider_construction(tmp_path: Path) -> None:

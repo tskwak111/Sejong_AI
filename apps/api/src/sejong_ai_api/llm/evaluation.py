@@ -9,12 +9,19 @@ from uuid import UUID, uuid4
 from sejong_ai_api.chat.classification import SafeQuestion, classify_question
 from sejong_ai_api.chat.grounding import evaluate_grounding
 from sejong_ai_api.chat.response import build_success_response
-from sejong_ai_api.chat.retrieval import select_deterministic_topic
+from sejong_ai_api.chat.retrieval import (
+    select_deterministic_topic,
+    validate_semantic_selection,
+)
 from sejong_ai_api.chat.topic_catalog import (
     TopicCoverage,
     build_topic_catalog,
 )
 from sejong_ai_api.db.models import AnswerStatus, Intent, KnowledgeRecord
+from sejong_ai_api.llm.classifier_contracts import (
+    ClassifierDecision,
+    ClassifierRoute,
+)
 from sejong_ai_api.llm.contracts import (
     GeneratedAnswer,
     GenerationOutcome,
@@ -187,6 +194,19 @@ class SyntheticEvaluationService:
             classification.intent,
             catalog,
         )
+        if selection is None and fixture.expected_topic_id is not None:
+            topic = catalog.find(fixture.expected_topic_id)
+            if topic is not None:
+                selection = validate_semantic_selection(
+                    ClassifierDecision(
+                        route=ClassifierRoute.SUPPORTED,
+                        intent=classification.intent,
+                        topic_id=fixture.expected_topic_id,
+                        coverage_id=topic.coverage.coverage_id,
+                        pending_slot=None,
+                    ),
+                    catalog,
+                )
         grounding = evaluate_grounding(
             safe_question,
             classification.intent,
