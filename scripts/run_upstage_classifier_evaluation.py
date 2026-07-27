@@ -101,9 +101,16 @@ _EXPECTED_SUPPORTED_TOPIC_COVERAGE = {
     "C-15": ("KB-MOVE-01", "MOVE_IN_OVERVIEW_APPLICATION"),
     "C-16": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
     "C-17": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
-    "C-18": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
     "C-19": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
     "C-20": ("KB-WASTE-01", "GENERAL_BULKY_DISPOSAL"),
+}
+_EXPECTED_NEGATIVE_COVERAGE_DECISIONS = {
+    "C-18": (
+        ClassifierRoute.NO_TOPIC_MATCH,
+        Intent.BULKY_WASTE,
+        None,
+        None,
+    )
 }
 _FIXTURE_KEYS = frozenset(
     {
@@ -326,7 +333,24 @@ def _parse_fixture(raw: dict[object, object]) -> _Fixture:
         or len(fixture.question) > 250
     ):
         raise _FixturesInvalid
-    if fixture.group == "POLICY_PRIVACY":
+    negative_coverage = _EXPECTED_NEGATIVE_COVERAGE_DECISIONS.get(
+        fixture.fixture_id
+    )
+    if negative_coverage is not None:
+        expected_route, expected_negative_intent, topic_id, coverage_id = (
+            negative_coverage
+        )
+        if (
+            fixture.group != ClassifierRoute.SUPPORTED.value
+            or fixture.execution != "PROVIDER"
+            or fixture.expected_code != expected_route.value
+            or fixture.expected_intent != expected_negative_intent.value
+            or fixture.expected_pending_slot is not None
+            or topic_id is not None
+            or coverage_id is not None
+        ):
+            raise _FixturesInvalid
+    elif fixture.group == "POLICY_PRIVACY":
         if fixture.expected_code not in {
             FallbackReason.PERSONAL_LOOKUP.value,
             FallbackReason.LEGAL_JUDGMENT.value,
@@ -454,6 +478,9 @@ def _outcome_matches(fixture: _Fixture, outcome: ClassificationOutcome) -> bool:
 
 def _decision_matches(fixture: _Fixture, decision: ClassifierDecision) -> bool:
     expected_pair = _EXPECTED_SUPPORTED_TOPIC_COVERAGE.get(fixture.fixture_id)
+    negative_coverage = _EXPECTED_NEGATIVE_COVERAGE_DECISIONS.get(
+        fixture.fixture_id
+    )
     return (
         decision.route.value == fixture.expected_code
         and (decision.intent.value if decision.intent is not None else None)
@@ -467,7 +494,15 @@ def _decision_matches(fixture: _Fixture, decision: ClassifierDecision) -> bool:
                 and (decision.topic_id, decision.coverage_id) == expected_pair
             )
             or (
-                decision.route is not ClassifierRoute.SUPPORTED
+                negative_coverage is not None
+                and decision.route is negative_coverage[0]
+                and decision.intent is negative_coverage[1]
+                and decision.topic_id is negative_coverage[2]
+                and decision.coverage_id is negative_coverage[3]
+            )
+            or (
+                negative_coverage is None
+                and decision.route is not ClassifierRoute.SUPPORTED
                 and expected_pair is None
                 and decision.topic_id is None
                 and decision.coverage_id is None

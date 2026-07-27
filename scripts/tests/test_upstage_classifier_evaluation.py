@@ -153,14 +153,10 @@ def test_evaluation_calls_only_provider_cases_and_keeps_policy_outbound_zero(
         expected_pair = runner._EXPECTED_SUPPORTED_TOPIC_COVERAGE.get(case.fixture_id)
         decisions.append(
             ClassifierDecision(
-                route=(
-                    ClassifierRoute.SUPPORTED
-                    if case.expected_code == "SUPPORTED"
-                    else ClassifierRoute.CIVIC_SCOPE_GAP
-                ),
+                route=ClassifierRoute(case.expected_code),
                 intent=(
                     Intent(case.expected_intent)
-                    if case.expected_code == "SUPPORTED"
+                    if case.expected_intent is not None
                     else None
                 ),
                 topic_id=expected_pair[0] if expected_pair is not None else None,
@@ -245,6 +241,96 @@ def test_decision_match_requires_the_exact_supported_topic_coverage_pair() -> No
 
     assert runner._decision_matches(fixture, exact) is True
     assert runner._decision_matches(fixture, wrong) is False
+
+
+def test_c18_is_exact_no_topic_match_for_excluded_refrigerator_coverage() -> None:
+    runner = _runner()
+    fixture = next(
+        case
+        for case in runner._load_fixtures(
+            _REPOSITORY_ROOT
+            / "apps"
+            / "api"
+            / "tests"
+            / "fixtures"
+            / "classifier-60.json"
+        )
+        if case.fixture_id == "C-18"
+    )
+    catalog = runner._build_current_test_catalog()
+    waste_general = catalog.find("KB-WASTE-01")
+
+    assert waste_general is not None
+    assert "전용 수거" in waste_general.coverage.coverage_label
+    assert "제외" in waste_general.coverage.coverage_label
+    assert fixture.expected_code == ClassifierRoute.NO_TOPIC_MATCH.value
+    assert fixture.expected_intent == Intent.BULKY_WASTE.value
+    assert fixture.fixture_id not in runner._EXPECTED_SUPPORTED_TOPIC_COVERAGE
+    assert runner._EXPECTED_NEGATIVE_COVERAGE_DECISIONS == {
+        "C-18": (
+            ClassifierRoute.NO_TOPIC_MATCH,
+            Intent.BULKY_WASTE,
+            None,
+            None,
+        )
+    }
+
+
+def test_c18_rejects_supported_pair_and_matches_closed_negative_decision() -> None:
+    runner = _runner()
+    fixture = next(
+        case
+        for case in runner._load_fixtures(
+            _REPOSITORY_ROOT
+            / "apps"
+            / "api"
+            / "tests"
+            / "fixtures"
+            / "classifier-60.json"
+        )
+        if case.fixture_id == "C-18"
+    )
+    forced_supported = ClassifierDecision(
+        route=ClassifierRoute.SUPPORTED,
+        intent=Intent.BULKY_WASTE,
+        topic_id="KB-WASTE-01",
+        coverage_id="GENERAL_BULKY_DISPOSAL",
+        pending_slot=None,
+    )
+    closed_negative = ClassifierDecision(
+        route=ClassifierRoute.NO_TOPIC_MATCH,
+        intent=Intent.BULKY_WASTE,
+        topic_id=None,
+        coverage_id=None,
+        pending_slot=None,
+    )
+
+    assert runner._decision_matches(fixture, forced_supported) is False
+    assert runner._decision_matches(fixture, closed_negative) is True
+
+
+def test_explicit_negative_coverage_cases_have_no_forced_supported_pair() -> None:
+    runner = _runner()
+    fixtures = runner._load_fixtures(
+        _REPOSITORY_ROOT
+        / "apps"
+        / "api"
+        / "tests"
+        / "fixtures"
+        / "classifier-60.json"
+    )
+    excluded_markers = ("냉장고", "세율", "감면", "면제")
+    explicit_negative_cases = tuple(
+        case
+        for case in fixtures
+        if any(marker in case.question for marker in excluded_markers)
+    )
+
+    assert tuple(case.fixture_id for case in explicit_negative_cases) == ("C-18",)
+    assert all(
+        case.fixture_id not in runner._EXPECTED_SUPPORTED_TOPIC_COVERAGE
+        for case in explicit_negative_cases
+    )
 
 
 def test_actual_classifier_passes_current_catalog_through_real_adapter_offline() -> None:

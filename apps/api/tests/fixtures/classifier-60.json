@@ -157,7 +157,7 @@
     "group": "SUPPORTED",
     "execution": "PROVIDER",
     "question": "못 쓰는 냉장고를 버릴 때 신고해야 하나요?",
-    "expected_code": "SUPPORTED",
+    "expected_code": "NO_TOPIC_MATCH",
     "expected_intent": "BULKY_WASTE",
     "expected_pending_slot": null
   },
