@@ -9,7 +9,11 @@ from uuid import UUID, uuid4
 from sejong_ai_api.chat.classification import SafeQuestion, classify_question
 from sejong_ai_api.chat.grounding import evaluate_grounding
 from sejong_ai_api.chat.response import build_success_response
-from sejong_ai_api.chat.retrieval import rank_active_knowledge
+from sejong_ai_api.chat.retrieval import select_deterministic_topic
+from sejong_ai_api.chat.topic_catalog import (
+    TopicCoverage,
+    build_topic_catalog,
+)
 from sejong_ai_api.db.models import AnswerStatus, Intent, KnowledgeRecord
 from sejong_ai_api.llm.contracts import (
     GeneratedAnswer,
@@ -113,6 +117,7 @@ class SyntheticEvaluationService:
         fixtures: Sequence[SyntheticFixture],
         repository: EvaluationRepository,
         provider: EvaluationProvider,
+        topic_coverage: Sequence[TopicCoverage] | None = None,
         monotonic_ns: Callable[[], int] = perf_counter_ns,
         uuid_factory: Callable[[], UUID] = uuid4,
     ) -> None:
@@ -127,6 +132,15 @@ class SyntheticEvaluationService:
         self._fixtures = tuple(sorted(normalized, key=lambda fixture: fixture.fixture_id))
         self._repository = repository
         self._provider = provider
+        if topic_coverage is not None and (
+            not isinstance(topic_coverage, Sequence)
+            or isinstance(topic_coverage, (str, bytes))
+            or any(type(item) is not TopicCoverage for item in topic_coverage)
+        ):
+            raise ValueError("TOPIC_COVERAGE_INVALID")
+        self._topic_coverage = (
+            tuple(topic_coverage) if topic_coverage is not None else None
+        )
         self._monotonic_ns = monotonic_ns
         self._uuid_factory = uuid_factory
 
@@ -155,12 +169,28 @@ class SyntheticEvaluationService:
             return PreparedCaseFailure(PreparationCode.NOT_DETERMINISTIC_SUCCESS)
 
         records = await self._repository.list_active_kb(classification.intent)
-        ranked = rank_active_knowledge(safe_question, classification.intent, records)
-        top = ranked[0] if ranked else None
+        coverage = self._topic_coverage
+        if coverage is None:
+            coverage = tuple(
+                TopicCoverage(
+                    topic_id=record.public_id,
+                    intent=record.category,
+                    coverage_id="SYNTHETIC_EVALUATION_GROUNDING",
+                    coverage_label="합성 평가의 결정론적 grounding 검색 경계",
+                )
+                for record in records
+                if type(record) is KnowledgeRecord
+            )
+        catalog = build_topic_catalog(records, coverage)
+        selection = select_deterministic_topic(
+            safe_question,
+            classification.intent,
+            catalog,
+        )
         grounding = evaluate_grounding(
             safe_question,
             classification.intent,
-            top.record if top is not None else None,
+            selection,
         )
         if not grounding.is_grounded or grounding.record is None:
             return PreparedCaseFailure(PreparationCode.INSUFFICIENT_GROUNDING)

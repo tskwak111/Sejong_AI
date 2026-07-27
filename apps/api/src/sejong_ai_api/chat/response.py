@@ -61,7 +61,7 @@ _FOLLOWUP_LABELS: dict[FollowupOptionId, str] = {
 _FALLBACK_COPY: dict[PublicFallbackReason, tuple[str, str, tuple[str, ...]]] = {
     "INSUFFICIENT_GROUNDING": (
         "확인된 근거가 부족해요",
-        "현재 승인된 공식 자료만으로는 정확히 안내하기 어려워요.",
+        "지원 분야이지만 현재 승인된 공식 자료에서 직접 답할 근거를 찾지 못했어요.",
         ("질문의 대상과 목적을 조금 더 구체적으로 적어 주세요.",),
     ),
     "PERSONAL_LOOKUP": (

@@ -12,7 +12,11 @@ from dataclasses import dataclass
 from typing import Literal, Protocol, cast
 from uuid import UUID, uuid4
 
-from sejong_ai_api.chat.classification import SafeQuestion, classify_question
+from sejong_ai_api.chat.classification import (
+    ClassificationOutcome,
+    SafeQuestion,
+    classify_question,
+)
 from sejong_ai_api.chat.context import ChatContext, ContextTokenCodec
 from sejong_ai_api.chat.grounding import evaluate_grounding
 from sejong_ai_api.chat.idempotency import (
@@ -27,7 +31,13 @@ from sejong_ai_api.chat.response import (
     build_followup_response,
     build_success_response,
 )
-from sejong_ai_api.chat.retrieval import RankedKnowledge, rank_active_knowledge
+from sejong_ai_api.chat.retrieval import (
+    GroundingEvidence,
+    GroundingEvidenceKind,
+    TopicSelection,
+    select_deterministic_topic,
+    validate_semantic_selection,
+)
 from sejong_ai_api.chat.topic_catalog import (
     TopicCatalog,
     TopicCoverage,
@@ -174,6 +184,13 @@ class _ChatExecution:
     response: ChatResult
     interaction: InteractionWrite | None
     scope_gap_question: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class FollowupPlan:
+    intent: Intent
+    pending_slot: PendingSlot
+    options: tuple[str, ...]
 
 
 @dataclass(slots=True)
@@ -356,21 +373,43 @@ class ChatService:
             )
             return _ChatExecution(response=fallback_response, interaction=None)
 
-        pending_slot = outcome.pending_slot
-        if outcome.needs_provider and not intent_from_context:
-            decision = await self._classify_best_effort(
-                safe_question,
-                deadline=provider_deadline,
+        if outcome.route is ClassifierRoute.NEEDS_FOLLOWUP and not intent_from_context:
+            return self._build_followup_execution(
+                request_id=selected_request_id,
+                intent=intent,
+                pending_slot=outcome.pending_slot,
+                selected_region=selected_region,
+                started_ns=started_ns,
+                persist_event=True,
             )
-            if decision is None:
-                return self._build_followup_execution(
-                    request_id=selected_request_id,
-                    intent=Intent.UNKNOWN,
-                    pending_slot=None,
-                    selected_region=selected_region,
-                    started_ns=started_ns,
-                    persist_event=False,
-                )
+
+        selection_outcome = outcome
+        if intent_from_context:
+            selection_outcome = ClassificationOutcome(
+                intent=intent,
+                followup_required=False,
+                fallback_reason=None,
+                route=ClassifierRoute.SUPPORTED,
+            )
+        selection_result = await self._select_topic(
+            safe_question,
+            outcome=selection_outcome,
+            prior_context=prior_context,
+            deadline=provider_deadline,
+        )
+        if selection_result is None:
+            return self._build_followup_execution(
+                request_id=selected_request_id,
+                intent=Intent.UNKNOWN,
+                selected_region=selected_region,
+                pending_slot=None,
+                started_ns=started_ns,
+                persist_event=False,
+            )
+
+        selected_topic: TopicSelection | None = None
+        if type(selection_result) is ClassifierDecision:
+            decision = selection_result
             if decision.route is ClassifierRoute.NON_CIVIC:
                 return _ChatExecution(
                     response=build_fallback_response(
@@ -392,7 +431,19 @@ class ChatService:
                     interaction=None,
                     scope_gap_question=safe_question.text,
                 )
-            if decision.intent is None:
+            if decision.route is ClassifierRoute.NEEDS_FOLLOWUP:
+                return self._build_followup_execution(
+                    request_id=selected_request_id,
+                    intent=decision.intent or Intent.UNKNOWN,
+                    pending_slot=decision.pending_slot,
+                    selected_region=selected_region,
+                    started_ns=started_ns,
+                    persist_event=True,
+                )
+            if decision.route is ClassifierRoute.NO_TOPIC_MATCH and decision.intent is not None:
+                intent = decision.intent
+                grounding = evaluate_grounding(safe_question, intent, None)
+            else:
                 return self._build_followup_execution(
                     request_id=selected_request_id,
                     intent=Intent.UNKNOWN,
@@ -401,53 +452,23 @@ class ChatService:
                     started_ns=started_ns,
                     persist_event=False,
                 )
-            intent = decision.intent
-            pending_slot = decision.pending_slot
-            if decision.route is ClassifierRoute.NEEDS_FOLLOWUP:
-                return self._build_followup_execution(
-                    request_id=selected_request_id,
-                    intent=intent,
-                    pending_slot=pending_slot,
-                    selected_region=selected_region,
-                    started_ns=started_ns,
-                    persist_event=True,
-                )
-
-        if outcome.route is ClassifierRoute.NEEDS_FOLLOWUP and not intent_from_context:
-            return self._build_followup_execution(
-                request_id=selected_request_id,
-                intent=intent,
-                pending_slot=pending_slot,
-                selected_region=selected_region,
-                started_ns=started_ns,
-                persist_event=True,
+        elif type(selection_result) is TopicSelection:
+            selected_topic = selection_result
+            intent = selection_result.topic.record.category
+            grounding = evaluate_grounding(
+                safe_question,
+                intent,
+                selection_result,
             )
-
-        if intent is Intent.UNKNOWN:
+        else:
             return self._build_followup_execution(
                 request_id=selected_request_id,
                 intent=Intent.UNKNOWN,
-                selected_region=selected_region,
                 pending_slot=None,
+                selected_region=selected_region,
                 started_ns=started_ns,
                 persist_event=False,
             )
-
-        context_topic_id = (
-            prior_context.topic_id if intent_from_context and prior_context is not None else None
-        )
-        ranked = await self._ranked_knowledge(
-            safe_question,
-            intent,
-            topic_id=context_topic_id,
-        )
-        top = ranked[0] if ranked else None
-        grounding = evaluate_grounding(
-            safe_question,
-            intent,
-            top.record if top is not None else None,
-            allow_contextual_detail=intent_from_context,
-        )
         if not grounding.is_grounded or grounding.record is None:
             office = await self._load_optional_office(selected_region, intent)
             fallback_response = build_fallback_response(
@@ -524,7 +545,7 @@ class ChatService:
             request_id=selected_request_id,
             record=grounding.record,
             office=office,
-            confidence=_confidence(top),
+            confidence=_confidence(selected_topic),
             context_token=token,
             answer_mode=answer_mode,
             answer=materialized,
@@ -654,33 +675,127 @@ class ChatService:
             await self._record_scope_gap_best_effort(execution.scope_gap_question)
         return execution.response
 
-    async def _classify_best_effort(
+    async def _load_active_snapshot(
         self,
-        question: SafeQuestion,
-        *,
-        deadline: float,
-    ) -> ClassifierDecision | None:
-        classifier = self._question_classifier
-        if classifier is None:
-            return None
+        intents: Sequence[Intent],
+    ) -> tuple[KnowledgeRecord, ...]:
+        if not isinstance(intents, Sequence) or isinstance(intents, (str, bytes)):
+            raise TypeError("SUPPORTED_INTENT_SEQUENCE_REQUIRED")
+        selected_intents = tuple(intents)
+        if (
+            not selected_intents
+            or len(set(selected_intents)) != len(selected_intents)
+            or any(
+                type(intent) is not Intent or intent not in _SUPPORTED_INTENTS
+                for intent in selected_intents
+            )
+        ):
+            raise ValueError("SUPPORTED_INTENT_SEQUENCE_REQUIRED")
         try:
             snapshot_parts = await asyncio.gather(
                 *(
                     self._repository.list_active_kb(intent)
-                    for intent in _SUPPORTED_INTENT_ORDER
+                    for intent in selected_intents
                 )
             )
-            catalog = build_topic_catalog(
-                tuple(record for records in snapshot_parts for record in records),
-                self._topic_coverage,
+        except DatabaseUnavailableError:
+            raise ChatUnavailableError() from None
+
+        snapshot: list[KnowledgeRecord] = []
+        for expected_intent, records in zip(selected_intents, snapshot_parts, strict=True):
+            if not isinstance(records, Sequence) or isinstance(records, (str, bytes)):
+                raise ChatUnavailableError()
+            for record in records:
+                if type(record) is not KnowledgeRecord or record.category is not expected_intent:
+                    raise ChatUnavailableError()
+                snapshot.append(record)
+        return tuple(sorted(snapshot, key=lambda record: record.public_id))
+
+    async def _select_topic(
+        self,
+        question: SafeQuestion,
+        *,
+        outcome: ClassificationOutcome,
+        prior_context: ChatContext | None,
+        deadline: float,
+    ) -> TopicSelection | FollowupPlan | ClassifierDecision | None:
+        if type(question) is not SafeQuestion or type(outcome) is not ClassificationOutcome:
+            raise TypeError("TOPIC_SELECTION_INPUT_INVALID")
+        if prior_context is not None and type(prior_context) is not ChatContext:
+            raise TypeError("TOPIC_SELECTION_INPUT_INVALID")
+        if type(deadline) is not float:
+            raise TypeError("TOPIC_SELECTION_INPUT_INVALID")
+
+        known_intent = outcome.intent if outcome.intent in _SUPPORTED_INTENTS else None
+        selected_intents = (
+            _SUPPORTED_INTENT_ORDER if outcome.needs_provider else (known_intent,)
+        )
+        if known_intent is None and not outcome.needs_provider:
+            return None
+        snapshot = await self._load_active_snapshot(
+            cast(Sequence[Intent], selected_intents)
+        )
+        try:
+            catalog = build_topic_catalog(snapshot, self._topic_coverage)
+        except (TypeError, ValueError):
+            return None
+
+        if known_intent is not None:
+            deterministic = select_deterministic_topic(
+                question,
+                known_intent,
+                catalog,
             )
-            if not catalog.provider_eligible:
-                return None
+            if deterministic is not None:
+                return deterministic
+
+            if (
+                prior_context is not None
+                and prior_context.last_intent == known_intent.value
+                and prior_context.topic_id is not None
+                and _resolve_contextual_action(question.text, prior_context) is not None
+            ):
+                contextual_topic = catalog.find(prior_context.topic_id)
+                if contextual_topic is None:
+                    return ClassifierDecision(
+                        route=ClassifierRoute.NO_TOPIC_MATCH,
+                        intent=known_intent,
+                        topic_id=None,
+                        coverage_id=None,
+                        pending_slot=None,
+                    )
+                return TopicSelection(
+                    topic=contextual_topic,
+                    evidence=GroundingEvidence(
+                        kind=GroundingEvidenceKind.VALIDATED_CONTEXT_FACET,
+                        topic_id=contextual_topic.record.public_id,
+                        coverage_id=contextual_topic.coverage.coverage_id,
+                    ),
+                )
+
+        classifier = self._question_classifier
+        if classifier is None or not catalog.provider_eligible:
+            return None
+        try:
             async with asyncio.timeout_at(deadline):
                 decision = await classifier.classify(question, catalog)
         except Exception:
             return None
-        return decision if type(decision) is ClassifierDecision else None
+        if type(decision) is not ClassifierDecision:
+            return None
+        if decision.route is ClassifierRoute.SUPPORTED:
+            return validate_semantic_selection(decision, catalog)
+        if (
+            known_intent is not None
+            and decision.route
+            in {
+                ClassifierRoute.NO_TOPIC_MATCH,
+                ClassifierRoute.NEEDS_FOLLOWUP,
+            }
+            and decision.intent is not known_intent
+        ):
+            return None
+        return decision
 
     def _build_followup_execution(
         self,
@@ -725,22 +840,6 @@ class ChatService:
             else None
         )
         return _ChatExecution(response=response, interaction=interaction)
-
-    async def _ranked_knowledge(
-        self,
-        question: SafeQuestion,
-        intent: Intent,
-        *,
-        topic_id: str | None = None,
-    ) -> tuple[RankedKnowledge, ...]:
-        try:
-            records = await self._repository.list_active_kb(intent)
-        except DatabaseUnavailableError:
-            raise ChatUnavailableError() from None
-        ranked = rank_active_knowledge(question, intent, records)
-        if topic_id is None:
-            return ranked
-        return tuple(item for item in ranked if item.record.public_id == topic_id)
 
     async def _load_optional_office(
         self,
@@ -893,13 +992,14 @@ def _contextual_region(
     return None
 
 
-def _confidence(item: RankedKnowledge | None) -> float:
-    if item is None:
-        raise ValueError("RANKED_KNOWLEDGE_REQUIRED")
-    if item.exact_question_match:
+def _confidence(selection: TopicSelection | None) -> float:
+    if selection is None:
+        raise ValueError("TOPIC_SELECTION_REQUIRED")
+    if selection.evidence.kind is GroundingEvidenceKind.EXACT_APPROVED_EXAMPLE:
         return 0.99
-    overlap = item.service_or_example_overlap + item.procedure_document_overlap
-    return min(0.95, 0.7 + overlap * 0.05)
+    if selection.evidence.kind is GroundingEvidenceKind.UNIQUE_LEXICAL_MATCH:
+        return min(0.95, 0.7 + len(selection.evidence.matched_tokens) * 0.05)
+    return 0.9
 
 
 def _followup_options(

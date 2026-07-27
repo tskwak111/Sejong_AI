@@ -4,6 +4,8 @@ from uuid import UUID
 
 import pytest
 
+import sejong_ai_api.llm.evaluation as evaluation_module
+from sejong_ai_api.chat.retrieval import TopicSelection
 from sejong_ai_api.db.models import AnswerStatus, Intent, KnowledgeRecord
 from sejong_ai_api.llm.contracts import (
     GeneratedAnswer,
@@ -461,8 +463,18 @@ async def test_grounding_failure_stops_before_provider() -> None:
 
 
 @pytest.mark.asyncio
-async def test_grounded_success_calls_provider_and_binds_server_source() -> None:
+async def test_grounded_success_calls_provider_and_binds_server_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     record = _move_in_record()
+    observed_selections: list[object] = []
+    evaluate_grounding = evaluation_module.evaluate_grounding
+
+    def observe_typed_selection(*args: object) -> object:
+        observed_selections.append(args[2])
+        return evaluate_grounding(*args)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(evaluation_module, "evaluate_grounding", observe_typed_selection)
     trace = (OutcomeCode.RATE_LIMIT, OutcomeCode.SUCCESS)
     provider = SpyProvider((_outcome(attempts_used=2, attempt_outcomes=trace),))
     service = SyntheticEvaluationService(
@@ -474,6 +486,8 @@ async def test_grounded_success_calls_provider_and_binds_server_source() -> None
     run = await service.run(repetitions=1)
 
     assert provider.calls == 1
+    assert len(observed_selections) == 1
+    assert type(observed_selections[0]) is TopicSelection
     assert provider.fixtures[0] == GroundedFixture(
         fixture_id="T-01",
         masked_question="이사했는데 전입신고 어떻게 해요?",

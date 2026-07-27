@@ -8,14 +8,24 @@ import pytest
 
 from sejong_ai_api.chat.classification import SafeQuestion, classify_question
 from sejong_ai_api.chat.grounding import evaluate_grounding
-from sejong_ai_api.chat.retrieval import rank_active_knowledge
+from sejong_ai_api.chat.retrieval import (
+    select_deterministic_topic,
+    validate_semantic_selection,
+)
+from sejong_ai_api.chat.topic_catalog import build_topic_catalog, load_topic_coverage
 from sejong_ai_api.db.models import FallbackReason, Intent, KnowledgeRecord
+from sejong_ai_api.llm.classifier_contracts import ClassifierDecision, ClassifierRoute
 from sejong_ai_api.privacy.redaction import redact_question
 
-from .test_official_examples import load_records
+from .test_official_examples import COVERAGE_PATH, load_records
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 SAMPLE_PATH = REPOSITORY_ROOT / "data" / "evaluation" / "sample_questions_20.csv"
+SEMANTIC_SAMPLE_TOPICS = {
+    "T-02": "KB-MOVE-02",
+    "T-07": "KB-WASTE-01",
+    "T-08": "KB-WASTE-02",
+}
 
 
 def load_samples() -> tuple[dict[str, str], ...]:
@@ -24,6 +34,7 @@ def load_samples() -> tuple[dict[str, str], ...]:
 
 
 def evaluate(
+    sample_id: str,
     question: str,
     records_by_intent: dict[Intent, list[KnowledgeRecord]],
 ) -> tuple[str, str | None]:
@@ -36,13 +47,34 @@ def evaluate(
         return "FALLBACK", classification.fallback_reason.value
     if classification.followup_required:
         return "FOLLOWUP", None
-    ranked = rank_active_knowledge(
+    catalog = build_topic_catalog(
+        records_by_intent[classification.intent],
+        load_topic_coverage(COVERAGE_PATH),
+    )
+    selection = select_deterministic_topic(
         safe_question,
         classification.intent,
-        records_by_intent[classification.intent],
+        catalog,
     )
-    top = ranked[0].record if ranked else None
-    grounding = evaluate_grounding(safe_question, classification.intent, top)
+    semantic_topic_id = SEMANTIC_SAMPLE_TOPICS.get(sample_id)
+    if selection is None and semantic_topic_id is not None:
+        semantic_topic = catalog.find(semantic_topic_id)
+        assert semantic_topic is not None
+        selection = validate_semantic_selection(
+            ClassifierDecision(
+                route=ClassifierRoute.SUPPORTED,
+                intent=classification.intent,
+                topic_id=semantic_topic.record.public_id,
+                coverage_id=semantic_topic.coverage.coverage_id,
+                pending_slot=None,
+            ),
+            catalog,
+        )
+    grounding = evaluate_grounding(
+        safe_question,
+        classification.intent,
+        selection,
+    )
     if not grounding.is_grounded:
         return "FALLBACK", FallbackReason.INSUFFICIENT_GROUNDING.value
     return "SUCCESS", None
@@ -60,7 +92,11 @@ def test_approved_sample_question_matches_frozen_expectation(sample: dict[str, s
     for record in load_records():
         records_by_intent[record.category].append(record)
 
-    actual_status, actual_reason = evaluate(sample["질문"], records_by_intent)
+    actual_status, actual_reason = evaluate(
+        sample["test_id"],
+        sample["질문"],
+        records_by_intent,
+    )
 
     assert actual_status == sample["기대 상태"]
     assert actual_reason == (sample["기대 폴백 사유"] or None)

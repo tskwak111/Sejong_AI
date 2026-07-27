@@ -22,6 +22,7 @@ from sejong_ai_api.chat.response import (
     build_success_response,
 )
 from sejong_ai_api.chat.service import ChatService, ChatUnavailableError
+from sejong_ai_api.chat.topic_catalog import TopicCatalog, TopicCoverage
 from sejong_ai_api.contracts.chat import ChatRequest, FollowupResponse, SuccessResponse
 from sejong_ai_api.db.errors import (
     DatabaseRuleCode,
@@ -49,6 +50,12 @@ INTERACTION_ID = UUID("22222222-2222-4222-8222-222222222222")
 IDEMPOTENCY_KEY = UUID("33333333-3333-4333-8333-333333333333")
 RETRY_REQUEST_ID = UUID("44444444-4444-4444-8444-444444444444")
 CLAIM_TOKEN = UUID("55555555-5555-4555-8555-555555555555")
+SUPPORTED_INTENT_ORDER = (
+    Intent.MOVE_IN_RESIDENT_REGISTRATION,
+    Intent.CERTIFICATE_ISSUANCE,
+    Intent.BULKY_WASTE,
+    Intent.LOCAL_TAX_GENERAL,
+)
 
 
 def knowledge_record(
@@ -99,6 +106,26 @@ def office_record(
     )
 
 
+def topic_coverage_for(
+    records: Sequence[KnowledgeRecord],
+) -> tuple[TopicCoverage, ...]:
+    return tuple(
+        TopicCoverage(
+            topic_id=record.public_id,
+            intent=record.category,
+            coverage_id=f"COVERAGE-{index:02d}",
+            coverage_label=f"{record.service_name} 테스트 검색 경계",
+        )
+        for index, record in enumerate(
+            sorted(
+                {record.public_id: record for record in records}.values(),
+                key=lambda record: record.public_id,
+            ),
+            start=1,
+        )
+    )
+
+
 class FakeRepository:
     def __init__(
         self,
@@ -123,7 +150,7 @@ class FakeRepository:
         self.active_intents.append(intent)
         if self.fail_reads:
             raise DatabaseUnavailableError()
-        return self.records
+        return tuple(record for record in self.records if record.category is intent)
 
     async def list_offices(self, region: Region, intent: Intent) -> Sequence[OfficeRecord]:
         self.office_queries.append((region, intent))
@@ -143,15 +170,34 @@ class FakeRepository:
             raise DatabaseUnavailableError()
 
 
+class ConcurrentReadRepository(FakeRepository):
+    def __init__(self, *, records: Sequence[KnowledgeRecord]) -> None:
+        super().__init__(records=records)
+        self._all_reads_started = asyncio.Event()
+
+    async def list_active_kb(self, intent: Intent) -> Sequence[KnowledgeRecord]:
+        self.active_intents.append(intent)
+        if len(self.active_intents) == len(SUPPORTED_INTENT_ORDER):
+            self._all_reads_started.set()
+        await self._all_reads_started.wait()
+        return tuple(record for record in self.records if record.category is intent)
+
+
 @dataclass
 class FakeQuestionClassifier:
     result: ClassifierDecision | None
     error: Exception | None = None
     delay_seconds: float = 0
     calls: list[str] = field(default_factory=list)
+    catalogs: list[TopicCatalog] = field(default_factory=list)
 
-    async def classify(self, question: SafeQuestion) -> ClassifierDecision | None:
+    async def classify(
+        self,
+        question: SafeQuestion,
+        catalog: TopicCatalog,
+    ) -> ClassifierDecision | None:
         self.calls.append(question.text)
+        self.catalogs.append(catalog)
         if self.delay_seconds:
             await asyncio.sleep(self.delay_seconds)
         if self.error is not None:
@@ -253,6 +299,7 @@ def service(
     idempotency_claim_factory: Callable[[], UUID] = lambda: CLAIM_TOKEN,
     answer_generator: GroundedAnswerGenerator | None = None,
     question_classifier: FakeQuestionClassifier | None = None,
+    topic_coverage: Sequence[TopicCoverage] | None = None,
 ) -> ChatService:
     ticks = iter((1_000_000, 6_000_000))
     return ChatService(
@@ -266,7 +313,34 @@ def service(
         idempotency_claim_factory=idempotency_claim_factory,
         answer_generator=answer_generator,
         question_classifier=question_classifier,
+        topic_coverage=(
+            tuple(topic_coverage)
+            if topic_coverage is not None
+            else topic_coverage_for(repository.records)
+        ),
     )
+
+
+def insufficient_grounding_setup() -> tuple[FakeRepository, FakeQuestionClassifier]:
+    repository = FakeRepository(
+        records=(
+            knowledge_record(
+                public_id="KB-WASTE-02",
+                service_name="결제 취소 안내",
+                question_examples=("스티커 환불은 어떻게 해요?",),
+            ),
+        )
+    )
+    classifier = FakeQuestionClassifier(
+        result=ClassifierDecision(
+            route=ClassifierRoute.NO_TOPIC_MATCH,
+            intent=Intent.BULKY_WASTE,
+            topic_id=None,
+            coverage_id=None,
+            pending_slot=None,
+        )
+    )
+    return repository, classifier
 
 
 @pytest.mark.asyncio
@@ -335,7 +409,7 @@ async def test_ambiguous_question_is_followup_and_never_creates_a_failed_questio
     assert response.intent == Intent.UNKNOWN.value
     assert len(response.followup_options) == 4
     assert response.context_token is not None
-    assert repository.active_intents == []
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
     assert repository.events == []
     assert repository.scope_gaps == []
 
@@ -383,12 +457,13 @@ async def test_generic_certificate_requests_exact_certificate_kind() -> None:
 async def test_civic_scope_gap_uses_separate_queue_without_event_or_failed_row(
     question: str,
 ) -> None:
-    repository = FakeRepository()
+    repository = FakeRepository(records=(knowledge_record(public_id="KB-WASTE-01"),))
     classifier = FakeQuestionClassifier(
         result=ClassifierDecision(
             route=ClassifierRoute.CIVIC_SCOPE_GAP,
             intent=None,
             topic_id=None,
+            coverage_id=None,
             pending_slot=None,
         )
     )
@@ -407,17 +482,21 @@ async def test_civic_scope_gap_uses_separate_queue_without_event_or_failed_row(
     assert classifier.calls == [question]
     assert repository.scope_gaps == [question]
     assert repository.events == []
-    assert repository.active_intents == []
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
 
 
 @pytest.mark.asyncio
 async def test_scope_gap_queue_write_failure_keeps_public_policy_response() -> None:
-    repository = FakeRepository(fail_scope_gap_write=True)
+    repository = FakeRepository(
+        records=(knowledge_record(public_id="KB-WASTE-01"),),
+        fail_scope_gap_write=True,
+    )
     classifier = FakeQuestionClassifier(
         result=ClassifierDecision(
             route=ClassifierRoute.CIVIC_SCOPE_GAP,
             intent=None,
             topic_id=None,
+            coverage_id=None,
             pending_slot=None,
         )
     )
@@ -434,7 +513,7 @@ async def test_scope_gap_queue_write_failure_keeps_public_policy_response() -> N
 
 @pytest.mark.asyncio
 async def test_classifier_failure_uses_storage_free_domain_followup() -> None:
-    repository = FakeRepository()
+    repository = FakeRepository(records=(knowledge_record(public_id="KB-WASTE-01"),))
     classifier = FakeQuestionClassifier(
         result=None,
         error=RuntimeError("PROVIDER-PRIVATE-SENTINEL"),
@@ -449,6 +528,7 @@ async def test_classifier_failure_uses_storage_free_domain_followup() -> None:
     assert response.intent == Intent.UNKNOWN.value
     assert len(response.followup_options) == 4
     assert classifier.calls == ["청년 월세 지원 어떻게 해요?"]
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
     assert repository.events == []
     assert repository.scope_gaps == []
 
@@ -458,7 +538,7 @@ async def test_classifier_hard_wall_uses_storage_free_domain_followup(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(service_module, "_PROVIDER_HARD_WALL_SECONDS", 0.001)
-    repository = FakeRepository()
+    repository = FakeRepository(records=(knowledge_record(public_id="KB-WASTE-01"),))
     classifier = FakeQuestionClassifier(
         result=None,
         delay_seconds=1,
@@ -494,13 +574,14 @@ async def test_non_civic_weather_has_zero_provider_and_repository_use() -> None:
 
 
 @pytest.mark.asyncio
-async def test_provider_non_civic_decision_has_zero_repository_use() -> None:
-    repository = FakeRepository(fail_reads=True)
+async def test_provider_non_civic_decision_reads_catalog_without_persistent_writes() -> None:
+    repository = FakeRepository(records=(knowledge_record(public_id="KB-WASTE-01"),))
     classifier = FakeQuestionClassifier(
         result=ClassifierDecision(
             route=ClassifierRoute.NON_CIVIC,
             intent=None,
             topic_id=None,
+            coverage_id=None,
             pending_slot=None,
         )
     )
@@ -513,7 +594,7 @@ async def test_provider_non_civic_decision_has_zero_repository_use() -> None:
     assert response.answer_status == "FALLBACK"
     assert response.fallback.reason == "OUT_OF_SCOPE"
     assert classifier.calls == ["게임 추천해줘"]
-    assert repository.active_intents == []
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
     assert repository.events == []
     assert repository.scope_gaps == []
 
@@ -526,11 +607,13 @@ async def test_provider_supported_decision_continues_through_active_grounding() 
         question_examples=(question,),
     )
     repository = FakeRepository(records=(record,))
+    coverage = topic_coverage_for((record,))[0]
     classifier = FakeQuestionClassifier(
         result=ClassifierDecision(
             route=ClassifierRoute.SUPPORTED,
             intent=Intent.BULKY_WASTE,
-            topic_id=None,
+            topic_id=record.public_id,
+            coverage_id=coverage.coverage_id,
             pending_slot=None,
         )
     )
@@ -543,9 +626,196 @@ async def test_provider_supported_decision_continues_through_active_grounding() 
     assert response.answer_status == "SUCCESS"
     assert response.intent == Intent.BULKY_WASTE.value
     assert classifier.calls == [question]
-    assert repository.active_intents == [Intent.BULKY_WASTE]
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
     assert len(repository.events) == 1
     assert repository.events[0].answer_status is AnswerStatus.SUCCESS
+
+
+@pytest.mark.asyncio
+async def test_deterministic_intent_loads_one_snapshot_and_reuses_selected_record() -> None:
+    record = knowledge_record(
+        public_id="KB-WASTE-01",
+        question_examples=("대형폐기물은 어떻게 버려요?",),
+    )
+    repository = FakeRepository(records=(record,))
+
+    response = await service(repository).answer(
+        ChatRequest(question="대형폐기물은 어떻게 버려요?")
+    )
+
+    assert response.answer_status == "SUCCESS"
+    assert [source.source_id for source in response.sources] == ["KB-WASTE-01"]
+    assert repository.active_intents == [Intent.BULKY_WASTE]
+    assert repository.events[0].used_source_ids == ("KB-WASTE-01",)
+
+
+@pytest.mark.asyncio
+async def test_unknown_safe_question_loads_all_intents_concurrently_once() -> None:
+    record = knowledge_record(public_id="KB-WASTE-01")
+    repository = ConcurrentReadRepository(records=(record,))
+    classifier = FakeQuestionClassifier(result=None)
+
+    async with asyncio.timeout(0.2):
+        response = await service(
+            repository,
+            question_classifier=classifier,
+        ).answer(ChatRequest(question="이 민원은 어디에 물어봐요?"))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
+    assert classifier.calls == ["이 민원은 어디에 물어봐요?"]
+    assert tuple(
+        topic.record.public_id for topic in classifier.catalogs[0].topics
+    ) == ("KB-WASTE-01",)
+    assert repository.events == []
+    assert repository.scope_gaps == []
+
+
+@pytest.mark.asyncio
+async def test_unknown_safe_question_active_snapshot_failure_is_unavailable() -> None:
+    repository = FakeRepository(
+        records=(knowledge_record(public_id="KB-WASTE-01"),),
+        fail_reads=True,
+    )
+    classifier = FakeQuestionClassifier(result=None)
+
+    with pytest.raises(ChatUnavailableError, match="^CHAT_UNAVAILABLE$"):
+        await service(
+            repository,
+            question_classifier=classifier,
+        ).answer(ChatRequest(question="이 민원은 어디에 물어봐요?"))
+
+    assert classifier.calls == []
+    assert repository.events == []
+    assert repository.scope_gaps == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("question", "intent", "public_id", "service_name", "coverage_id"),
+    [
+        (
+            "새 집으로 옮긴 뒤 행정상 거주지를 바꾸는 절차",
+            Intent.MOVE_IN_RESIDENT_REGISTRATION,
+            "KB-MOVE-01",
+            "전입신고 일반 안내",
+            "MOVE_IN_OVERVIEW_APPLICATION",
+        ),
+        (
+            "큰 장롱을 내놓고 싶어요",
+            Intent.BULKY_WASTE,
+            "KB-WASTE-01",
+            "일반 가구류 대형폐기물 배출",
+            "GENERAL_BULKY_DISPOSAL",
+        ),
+    ],
+)
+async def test_semantic_paraphrase_uses_validated_catalog_topic(
+    question: str,
+    intent: Intent,
+    public_id: str,
+    service_name: str,
+    coverage_id: str,
+) -> None:
+    record = knowledge_record(
+        public_id=public_id,
+        intent=intent,
+        service_name=service_name,
+        question_examples=("승인된 대표 질문",),
+    )
+    coverage = TopicCoverage(
+        topic_id=public_id,
+        intent=intent,
+        coverage_id=coverage_id,
+        coverage_label=f"{service_name} 검색 경계",
+    )
+    repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(
+        result=ClassifierDecision(
+            route=ClassifierRoute.SUPPORTED,
+            intent=intent,
+            topic_id=public_id,
+            coverage_id=coverage_id,
+            pending_slot=None,
+        )
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+        topic_coverage=(coverage,),
+    ).answer(ChatRequest(question=question))
+
+    assert response.answer_status == "SUCCESS"
+    assert response.intent == intent.value
+    assert [source.source_id for source in response.sources] == [public_id]
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
+    assert len(repository.events) == 1
+    assert repository.events[0].used_source_ids == (public_id,)
+
+
+@pytest.mark.asyncio
+async def test_no_topic_match_returns_one_safe_insufficient_grounding_failure() -> None:
+    record = knowledge_record(public_id="KB-WASTE-01")
+    repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(
+        result=ClassifierDecision(
+            route=ClassifierRoute.NO_TOPIC_MATCH,
+            intent=Intent.BULKY_WASTE,
+            topic_id=None,
+            coverage_id=None,
+            pending_slot=None,
+        )
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question="냉장고 전용 수거를 알려줘"))
+
+    assert response.answer_status == "FALLBACK"
+    assert response.intent == Intent.BULKY_WASTE.value
+    assert response.fallback.reason == "INSUFFICIENT_GROUNDING"
+    assert len(repository.events) == 1
+    event = repository.events[0]
+    assert event.fallback_reason is FallbackReason.INSUFFICIENT_GROUNDING
+    assert event.masked_question == "냉장고 전용 수거를 알려줘"
+    assert repository.scope_gaps == []
+
+
+@pytest.mark.asyncio
+async def test_invalid_semantic_coverage_is_storage_free_followup_not_lexical_success() -> None:
+    question = "이 민원 신청 방법 알려줘"
+    record = knowledge_record(
+        public_id="KB-WASTE-01",
+        question_examples=(question,),
+    )
+    repository = FakeRepository(records=(record,))
+    classifier = FakeQuestionClassifier(
+        result=ClassifierDecision(
+            route=ClassifierRoute.SUPPORTED,
+            intent=Intent.BULKY_WASTE,
+            topic_id=record.public_id,
+            coverage_id="WRONG-COVERAGE",
+            pending_slot=None,
+        )
+    )
+
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question=question))
+
+    assert response.answer_status == "FOLLOWUP"
+    assert response.intent == Intent.UNKNOWN.value
+    assert response.followup_options == [
+        "전입·주민등록",
+        "증명서 발급",
+        "대형폐기물",
+        "지방세 일반 안내",
+    ]
+    assert repository.events == []
+    assert repository.scope_gaps == []
 
 
 @pytest.mark.asyncio
@@ -577,12 +847,13 @@ async def test_privacy_and_policy_paths_never_call_classifier(
 
 @pytest.mark.asyncio
 async def test_idempotent_scope_gap_records_queue_only_after_first_commit() -> None:
-    repository = FakeRepository()
+    repository = FakeRepository(records=(knowledge_record(public_id="KB-WASTE-01"),))
     classifier = FakeQuestionClassifier(
         result=ClassifierDecision(
             route=ClassifierRoute.CIVIC_SCOPE_GAP,
             intent=None,
             topic_id=None,
+            coverage_id=None,
             pending_slot=None,
         )
     )
@@ -636,6 +907,7 @@ async def test_signed_context_resolves_a_short_followup_without_storing_transcri
         selected_region=None,
         answer_status="SUCCESS",
         dialog_act="ANSWERED",
+        topic_id=record.public_id,
     )
     ticks = iter((1_000_000, 2_000_000))
     chat_service = ChatService(
@@ -644,6 +916,7 @@ async def test_signed_context_resolves_a_short_followup_without_storing_transcri
         request_id_factory=lambda: REQUEST_ID,
         monotonic_ns=lambda: next(ticks),
         is_test=True,
+        topic_coverage=topic_coverage_for((record,)),
     )
 
     response = await chat_service.answer(ChatRequest(question="준비물은요?", context_token=token))
@@ -813,7 +1086,7 @@ async def test_invalid_context_silently_resets_to_followup() -> None:
 
     assert response.answer_status == "FOLLOWUP"
     assert response.intent == Intent.UNKNOWN.value
-    assert repository.active_intents == []
+    assert repository.active_intents == list(SUPPORTED_INTENT_ORDER)
 
 
 @pytest.mark.asyncio
@@ -857,9 +1130,16 @@ async def test_policy_fallback_event_matrix(
     event_is_stored: bool,
     masked_is_stored: bool,
 ) -> None:
-    repository = FakeRepository()
+    classifier: FakeQuestionClassifier | None = None
+    if reason is FallbackReason.INSUFFICIENT_GROUNDING:
+        repository, classifier = insufficient_grounding_setup()
+    else:
+        repository = FakeRepository()
 
-    response = await service(repository).answer(ChatRequest(question=question))
+    response = await service(
+        repository,
+        question_classifier=classifier,
+    ).answer(ChatRequest(question=question))
 
     assert response.answer_status == "FALLBACK"
     assert response.intent == intent.value
@@ -1098,7 +1378,7 @@ async def test_completion_failure_stays_claimed_and_blocks_duplicate_side_effect
 
 @pytest.mark.asyncio
 async def test_completion_failure_rolls_back_failed_question_before_expired_lease_retry() -> None:
-    repository = FakeRepository()
+    repository, classifier = insufficient_grounding_setup()
     idempotency = FakeIdempotencyRepository(
         IdempotencyClaim(status=IdempotencyClaimStatus.ACQUIRED),
         fail_complete=True,
@@ -1108,6 +1388,7 @@ async def test_completion_failure_rolls_back_failed_question_before_expired_leas
         repository,
         clock_ns=lambda: next(ticks),
         idempotency_repository=idempotency,
+        question_classifier=classifier,
     )
     request = ChatRequest(question="침대 프레임 수수료를 알려 주세요.")
 
@@ -1136,14 +1417,18 @@ async def test_completion_failure_rolls_back_failed_question_before_expired_leas
 
 @pytest.mark.asyncio
 async def test_expired_claim_completion_rule_error_is_value_free_unavailable() -> None:
-    repository = FakeRepository()
+    repository, classifier = insufficient_grounding_setup()
     idempotency = FakeIdempotencyRepository(
         IdempotencyClaim(status=IdempotencyClaimStatus.ACQUIRED),
         complete_rule_error=True,
     )
 
     with pytest.raises(ChatUnavailableError, match="^CHAT_UNAVAILABLE$") as captured:
-        await service(repository, idempotency_repository=idempotency).answer(
+        await service(
+            repository,
+            idempotency_repository=idempotency,
+            question_classifier=classifier,
+        ).answer(
             ChatRequest(question="침대 프레임 수수료를 알려 주세요."),
             request_id=REQUEST_ID,
             idempotency_key=IDEMPOTENCY_KEY,

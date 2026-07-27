@@ -192,6 +192,11 @@ def test_fallback_matrix_is_closed_and_never_returns_context_or_sources(
     assert response.fallback.title
     assert response.fallback.message
     assert response.fallback.next_actions
+    if reason == "INSUFFICIENT_GROUNDING":
+        assert (
+            response.fallback.message
+            == "지원 분야이지만 현재 승인된 공식 자료에서 직접 답할 근거를 찾지 못했어요."
+        )
 
 
 def test_certificate_followup_uses_exact_five_server_owned_options() -> None:
