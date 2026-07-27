@@ -143,7 +143,7 @@ secret은 변경하지 않았다.
 | changed-doc path review | PASS | spec/ADR/note 3 | terminal |
 | placeholder scan | PASS | spec/ADR/note | terminal |
 | `powershell.exe ... scripts/check_secret_patterns.ps1 -RepositoryRoot .` | PASS — exit 0, finding output 0 | tracked/current tree | terminal |
-| design doc local commit | 실행 예정 | 1 | Git |
+| design doc local commit | PASS — `a32e65c` | 1 | Git |
 
 ### 미실행 검증과 이유
 
