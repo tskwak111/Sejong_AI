@@ -137,6 +137,57 @@ def test_prompt_defines_supported_boundary_and_closed_route_meanings() -> None:
         assert required in system
 
 
+def test_prompt_defines_all_closed_pending_slots_and_route_shapes() -> None:
+    messages = build_classifier_messages(
+        _question(),
+        _catalog(),
+        max_input_chars=1024,
+    )
+    system = messages[0]["content"]
+
+    for pending_slot in (
+        "DOMAIN",
+        "TOPIC_CHOICE",
+        "CERTIFICATE_KIND",
+        "REGION",
+        "WASTE_ITEM",
+    ):
+        assert pending_slot in system
+    for output_key in (
+        "route",
+        "intent",
+        "topic_id",
+        "coverage_id",
+        "pending_slot",
+    ):
+        assert output_key in system
+
+    supported_rule = system.split("SUPPORTED", maxsplit=1)[1].split(
+        "NO_TOPIC_MATCH",
+        maxsplit=1,
+    )[0]
+    no_topic_rule = system.split("NO_TOPIC_MATCH", maxsplit=1)[1].split(
+        "CIVIC_SCOPE_GAP",
+        maxsplit=1,
+    )[0]
+    civic_rule = system.split("CIVIC_SCOPE_GAP", maxsplit=1)[1].split(
+        "NEEDS_FOLLOWUP",
+        maxsplit=1,
+    )[0]
+    followup_rule = system.split("NEEDS_FOLLOWUP", maxsplit=1)[1]
+
+    assert "row" in supported_rule
+    assert "n" in supported_rule
+    assert "intent" in no_topic_rule or "I" in no_topic_rule
+    assert "n³" in no_topic_rule or no_topic_rule.count("n") >= 3
+    assert "NON_CIVIC" in civic_rule
+    assert "n⁴" in civic_rule or civic_rule.count("n") >= 4
+    assert "DOMAIN" in followup_rule
+    assert "intent" in followup_rule or "I" in followup_rule
+    assert "P" in followup_rule
+    assert "n²" in followup_rule or followup_rule.count("n") >= 3
+
+
 @pytest.mark.asyncio
 async def test_success_makes_one_exact_closed_source_free_request() -> None:
     settings = UpstageClassifierSettings(api_key=SECRET)

@@ -17,10 +17,10 @@ _CATALOG_COLUMNS = (
     "approved_examples",
 )
 _SYSTEM_MESSAGE = (
-    "JSON만;rows=columns순;I/T/C/P=intent/topic_id/coverage_id/pending_slot;"
-    "n=null;route→(I,T,C,P):SUPPORTED→(row.I,row.T,row.C,n);"
-    "NO_TOPIC_MATCH→(I,n,n,n);CIVIC_SCOPE_GAP|NON_CIVIC→(n,n,n,n);"
-    "NEEDS_FOLLOWUP→(P=DOMAIN?n:I,n,n,P)."
+    "route/I:intent/T:topic_id/C:coverage_id/P:pending_slot;n:null;"
+    "P:DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM;"
+    "SUPPORTED→row.I/T/C,n;NO_TOPIC_MATCH→I,n³;"
+    "CIVIC_SCOPE_GAP|NON_CIVIC→n⁴;NEEDS_FOLLOWUP→P=DOMAIN?n:I,n²,P"
 )
 
 
