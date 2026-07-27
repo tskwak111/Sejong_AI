@@ -15,7 +15,11 @@ from fastapi.testclient import TestClient
 import sejong_ai_api.local as local_module
 from sejong_ai_api.chat.idempotency import IdempotencyClaim, IdempotencyClaimStatus
 from sejong_ai_api.chat.readiness import INITIAL_ACTIVE_KB_IDS, REQUIRED_OFFICE_PROJECTIONS
-from sejong_ai_api.contracts.admin import FailedQuestion, KBCandidateSummary
+from sejong_ai_api.contracts.admin import (
+    CivicScopeGapSummary,
+    FailedQuestion,
+    KBCandidateSummary,
+)
 from sejong_ai_api.db.models import (
     Actor,
     CandidateDraft,
@@ -160,6 +164,7 @@ class FakeRepository:
         self.idempotency: dict[UUID, tuple[str, UUID, dict[str, object] | None]] = {}
         self.failed_text_purge_count = 0
         self.idempotency_purge_count = 0
+        self.scope_gap_purge_count = 0
         self.office_read_count = 0
 
     async def list_active_kb(self, intent: Intent) -> Sequence[KnowledgeRecord]:
@@ -230,6 +235,28 @@ class FakeRepository:
 
     async def purge_expired_failed_question_text(self) -> PurgeResult:
         self.failed_text_purge_count += 1
+        return PurgeResult(purged_count=0, purged_ids=())
+
+    async def record_civic_scope_gap(self, masked_question: str) -> None:
+        del masked_question
+
+    async def list_civic_scope_gaps(
+        self, *, status: str | None
+    ) -> tuple[CivicScopeGapSummary, ...]:
+        del status
+        return ()
+
+    async def review_civic_scope_gap(
+        self,
+        scope_gap_id: UUID,
+        actor: Actor,
+        decision: str,
+        review_comment: str,
+    ) -> None:
+        del scope_gap_id, actor, decision, review_comment
+
+    async def purge_expired_civic_scope_gap_text(self) -> PurgeResult:
+        self.scope_gap_purge_count += 1
         return PurgeResult(purged_count=0, purged_ids=())
 
     async def claim_chat_idempotency(
@@ -329,6 +356,7 @@ def _grounded_chat_config() -> dict[str, str]:
         "LLM_MAX_OUTPUT_TOKENS": "1024",
         "LLM_RUN_ATTEMPT_CAP": "30",
         "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
+        "UPSTAGE_CLASSIFIER_MODE": "false",
         "UPSTAGE_GROUNDED_CHAT_MODE": "true",
     }
 
@@ -853,6 +881,7 @@ def test_local_runtime_periodically_purges_expired_private_records(tmp_path: Pat
 
     assert repositories[0].failed_text_purge_count >= 2
     assert repositories[0].idempotency_purge_count >= 2
+    assert repositories[0].scope_gap_purge_count >= 2
 
 
 def test_runtime_repository_failure_closes_readiness_and_chat_without_restart(

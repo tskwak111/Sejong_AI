@@ -28,6 +28,8 @@ MVP에서는 local/private 환경의 `/admin` 상단에서만 **데모용 역할
 | LEGAL_JUDGMENT | 불가 | 일반 정보와 전문 담당자 안내 |
 | OUT_OF_SCOPE | 불가 | 지원 범위 안내; 범위 확대는 별도 사업 결정 |
 | PRIVACY_UNRESOLVED | 불가 | 개인정보를 빼거나 표현을 바꿔 재질문; 질문 text·실패 질문 행 미생성 |
+| CIVIC_SCOPE_GAP (planned) | 기존 KB 후보 불가 | 별도 범위확대 검토 queue; PM 범위 편입 결정 전 ACTIVE 전환 금지 |
+| NON_CIVIC (planned) | 불가 | 민원 관련 질문 안내; 질문 text·검토 row 미저장 |
 
 모호한 질문은 FOLLOWUP이며 후보 전환 대상이 아니다. `PRIVACY_UNRESOLVED`도 운영 개선용
 실패 질문이 아니며 후보·사유 확인 상태 머신에 진입하지 않는다.

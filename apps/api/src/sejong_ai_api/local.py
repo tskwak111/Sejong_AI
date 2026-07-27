@@ -266,6 +266,7 @@ def _compose_optional_grounded_chat_runtime(
 async def _purge_expired_private_records(repository: LocalRepository) -> None:
     await repository.purge_expired_failed_question_text()
     await repository.purge_expired_chat_idempotency()
+    await repository.purge_expired_civic_scope_gap_text()
 
 
 async def _run_periodic_purge(

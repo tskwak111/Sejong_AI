@@ -31,6 +31,7 @@ type FallbackReason = Literal[
     "INSUFFICIENT_GROUNDING",
     "PERSONAL_LOOKUP",
     "LEGAL_JUDGMENT",
+    "CIVIC_SCOPE_GAP",
     "OUT_OF_SCOPE",
     "PRIVACY_UNRESOLVED",
 ]
@@ -160,8 +161,8 @@ class FallbackResponse(ChatResponseBase):
         if self.fallback.candidate_eligible is not expected_candidate_eligible:
             raise ValueError("fallback candidate eligibility does not match its reason")
 
-        if reason == "OUT_OF_SCOPE" and self.intent != "OUT_OF_SCOPE":
-            raise ValueError("OUT_OF_SCOPE fallback requires OUT_OF_SCOPE intent")
+        if reason in {"CIVIC_SCOPE_GAP", "OUT_OF_SCOPE"} and self.intent != "OUT_OF_SCOPE":
+            raise ValueError("scope fallback requires OUT_OF_SCOPE intent")
         if reason == "INSUFFICIENT_GROUNDING" and self.intent not in {
             "MOVE_IN_RESIDENT_REGISTRATION",
             "CERTIFICATE_ISSUANCE",

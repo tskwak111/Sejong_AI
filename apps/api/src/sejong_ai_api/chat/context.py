@@ -12,11 +12,13 @@ import binascii
 import hashlib
 import hmac
 import json
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Literal, cast
+from uuid import UUID, uuid4
 
-CONTEXT_TOKEN_SCHEMA_VERSION = 1
+CONTEXT_TOKEN_SCHEMA_VERSION = 2
 CONTEXT_TOKEN_TTL_SECONDS = 900
 MAX_CONTEXT_TOKEN_LENGTH = 2048
 _MIN_SECRET_BYTES = 32
@@ -31,6 +33,13 @@ type Intent = Literal[
 ]
 type Region = Literal["아름동", "도담동", "조치원읍"]
 type ContextAnswerStatus = Literal["SUCCESS", "FOLLOWUP"]
+type PendingSlot = Literal["CERTIFICATE_KIND", "REGION", "WASTE_ITEM"]
+type DialogAct = Literal[
+    "ANSWERED",
+    "ASKING_SLOT",
+    "CHANGING_REGION",
+    "CHANGING_TOPIC",
+]
 type FollowupOptionId = Literal[
     "intent.move-in",
     "intent.certificate",
@@ -38,6 +47,7 @@ type FollowupOptionId = Literal[
     "intent.local-tax",
 ]
 type Clock = Callable[[], int]
+type NonceFactory = Callable[[], UUID]
 
 _INTENTS = frozenset(
     {
@@ -51,6 +61,9 @@ _INTENTS = frozenset(
 )
 _REGIONS = frozenset({"아름동", "도담동", "조치원읍"})
 _ANSWER_STATUSES = frozenset({"SUCCESS", "FOLLOWUP"})
+_PENDING_SLOTS = frozenset({"CERTIFICATE_KIND", "REGION", "WASTE_ITEM"})
+_DIALOG_ACTS = frozenset({"ANSWERED", "ASKING_SLOT", "CHANGING_REGION", "CHANGING_TOPIC"})
+_TOPIC_ID_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,63}$")
 _FOLLOWUP_OPTION_IDS = frozenset(
     {
         "intent.move-in",
@@ -59,7 +72,7 @@ _FOLLOWUP_OPTION_IDS = frozenset(
         "intent.local-tax",
     }
 )
-_REQUIRED_CLAIMS = frozenset(
+_V1_REQUIRED_CLAIMS = frozenset(
     {
         "answer_status",
         "exp",
@@ -69,7 +82,20 @@ _REQUIRED_CLAIMS = frozenset(
         "selected_region",
     }
 )
-_OPTIONAL_CLAIMS = frozenset({"followup_option_id"})
+_V1_OPTIONAL_CLAIMS = frozenset({"followup_option_id"})
+_V2_REQUIRED_CLAIMS = frozenset(
+    {
+        "answer_status",
+        "dialog_act",
+        "exp",
+        "iat",
+        "last_intent",
+        "nonce",
+        "schema_version",
+        "selected_region",
+    }
+)
+_V2_OPTIONAL_CLAIMS = frozenset({"pending_slot", "topic_id"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,23 +108,36 @@ class ChatContext:
     last_intent: Intent
     selected_region: Region | None
     answer_status: ContextAnswerStatus
+    nonce: UUID | None = None
+    topic_id: str | None = None
+    pending_slot: PendingSlot | None = None
+    dialog_act: DialogAct | None = None
     followup_option_id: str | None = None
 
 
 class ContextTokenCodec:
-    """Issue and silently validate version-one HMAC-SHA-256 context tokens."""
+    """Issue v2 and silently validate v1/v2 HMAC-SHA-256 context tokens."""
 
-    __slots__ = ("_clock", "_secret")
+    __slots__ = ("_clock", "_nonce_factory", "_secret")
 
-    def __init__(self, *, secret: bytes, clock: Clock) -> None:
+    def __init__(
+        self,
+        *,
+        secret: bytes,
+        clock: Clock,
+        nonce_factory: NonceFactory = uuid4,
+    ) -> None:
         if type(secret) is not bytes:
             raise TypeError("context token secret must be bytes")
         if len(secret) < _MIN_SECRET_BYTES:
             raise ValueError("context token secret must contain at least 32 bytes")
         if not callable(clock):
             raise TypeError("context token clock must be callable")
+        if not callable(nonce_factory):
+            raise TypeError("context token nonce factory must be callable")
         self._secret = secret
         self._clock = clock
+        self._nonce_factory = nonce_factory
 
     def issue(
         self,
@@ -106,9 +145,11 @@ class ContextTokenCodec:
         last_intent: Intent,
         selected_region: Region | None,
         answer_status: ContextAnswerStatus,
-        followup_option_id: FollowupOptionId | None = None,
+        dialog_act: DialogAct,
+        topic_id: str | None = None,
+        pending_slot: PendingSlot | None = None,
     ) -> str:
-        """Return a deterministic token for the supplied context at the injected time."""
+        """Return a new signed token for the supplied bounded context."""
 
         if type(last_intent) is not str or last_intent not in _INTENTS:
             raise ValueError("last_intent is not allowed")
@@ -118,20 +159,33 @@ class ContextTokenCodec:
             raise ValueError("selected_region is not allowed")
         if type(answer_status) is not str or answer_status not in _ANSWER_STATUSES:
             raise ValueError("answer_status is not allowed")
-        if followup_option_id is not None and not _valid_followup_option_id(followup_option_id):
-            raise ValueError("followup_option_id is not a valid server identifier")
+        if topic_id is not None and not _valid_topic_id(topic_id):
+            raise ValueError("topic_id is not a valid server identifier")
+        if pending_slot is not None and (
+            type(pending_slot) is not str or pending_slot not in _PENDING_SLOTS
+        ):
+            raise ValueError("pending_slot is not allowed")
+        if type(dialog_act) is not str or dialog_act not in _DIALOG_ACTS:
+            raise ValueError("dialog_act is not allowed")
 
         issued_at = self._now()
+        nonce = self._nonce_factory()
+        if type(nonce) is not UUID or nonce.int == 0:
+            raise ValueError("context token nonce factory must return a non-zero UUID")
         payload: dict[str, object] = {
             "answer_status": answer_status,
+            "dialog_act": dialog_act,
             "exp": issued_at + CONTEXT_TOKEN_TTL_SECONDS,
             "iat": issued_at,
             "last_intent": last_intent,
+            "nonce": str(nonce),
             "schema_version": CONTEXT_TOKEN_SCHEMA_VERSION,
             "selected_region": selected_region,
         }
-        if followup_option_id is not None:
-            payload["followup_option_id"] = followup_option_id
+        if topic_id is not None:
+            payload["topic_id"] = topic_id
+        if pending_slot is not None:
+            payload["pending_slot"] = pending_slot
 
         payload_segment = _encode_base64url(_canonical_json(payload))
         signature = hmac.new(
@@ -190,10 +244,20 @@ class ContextTokenCodec:
         return now
 
     def _validate_claims(self, payload: Mapping[str, object]) -> ChatContext | None:
-        claim_names = frozenset(payload)
-        if not _REQUIRED_CLAIMS.issubset(claim_names):
+        schema_version = payload.get("schema_version")
+        if type(schema_version) is not int:
             return None
-        if not claim_names.issubset(_REQUIRED_CLAIMS | _OPTIONAL_CLAIMS):
+        if schema_version == 1:
+            return self._validate_v1_claims(payload)
+        if schema_version == CONTEXT_TOKEN_SCHEMA_VERSION:
+            return self._validate_v2_claims(payload)
+        return None
+
+    def _validate_v1_claims(self, payload: Mapping[str, object]) -> ChatContext | None:
+        claim_names = frozenset(payload)
+        if not _V1_REQUIRED_CLAIMS.issubset(claim_names):
+            return None
+        if not claim_names.issubset(_V1_REQUIRED_CLAIMS | _V1_OPTIONAL_CLAIMS):
             return None
 
         schema_version = payload["schema_version"]
@@ -204,14 +268,9 @@ class ContextTokenCodec:
         answer_status = payload["answer_status"]
         followup_option_id = payload.get("followup_option_id")
 
-        if type(schema_version) is not int or schema_version != CONTEXT_TOKEN_SCHEMA_VERSION:
+        if type(schema_version) is not int or schema_version != 1:
             return None
-        if type(issued_at) is not int or type(expires_at) is not int:
-            return None
-        if issued_at < 0 or expires_at - issued_at != CONTEXT_TOKEN_TTL_SECONDS:
-            return None
-        now = self._now()
-        if issued_at > now or now >= expires_at:
+        if not self._valid_times(issued_at, expires_at):
             return None
         if type(last_intent) is not str or last_intent not in _INTENTS:
             return None
@@ -226,13 +285,73 @@ class ContextTokenCodec:
 
         return ChatContext(
             schema_version=schema_version,
-            issued_at=issued_at,
-            expires_at=expires_at,
+            issued_at=cast(int, issued_at),
+            expires_at=cast(int, expires_at),
             last_intent=cast(Intent, last_intent),
             selected_region=cast(Region | None, selected_region),
             answer_status=cast(ContextAnswerStatus, answer_status),
             followup_option_id=cast(str | None, followup_option_id),
         )
+
+    def _validate_v2_claims(self, payload: Mapping[str, object]) -> ChatContext | None:
+        claim_names = frozenset(payload)
+        if not _V2_REQUIRED_CLAIMS.issubset(claim_names):
+            return None
+        if not claim_names.issubset(_V2_REQUIRED_CLAIMS | _V2_OPTIONAL_CLAIMS):
+            return None
+
+        issued_at = payload["iat"]
+        expires_at = payload["exp"]
+        last_intent = payload["last_intent"]
+        selected_region = payload["selected_region"]
+        answer_status = payload["answer_status"]
+        nonce_raw = payload["nonce"]
+        topic_id = payload.get("topic_id")
+        pending_slot = payload.get("pending_slot")
+        dialog_act = payload["dialog_act"]
+
+        if not self._valid_times(issued_at, expires_at):
+            return None
+        if type(last_intent) is not str or last_intent not in _INTENTS:
+            return None
+        if selected_region is not None and (
+            type(selected_region) is not str or selected_region not in _REGIONS
+        ):
+            return None
+        if type(answer_status) is not str or answer_status not in _ANSWER_STATUSES:
+            return None
+        nonce = _valid_nonce(nonce_raw)
+        if nonce is None:
+            return None
+        if topic_id is not None and not _valid_topic_id(topic_id):
+            return None
+        if pending_slot is not None and (
+            type(pending_slot) is not str or pending_slot not in _PENDING_SLOTS
+        ):
+            return None
+        if type(dialog_act) is not str or dialog_act not in _DIALOG_ACTS:
+            return None
+
+        return ChatContext(
+            schema_version=CONTEXT_TOKEN_SCHEMA_VERSION,
+            issued_at=cast(int, issued_at),
+            expires_at=cast(int, expires_at),
+            nonce=nonce,
+            last_intent=cast(Intent, last_intent),
+            selected_region=cast(Region | None, selected_region),
+            answer_status=cast(ContextAnswerStatus, answer_status),
+            topic_id=cast(str | None, topic_id),
+            pending_slot=cast(PendingSlot | None, pending_slot),
+            dialog_act=cast(DialogAct, dialog_act),
+        )
+
+    def _valid_times(self, issued_at: object, expires_at: object) -> bool:
+        if type(issued_at) is not int or type(expires_at) is not int:
+            return False
+        if issued_at < 0 or expires_at - issued_at != CONTEXT_TOKEN_TTL_SECONDS:
+            return False
+        now = self._now()
+        return issued_at <= now < expires_at
 
 
 def _canonical_json(payload: Mapping[str, object]) -> bytes:
@@ -268,6 +387,22 @@ def _split_token(token: str) -> tuple[str, str]:
 
 def _valid_followup_option_id(value: object) -> bool:
     return type(value) is str and value in _FOLLOWUP_OPTION_IDS
+
+
+def _valid_topic_id(value: object) -> bool:
+    return type(value) is str and _TOPIC_ID_PATTERN.fullmatch(value) is not None
+
+
+def _valid_nonce(value: object) -> UUID | None:
+    if type(value) is not str:
+        return None
+    try:
+        nonce = UUID(value)
+    except ValueError:
+        return None
+    if str(nonce) != value or nonce.int == 0:
+        return None
+    return nonce
 
 
 __all__ = [

@@ -146,8 +146,15 @@ def evaluate_grounding(
         if detail in question_compact and detail not in record_compact:
             return GroundingDecision(None, ())
     overlap = tuple(sorted(question_tokens & record_tokens))
-    if not overlap or (
-        not allow_contextual_detail
+    exact_approved_example = any(
+        _compact(example) == question_compact for example in record.question_examples
+    )
+    if not overlap and not allow_contextual_detail:
+        return GroundingDecision(None, ())
+    if (
+        overlap
+        and not allow_contextual_detail
+        and not exact_approved_example
         and not (set(overlap) & _INTENT_ANCHORS.get(intent, frozenset()))
     ):
         return GroundingDecision(None, ())

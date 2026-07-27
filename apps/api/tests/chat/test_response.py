@@ -157,6 +157,7 @@ def test_followup_is_value_free_and_requires_server_options() -> None:
         ("INSUFFICIENT_GROUNDING", Intent.BULKY_WASTE, True),
         ("PERSONAL_LOOKUP", Intent.UNKNOWN, False),
         ("LEGAL_JUDGMENT", Intent.UNKNOWN, False),
+        ("CIVIC_SCOPE_GAP", Intent.OUT_OF_SCOPE, False),
         ("OUT_OF_SCOPE", Intent.OUT_OF_SCOPE, False),
         ("PRIVACY_UNRESOLVED", Intent.UNKNOWN, False),
     ],
@@ -166,6 +167,7 @@ def test_fallback_matrix_is_closed_and_never_returns_context_or_sources(
         "INSUFFICIENT_GROUNDING",
         "PERSONAL_LOOKUP",
         "LEGAL_JUDGMENT",
+        "CIVIC_SCOPE_GAP",
         "OUT_OF_SCOPE",
         "PRIVACY_UNRESOLVED",
     ],
@@ -190,6 +192,30 @@ def test_fallback_matrix_is_closed_and_never_returns_context_or_sources(
     assert response.fallback.title
     assert response.fallback.message
     assert response.fallback.next_actions
+
+
+def test_certificate_followup_uses_exact_five_server_owned_options() -> None:
+    response = build_followup_response(
+        request_id=REQUEST_ID,
+        intent=Intent.CERTIFICATE_ISSUANCE,
+        confidence=None,
+        option_ids=(
+            "certificate.resident-copy",
+            "certificate.resident-abstract",
+            "certificate.copy-vs-abstract",
+            "certificate.resident-register-inspection",
+            "certificate.unmanned-kiosk",
+        ),
+        context_token="signed-certificate-followup",
+    )
+
+    assert response.followup_options == [
+        "주민등록등본 발급",
+        "주민등록초본 발급",
+        "등본과 초본의 차이",
+        "주민등록표 열람",
+        "무인민원발급기 이용",
+    ]
 
 
 def test_response_builders_reject_unknown_server_values() -> None:

@@ -681,11 +681,12 @@ SELECT is(
       AND NOT triggers.tgisinternal
       AND functions.proname = 'set_updated_at'
       AND tables.relname NOT IN (
-        'kb_documents', 'failed_questions', 'kb_candidates', 'chat_idempotency'
+        'kb_documents', 'failed_questions', 'kb_candidates', 'chat_idempotency',
+        'civic_scope_gaps'
       )
   ),
   0,
-  'set_updated_at is absent outside the four approved mutable tables'
+  'set_updated_at is absent outside the five approved mutable tables'
 );
 
 SELECT is(
@@ -708,11 +709,8 @@ SELECT is(
         'lock_kb_question_parents',
         'validate_active_kb_question'
       )
-      AND functions.proconfig = CASE functions.proname
-        WHEN 'validate_active_kb_question' THEN
-          ARRAY['search_path=pg_catalog, pg_temp']::text[]
-        ELSE ARRAY['search_path=pg_catalog']::text[]
-      END
+      AND functions.proconfig =
+        ARRAY['search_path=pg_catalog, pg_temp']::text[]
   ),
   12,
   'all twelve Task 4 functions use their approved fixed search paths'

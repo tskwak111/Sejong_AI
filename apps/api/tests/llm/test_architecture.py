@@ -14,6 +14,7 @@ PUBLIC_PROVIDER_FREE_SOURCES = (
 PUBLIC_PROVIDER_NEUTRAL_SOURCES = (PACKAGE_ROOT / "chat" / "service.py",)
 PROVIDER_NEUTRAL_IMPORTS = {
     "sejong_ai_api.llm.chat_contracts",
+    "sejong_ai_api.llm.classifier_contracts",
     "sejong_ai_api.llm.facts",
 }
 

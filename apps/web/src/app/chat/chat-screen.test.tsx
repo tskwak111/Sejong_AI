@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -224,10 +231,94 @@ describe("citizen chat screen", () => {
     expect(await screen.findByText("아름동에 살아요")).toBeInTheDocument();
   });
 
+  it("uses the direct residence-region selection on the next question without browser persistence", async () => {
+    const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
+    const localStorageSpy = vi.spyOn(Storage.prototype, "setItem");
+    render(<ChatScreen transport={transportWith(send)} />);
+
+    const regionGroup = screen.getByRole("group", { name: "거주 지역" });
+    fireEvent.click(within(regionGroup).getByRole("button", { name: "도담동" }));
+    ask("전입신고 알려줘");
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    expect(send.mock.calls[0][0]).toMatchObject({
+      question: "전입신고 알려줘",
+      selected_region: "도담동",
+      context_token: null,
+    } satisfies Partial<ChatRequest>);
+    expect(localStorageSpy).not.toHaveBeenCalled();
+    expect(document.cookie).toBe("");
+  });
+
+  it("starts a new conversation by clearing memory state and returning focus without sending", async () => {
+    const send = vi.fn().mockResolvedValue(SUCCESS_RESPONSE);
+    render(<ChatScreen transport={transportWith(send)} />);
+
+    ask("전입신고 알려줘");
+    expect(
+      await screen.findByText(SUCCESS_RESPONSE.sources[0].title),
+    ).toBeInTheDocument();
+    const callsBeforeReset = send.mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "새 대화" }));
+
+    expect(
+      screen.queryByText(SUCCESS_RESPONSE.sources[0].title),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("전입신고 알려줘")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "질문 입력" })).toHaveFocus();
+    expect(send).toHaveBeenCalledTimes(callsBeforeReset);
+  });
+
+  it("replaces the polite waiting message at 2 and 6 seconds and clears stale timers", async () => {
+    vi.useFakeTimers();
+    try {
+      let resolveResponse: ((response: ChatResponse) => void) | undefined;
+      const pending = new Promise<ChatResponse>((resolve) => {
+        resolveResponse = resolve;
+      });
+      const send = vi.fn().mockReturnValue(pending);
+      render(<ChatScreen transport={transportWith(send)} />);
+
+      ask("전입신고 알려줘");
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "공식 자료에서 확인하고 있어요.",
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_000);
+      });
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "관련 민원과 공식 출처를 찾고 있어요.",
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4_000);
+      });
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "답변 근거를 다시 확인하고 있어요.",
+      );
+
+      await act(async () => {
+        resolveResponse?.(SUCCESS_RESPONSE);
+        await Promise.resolve();
+      });
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it.each([
     ["INSUFFICIENT_GROUNDING", true, "LOCAL_TAX_GENERAL"],
     ["PERSONAL_LOOKUP", false, "UNKNOWN"],
     ["LEGAL_JUDGMENT", false, "UNKNOWN"],
+    ["CIVIC_SCOPE_GAP", false, "OUT_OF_SCOPE"],
     ["OUT_OF_SCOPE", false, "OUT_OF_SCOPE"],
   ] as const)(
     "renders the %s fallback title, message and no source strip",

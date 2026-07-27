@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field, replace
 from typing import cast
 from uuid import UUID
 
 import pytest
 
+import sejong_ai_api.chat.service as service_module
 from sejong_ai_api.chat.idempotency import IdempotencyClaim, IdempotencyClaimStatus
 from sejong_ai_api.chat.service import ChatUnavailableError
 from sejong_ai_api.contracts.chat import ChatRequest, SuccessResponse
@@ -57,6 +59,16 @@ class CountingGenerator:
         if self.result is None:
             raise AssertionError("test generator result required")
         return self.result
+
+
+@dataclass
+class BlockingGenerator:
+    requests: list[GroundedChatRequest] = field(default_factory=list)
+
+    async def generate(self, request: GroundedChatRequest) -> GroundedChatResult:
+        self.requests.append(request)
+        await asyncio.Event().wait()
+        raise AssertionError("provider hard wall must cancel this wait")
 
 
 class RetainingIdempotencyRepository(FakeIdempotencyRepository):
@@ -153,6 +165,27 @@ async def test_generator_disabled_keeps_complete_official_template() -> None:
     assert response.procedure_steps == list(record.procedure_steps)
     assert response.department == record.department
     assert response.sources[0].source_id == record.public_id
+
+
+@pytest.mark.asyncio
+async def test_generator_hard_wall_returns_complete_official_template(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service_module, "_PROVIDER_HARD_WALL_SECONDS", 0.001)
+    record = knowledge_record()
+    generator = BlockingGenerator()
+
+    response = await service(
+        FakeRepository(records=(record,)),
+        answer_generator=generator,
+    ).answer(ChatRequest(question="대형폐기물은 어떻게 버려요?"))
+
+    assert response.answer_status == "SUCCESS"
+    assert response.answer_mode == "TEMPLATE"
+    assert response.summary == record.answer_summary
+    assert response.procedure_steps == list(record.procedure_steps)
+    assert response.sources[0].source_id == record.public_id
+    assert len(generator.requests) == 1
 
 
 @pytest.mark.asyncio

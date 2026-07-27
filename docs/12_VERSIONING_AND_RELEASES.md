@@ -53,32 +53,32 @@ DB-001의 historical 2026-07-18 baseline 뒤, 2026-07-22 local/private core-loop
 supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 
 ```text
-product_spec: 2.5.0
+product_spec: 2.6.0
 repo_guidance: 1.7.9
-application: 0.10.0-office-directory-runtime
-web: 0.6.0-answer-mode
-api: 3.3.0-draft
-shared_contracts: 0.6.0
-database_schema: 0.4.0-local
+application: 0.11.0-natural-dialogue
+web: 0.7.0-natural-dialogue
+api: 4.0.0-draft
+shared_contracts: 1.0.0
+database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.2.0-grounded-live-chat
-test_suite: 1.8.0-local-demo-readiness
-documentation: 2.21.0
+prompt_set: 0.3.0-hybrid-classifier
+test_suite: 1.9.0-natural-dialogue
+documentation: 2.24.0
 ```
 
-승격 근거는 current local source gate pgTAP 9 files/356, rollback absence/reapply 36/36, pinned
+승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
+absence/reapply, pinned
 patched runtime, actual exact one `127.0.0.1:54322`, backend integration,
 compensation/absence/reset/replay와
 DATA-SEED `.2` baseline·identity·A/B concurrency·19/3/10·replay·cleanup PASS다. root full integration
 first attempt는 stale Web env expectation 1건(집중 수정/통과)과 Windows PowerShell subprocess timeout
 9건 때문에 최종 green으로 주장하지 않는다. 별도 final local application rehearsal의 `/ready=200`과
 20번째 ACTIVE, sample 20/20, final API/Web/contracts/E2E/scanner, clean disposable DB와 root offline은
-PASS했다. application `0.8.1-main-stabilization`은 PR #9로 통합된 local/private MVP와
-POST-MVP owner dev-origin 안정화 slice를 뜻한다. 현재 owner Draft PR, manual demo·accessibility와
-public/remote/provider/`00700` readiness 완료를 뜻하지 않는다.
-`local` suffix는 공개·원격·production release가 아님을 명시한다. D-046에서 방향이 확정된 `00700`
-구현·검증은 계속 별도 public blocker다.
+PASS했다. current application/Web/API는 CHAT-NATURAL Slice 1~3 구현을 뜻한다.
+manual demo·formal actual Upstage aggregate와 configured remote smoke 완료를 뜻하지 않는다.
+`local` suffix는 공개·원격·production release가 아님을 명시한다. D-046/D-092의 `00700`
+local 구현·검증은 끝났고, remote 운영은 ADR-0026 gate가 별도다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
@@ -163,6 +163,97 @@ CSPRNG context-secret provisioner와 7개 테스트를 추가했다. provider-di
 분리했고 A-052 결정 전 Phase B는 HOLD다. application/Web/API/shared/DB/data/prompt/dependency,
 public/remote 범위와 actual official rows는 변경하지 않는다.
 
+Documentation `2.21.1`은 PR #17 merge commit `c945303` 뒤 사람이 직접 수행할 작업을
+manual demo/accessibility/presentation, A-052 Phase B DB 선택, teammate MFA/recovery 확인으로
+분리한 handoff다. current ACTIVE 20 DB를 reset/reseed하지 않고 개선 후 결과를 시연하며,
+Codex 후속은 DB-write-free PERF Phase A다. product/application/Web/API/shared/DB/data/prompt/test
+축과 실제 환경·DB·provider는 변경하지 않는다.
+
+Documentation `2.21.2`는 primary ignored `.env`에 `UPSTAGE_GROUNDED_CHAT_MODE`가 없는
+상태를 값 비노출로 진단한 기록이다. exact loader는 이 경우 grounded profile을 조립하지 않고
+`DISABLED`로 닫힌다. 사람이 의도를 명확히 볼 수 있도록 explicit `false` 한 줄을 권고하지만,
+product/application/Web/API/shared/DB/data/prompt/test와 actual environment/provider는
+변경하지 않았다.
+
+Documentation `2.21.3`은 사용자가 explicit false를 추가한 뒤 assignment 1개·exact
+lowercase false·runtime profile DISABLED·Git ignore를 값 비노출로 재확인한 기록이다.
+Docker client/server와 local DB container도 read-only로 준비 상태를 확인했으며 provider call,
+DB query/write, product/application/Web/API/shared/DB/data/prompt/test 변경은 0이다.
+
+Documentation `2.21.4`는 사용자 실행 API의 `/ready=200`을 body 없이 재확인하고 ignored
+Web local actual 환경 4개를 정확히 준비한 기록이다. Git tracked file, product/application,
+Web source/API/shared/DB/data/prompt/test, provider와 DB 상태는 변경하지 않는다.
+
+Documentation `2.21.5`는 production-only로 남아 있던 local `node_modules`와 Next.js의
+bare `pnpm` spawn `ENOENT`를 분리 진단하고, Corepack과 frozen lockfile로 선언된 Web
+TypeScript 개발 의존성을 복구한 기록이다. package manifest·lockfile·제품 동작·provider·
+DB는 변경하지 않았고 Web `tsc --noEmit`으로 해석 가능 상태를 확인했다.
+
+Documentation `2.21.6`은 generic 증명서 요청이 classifier에서 `UNKNOWN + FOLLOWUP`으로
+분류되고 service의 고정 네 분야 option을 거쳐 Web generic 확인 질문으로 표시되는 원인을
+확인한 기록이다. category-aware certificate FOLLOWUP을 권고하되 exact option은 인간 제품
+결정으로 남겼고 product/Web/API/DB/data/provider/test는 변경하지 않았다.
+
+Documentation `2.21.7`은 실제 browser·UTF-8 API·read-only admin/office 경로를 함께 감사해
+구체 질문·공식 출처·정책 폴백·15분 context·반응형 화면의 정상 동작을 확인하고,
+generic 증명서 반복 FOLLOWUP, exact WASTE-03만 허용하는 관리자 후보 작성, 시민 최초 지역
+선택 진입점 부재를 P0 gap으로 기록했다. DB의 APPROVED 후보는 pending-only 화면 필터로
+숨겨진 것이며 AI key 부재가 원인이 아님을 확인했다. product/Web/API/DB/data/provider/test
+코드는 변경하지 않았다.
+
+Documentation `2.21.8`은 Q-CHAT-FOLLOWUP-001=A/D-083의 generic certificate category-aware
+FOLLOWUP 설계와 exact five options를 기록한 written specification이다. unsupported compound
+certificate의 OUT_OF_SCOPE, specific supported query의 기존 retrieval, text-free FOLLOWUP,
+signed context와 public contract shape를 보존한다. product/Web/API/DB/data/provider/test
+코드는 변경하지 않았다.
+
+Documentation `2.21.9`는 D-084의 certificate FOLLOWUP written specification 승인과
+classifier priority/invariant→closed server option labels→text-free service orchestration→typed
+Web prompt/context→full gate의 5-task RED/GREEN 실행계획을 기록한다. plan 승인 전
+product/Web/API/DB/data/provider/dependency/test source는 변경하지 않는다.
+
+Documentation `2.22.0`은 CHAT-CLASSIFICATION-GAPS-001 actual-equivalent fixture 진단을
+기록한다. 일반 한국어 두 건의 contextual-name PII false positive와, 현재 taxonomy가
+비민원·네 분야 밖 행정 민원·지원 intent의 새 표현을 분리하지 못하는 원인을 확인했다.
+Q-CLASS-001/Q-SCOPE-001 전 product/API/Web/test/OpenAPI/DB/data/provider/dependency는
+변경하지 않는다.
+
+Documentation `2.22.1`은 Q-SCOPE-001=A/D-085/ADR-0024를 기록한다. 네 분야 밖 행정 민원은
+기존 failed-question/KB candidate와 분리된 future `CIVIC_SCOPE_GAP` queue에서 안전하게
+마스킹된 text만 30일 보관하고 자동 ACTIVE 전환을 금지한다. `NON_CIVIC`은 무저장이다.
+exact wire enum·DB migration·admin workflow는 written specification/plan 승인 전 미구현이며
+product/application/API/DB/provider/test version은 유지한다.
+
+Documentation `2.22.6`은 CHAT-NATURAL-001 설계 2부 승인/D-090을 기록한다. public
+`CIVIC_SCOPE_GAP` reason과 별도 30일 masked queue, NON_CIVIC·policy/privacy 무저장,
+context v2의 closed topic/slot/dialog claim, v1 read-only TTL 전환과 Web 새 대화 reset을
+확정했다. exact contract/DB/runtime은 written spec 전 미구현이며 product/application/Web/API/
+contract/DB/data/prompt/test/provider actual은 변경하지 않는다.
+
+Documentation `2.22.5`는 사용자의 CHAT-NATURAL-001 설계 1부 승인/D-089를 기록한다.
+PII-first deterministic safety와 ambiguous-only classifier, server route, ACTIVE/OFFICIAL
+grounding, generated/template, server-owned source 순서와 raw transcript 없는 15분 structured
+context 경계를 확정했다. 공개 응답·저장·오류·테스트 상세는 후속 설계 검토 전 미확정이며
+product/application/Web/API/contract/DB/data/prompt/test/provider actual은 변경하지 않는다.
+
+Documentation `2.22.4`는 Q-PROD-REAL-001=A/D-088을 기록한다. 제품은 현실형 공식 민원
+안내·기관 연결·사람 승인 운영센터를 고도화하며 실제 신청·상태조회·결제·기관 transaction은
+P2로 유지한다. CHAT-NATURAL-001은 제품 범위 인터뷰에서 설계 검토로 이동했다. product/
+application/Web/API/contract/DB/data/prompt/test/provider actual은 변경하지 않는다.
+
+Documentation `2.22.3`은 Q-CLASS-002=A/D-087의 classifier 1회·3초·retry 0·입력 1,024자·
+출력 128 token·sub-cap 20, generation sub-cap 30, combined process cap 40과 VAT 포함
+USD 0.05 local synthetic stop line을 기록한다. 또한 active code와 권위 문서를 기준으로
+PII 오탐, taxonomy, 얕은 context, keyword 검색, feedback 무연결, 일반 후보 작성, scope-gap,
+인증·freshness·rate limit·backup·부하·접근성·실제 기관 연계 격차를 P0/P1/P2로 감사했다.
+제품 목표 Q-PROD-REAL-001과 written spec 승인 전 product/application/Web/API/contract/DB/data/
+prompt/test/provider actual은 변경하지 않는다.
+
+Documentation `2.22.2`는 Q-CLASS-001=A/D-086/ADR-0025의 future local/private hybrid
+classification 방향을 기록한다. deterministic PII·policy·명백한 분류 뒤 안전한 ambiguous
+질문만 Upstage closed enum 분류를 사용할 수 있으며 answer/source/KB/storage 권한은 서버에
+남는다. Q-CLASS-002 budget과 written spec 전 product/runtime/provider actual call은 0이다.
+
 Q-LLM-005=A/D-065/ADR-0022 당시 product spec `2.4.0`, prompt selection
 `0.0.3-upstage-solar-pro3-synthetic-selected`를 기록했다. 이후 offline evaluator 완료,
 PR #9 통합과 POST-MVP owner slice가 위 current manifest 값으로 승격했다. D-066의 명세 승인과
@@ -185,3 +276,16 @@ provider 연결은 0이다. 이후 버전 승격은 위 manifest와 `CHANGELOG.m
 - tests/report
 - data lineage
 - implementation notes/handoff
+
+## CHAT-NATURAL-001 grouped implementation promotion
+
+2026-07-27 세 수직 흐름의 계약·코드·DB·Web 검증 완료로 application
+`0.11.0-natural-dialogue`, Web `0.7.0-natural-dialogue`, API `4.0.0-draft`, shared contracts
+`1.0.0`, database `0.5.0-local`, prompt `0.3.0-hybrid-classifier`, tests
+`1.9.0-natural-dialogue`, documentation `2.24.0`으로 승격했다. 공식 데이터
+`0.1.0-initial.2`와 mock data는 변경하지 않았다.
+
+API major는 `CIVIC_SCOPE_GAP`과 context v2 공개 계약, shared major는 생성 타입의 동기
+승격이다. DB minor는 additive 00680과 property-only 00700을 포함하며 rollback 순서는
+00700→00680→…→00100이다. 이 버전은 local schema와 구현 완료를 뜻하고, formal seed
+19→20 actual 증거·실제 Upstage 품질·remote/public 배포 완료를 뜻하지 않는다.

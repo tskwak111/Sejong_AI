@@ -1,9 +1,41 @@
 /**
  * source: contracts/openapi-v1.yaml
- * OpenAPI: 3.3.0-draft; generator: openapi-typescript 7.13.0
+ * OpenAPI: 4.0.0-draft; generator: openapi-typescript 7.13.0
  * Generated deterministically; do not edit by hand.
  */
 export interface paths {
+    "/api/v1/admin/civic-scope-gaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCivicScopeGaps"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/civic-scope-gaps/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["reviewCivicScopeGap"];
+        trace?: never;
+    };
     "/api/v1/admin/failed-questions": {
         parameters: {
             query?: never;
@@ -276,6 +308,56 @@ export interface components {
             sources: components["schemas"]["Source"][];
             summary?: string | null;
         };
+        CivicScopeGapFallback: components["schemas"]["FallbackPayloadBase"] & {
+            /** @constant */
+            candidate_eligible: false;
+            /** @constant */
+            reason: "CIVIC_SCOPE_GAP";
+        };
+        CivicScopeGapListResponse: {
+            items: components["schemas"]["CivicScopeGapSummary"][];
+            total: number;
+        };
+        CivicScopeGapResponse: components["schemas"]["FallbackResponseBase"] & {
+            fallback: components["schemas"]["CivicScopeGapFallback"];
+            /** @constant */
+            intent: "OUT_OF_SCOPE";
+        };
+        CivicScopeGapReviewRequest: {
+            /** @enum {string} */
+            decision: "PLANNED" | "DISMISSED";
+            review_comment: string;
+        };
+        CivicScopeGapReviewResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "PLANNED" | "DISMISSED";
+        };
+        /** @enum {string} */
+        CivicScopeGapStatus: "NEW" | "PLANNED" | "DISMISSED";
+        CivicScopeGapSummary: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            /** @description PII-safe text only; null after exact 30-day retention purge. */
+            masked_question: string | null;
+            review_comment: string | null;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            reviewed_by: string | null;
+            status: components["schemas"]["CivicScopeGapStatus"];
+            /**
+             * Format: date-time
+             * @description Exactly 30 days after creation.
+             */
+            text_expires_at: string;
+            /** Format: date-time */
+            text_purged_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        } & (unknown & unknown);
         FailedQuestion: {
             candidate_eligible: boolean;
             /** Format: date-time */
@@ -308,7 +390,7 @@ export interface components {
         };
         /** @enum {string} */
         FailedQuestionStatus: "NEW" | "REASON_CONFIRMED";
-        Fallback: components["schemas"]["InsufficientGroundingFallback"] | components["schemas"]["PersonalLookupFallback"] | components["schemas"]["LegalJudgmentFallback"] | components["schemas"]["OutOfScopeFallback"] | components["schemas"]["PrivacyUnresolvedFallback"];
+        Fallback: components["schemas"]["InsufficientGroundingFallback"] | components["schemas"]["PersonalLookupFallback"] | components["schemas"]["LegalJudgmentFallback"] | components["schemas"]["CivicScopeGapFallback"] | components["schemas"]["OutOfScopeFallback"] | components["schemas"]["PrivacyUnresolvedFallback"];
         FallbackPayloadBase: {
             candidate_eligible: boolean;
             message: string;
@@ -318,8 +400,8 @@ export interface components {
             title: string;
         };
         /** @enum {string} */
-        FallbackReason: "INSUFFICIENT_GROUNDING" | "PERSONAL_LOOKUP" | "LEGAL_JUDGMENT" | "OUT_OF_SCOPE" | "PRIVACY_UNRESOLVED";
-        FallbackResponse: components["schemas"]["InsufficientGroundingResponse"] | components["schemas"]["PersonalLookupResponse"] | components["schemas"]["LegalJudgmentResponse"] | components["schemas"]["OutOfScopeResponse"] | components["schemas"]["PrivacyUnresolvedResponse"];
+        FallbackReason: "INSUFFICIENT_GROUNDING" | "PERSONAL_LOOKUP" | "LEGAL_JUDGMENT" | "CIVIC_SCOPE_GAP" | "OUT_OF_SCOPE" | "PRIVACY_UNRESOLVED";
+        FallbackResponse: components["schemas"]["InsufficientGroundingResponse"] | components["schemas"]["PersonalLookupResponse"] | components["schemas"]["LegalJudgmentResponse"] | components["schemas"]["CivicScopeGapResponse"] | components["schemas"]["OutOfScopeResponse"] | components["schemas"]["PrivacyUnresolvedResponse"];
         FallbackResponseBase: components["schemas"]["ChatResponseBase"] & {
             /** @constant */
             answer_status: "FALLBACK";
@@ -564,7 +646,7 @@ export interface components {
             used_fields?: string[];
         };
         /**
-         * @description OUT_OF_SCOPE never creates a failed_questions row.
+         * @description OUT_OF_SCOPE and CIVIC_SCOPE_GAP never create a failed_questions row.
          * @enum {string}
          */
         StoredFailureReason: "INSUFFICIENT_GROUNDING" | "PERSONAL_LOOKUP" | "LEGAL_JUDGMENT";
@@ -661,6 +743,70 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listCivicScopeGaps: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["CivicScopeGapStatus"];
+            };
+            header: {
+                /** @description Local/private demo actor only; not an authentication credential. */
+                "X-Demo-Actor-Id": components["parameters"]["DemoActorId"];
+                /** @description Local/private role switch only; reject when admin routes are not privately gated. */
+                "X-Demo-Role": components["parameters"]["DemoRole"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Separate masked civic scope-gap review queue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CivicScopeGapListResponse"];
+                };
+            };
+            403: components["responses"]["AdminError"];
+            422: components["responses"]["AdminError"];
+        };
+    };
+    reviewCivicScopeGap: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Local/private demo actor only; not an authentication credential. */
+                "X-Demo-Actor-Id": components["parameters"]["DemoActorId"];
+                /** @description Local/private role switch only; reject when admin routes are not privately gated. */
+                "X-Demo-Role": components["parameters"]["DemoRole"];
+            };
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CivicScopeGapReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Scope gap marked for planning or dismissal without creating KB */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CivicScopeGapReviewResponse"];
+                };
+            };
+            403: components["responses"]["AdminError"];
+            404: components["responses"]["AdminError"];
+            409: components["responses"]["AdminError"];
+            422: components["responses"]["AdminError"];
+        };
+    };
     listFailedQuestions: {
         parameters: {
             query?: {

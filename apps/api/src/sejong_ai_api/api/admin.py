@@ -12,6 +12,9 @@ from sejong_ai_api.admin.service import AdminService, AdminServiceError
 from sejong_ai_api.contracts.admin import (
     AdminErrorEnvelope,
     CandidateReviewRequest,
+    CivicScopeGapListResponse,
+    CivicScopeGapReviewRequest,
+    CivicScopeGapReviewResponse,
     FailedQuestionDetailResponse,
     FailedQuestionListResponse,
     KBCandidateCreateRequest,
@@ -198,6 +201,70 @@ async def confirm_fallback_reason(
     resolved_service, actor = context
     try:
         return await resolved_service.confirm_reason(actor, id, payload)
+    except AdminServiceError as error:
+        return _service_error(request, error)
+
+
+@router.get(
+    "/civic-scope-gaps",
+    response_model=CivicScopeGapListResponse,
+    operation_id="listCivicScopeGaps",
+    responses={
+        403: {"model": AdminErrorEnvelope},
+        422: {"model": AdminErrorEnvelope},
+    },
+)
+async def list_civic_scope_gaps(
+    request: Request,
+    enabled: AdminEnabled,
+    service: AdminServiceDependency,
+    actor_id: ActorIdHeader,
+    role: RoleHeader,
+    status_filter: Annotated[str | None, Query(alias="status")] = None,
+) -> CivicScopeGapListResponse | JSONResponse:
+    context = _resolve_context(
+        request, enabled=enabled, service=service, actor_id=actor_id, role=role
+    )
+    if isinstance(context, JSONResponse):
+        return context
+    resolved_service, actor = context
+    try:
+        return await resolved_service.list_civic_scope_gaps(
+            actor,
+            status=status_filter,
+        )
+    except AdminServiceError as error:
+        return _service_error(request, error)
+
+
+@router.patch(
+    "/civic-scope-gaps/{id}/review",
+    response_model=CivicScopeGapReviewResponse,
+    operation_id="reviewCivicScopeGap",
+    responses={
+        403: {"model": AdminErrorEnvelope},
+        404: {"model": AdminErrorEnvelope},
+        409: {"model": AdminErrorEnvelope},
+        422: {"model": AdminErrorEnvelope},
+    },
+)
+async def review_civic_scope_gap(
+    request: Request,
+    id: UUID,
+    payload: CivicScopeGapReviewRequest,
+    enabled: AdminEnabled,
+    service: AdminServiceDependency,
+    actor_id: ActorIdHeader,
+    role: RoleHeader,
+) -> CivicScopeGapReviewResponse | JSONResponse:
+    context = _resolve_context(
+        request, enabled=enabled, service=service, actor_id=actor_id, role=role
+    )
+    if isinstance(context, JSONResponse):
+        return context
+    resolved_service, actor = context
+    try:
+        return await resolved_service.review_civic_scope_gap(actor, id, payload)
     except AdminServiceError as error:
         return _service_error(request, error)
 

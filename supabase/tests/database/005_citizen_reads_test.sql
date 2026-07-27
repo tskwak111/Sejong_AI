@@ -78,7 +78,8 @@ SELECT is(
       AND functions.provolatile = 's'
       AND functions.prosecdef
       AND owners.rolname = 'sejong_schema_owner'
-      AND functions.proconfig = ARRAY['search_path=pg_catalog']::text[]
+      AND functions.proconfig =
+        ARRAY['search_path=pg_catalog, pg_temp']::text[]
   ),
   2,
   'citizen reads are STABLE owner SECURITY DEFINER with fixed search_path'

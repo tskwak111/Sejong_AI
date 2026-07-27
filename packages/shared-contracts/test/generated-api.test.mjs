@@ -39,7 +39,7 @@ test("the tracked API source exactly matches a fresh render", async (t) => {
 
   const banner = tracked.split("\n").slice(0, 4).join("\n");
   assert.match(banner, /source: contracts\/openapi-v1\.yaml/);
-  assert.match(banner, /OpenAPI: 3\.3\.0-draft/);
+  assert.match(banner, /OpenAPI: 4\.0\.0-draft/);
   assert.match(banner, /generator: openapi-typescript 7\.13\.0/);
   assert.doesNotMatch(banner, /\d{4}-\d{2}-\d{2}T|[A-Za-z]:\\/);
   assert.match(
@@ -48,6 +48,7 @@ test("the tracked API source exactly matches a fresh render", async (t) => {
     "an OpenAPI default must not make an optional request field required",
   );
   assert.match(tracked, /PRIVACY_UNRESOLVED/);
+  assert.match(tracked, /CIVIC_SCOPE_GAP/);
   assert.match(tracked, /representative_question: string;/);
   assert.match(tracked, /data_origin: "OFFICIAL" \| "MOCK";/);
   for (const schemaName of [

@@ -38,7 +38,9 @@
 2026-07-23 Q-LLM-005=A/D-065/ADR-0022는 아직 구현되지 않은 DeepSeek 선택을 대체한다. 외부
 공급자는 Upstage exact `solar-pro3`이며, 먼저 local/private server-allowlisted 합성
 `T-01`~`T-10` 평가로 한국어 품질·strict JSON·비용을 검증한다. 결정론적 시민 경로는 계속
-기본이고 실제 시민/free-input/public/remote provider 사용은 선택지 B의 별도 승인 전 금지한다.
+기본이다. 당시 실제 시민/free-input/public/remote provider 사용 금지는 D-092에서
+PII-free allowlisted actual classifier 검증만 좁게 supersede됐고, real citizen/free-input
+outbound는 ADR-0026의 개인정보·약관·법무 운영 gate 전까지 금지한다.
 2026-07-25 actual은 outbound 30회에서 strict-schema 27/30으로 전체 FAIL했다. 인간 검토 9개
 평균 4.8444·최저 4와 VAT 포함 USD 0.004654815는 통과했지만 JSON 100% 기준을 충족하지
 못했으므로 D-071에서 선택지 B 미승인과 provider-disabled/template 시민 경로 유지를 확정했다.
@@ -63,6 +65,48 @@ corrective second 10-call run의 governance incident는 D-076에서 사용자가
 필요해지는 시점의 local reset·정식 `.2` 재시드·필요한 19→20 승인 흐름 재현은 B의 별도 인간
 승인을 받는다. 이는 future provider rerun, DB reset/delete/update, public/remote 또는 실제 기관
 운영 승인이 아니다.
+
+2026-07-27 Q-CLASS-001=A/D-086/ADR-0025는 future local/private 질문 분류를 hybrid로
+확장하는 방향을 승인했다. PII·policy·명백한 결과는 deterministic server gate가 유지하고,
+안전하게 마스킹됐지만 애매한 현재 질문만 Upstage closed-enum classifier에 전달한다. 모델은
+답변·출처·저장 여부를 결정하지 못한다. Q-CLASS-002=A/D-087은 classifier를 요청당 1회·3초·
+retry 0·입력 1,024자·출력 128 token·process sub-cap 20으로 제한하고, 기존 grounded
+generation의 8초·1회·sub-cap 30과 합친 process cap을 40, local synthetic run 비용 stop
+line을 VAT 포함 USD 0.05로 고정한다. exact schema written specification·실행계획·별도 local
+D-092가 PII-free allowlisted actual classifier 실행을 승인했고 D-093은 offline classifier
+runtime과 local 00680/00700/admin/Web 구현 검증을 기록했다. public/remote 시민 검증은
+ADR-0026에 따라 provider-disabled와 admin-disabled가 기본이며 real citizen/free-input
+provider 전송은 계속 금지한다.
+
+2026-07-27 Q-PROD-REAL-001=A/D-088은 제품 목표를 **현실형 민원 안내·운영센터**로 확정한다.
+자연스러운 구조화 대화, 승인된 공식 근거, 기관 연결, 범위 확대 검토와 사람 승인 개선 루프를
+고도화한다. 실제 신청·상태조회·결제·정부24/기관 내부 시스템 연계는 현재 P2로 유지하며 이
+제품이 처리 완료를 보장한다고 표현하지 않는다. 향후 실제 처리 플랫폼으로 바꾸려면 기관 API,
+본인인증, 법무·개인정보, transaction·감사·보상과 production 배포를 별도 discovery/승인한다.
+
+D-089/D-090의 CHAT-NATURAL 설계 1~2부는 privacy-first hybrid pipeline과 context v2를
+승인했다. `CIVIC_SCOPE_GAP`은 public `intent=OUT_OF_SCOPE`+새 fallback reason, candidate
+false이며 별도 queue에 마스킹 text만 30일 보관한다. NON_CIVIC·개인조회·법적판단·privacy
+unresolved는 text/event/failed/review row 0이다. context v2는 topic/pending-slot/dialog-act
+같은 closed server ID만 사용하고 raw transcript·프로필은 금지한다. exact contract/DB와
+runtime은 D-091의 통합 written specification을 구현 권위로 사용한다.
+
+D-091은 classifier/generator 오류·성능·60개 분류/5개 후속/7개 장애 acceptance와 세 수직
+흐름을 확정했다. D-092는 PII-free allowlisted actual Upstage, local DB reset·immutable `.2`
+정식 seed, `00680` scope queue와 ADR-0018의 `00700` public hardening, 구성된 remote 시민 경로
+검증을 승인한다. secret·DSN·raw payload를 출력하지 않고 remote target을 추측하지 않는다.
+인증 없는 public 관리자 경로는 승인 범위가 아니며 계속 fail-closed로 비활성이다. actual provider,
+formal `.2` seed/19→20과 remote 작업은 unit/area gate 뒤 통합 명세의 비용·rollback·증거
+경계를 따라 수행한다. local 00700은 exact 22 property-only 변경과 11-file pgTAP/11-stage
+rollback·replay를 통과했지만 remote 배포 완료를 뜻하지 않는다.
+
+2026-07-27 D-095 actual evidence에서 frozen 60 classifier는 deterministic 40/provider 20,
+policy/privacy outbound 0, corrective 60/60으로 PASS했고 두 bounded run 누적 비용은 VAT 포함
+USD 0.003873210이다. provider request/response와 key는 저장하지 않았다. 같은 시점 remote
+discovery는 public application target, remote DB project, deployment credential/origin/saved
+version을 찾지 못했다. 따라서 remote migration·seed·deploy·smoke는
+`Not executed: target not configured`이며 local DB ACTIVE 20과 00700 evidence를 remote
+production-ready로 해석하지 않는다.
 
 ## 4. 변경 절차
 

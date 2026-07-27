@@ -16,6 +16,10 @@ from sejong_ai_api.api.admin import (
 )
 from sejong_ai_api.contracts.admin import (
     CandidateReviewRequest,
+    CivicScopeGapListResponse,
+    CivicScopeGapReviewRequest,
+    CivicScopeGapReviewResponse,
+    CivicScopeGapSummary,
     FailedQuestion,
     FailedQuestionDetailResponse,
     FailedQuestionListResponse,
@@ -33,6 +37,7 @@ REQUEST_ID = UUID("11111111-1111-4111-8111-111111111111")
 FAILED_ID = UUID("10000000-0000-4000-8000-000000000001")
 CANDIDATE_ID = UUID("20000000-0000-4000-8000-000000000001")
 NOW = datetime(2026, 7, 22, 3, 0, tzinfo=UTC)
+SCOPE_GAP_ID = UUID("68000000-0000-4000-8000-000000000001")
 
 
 def failure() -> FailedQuestion:
@@ -87,6 +92,39 @@ class RouteService:
     async def list_candidates(self, actor: Actor) -> KBCandidateListResponse:
         self._record("list_candidates", actor)
         return KBCandidateListResponse(items=[], total=0)
+
+    async def list_civic_scope_gaps(
+        self, actor: Actor, *, status: str | None
+    ) -> CivicScopeGapListResponse:
+        del status
+        self._record("list_civic_scope_gaps", actor)
+        return CivicScopeGapListResponse(
+            items=[
+                CivicScopeGapSummary(
+                    id=SCOPE_GAP_ID,
+                    masked_question="합성 범위 부족 민원",
+                    status="NEW",
+                    created_at=NOW,
+                    updated_at=NOW,
+                    text_expires_at=NOW + timedelta(days=30),
+                    text_purged_at=None,
+                    reviewed_by=None,
+                    reviewed_at=None,
+                    review_comment=None,
+                )
+            ],
+            total=1,
+        )
+
+    async def review_civic_scope_gap(
+        self,
+        actor: Actor,
+        scope_gap_id: UUID,
+        payload: CivicScopeGapReviewRequest,
+    ) -> CivicScopeGapReviewResponse:
+        del scope_gap_id
+        self._record("review_civic_scope_gap", actor)
+        return CivicScopeGapReviewResponse(id=SCOPE_GAP_ID, status=payload.decision)
 
     async def create_candidate(
         self, actor: Actor, payload: KBCandidateCreateRequest
@@ -212,6 +250,31 @@ def test_operator_reason_confirmation_is_wired_to_the_service() -> None:
     assert response.status_code == 200
     assert response.json() == {"id": str(FAILED_ID), "status": "REASON_CONFIRMED"}
     assert service.calls[0][0] == "confirm_reason"
+
+
+def test_scope_gap_list_and_approver_review_are_wired() -> None:
+    service = RouteService()
+    review_headers = headers(actor_id="PM-LOCAL-001", role="APPROVER")
+
+    with TestClient(application(enabled=True, service=service)) as client:
+        listed = client.get(
+            "/api/v1/admin/civic-scope-gaps?status=NEW",
+            headers=review_headers,
+        )
+        reviewed = client.patch(
+            f"/api/v1/admin/civic-scope-gaps/{SCOPE_GAP_ID}/review",
+            headers=review_headers,
+            json={"decision": "PLANNED", "review_comment": "다음 범위로 검토"},
+        )
+
+    assert listed.status_code == 200
+    assert listed.json()["total"] == 1
+    assert reviewed.status_code == 200
+    assert reviewed.json() == {"id": str(SCOPE_GAP_ID), "status": "PLANNED"}
+    assert [name for name, _actor in service.calls] == [
+        "list_civic_scope_gaps",
+        "review_civic_scope_gap",
+    ]
 
 
 def test_candidate_create_converts_canonical_wire_uuid_and_date_before_service() -> None:

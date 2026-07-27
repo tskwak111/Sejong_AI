@@ -73,6 +73,34 @@ CANDIDATE_BINDING_ROLLBACK_PATH = (
 CANDIDATE_BINDING_TEST_PATH = (
     ROOT / "supabase" / "tests" / "database" / "009_candidate_public_id_binding_test.sql"
 )
+CIVIC_SCOPE_GAP_MIGRATION_PATH = (
+    ROOT / "supabase" / "migrations" / "20260727000680_civic_scope_gap_queue.sql"
+)
+CIVIC_SCOPE_GAP_ROLLBACK_PATH = (
+    ROOT / "database" / "rollbacks" / "20260727000680_civic_scope_gap_queue.rollback.sql"
+)
+CIVIC_SCOPE_GAP_TEST_PATH = (
+    ROOT / "supabase" / "tests" / "database" / "010_civic_scope_gap_queue_test.sql"
+)
+PRIVILEGED_SEARCH_PATH_MIGRATION_PATH = (
+    ROOT
+    / "supabase"
+    / "migrations"
+    / "20260727000700_privileged_function_search_path.sql"
+)
+PRIVILEGED_SEARCH_PATH_ROLLBACK_PATH = (
+    ROOT
+    / "database"
+    / "rollbacks"
+    / "20260727000700_privileged_function_search_path.rollback.sql"
+)
+PRIVILEGED_SEARCH_PATH_TEST_PATH = (
+    ROOT
+    / "supabase"
+    / "tests"
+    / "database"
+    / "011_privileged_function_search_path_test.sql"
+)
 EXPECTED_PIN = {
     "version": "2.109.1",
     "release": "v2.109.1",
@@ -130,10 +158,52 @@ class MvpDatabaseAdditionStructureTests(unittest.TestCase):
             CANDIDATE_BINDING_MIGRATION_PATH,
             CANDIDATE_BINDING_ROLLBACK_PATH,
             CANDIDATE_BINDING_TEST_PATH,
+            CIVIC_SCOPE_GAP_MIGRATION_PATH,
+            CIVIC_SCOPE_GAP_ROLLBACK_PATH,
+            CIVIC_SCOPE_GAP_TEST_PATH,
+            PRIVILEGED_SEARCH_PATH_MIGRATION_PATH,
+            PRIVILEGED_SEARCH_PATH_ROLLBACK_PATH,
+            PRIVILEGED_SEARCH_PATH_TEST_PATH,
         ):
             source = path.read_text(encoding="utf-8")
             self.assertTrue(source.startswith("BEGIN;\n"), path.name)
             self.assertRegex(source, r"(?m)^(?:COMMIT|ROLLBACK);\s*$", path.name)
+
+    def test_public_hardening_is_exact_property_only_allowlist(self) -> None:
+        migration = PRIVILEGED_SEARCH_PATH_MIGRATION_PATH.read_text(encoding="utf-8")
+        rollback = PRIVILEGED_SEARCH_PATH_ROLLBACK_PATH.read_text(encoding="utf-8")
+        pgtap = PRIVILEGED_SEARCH_PATH_TEST_PATH.read_text(encoding="utf-8")
+
+        alter_pattern = re.compile(
+            r"ALTER FUNCTION (app_(?:api|private)\.[^(]+\([^)]*\))\s+"
+            r"SET search_path = pg_catalog(?:, pg_temp)?;"
+        )
+        forward = alter_pattern.findall(migration)
+        reverse = alter_pattern.findall(rollback)
+
+        self.assertEqual(len(forward), 22)
+        self.assertEqual(len(set(forward)), 22)
+        self.assertEqual(reverse, forward)
+        self.assertEqual(migration.count("SET search_path = pg_catalog, pg_temp;"), 22)
+        self.assertEqual(rollback.count("SET search_path = pg_catalog;"), 21)
+        self.assertEqual(rollback.count("SET search_path = pg_catalog, pg_temp;"), 1)
+        for forbidden in (
+            "CREATE FUNCTION",
+            "CREATE OR REPLACE FUNCTION",
+            "DROP FUNCTION",
+            "GRANT ",
+            "REVOKE ",
+            "ALTER TABLE",
+            "UPDATE ",
+            "INSERT ",
+            "DELETE ",
+            "EXECUTE ",
+        ):
+            self.assertNotIn(forbidden, migration)
+        self.assertIn("SELECT plan(6);", pgtap)
+        self.assertIn("search_path=pg_catalog, pg_temp", pgtap)
+        self.assertIn("md5(functions.prosrc)", pgtap)
+        self.assertIn("pg_catalog.aclexplode", pgtap)
 
     def test_admin_read_files_expose_and_compensate_only_four_capabilities(self) -> None:
         migration = ADMIN_READ_MIGRATION_PATH.read_text(encoding="utf-8")
@@ -187,6 +257,46 @@ class MvpDatabaseAdditionStructureTests(unittest.TestCase):
         self.assertIn("app_api.approve_kb_candidate(", migration)
         self.assertIn("KB-WASTE-03", pgtap)
         self.assertIn("SELECT plan(36);", pgtap)
+
+    def test_civic_scope_gap_queue_is_bounded_backend_only_and_compensated(self) -> None:
+        migration = CIVIC_SCOPE_GAP_MIGRATION_PATH.read_text(encoding="utf-8")
+        rollback = CIVIC_SCOPE_GAP_ROLLBACK_PATH.read_text(encoding="utf-8")
+        pgtap = CIVIC_SCOPE_GAP_TEST_PATH.read_text(encoding="utf-8")
+        names = (
+            "record_civic_scope_gap",
+            "list_civic_scope_gaps",
+            "review_civic_scope_gap",
+            "purge_expired_civic_scope_gap_text",
+        )
+
+        self.assertIn("CREATE TABLE app_private.civic_scope_gaps", migration)
+        self.assertIn("interval '30 days'", migration)
+        self.assertIn("status IN ('NEW', 'PLANNED', 'DISMISSED')", migration)
+        self.assertNotIn("failed_question_id", migration)
+        self.assertNotIn("candidate_id", migration)
+        self.assertNotIn("kb_document_id", migration)
+        for forbidden in (
+            "raw_question",
+            "answer_snapshot",
+            "source_snapshot",
+            "context_token",
+        ):
+            self.assertNotIn(forbidden, migration)
+
+        for name in names:
+            self.assertIn(f"CREATE FUNCTION app_api.{name}", migration)
+            self.assertIn(f"DROP FUNCTION app_api.{name}", rollback)
+            self.assertIn(name, pgtap)
+
+        self.assertEqual(migration.count("CREATE FUNCTION app_api."), 4)
+        self.assertIn("SET search_path = pg_catalog, pg_temp", migration)
+        self.assertIn("OWNER TO sejong_schema_owner", migration)
+        self.assertIn("FROM PUBLIC, anon, authenticated, sejong_backend", migration)
+        self.assertIn("TO sejong_backend", migration)
+        self.assertIn("DROP TABLE app_private.civic_scope_gaps", rollback)
+        self.assertIn("SELECT plan(22);", pgtap)
+        self.assertIn("terminal scope-gap rows cannot be reviewed twice", pgtap)
+        self.assertIn("purge nulls only expired masked text", pgtap)
 
 
 def powershell_executable() -> str:
@@ -2302,6 +2412,8 @@ class LocalDatabaseToolingContractTests(unittest.TestCase):
         self.assertEqual(
             rollback_paths,
             [
+                "20260727000700_privileged_function_search_path.rollback.sql",
+                "20260727000680_civic_scope_gap_queue.rollback.sql",
                 "20260722000670_candidate_public_id_binding.rollback.sql",
                 "20260722000660_chat_idempotency.rollback.sql",
                 "20260722000650_local_admin_read_capabilities.rollback.sql",
@@ -2335,6 +2447,8 @@ class LocalDatabaseToolingContractTests(unittest.TestCase):
                 ["test", "db"],
                 [
                     "sql",
+                    "20260727000700_privileged_function_search_path.rollback.sql",
+                    "20260727000680_civic_scope_gap_queue.rollback.sql",
                     "20260722000670_candidate_public_id_binding.rollback.sql",
                     "20260722000660_chat_idempotency.rollback.sql",
                     "20260722000650_local_admin_read_capabilities.rollback.sql",

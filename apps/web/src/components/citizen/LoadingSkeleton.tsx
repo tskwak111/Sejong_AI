@@ -2,13 +2,17 @@
  * (D) 로딩 스켈레톤 - DESIGN.md v3 §6-4 (시안 2c). 답변 카드 구조 예고:
  * 헤더(뱃지 자리 + 확인 뱃지 자리) → 본문 2줄 → 번호 원 + 텍스트 스텝 2개 →
  * 출처 블록 자리(64px, verify-light + 초록 계열 테두리) → 스피너 + 안내 문구.
- * 목표 응답 3초(PER-001), 무한 스피너 금지 - 10초 초과 시 오류 카드로 전환.
+ * 대기 시간이 길어지면 부모가 단계별 상태 문구를 전달한다.
  */
-export default function LoadingSkeleton() {
+export default function LoadingSkeleton({
+  message = "공식 자료에서 확인하고 있어요.",
+}: {
+  message?: string;
+}) {
   return (
     <div
       role="status"
-      aria-label="공식 자료에서 확인하고 있어요"
+      aria-label={message.replace(/\.$/, "")}
       className="overflow-hidden rounded-card border border-border bg-white shadow-card"
     >
       {/* 헤더 - 뱃지 자리 + 확인 뱃지 자리 */}
@@ -42,7 +46,7 @@ export default function LoadingSkeleton() {
             className="h-[18px] w-[18px] shrink-0 animate-spin rounded-full border-[3px] border-primary-border border-t-primary"
           />
           <span className="text-[16px] font-semibold text-text-sub">
-            공식 자료에서 확인하고 있어요. 보통 3초 안에 답해드려요.
+            {message}
           </span>
         </p>
       </div>

@@ -40,7 +40,7 @@
       "type": "object",
       "required": ["reason", "title", "message", "candidate_eligible"],
       "properties": {
-        "reason": { "enum": ["INSUFFICIENT_GROUNDING", "PERSONAL_LOOKUP", "LEGAL_JUDGMENT", "OUT_OF_SCOPE", "PRIVACY_UNRESOLVED"] },
+        "reason": { "enum": ["INSUFFICIENT_GROUNDING", "PERSONAL_LOOKUP", "LEGAL_JUDGMENT", "CIVIC_SCOPE_GAP", "OUT_OF_SCOPE", "PRIVACY_UNRESOLVED"] },
         "title": { "type": "string" },
         "message": { "type": "string" },
         "next_actions": { "type": "array", "items": { "type": "string" } },
@@ -69,6 +69,14 @@
       "allOf": [
         { "$ref": "#/$defs/fallbackPayloadBase" },
         { "type": "object", "required": ["reason", "candidate_eligible"], "properties": { "reason": { "const": "LEGAL_JUDGMENT" }, "candidate_eligible": { "const": false } } }
+      ],
+      "unevaluatedProperties": false
+    },
+    "civicScopeGapFallback": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/fallbackPayloadBase" },
+        { "type": "object", "required": ["reason", "candidate_eligible"], "properties": { "reason": { "const": "CIVIC_SCOPE_GAP" }, "candidate_eligible": { "const": false } } }
       ],
       "unevaluatedProperties": false
     },
@@ -109,6 +117,7 @@
             { "$ref": "#/$defs/insufficientGroundingFallback" },
             { "$ref": "#/$defs/personalLookupFallback" },
             { "$ref": "#/$defs/legalJudgmentFallback" },
+            { "$ref": "#/$defs/civicScopeGapFallback" },
             { "$ref": "#/$defs/outOfScopeFallback" },
             { "$ref": "#/$defs/privacyUnresolvedFallback" },
             { "type": "null" }
@@ -185,6 +194,7 @@
                 { "$ref": "#/$defs/insufficientGroundingFallback" },
                 { "$ref": "#/$defs/personalLookupFallback" },
                 { "$ref": "#/$defs/legalJudgmentFallback" },
+                { "$ref": "#/$defs/civicScopeGapFallback" },
                 { "$ref": "#/$defs/outOfScopeFallback" },
                 { "$ref": "#/$defs/privacyUnresolvedFallback" }
               ]
@@ -218,6 +228,14 @@
       ],
       "unevaluatedProperties": false
     },
+    "civicScopeGapResponse": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/fallbackResponseBase" },
+        { "type": "object", "required": ["intent", "fallback"], "properties": { "intent": { "const": "OUT_OF_SCOPE" }, "fallback": { "$ref": "#/$defs/civicScopeGapFallback" } } }
+      ],
+      "unevaluatedProperties": false
+    },
     "outOfScopeResponse": {
       "type": "object",
       "allOf": [
@@ -239,6 +257,7 @@
         { "$ref": "#/$defs/insufficientGroundingResponse" },
         { "$ref": "#/$defs/personalLookupResponse" },
         { "$ref": "#/$defs/legalJudgmentResponse" },
+        { "$ref": "#/$defs/civicScopeGapResponse" },
         { "$ref": "#/$defs/outOfScopeResponse" },
         { "$ref": "#/$defs/privacyUnresolvedResponse" }
       ]

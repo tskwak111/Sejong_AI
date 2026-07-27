@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * (C) FALLBACK 카드 - DESIGN.md v3 §6-3 (시안 2b), 계약 폴백 5종.
+ * (C) FALLBACK 카드 - DESIGN.md v3 §6-3 (시안 2b), 계약 폴백 6종.
  * 오류가 아닌 "다음 행동" 문법 - danger(빨강) 절대 금지 (§2).
  * 공통 구조: 헤더 뱃지(primary-light 문법) → 제목(fallback.title) →
  * 리드 문장(fallback.message) → next_actions → CTA → 하단 노트(기관 정보).
  * 출처 블록·도장 없음 - 의도된 부재 (검증된 답변이 아니므로).
  *
  * 계약 적응:
- * - 사유 5종 (PRIVACY_UNRESOLVED 추가 - 계약 고정 문구 그대로 표시)
+ * - 사유 6종 (CIVIC_SCOPE_GAP·PRIVACY_UNRESOLVED 포함)
  * - 기관 정보는 fallback.office(Office|null) - 없으면 민원콜센터 상수
  * - PERSONAL_LOOKUP의 공식 조회 채널 딥링크는 계약에 없어 UI 상수 사용 (보고 항목)
  */
@@ -29,6 +29,7 @@ const FALLBACK_BADGE: Record<FallbackReason, string> = {
   INSUFFICIENT_GROUNDING: "확인 후 안내",
   PERSONAL_LOOKUP: "담당 부서 연결",
   LEGAL_JUDGMENT: "전문 상담 연결",
+  CIVIC_SCOPE_GAP: "지원 확대 검토",
   OUT_OF_SCOPE: "다른 창구 안내",
   PRIVACY_UNRESOLVED: "다시 질문 안내",
 };
@@ -161,7 +162,7 @@ export default function FallbackCard({ fallback }: { fallback: Fallback }) {
             </a>
           </>
         ) : code === "PRIVACY_UNRESOLVED" ? null : (
-          // LEGAL_JUDGMENT / OUT_OF_SCOPE - 담당 부서·대표전화 연결
+          // LEGAL_JUDGMENT / CIVIC_SCOPE_GAP / OUT_OF_SCOPE - 대표전화 연결
           telCta(ctaFill)
         )}
 
@@ -190,11 +191,14 @@ export default function FallbackCard({ fallback }: { fallback: Fallback }) {
             {office?.address && <p>{office.address}</p>}
             {/* 저장 정책 문구 - Q-MVP-002/D-059 (개인정보 최소수집 강화):
                 INSUFFICIENT_GROUNDING만 마스킹 후 30일 보관.
+                CIVIC_SCOPE_GAP은 별도 범위확대 queue에 마스킹 후 30일 보관.
                 PERSONAL_LOOKUP·LEGAL_JUDGMENT·OUT_OF_SCOPE는 완전 미저장. */}
             <p className="mt-1">
               {code === "INSUFFICIENT_GROUNDING"
                 ? "이 질문은 안내 개선을 위해 개인정보를 가린 채 30일간만 보관돼요."
-                : "질문 내용은 저장되지 않았습니다."}
+                : code === "CIVIC_SCOPE_GAP"
+                  ? "이 질문은 지원 범위 검토를 위해 개인정보를 가린 채 30일간만 보관돼요."
+                  : "질문 내용은 저장되지 않았습니다."}
             </p>
           </div>
         )}

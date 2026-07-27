@@ -569,6 +569,14 @@ function createAdminFixture(): AdminTransport {
       );
       return { id, status: "REASON_CONFIRMED" };
     },
+    async listCivicScopeGaps() {
+      await delay(ADMIN_DELAY_MS);
+      return { items: [], total: 0 };
+    },
+    async reviewCivicScopeGap() {
+      await delay(ADMIN_DELAY_MS);
+      throw new Error("fixture has no official civic scope-gap review queue");
+    },
     async listCandidates() {
       await delay(ADMIN_DELAY_MS);
       return { items: kbCandidates.map((c) => ({ ...c })), total: kbCandidates.length };

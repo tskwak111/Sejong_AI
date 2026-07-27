@@ -72,8 +72,8 @@ DB-001 local baseline은 다음 영구 gate를 요구한다.
 `127.0.0.1:54322`, 두 pgTAP phase exit 0(현재 6 files/282), backend integration 8/8, 6개
 compensation/absence/reset/replay, final container 0/0을 증명했다. 이어 root gate 956.658s,
 package·secret·protected diff, combined patched/runner tooling 73/73가 모두 PASS했다. 이 결과는
-공개 운영의 보안·용량·백업·TLS·rate limit을 증명하지 않고 A-021 해결 전 public release 근거로
-사용하지 않는다.
+공개 운영의 용량·백업·TLS·rate limit을 증명하지 않는다. A-021/00700 local hardening은
+별도 11-file pgTAP/rollback/replay로 해결했지만 configured remote smoke를 대체하지 않는다.
 
 `73f300b` remediation은 focused descendant cleanup 1/1(15.700s), full runner 50/50(318.556s),
 patched tooling 24/24(262.368s), AST error 0·secret·protected gate와 독립 review 0/0/0을 통과했다.

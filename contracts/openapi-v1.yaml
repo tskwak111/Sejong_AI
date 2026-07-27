@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sejong Civil AI API
-  version: 3.3.0-draft
+  version: 4.0.0-draft
   description: |
     Final-scope draft. Validate through discovery/interview before implementation.
     Admin routes are local/private demo surfaces, not public authentication boundaries.
@@ -120,6 +120,43 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReasonConfirmationResponse' }
+        '403': { $ref: '#/components/responses/AdminError' }
+        '404': { $ref: '#/components/responses/AdminError' }
+        '409': { $ref: '#/components/responses/AdminError' }
+        '422': { $ref: '#/components/responses/AdminError' }
+  /api/v1/admin/civic-scope-gaps:
+    get:
+      operationId: listCivicScopeGaps
+      parameters:
+        - { $ref: '#/components/parameters/DemoActorId' }
+        - { $ref: '#/components/parameters/DemoRole' }
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/CivicScopeGapStatus' } }
+      responses:
+        '200':
+          description: Separate masked civic scope-gap review queue
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CivicScopeGapListResponse' }
+        '403': { $ref: '#/components/responses/AdminError' }
+        '422': { $ref: '#/components/responses/AdminError' }
+  /api/v1/admin/civic-scope-gaps/{id}/review:
+    patch:
+      operationId: reviewCivicScopeGap
+      parameters:
+        - { $ref: '#/components/parameters/IdPath' }
+        - { $ref: '#/components/parameters/DemoActorId' }
+        - { $ref: '#/components/parameters/DemoRole' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CivicScopeGapReviewRequest' }
+      responses:
+        '200':
+          description: Scope gap marked for planning or dismissal without creating KB
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CivicScopeGapReviewResponse' }
         '403': { $ref: '#/components/responses/AdminError' }
         '404': { $ref: '#/components/responses/AdminError' }
         '409': { $ref: '#/components/responses/AdminError' }
@@ -278,10 +315,10 @@ components:
       enum: [SUCCESS, FOLLOWUP, FALLBACK]
     FallbackReason:
       type: string
-      enum: [INSUFFICIENT_GROUNDING, PERSONAL_LOOKUP, LEGAL_JUDGMENT, OUT_OF_SCOPE, PRIVACY_UNRESOLVED]
+      enum: [INSUFFICIENT_GROUNDING, PERSONAL_LOOKUP, LEGAL_JUDGMENT, CIVIC_SCOPE_GAP, OUT_OF_SCOPE, PRIVACY_UNRESOLVED]
     StoredFailureReason:
       type: string
-      description: OUT_OF_SCOPE never creates a failed_questions row.
+      description: OUT_OF_SCOPE and CIVIC_SCOPE_GAP never create a failed_questions row.
       enum: [INSUFFICIENT_GROUNDING, PERSONAL_LOOKUP, LEGAL_JUDGMENT]
     FailedQuestionStatus:
       type: string
@@ -462,6 +499,16 @@ components:
             reason: { const: LEGAL_JUDGMENT }
             candidate_eligible: { const: false }
       unevaluatedProperties: false
+    CivicScopeGapFallback:
+      type: object
+      allOf:
+        - { $ref: '#/components/schemas/FallbackPayloadBase' }
+        - type: object
+          required: [reason, candidate_eligible]
+          properties:
+            reason: { const: CIVIC_SCOPE_GAP }
+            candidate_eligible: { const: false }
+      unevaluatedProperties: false
     OutOfScopeFallback:
       type: object
       allOf:
@@ -495,6 +542,7 @@ components:
         - { $ref: '#/components/schemas/InsufficientGroundingFallback' }
         - { $ref: '#/components/schemas/PersonalLookupFallback' }
         - { $ref: '#/components/schemas/LegalJudgmentFallback' }
+        - { $ref: '#/components/schemas/CivicScopeGapFallback' }
         - { $ref: '#/components/schemas/OutOfScopeFallback' }
         - { $ref: '#/components/schemas/PrivacyUnresolvedFallback' }
     ChatResponseBase:
@@ -609,6 +657,16 @@ components:
             intent: { const: UNKNOWN }
             fallback: { $ref: '#/components/schemas/LegalJudgmentFallback' }
       unevaluatedProperties: false
+    CivicScopeGapResponse:
+      type: object
+      allOf:
+        - { $ref: '#/components/schemas/FallbackResponseBase' }
+        - type: object
+          required: [intent, fallback]
+          properties:
+            intent: { const: OUT_OF_SCOPE }
+            fallback: { $ref: '#/components/schemas/CivicScopeGapFallback' }
+      unevaluatedProperties: false
     OutOfScopeResponse:
       type: object
       allOf:
@@ -635,6 +693,7 @@ components:
         - { $ref: '#/components/schemas/InsufficientGroundingResponse' }
         - { $ref: '#/components/schemas/PersonalLookupResponse' }
         - { $ref: '#/components/schemas/LegalJudgmentResponse' }
+        - { $ref: '#/components/schemas/CivicScopeGapResponse' }
         - { $ref: '#/components/schemas/OutOfScopeResponse' }
         - { $ref: '#/components/schemas/PrivacyUnresolvedResponse' }
     ChatResponse:
@@ -701,6 +760,80 @@ components:
       required: [item]
       properties:
         item: { $ref: '#/components/schemas/FailedQuestion' }
+    CivicScopeGapStatus:
+      type: string
+      enum: [NEW, PLANNED, DISMISSED]
+    CivicScopeGapSummary:
+      type: object
+      additionalProperties: false
+      x-sejong-state-invariant: civic-scope-gap-state-v1
+      required: [id, masked_question, status, created_at, updated_at, text_expires_at, text_purged_at, reviewed_by, reviewed_at, review_comment]
+      properties:
+        id: { type: string, format: uuid }
+        masked_question:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 2000
+          description: PII-safe text only; null after exact 30-day retention purge.
+        status: { $ref: '#/components/schemas/CivicScopeGapStatus' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        text_expires_at:
+          type: string
+          format: date-time
+          description: Exactly 30 days after creation.
+        text_purged_at: { type: ['string', 'null'], format: date-time }
+        reviewed_by: { type: [string, 'null'], minLength: 1, maxLength: 200 }
+        reviewed_at: { type: ['string', 'null'], format: date-time }
+        review_comment: { type: [string, 'null'], minLength: 1, maxLength: 1000 }
+      allOf:
+        - if:
+            properties:
+              status: { const: NEW }
+            required: [status]
+          then:
+            properties:
+              reviewed_by: { type: 'null' }
+              reviewed_at: { type: 'null' }
+              review_comment: { type: 'null' }
+          else:
+            properties:
+              reviewed_by: { type: string, minLength: 1, maxLength: 200 }
+              reviewed_at: { type: string, format: date-time }
+              review_comment: { type: string, minLength: 1, maxLength: 1000 }
+        - if:
+            properties:
+              masked_question: { type: 'null' }
+            required: [masked_question]
+          then:
+            properties:
+              text_purged_at: { type: string, format: date-time }
+          else:
+            properties:
+              text_purged_at: { type: 'null' }
+    CivicScopeGapListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CivicScopeGapSummary' }
+        total: { type: integer, minimum: 0 }
+    CivicScopeGapReviewRequest:
+      type: object
+      additionalProperties: false
+      required: [decision, review_comment]
+      properties:
+        decision: { type: string, enum: [PLANNED, DISMISSED] }
+        review_comment: { type: string, minLength: 1, maxLength: 1000 }
+    CivicScopeGapReviewResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [PLANNED, DISMISSED] }
     ReasonConfirmationResponse:
       type: object
       additionalProperties: false

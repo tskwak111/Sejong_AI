@@ -144,8 +144,8 @@ SELECT is(
       AND relations.relkind = 'r'
       AND owners.rolname = 'sejong_schema_owner'
   ),
-  9,
-  'schema owner owns all nine approved local/private base tables'
+  10,
+  'schema owner owns all ten approved local/private base tables'
 );
 
 SELECT is(
@@ -170,8 +170,8 @@ SELECT is(
       AND relations.relkind = 'r'
       AND relations.relrowsecurity
   ),
-  9,
-  'all nine approved local/private base tables have RLS enabled'
+  10,
+  'all ten approved local/private base tables have RLS enabled'
 );
 
 SELECT is(
@@ -183,8 +183,8 @@ SELECT is(
       AND relations.relkind = 'r'
       AND relations.relforcerowsecurity
   ),
-  9,
-  'all nine approved local/private base tables force RLS'
+  10,
+  'all ten approved local/private base tables force RLS'
 );
 
 SELECT is(
@@ -195,8 +195,8 @@ SELECT is(
     JOIN pg_catalog.pg_namespace AS namespaces ON namespaces.oid = relations.relnamespace
     WHERE namespaces.nspname = 'app_private'
   ),
-  9,
-  'app_private has exactly nine owner-only policies total'
+  10,
+  'app_private has exactly ten owner-only policies total'
 );
 
 SELECT results_eq(
@@ -235,6 +235,8 @@ SELECT results_eq(
         ('audit_logs'::text, 'audit_logs_owner_all'::text,
          '*'::text, true, true, 'true'::text, 'true'::text),
         ('chat_idempotency'::text, 'chat_idempotency_owner_all'::text,
+         '*'::text, true, true, 'true'::text, 'true'::text),
+        ('civic_scope_gaps'::text, 'civic_scope_gaps_owner_all'::text,
          '*'::text, true, true, 'true'::text, 'true'::text),
         ('failed_questions'::text, 'failed_questions_owner_all'::text,
          '*'::text, true, true, 'true'::text, 'true'::text),
@@ -410,6 +412,18 @@ SELECT results_eq(
           )::oid,
           pg_catalog.to_regprocedure(
             'app_api.purge_expired_chat_idempotency()'
+          )::oid,
+          pg_catalog.to_regprocedure(
+            'app_api.record_civic_scope_gap(text)'
+          )::oid,
+          pg_catalog.to_regprocedure(
+            'app_api.list_civic_scope_gaps(text)'
+          )::oid,
+          pg_catalog.to_regprocedure(
+            'app_api.review_civic_scope_gap(uuid,text,text,text,text)'
+          )::oid,
+          pg_catalog.to_regprocedure(
+            'app_api.purge_expired_civic_scope_gap_text()'
           )::oid
         ]::oid[],
         NULL::oid
@@ -482,6 +496,18 @@ SELECT is(
             )::oid,
             pg_catalog.to_regprocedure(
               'app_api.purge_expired_chat_idempotency()'
+            )::oid,
+            pg_catalog.to_regprocedure(
+              'app_api.record_civic_scope_gap(text)'
+            )::oid,
+            pg_catalog.to_regprocedure(
+              'app_api.list_civic_scope_gaps(text)'
+            )::oid,
+            pg_catalog.to_regprocedure(
+              'app_api.review_civic_scope_gap(uuid,text,text,text,text)'
+            )::oid,
+            pg_catalog.to_regprocedure(
+              'app_api.purge_expired_civic_scope_gap_text()'
             )::oid
           ]::oid[],
           NULL::oid
@@ -513,16 +539,8 @@ SELECT ok(
       AND (
         owners.rolname <> 'sejong_schema_owner'
         OR NOT functions.prosecdef
-        OR functions.proconfig IS DISTINCT FROM CASE
-          WHEN functions.proname IN (
-            'list_failed_questions', 'get_failed_question',
-            'list_kb_candidates', 'get_kb_candidate',
-            'approve_kb_candidate_with_public_id',
-            'claim_chat_idempotency', 'complete_chat_idempotency',
-            'abandon_chat_idempotency', 'purge_expired_chat_idempotency'
-          ) THEN ARRAY['search_path=pg_catalog, pg_temp']::text[]
-          ELSE ARRAY['search_path=pg_catalog']::text[]
-        END
+        OR functions.proconfig IS DISTINCT FROM
+          ARRAY['search_path=pg_catalog, pg_temp']::text[]
       )
   ),
   'every app_api function is schema-owner SECURITY DEFINER with fixed search_path'
@@ -564,7 +582,8 @@ SELECT ok(
 SELECT ok(
   (
     SELECT owners.rolname = 'sejong_schema_owner'
-      AND functions.proconfig = ARRAY['search_path=pg_catalog']::text[]
+      AND functions.proconfig =
+        ARRAY['search_path=pg_catalog, pg_temp']::text[]
     FROM pg_catalog.pg_proc AS functions
     JOIN pg_catalog.pg_roles AS owners ON owners.oid = functions.proowner
     WHERE functions.oid = pg_catalog.to_regprocedure(

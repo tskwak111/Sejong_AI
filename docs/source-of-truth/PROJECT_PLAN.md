@@ -257,6 +257,8 @@ audit_logs
 | OUT_OF_SCOPE | 불가 | 질문 텍스트 저장 금지, 이벤트만 |
 | PRIVACY_UNRESOLVED | 불가 | 7/25 local은 질문 텍스트·실패 질문 행·DB event 모두 미생성 |
 | FOLLOWUP | 해당 없음 | 실패 질문 목록 미저장 |
+| CIVIC_SCOPE_GAP (planned) | 기존 KB 후보 불가 | 별도 범위확대 queue의 마스킹 text 30일; 구현 전 current runtime 무저장 |
+| NON_CIVIC (planned) | 불가 | 질문 text·검토 row 미저장 |
 
 Q-PM-DEMO-001=B의 local/private 실제 시연에서는 먼저 `PERSONAL_LOOKUP` 전후
 `interaction_events`·`failed_questions` count 무변화를 확인하고, 별도의
@@ -297,6 +299,9 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
 - 마스킹 성공은 저장·provider 호출의 필요조건일 뿐 충분조건이 아니다. local/private에서는
   supported intent·ACTIVE/OFFICIAL·grounding까지 통과해야 하며 public/remote/실제 기관 운영의
   시민 질문은 별도 승인 전 Upstage 또는 다른 외부 LLM에 전송하지 않는다.
+- Q-CLASS-001=A의 future local/private hybrid classifier는 PII/policy deterministic gate 뒤
+  ambiguous current question만 closed enum 분류에 사용한다. Q-CLASS-002 비용·호출 상한,
+  written spec과 plan 승인 전 current runtime/actual call은 0이다.
 - 화면상 대화 기록과 15분 서명형 `context_token`은 현재 브라우저 탭 메모리에만 둔다. 서버 세션·raw 대화문·token을 DB/로그에 저장하지 않고 새로고침·탭 종료 시 화면 기록을 없앤다.
 - token에는 서버 정의 enum/ID와 발급·만료 시각만 허용하며 질문·답변·PII·URL·공식 사실을 넣지 않는다. 만료·위변조 token은 문맥 없는 새 요청으로 처리하고 인증·권한·ACTIVE KB·근거 판단에 사용하지 않는다.
 - 정책 폴백은 HTTP 200이다. provider/DB 장애라도 ACTIVE KB·검증 snapshot으로 안전 응답이 가능하면 200이고, 안전 대체가 없을 때만 HTTP 503 `SERVICE_UNAVAILABLE`을 반환한다.

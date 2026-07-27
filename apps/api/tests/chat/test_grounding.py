@@ -82,6 +82,25 @@ def test_grounding_matches_approved_terms_inside_compound_korean_tokens() -> Non
     assert {"침대", "프레임"}.issubset(decision.matched_tokens)
 
 
+def test_exact_approved_question_example_can_ground_without_keyword_anchor() -> None:
+    question = "이 민원 신청 방법 알려줘"
+    record = knowledge(question_examples=(question,))
+
+    exact = evaluate_grounding(
+        safe_question(question),
+        Intent.BULKY_WASTE,
+        record,
+    )
+    near_but_unapproved = evaluate_grounding(
+        safe_question("이 민원 접수 방법 알려줘"),
+        Intent.BULKY_WASTE,
+        record,
+    )
+
+    assert exact.is_grounded is True
+    assert near_but_unapproved.is_grounded is False
+
+
 def test_high_risk_and_source_facts_are_read_only_views_of_the_kb_record() -> None:
     record = knowledge(
         processing_time="신고 즉시",
@@ -190,3 +209,20 @@ def test_grounding_accepts_newly_approved_detail_when_record_contains_it() -> No
     )
 
     assert decision.is_grounded is True
+
+
+def test_validated_context_can_reuse_current_active_topic_for_bounded_detail() -> None:
+    record = knowledge(
+        service_name="대형폐기물 배출 안내",
+        question_examples=("대형폐기물은 어떻게 버리나요?",),
+    )
+
+    decision = evaluate_grounding(
+        safe_question("비용은요?"),
+        Intent.BULKY_WASTE,
+        record,
+        allow_contextual_detail=True,
+    )
+
+    assert decision.is_grounded is True
+    assert decision.record is record

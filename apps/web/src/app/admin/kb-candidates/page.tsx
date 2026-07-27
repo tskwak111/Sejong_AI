@@ -22,6 +22,14 @@ import Toast from "@/components/common/Toast";
 type FailedQuestion = components["schemas"]["FailedQuestion"];
 type KBCandidateSummary = components["schemas"]["KBCandidateSummary"];
 type ReviewDecision = components["schemas"]["CandidateReviewRequest"]["decision"];
+type CandidateStatus = components["schemas"]["KBCandidateStatus"];
+
+const STATUS_FILTERS: ReadonlyArray<{ value: CandidateStatus; label: string }> = [
+  { value: "DRAFTED", label: "작성 중" },
+  { value: "PENDING_APPROVAL", label: "승인 대기" },
+  { value: "APPROVED", label: "승인 완료" },
+  { value: "REJECTED", label: "반려" },
+];
 
 export default function AdminKbCandidatesPage() {
   const { transport, actor, role, mode, notifyDataChanged } = useAdmin();
@@ -35,6 +43,8 @@ export default function AdminKbCandidatesPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [justApprovedId, setJustApprovedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] =
+    useState<CandidateStatus>("PENDING_APPROVAL");
 
   // setState는 조회 완료 콜백에서만 - 이펙트 본문 동기 setState 금지 규칙 준수
   const fetchData = useCallback(
@@ -109,6 +119,7 @@ export default function AdminKbCandidatesPage() {
 
   const pending = (items ?? []).filter((c) => c.status === "PENDING_APPROVAL");
   const pendingCount = pending.length;
+  const filteredHistory = (items ?? []).filter((item) => item.status === statusFilter);
 
   // 선택된 후보 - 명시 선택이 없으면 대기 목록 첫 건.
   // 판정이 끝난 후보는 승인 직후 완료형(justApproved)일 때만 상세에 남는다.
@@ -141,7 +152,7 @@ export default function AdminKbCandidatesPage() {
         title="KB 후보 승인"
         subtitle={
           <>
-            <span>실패 질문에서 AI가 작성한 초안</span>
+            <span>운영자가 공식 출처를 확인해 작성한 KB 후보</span>
             <span>별도 승인자가 승인하면 ACTIVE로 반영</span>
           </>
         }
@@ -184,6 +195,33 @@ export default function AdminKbCandidatesPage() {
       />
 
       <div className="px-5 py-[22px] md:px-7">
+        {items !== null && (
+          <div
+            role="group"
+            aria-label="KB 후보 상태"
+            className="mb-4 flex gap-2 overflow-x-auto pb-1"
+          >
+            {STATUS_FILTERS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={statusFilter === value}
+                onClick={() => {
+                  setStatusFilter(value);
+                  setSelectedId(null);
+                  setJustApprovedId(null);
+                }}
+                className={`min-h-11 shrink-0 rounded-pill px-4 text-note font-bold ${
+                  statusFilter === value
+                    ? "bg-primary text-white"
+                    : "border border-border bg-white text-text-sub"
+                }`}
+              >
+                {label} {items.filter((item) => item.status === value).length}
+              </button>
+            ))}
+          </div>
+        )}
         {items === null ? (
           <p className="text-admin-body text-text-sub">불러오는 중…</p>
         ) : items.length === 0 ? (
@@ -199,6 +237,36 @@ export default function AdminKbCandidatesPage() {
               </Link>
             }
           />
+        ) : statusFilter !== "PENDING_APPROVAL" ? (
+          filteredHistory.length === 0 ? (
+            <p className="rounded-card-s border border-border bg-white px-4 py-4 text-caption text-text-sub">
+              이 상태의 KB 후보가 없습니다.
+            </p>
+          ) : (
+            <ul className="grid gap-3">
+              {filteredHistory.map((candidate) => (
+                <li
+                  key={candidate.id}
+                  className="rounded-card-s border border-border bg-white p-4"
+                >
+                  <p className="text-admin-body font-extrabold text-text">
+                    {candidate.title}
+                  </p>
+                  <p className="mt-1 text-caption text-text-sub">
+                    작성 {candidate.created_by}
+                    {candidate.reviewed_by
+                      ? ` · 검수 ${candidate.reviewed_by}`
+                      : ""}
+                  </p>
+                  {candidate.review_comment && (
+                    <p className="mt-2 text-note text-text">
+                      검수 의견: {candidate.review_comment}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )
         ) : (
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
             {/* 좌: 승인 대기 목록 300px (§9-3) */}

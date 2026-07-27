@@ -19,6 +19,14 @@ UPSTAGE_RUN_ATTEMPT_CAP = 30
 UPSTAGE_CHAT_TIMEOUT_SECONDS = 8.0
 UPSTAGE_CHAT_MAX_RETRIES = 0
 
+UPSTAGE_CLASSIFIER_TIMEOUT_SECONDS = 3.0
+UPSTAGE_CLASSIFIER_MAX_RETRIES = 0
+UPSTAGE_CLASSIFIER_MAX_INPUT_CHARS = 1024
+UPSTAGE_CLASSIFIER_MAX_OUTPUT_TOKENS = 128
+UPSTAGE_CLASSIFIER_ATTEMPT_CAP = 20
+UPSTAGE_GENERATOR_ATTEMPT_CAP = 30
+UPSTAGE_COMBINED_ATTEMPT_CAP = 40
+
 _KEY_NAME = "LLM_API_KEY"
 _SETTINGS_KEYS = (
     "LLM_PROVIDER",
@@ -31,10 +39,17 @@ _SETTINGS_KEYS = (
     "LLM_MAX_INPUT_TOKENS",
     "LLM_MAX_OUTPUT_TOKENS",
     "LLM_RUN_ATTEMPT_CAP",
+    "LLM_CLASSIFIER_TIMEOUT_SECONDS",
+    "LLM_CLASSIFIER_MAX_RETRIES",
+    "LLM_CLASSIFIER_MAX_INPUT_CHARS",
+    "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS",
+    "LLM_CLASSIFIER_ATTEMPT_CAP",
+    "LLM_GENERATOR_ATTEMPT_CAP",
+    "LLM_COMBINED_ATTEMPT_CAP",
     "UPSTAGE_SYNTHETIC_EVALUATION_MODE",
+    "UPSTAGE_CLASSIFIER_MODE",
     "UPSTAGE_GROUNDED_CHAT_MODE",
 )
-_NON_SECRET_SETTINGS_KEYS = tuple(key for key in _SETTINGS_KEYS if key != _KEY_NAME)
 
 _SYNTHETIC_EXACT_VALUES = {
     "LLM_PROVIDER": UPSTAGE_PROVIDER,
@@ -47,6 +62,7 @@ _SYNTHETIC_EXACT_VALUES = {
     "LLM_MAX_OUTPUT_TOKENS": "1024",
     "LLM_RUN_ATTEMPT_CAP": "30",
     "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "true",
+    "UPSTAGE_CLASSIFIER_MODE": "false",
     "UPSTAGE_GROUNDED_CHAT_MODE": "false",
 }
 _CHAT_EXACT_VALUES = {
@@ -55,6 +71,37 @@ _CHAT_EXACT_VALUES = {
     "LLM_MAX_RETRIES": "0",
     "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
     "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+}
+_CLASSIFIER_EXACT_VALUES = {
+    "LLM_PROVIDER": UPSTAGE_PROVIDER,
+    "LLM_MODEL": UPSTAGE_MODEL,
+    "LLM_BASE_URL": UPSTAGE_BASE_URL,
+    "LLM_MAX_CONCURRENCY": "1",
+    "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
+    "UPSTAGE_CLASSIFIER_MODE": "true",
+    "UPSTAGE_GROUNDED_CHAT_MODE": "false",
+    "LLM_CLASSIFIER_TIMEOUT_SECONDS": "3",
+    "LLM_CLASSIFIER_MAX_RETRIES": "0",
+    "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
+    "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
+    "LLM_CLASSIFIER_ATTEMPT_CAP": "20",
+    "LLM_GENERATOR_ATTEMPT_CAP": "30",
+    "LLM_COMBINED_ATTEMPT_CAP": "40",
+}
+_COMBINED_CLASSIFIER_EXACT_VALUES = {
+    **_CLASSIFIER_EXACT_VALUES,
+    "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+}
+_COMBINED_CHAT_EXACT_VALUES = {
+    **_CHAT_EXACT_VALUES,
+    "UPSTAGE_CLASSIFIER_MODE": "true",
+    "LLM_CLASSIFIER_TIMEOUT_SECONDS": "3",
+    "LLM_CLASSIFIER_MAX_RETRIES": "0",
+    "LLM_CLASSIFIER_MAX_INPUT_CHARS": "1024",
+    "LLM_CLASSIFIER_MAX_OUTPUT_TOKENS": "128",
+    "LLM_CLASSIFIER_ATTEMPT_CAP": "20",
+    "LLM_GENERATOR_ATTEMPT_CAP": "30",
+    "LLM_COMBINED_ATTEMPT_CAP": "40",
 }
 
 
@@ -87,6 +134,22 @@ class UpstageChatSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class UpstageClassifierSettings:
+    api_key: str = field(repr=False)
+    provider: str = UPSTAGE_PROVIDER
+    model: str = UPSTAGE_MODEL
+    base_url: str = UPSTAGE_BASE_URL
+    timeout_seconds: float = UPSTAGE_CLASSIFIER_TIMEOUT_SECONDS
+    max_retries: int = UPSTAGE_CLASSIFIER_MAX_RETRIES
+    max_concurrency: int = UPSTAGE_MAX_CONCURRENCY
+    max_input_chars: int = UPSTAGE_CLASSIFIER_MAX_INPUT_CHARS
+    max_output_tokens: int = UPSTAGE_CLASSIFIER_MAX_OUTPUT_TOKENS
+    classifier_attempt_cap: int = UPSTAGE_CLASSIFIER_ATTEMPT_CAP
+    generator_attempt_cap: int = UPSTAGE_GENERATOR_ATTEMPT_CAP
+    combined_attempt_cap: int = UPSTAGE_COMBINED_ATTEMPT_CAP
+
+
+@dataclass(frozen=True, slots=True)
 class _DotenvNonSecretProfile:
     values: Mapping[str, str]
     api_key_assignments: int
@@ -112,12 +175,39 @@ def load_upstage_chat_settings(
     env_path: Path | None = None,
 ) -> UpstageChatSettings | None:
     """Return settings only for the exact local grounded-chat profile."""
-    api_key = _load_profile_api_key(
-        expected_values=_CHAT_EXACT_VALUES,
-        environ=environ,
-        env_path=env_path,
-    )
-    return UpstageChatSettings(api_key=api_key) if api_key is not None else None
+    for expected_values in (
+        _CHAT_EXACT_VALUES,
+        _COMBINED_CHAT_EXACT_VALUES,
+    ):
+        api_key = _load_profile_api_key(
+            expected_values=expected_values,
+            environ=environ,
+            env_path=env_path,
+        )
+        if api_key is not None:
+            return UpstageChatSettings(api_key=api_key)
+    return None
+
+
+def load_upstage_classifier_settings(
+    *,
+    environ: Mapping[str, str] | None = None,
+    env_path: Path | None = None,
+) -> UpstageClassifierSettings | None:
+    """Return settings only for an exact classifier-only or combined profile."""
+
+    for expected_values in (
+        _CLASSIFIER_EXACT_VALUES,
+        _COMBINED_CLASSIFIER_EXACT_VALUES,
+    ):
+        api_key = _load_profile_api_key(
+            expected_values=expected_values,
+            environ=environ,
+            env_path=env_path,
+        )
+        if api_key is not None:
+            return UpstageClassifierSettings(api_key=api_key)
+    return None
 
 
 def _load_profile_api_key(
@@ -133,8 +223,7 @@ def _load_profile_api_key(
         return None
 
     non_secret_values = {
-        key: _merged_value(key, process_values, dotenv_profile.values)
-        for key in _NON_SECRET_SETTINGS_KEYS
+        key: _merged_value(key, process_values, dotenv_profile.values) for key in expected_values
     }
     if any(value is None or not _is_safe_value(value) for value in non_secret_values.values()):
         return None

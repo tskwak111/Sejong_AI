@@ -31,3 +31,5 @@
 - 0021: local policy fallback, admin read와 durable chat idempotency
 - 0022: Upstage Solar Pro 3 합성 평가와 실제 시민 경로 분리
 - 0023: local/private 근거 제한형 Upstage 시민 답변 생성
+- 0024: 현재 지원 범위 밖 행정 민원의 별도 범위확대 검토 큐
+- 0025: deterministic safety gate와 bounded LLM의 hybrid 질문 분류

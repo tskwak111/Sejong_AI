@@ -17,14 +17,14 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-011 | C | 코드 | Defaultable | 모듈 명명·파일 분할 | framework conventions |
 | A-012 | A | 저장소 | Resolved / private hosting successor approved | 원본 원격 없이 독립 Git repo와 `main`을 시작한 역사적 결정은 유지하며, 후속 private GitHub source remote는 D-047/COLLAB-001이 소유 | Q-REPO-001 / D-009 / D-047 / ADR-0019 |
 | A-013 | A | 개인정보 | Resolved | 30일 후 masked text만 파기, 행·비텍스트 메타·후보 FK 유지 | Q-PRIV-001 / ADR-0004 |
-| A-014 | A | 대화 | Resolved | 현재 탭 메모리 transcript + 15분 서명형 client-carried context token; 서버 세션·raw transcript 없음 | Q-CHAT-001 / D-024 / ADR-0010 |
+| A-014 | A | 대화 | Resolved design / v2 implementation pending | 현재 탭 메모리 transcript + 15분 서명형 client-carried context. v2는 topic ID·pending slot·dialog act 등 closed server ID만 허용하고 v1은 최대 TTL read-only 호환, issuer는 v2 only다. 서버 세션·raw transcript 없음 | Q-CHAT-001 / D-024/D-089/D-090 / ADR-0010 |
 | A-015 | B | 오류 계약 | Resolved | 정책 응답은 200, 안전 대체가 없는 기술 장애는 503 `SERVICE_UNAVAILABLE` envelope | Q-API-001 / ADR-0009 |
 | A-016 | B | 복구 | Defaulted for disposable local demo; public deferred | 재현 가능한 migration+승인 seed 우선, 파괴 변경/마일스톤 전 gitignored 수동 dump, local RPO 24h/RTO 60m, 30일 넘은 dump 삭제, 복구 후 개방 전 retention 재실행 | 실제/비재현 데이터·공개 운영 전 인간 재승인 |
 | A-017 | B | DB 안전 경계 | Resolved | Q-DB-002: DB function/trigger/RLS/GRANT + 백엔드 이중 검증 | 2026-07-16 사용자 A 승인 / D-025 / ADR-0011 |
 | A-018 | A | DB role 보안 | Resolved | Q-SEC-002=A: non-superuser PG17 runner 유지, 허용된 role 속성 재적용+catalog 검증, unsafe role fail closed | D-026 / ADR-0011; privileged auto-downgrade/bootstrap 없음 |
 | A-019 | A | 관리자 workflow | Resolved | Q-WF-001=A: 별도 backend-only `confirm_failed_question_reason(uuid,text,text,text)` capability | D-027 / ADR-0011; event 자동 사유 불변, failure 사유·적격성 재계산 |
 | A-020 | A | DB trigger 권한 | Resolved | Q-DB-003=A: 새 `00600`에서 ACTIVE-question validator 하나만 SECURITY DEFINER+owner/`search_path=pg_catalog, pg_temp`/revoke 검증, compensation은 INVOKER | D-028 / ADR-0012; 사용자의 직전 추천안 뒤 계속 진행 지시를 A 승인으로 해석, 문자 A 직접 입력 아님; `pg_temp` 마지막 명시는 D/Internal 보안 보정 |
-| A-021 | B | 기존 DB function 보안 | Resolved decision / implementation deferred to public preparation | read-only audit의 privileged execution graph는 `app_api` SECURITY DEFINER 9개+중첩/trigger `app_private` 13개=22개다. `00600` validator만 교정돼 unsafe `pg_catalog`-only path는 21개다. application relation/helper는 qualified이고 dynamic SQL은 0이다. | Q-SEC-003=A / D-046 / ADR-0018. exact 22 signatures의 `00700` property-only 보정은 확정했지만 public 준비까지 구현 보류; 그전 remote/public 경로 차단 |
+| A-021 | B | 기존 DB function 보안 | Resolved / implemented and locally verified | audit exact 22 graph에 `00700` property-only `search_path=pg_catalog, pg_temp` 보정, matching rollback과 body/owner/ACL fingerprint를 적용했다. | Q-SEC-003=A / D-046/D-092/D-093 / ADR-0018; 11-file pgTAP·11-stage replay PASS, remote smoke 별도 |
 | A-022 | A | local Docker port 보안 1차 결정 | Resolved decision / remediation insufficient | Q-SEC-004=A로 Docker Desktop `PortBindingBehavior=default-local-port-binding`을 적용·재시작했다. 빈 HostIP probe는 IPv4 `127.0.0.1`과 IPv6 wildcard `::`를 함께 만들었고 explicit `127.0.0.1` probe만 단일 loopback이었다. | D-029; 승인 결정은 기록하되 exact local 완료 근거로 사용하지 않음 |
 | A-023 | A | local Docker IPv6 port 보안 2차 결정 | Resolved decision / remediation insufficient | Q-SEC-005=A로 `local-only-port-binding`을 적용·재시작했지만 HostIP 생략 probe는 다시 `127.0.0.1`+`::`였다. explicit `127.0.0.1` control만 단일 loopback이었다. | D-030; 승인 설정은 유지하지만 exact local 완료 근거로 사용하지 않음 |
 | A-024 | A | local Supabase CLI port 공급망 | Resolved / implemented and verified locally | Q-SEC-006=A. official v2.109.1 exact source의 local DB start HostIP만 `127.0.0.1`로 지정하는 project-local patched CLI를 source/tag/commit·patch·Go 1.25.11·binary SHA-256과 함께 pin했고 actual gate를 통과했다. | D-031 / ADR-0013; local/private DB authority, public readiness 아님 |
@@ -55,7 +55,18 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 | A-049 | B / High | D-075 actual corrective rerun의 사후 governance 확인 | Resolved / human acknowledged 2026-07-26T13:31:56+09:00 | D-075와 runbook은 10-call actual gate 1회를 승인했지만 첫 semantic PASS 뒤 aggregate-only stdout 보정을 위해 별도 재승인 없이 10-call run을 한 번 더 실행했다. 총 20 provider calls, legacy-reported lower-bound USD 0.002635710과 22개 오표시 metadata row가 발생했다. configured 20-call upper bound는 USD 0.0270336이다. | 사용자가 exact acknowledgement로 incident를 사후 확인하고 PR #13 병합을 승인했다(D-076). 이 확인은 future provider rerun, 22행 삭제, public/remote 권한을 승인하지 않으며 future rerun은 매번 새 인간 승인이 필요하다. |
 | A-050 | B / High | 오표시 actual metadata 22행 cleanup | Resolved / Q-DB-CLEANUP-001=A | 현재 22행을 delete/update/reset하지 않고 개발을 계속한다. 이 local DB snapshot의 event 통계는 평가 KPI로 사용하지 않는다. | D-077. 정식 수치가 필요해지는 시점에만 B의 local reset→migration→immutable `.2` seed→필요한 19→20 승인 흐름 재현을 별도 승인받는다. future provider rerun과 targeted cleanup도 별도 승인이다. |
 | A-051 | B / High | declared office endpoint 존치와 runtime 정합 | Resolved / PR #15 merged; bounded local actual smoke PASS | existing `GET /api/v1/offices`를 required region+supported intent, OFFICIAL-only, deterministic order와 safe 503으로 FastAPI에 구현하고 `/ready=200`, match `200/count=1`, valid empty `200/count=0`을 확인했다. | D-078/D-080/D-081 / OFFICE-API-001 spec·plan·IMP-013. DB/data/Web/LLM/dependency/public/remote 불변 |
-| A-052 | B / High | PERF-001 chat 부하의 local DB write 대상 | Pending before Phase B only / Phase A Ready | 100 VU·60초 read-only harness preflight는 현재 DB를 쓰지 않고 진행 가능하다. cached/fixed `/api/v1/chat` 부하는 interaction/idempotency metadata를 만들므로 disposable clean DB를 사용할지, D-077의 current non-KPI local DB에 bounded write를 허용할지 인간 선택이 필요하다. | 추천은 disposable clean DB. 답이 없으면 Phase A까지만 실행하고 Phase B는 HOLD한다. provider call·질문/응답 log·reset/seed는 별도 승인 없이 금지 |
+| A-052 | B / High | PERF-001 chat 부하의 local DB write 대상 | Resolved by D-092 / disposable clean DB | 100 VU·60초 read-only harness와 cached/fixed `/api/v1/chat` 부하는 current non-KPI DB가 아니라 reset·정식 `.2` seed한 disposable clean local DB에서 실행한다. | 질문/응답 원문 log 0, provider-disabled performance fixture, aggregate-only 결과와 cleanup을 강제한다. |
+| A-053 | B / High | generic 증명서 FOLLOWUP 반복 | Resolved / Implemented | generic `증명서`는 exact 5 options FOLLOWUP, 선택 후 ACTIVE-only retrieval | D-083/D-084/D-091/D-093; Slice 1 tests PASS |
+| A-054 | B / High | 일반 관리자 KB 후보 작성 | Resolved / Implemented | arbitrary eligible failure에 운영자 공식 form→별도 승인 capability 사용 | D-093; fixed Web builder 제거·admin tests PASS |
+| A-055 | B / High | 시민 최초 지역 선택 진입점 | Resolved / Implemented | 직접 읍·면·동 선택/변경과 official office card | D-093; Slice 2 Web/E2E PASS |
+| A-056 | C / Defaultable | 관리자 후보 상태 이력·문구 | Resolved / Implemented | DRAFTED/PENDING/APPROVED/REJECTED tabs+count와 운영자 작성 문구 | D-093; Web tests PASS |
+| A-057 | B / High | 일반 한국어를 이름으로 오탐하는 PII gate | Resolved / Implemented | positive fail-closed corpus를 보존하며 일반 의문·행정명사 negative 교정 | D-093; privacy tests PASS |
+| A-058 | A / Blocker | local/private 질문 분류의 LLM 경계 | Resolved / Implemented / actual PASS | deterministic safety 뒤 masked ambiguous-only bounded classifier, server authority 유지 | D-086/D-091~D-093/D-095/ADR-0025; 60/60 |
+| A-059 | A / Blocker | 현재 네 분야 밖 행정 민원의 저장·검토 정책 | Resolved / Implemented | `CIVIC_SCOPE_GAP`, separate 30-day queue, event/failed/candidate·자동 ACTIVE 0 | D-085/D-090~D-093/ADR-0024; 00680 replay PASS |
+| A-060 | A / Blocker | hybrid 분류와 grounded generation의 provider 호출·비용 상한 | Resolved / Implemented / actual aggregate PASS | classifier 3초/sub-cap20, generator 8초/sub-cap30, combined40, USD0.05 stop line | D-087/D-091~D-093/D-095/ADR-0025; classifier cumulative USD0.003873210 |
+| A-061 | A / Blocker | “현실에서 사용 가능한 민원처리”의 목표 경계 | Resolved / Q-PROD-REAL-001=A | 현실형 안내·운영센터를 고도화한다. 실제 신청·상태조회·결제·기관 시스템 연계는 P2로 유지하고 처리 완료를 주장하지 않는다. | D-088. 자연 대화·공식 근거·기관 연결·scope-gap·사람 승인 운영을 우선하며 실제 처리 전환은 별도 discovery/승인 |
+| A-062 | D / Internal | Next dev tracked 생성물 안정성 | Investigated / no change | `next dev`가 tracked `next-env.d.ts`를 build-types import에서 dev-types import로 바꿔 정상 실행만으로 worktree가 dirty해진다. | 사용자 생성 변경을 보존하고 Next 권장 정책 조사 뒤 별도 내부 위생 수정 |
+| A-063 | B / High | controlled public 시민 demo의 공급자·계정·리전·origin·비용·DNS·saved rollback version | Pending / target not configured | 현재는 remote migration·seed·deploy·smoke 0; 구성 전까지 local/private와 code/runbook evidence만 유지 | D-092/D-095/ADR-0026; human infrastructure setup |
 
 ## 우선도 정의
 
@@ -64,7 +75,10 @@ Codex는 초기 감사에서 이 목록을 검증하고 추가/해결한다. 이
 - C: AI 기본값 가능, 기록 필요
 - D: 내부 구현 판단
 
-현재 deterministic MVP를 막는 인터뷰 결정은 없다. A-044/Q-LLM-005의 합성 평가는
+예약된 deterministic 데모 경로를 막는 인터뷰 결정은 없다. A-053~A-060 구현 gap은
+CHAT-NATURAL Slice 1~3과 00680/00700 검증으로 해소됐다. 남은 항목은 formal actual/remote
+증거이며 새 제품 결정을 요구하지 않는다.
+A-044/Q-LLM-005의 합성 평가는
 D-071에서 actual FAIL로 종료했다. 이후 사용자가 A-048/Q-LLM-006~012/D-072로 local/private
 근거 제한형 시민 chat 생성을 승인했고 D-073에서 written specification, D-074에서 실행계획과
 Subagent-Driven 구현을 승인했다. offline 구현·task-scoped 검토와 provider-disabled final root gate는
@@ -103,8 +117,10 @@ publish가 발견됐고 승인된 두 Docker Desktop 보정도 IPv6 wildcard를 
 `0.3.0-local` 승격을 차단했었다. 이후 사용자는 수정 계획을 `수정 계획 승인, 구현 시작`으로
 승인했고 A-024/A-025는 short-root TDD, reproducible runtime pin, patched-only runner와 2026-07-18
 fresh exact loopback/full DB/root/static gate를 통해 local에서 구현·검증됐다. DB-001은
-  disposable local/private 기준선으로 완료됐다. A-021의 방향은 D-046으로 해결됐지만 `00700`
-  구현·검증 전에는 public-release 실행 blocker다.
+  disposable local/private 기준선으로 완료됐다. A-021의 방향은 D-046으로 해결됐고,
+  `00700` exact 22-function property-only migration·rollback·pgTAP과 11단계 replay도
+  D-092/D-093 범위에서 local 검증됐다. 실제 remote 시민 배포는 ADR-0026의 별도 target·CORS·
+  secret·admin-negative gate를 계속 요구한다.
 
 Q-DATA-002/A-026은 2026-07-18 사용자 `Q-DATA-002: A`로 해결됐다. 2026-07-19 사용자는
 Q-DATA-003=A로 exact reviewer/disposition/final-confirmation 시각을 확정해 A-027을 해소했다.
@@ -232,14 +248,14 @@ Q-SEED-002. DATA-SEED actual DB blocker의 membership 권위 충돌을 어떻게
 - 결정 기록 경계: D-044를 추가했다. 과거 의도적으로 비워 둔 D-040은 소급 채우지 않는다.
 
 Q-SEC-003. 기존 privileged function 22개의 search path를 public release 전에 어떻게 보정할 것인가
-- 결정: A / D-046 / ADR-0018. exact 22 signature property-only `00700`을 선택하되 사용자의
-  지시대로 public 준비 단계까지 구현을 보류한다.
+- 결정: A / D-046/D-092/D-093 / ADR-0018. exact 22 signature property-only `00700`과
+  matching rollback·fingerprint·전체 local regression을 완료했다.
 - 왜 지금 필요한가: local/private Task 9 완료에는 영향이 없지만 PostgreSQL 17 공식 지침과 22-function read-only audit상 `00600` 뒤에도 21개가 `search_path=pg_catalog` 단독이다. remote/public 배포, public admin/API 활성화, public backend DB credential 사용 전에는 인간이 보안 경계를 승인해야 한다.
 - 선택지 A / 장점 / 단점: 새 versioned `00700` property-only migration에서 exact 22 signatures의 `search_path`를 `pg_catalog, pg_temp`로 재설정하고 catalog/behavior/compensation을 검증한다 / 함수 본문·API·table/data를 바꾸지 않고 일관된 방어를 제공하지만 새 migration과 전체 회귀가 필요하다.
 - 선택지 B / 장점 / 단점: 현재 posture를 유지하고 local/private demo만 완료한다 / 즉시 추가 migration이 없지만 remote/public 배포·public admin/API·public backend DB credential을 계속 차단해야 한다.
 - 당신의 추천안: A. exact signature allowlist, property-only forward migration, matching compensation, no body rewrite/grant/data change로 제한한다.
-- 실행 경계: 현재는 `00700`을 만들지 않는다. public 준비 명세·DB migration·실행계획 승인과
-  full regression 전까지 remote/public 경로를 계속 차단한다.
+- 실행 경계: local 00700은 완료했다. remote/public은 ADR-0026의 configured citizen target
+  smoke 전까지 완료로 주장하지 않고, 인증 없는 admin과 public backend credential은 차단한다.
 - 영향을 받는 파일·계약·데이터·배포: 새 `00700`/compensation/pgTAP·통합 회귀와 DB 보안 문서가 영향받는다. 공개 API/table/data/retention/dependency/cost는 변하지 않지만 remote/public release gate가 직접 영향받는다.
 
 ## 해결된 인터뷰 질문

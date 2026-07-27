@@ -15,6 +15,10 @@ from sejong_ai_api.admin.candidate_binding import (
 )
 from sejong_ai_api.contracts.admin import (
     CandidateReviewRequest,
+    CivicScopeGapListResponse,
+    CivicScopeGapReviewRequest,
+    CivicScopeGapReviewResponse,
+    CivicScopeGapSummary,
     FailedQuestion,
     FailedQuestionDetailResponse,
     FailedQuestionListResponse,
@@ -53,6 +57,7 @@ type AdminErrorCode = Literal[
 
 _FAILURE_REASONS = frozenset({"INSUFFICIENT_GROUNDING", "PERSONAL_LOOKUP", "LEGAL_JUDGMENT"})
 _FAILURE_STATUSES = frozenset({"NEW", "REASON_CONFIRMED"})
+_CIVIC_SCOPE_GAP_STATUSES = frozenset({"NEW", "PLANNED", "DISMISSED"})
 _SENSITIVE_SOURCE_QUERY_KEYS = frozenset(
     {
         "account",
@@ -154,6 +159,20 @@ class AdminRepository(Protocol):
         self, candidate_id: UUID, actor: Actor, review_comment: str
     ) -> None: ...
 
+    async def list_civic_scope_gaps(
+        self, *, status: str | None
+    ) -> Sequence[CivicScopeGapSummary]: ...
+
+    async def review_civic_scope_gap(
+        self,
+        scope_gap_id: UUID,
+        actor: Actor,
+        decision: str,
+        review_comment: str,
+    ) -> None: ...
+
+    async def purge_expired_civic_scope_gap_text(self) -> PurgeResult: ...
+
 
 T = TypeVar("T")
 
@@ -220,6 +239,42 @@ class AdminService:
         self._require_admin(actor)
         items = await self._safe_call(self._repository.list_kb_candidates)
         return KBCandidateListResponse(items=list(items), total=len(items))
+
+    async def list_civic_scope_gaps(
+        self,
+        actor: Actor,
+        *,
+        status: str | None,
+    ) -> CivicScopeGapListResponse:
+        self._require_admin(actor)
+        if status is not None and status not in _CIVIC_SCOPE_GAP_STATUSES:
+            raise AdminServiceError("ADMIN_VALIDATION_FAILED")
+        await self._safe_call(self._repository.purge_expired_civic_scope_gap_text)
+        items = await self._safe_call(lambda: self._repository.list_civic_scope_gaps(status=status))
+        return CivicScopeGapListResponse(items=list(items), total=len(items))
+
+    async def review_civic_scope_gap(
+        self,
+        actor: Actor,
+        scope_gap_id: UUID,
+        payload: CivicScopeGapReviewRequest,
+    ) -> CivicScopeGapReviewResponse:
+        self._require_role(actor, AdminRole.APPROVER)
+        items = await self._safe_call(lambda: self._repository.list_civic_scope_gaps(status=None))
+        item = next((candidate for candidate in items if candidate.id == scope_gap_id), None)
+        if item is None:
+            raise AdminServiceError("ADMIN_NOT_FOUND")
+        if item.status != "NEW":
+            raise AdminServiceError("ADMIN_INVALID_STATE")
+        await self._safe_call(
+            lambda: self._repository.review_civic_scope_gap(
+                scope_gap_id,
+                actor,
+                payload.decision,
+                payload.review_comment,
+            )
+        )
+        return CivicScopeGapReviewResponse(id=scope_gap_id, status=payload.decision)
 
     async def create_candidate(
         self,

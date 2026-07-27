@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import unicodedata
@@ -21,6 +22,7 @@ from sejong_ai_api.chat.idempotency import (
     fingerprint_chat_request,
 )
 from sejong_ai_api.chat.response import (
+    FollowupOptionId,
     build_fallback_response,
     build_followup_response,
     build_success_response,
@@ -50,6 +52,11 @@ from sejong_ai_api.llm.chat_contracts import (
     GroundedChatOutcomeCode,
     GroundedChatResult,
     MaterializedChatAnswer,
+)
+from sejong_ai_api.llm.classifier_contracts import (
+    ClassifierDecision,
+    ClassifierRoute,
+    PendingSlot,
 )
 from sejong_ai_api.llm.facts import (
     build_grounded_chat_request,
@@ -86,6 +93,20 @@ _FOLLOWUP_OPTIONS: tuple[
     "intent.bulky-waste",
     "intent.local-tax",
 )
+_CERTIFICATE_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = (
+    "certificate.resident-copy",
+    "certificate.resident-abstract",
+    "certificate.copy-vs-abstract",
+    "certificate.resident-register-inspection",
+    "certificate.unmanned-kiosk",
+)
+_REGION_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = (
+    "region.areum",
+    "region.dodam",
+    "region.jochiwon",
+)
+_WASTE_ITEM_FOLLOWUP_OPTIONS: tuple[FollowupOptionId, ...] = ("waste.item.describe",)
+_PROVIDER_HARD_WALL_SECONDS = 12.0
 _CONTEXT_DETAIL_TERMS = (
     "준비물",
     "서류",
@@ -115,6 +136,8 @@ _EXPLICIT_INTENT_TERMS = (
     "주민세",
     "취득세",
 )
+_CONTEXT_OFFICE_TERMS = ("어디", "방문", "주민센터", "행정복지센터")
+_CONTEXT_REGION_CHANGE_TERMS = ("바꿔", "변경", "옮겨")
 
 
 class ChatRepository(Protocol):
@@ -123,6 +146,12 @@ class ChatRepository(Protocol):
     async def list_offices(self, region: Region, intent: Intent) -> Sequence[OfficeRecord]: ...
 
     async def record_interaction(self, event: InteractionWrite) -> InteractionWriteResult: ...
+
+    async def record_civic_scope_gap(self, masked_question: str) -> None: ...
+
+
+class QuestionClassifierPort(Protocol):
+    async def classify(self, question: SafeQuestion) -> ClassifierDecision | None: ...
 
 
 class ChatUnavailableError(Exception):
@@ -136,6 +165,7 @@ class ChatUnavailableError(Exception):
 class _ChatExecution:
     response: ChatResult
     interaction: InteractionWrite | None
+    scope_gap_question: str | None = None
 
 
 @dataclass(slots=True)
@@ -166,6 +196,7 @@ class ChatService:
         idempotency_secret: bytes | None = None,
         idempotency_claim_factory: Callable[[], UUID] = uuid4,
         answer_generator: GroundedAnswerGenerator | None = None,
+        question_classifier: QuestionClassifierPort | None = None,
     ) -> None:
         if not callable(request_id_factory) or not callable(monotonic_ns):
             raise TypeError("CHAT_SERVICE_DEPENDENCY_INVALID")
@@ -188,6 +219,7 @@ class ChatService:
         self._idempotency_secret = idempotency_secret
         self._idempotency_claim_factory = idempotency_claim_factory
         self._answer_generator = answer_generator
+        self._question_classifier = question_classifier
 
     async def answer(
         self,
@@ -207,6 +239,8 @@ class ChatService:
             execution = await self._execute_once(request, request_id=selected_request_id)
             if execution.interaction is not None:
                 await self._record_best_effort(execution.interaction)
+            if execution.scope_gap_question is not None:
+                await self._record_scope_gap_best_effort(execution.scope_gap_question)
             return execution.response
         if type(idempotency_key) is not UUID:
             raise TypeError("IDEMPOTENCY_KEY_INVALID")
@@ -232,6 +266,7 @@ class ChatService:
         if type(selected_request_id) is not UUID:
             raise TypeError("REQUEST_ID_FACTORY_INVALID")
         started_ns = self._read_monotonic_ns()
+        provider_deadline = asyncio.get_running_loop().time() + _PROVIDER_HARD_WALL_SECONDS
 
         redaction = redact_question(request.question)
         if redaction.masked_text is None:
@@ -251,15 +286,34 @@ class ChatService:
         outcome = classify_question(safe_question)
         intent = outcome.intent
         intent_from_context = False
+        contextual_action = _resolve_contextual_action(safe_question.text, prior_context)
+        contextual_region = _contextual_region(safe_question.text, prior_context)
+        region_changed_by_request = (
+            prior_context is not None
+            and request.selected_region is not None
+            and request.selected_region != prior_context.selected_region
+        )
+        if contextual_region is not None:
+            selected_region = contextual_region
+            contextual_action = "CHANGING_REGION"
+        elif region_changed_by_request:
+            contextual_action = "CHANGING_REGION"
         if (
             outcome.followup_required
             and prior_context is not None
-            and _is_contextual_followup(safe_question.text)
+            and contextual_action is not None
         ):
             prior_intent = Intent(prior_context.last_intent)
             if prior_intent in _SUPPORTED_INTENTS:
                 intent = prior_intent
                 intent_from_context = True
+        topic_changed = (
+            prior_context is not None
+            and intent in _SUPPORTED_INTENTS
+            and Intent(prior_context.last_intent) in _SUPPORTED_INTENTS
+            and Intent(prior_context.last_intent) is not intent
+            and not intent_from_context
+        )
 
         if outcome.fallback_reason is FallbackReason.OUT_OF_SCOPE:
             fallback_response = build_fallback_response(
@@ -268,18 +322,7 @@ class ChatService:
                 reason="OUT_OF_SCOPE",
                 office=None,
             )
-            interaction = self._build_interaction(
-                request_id=selected_request_id,
-                intent=Intent.OUT_OF_SCOPE,
-                answer_status=AnswerStatus.FALLBACK,
-                fallback_reason=FallbackReason.OUT_OF_SCOPE,
-                used_source_ids=(),
-                selected_region=selected_region,
-                office=None,
-                masked_question=None,
-                started_ns=started_ns,
-            )
-            return _ChatExecution(response=fallback_response, interaction=interaction)
+            return _ChatExecution(response=fallback_response, interaction=None)
 
         if outcome.fallback_reason in {
             FallbackReason.PERSONAL_LOOKUP,
@@ -297,33 +340,91 @@ class ChatService:
             )
             return _ChatExecution(response=fallback_response, interaction=None)
 
-        if intent is Intent.UNKNOWN:
-            token = self._issue_context(
-                intent=Intent.UNKNOWN,
-                selected_region=selected_region,
-                answer_status="FOLLOWUP",
+        pending_slot = outcome.pending_slot
+        if outcome.needs_provider and not intent_from_context:
+            decision = await self._classify_best_effort(
+                safe_question,
+                deadline=provider_deadline,
             )
-            followup_response = build_followup_response(
-                request_id=selected_request_id,
-                intent=Intent.UNKNOWN,
-                confidence=None,
-                option_ids=_FOLLOWUP_OPTIONS,
-                context_token=token,
-            )
-            interaction = self._build_interaction(
-                request_id=selected_request_id,
-                intent=Intent.UNKNOWN,
-                answer_status=AnswerStatus.FOLLOWUP,
-                fallback_reason=None,
-                used_source_ids=(),
-                selected_region=selected_region,
-                office=None,
-                masked_question=None,
-                started_ns=started_ns,
-            )
-            return _ChatExecution(response=followup_response, interaction=interaction)
+            if decision is None:
+                return self._build_followup_execution(
+                    request_id=selected_request_id,
+                    intent=Intent.UNKNOWN,
+                    pending_slot=None,
+                    selected_region=selected_region,
+                    started_ns=started_ns,
+                    persist_event=False,
+                )
+            if decision.route is ClassifierRoute.NON_CIVIC:
+                return _ChatExecution(
+                    response=build_fallback_response(
+                        request_id=selected_request_id,
+                        intent=Intent.OUT_OF_SCOPE,
+                        reason="OUT_OF_SCOPE",
+                        office=None,
+                    ),
+                    interaction=None,
+                )
+            if decision.route is ClassifierRoute.CIVIC_SCOPE_GAP:
+                return _ChatExecution(
+                    response=build_fallback_response(
+                        request_id=selected_request_id,
+                        intent=Intent.OUT_OF_SCOPE,
+                        reason="CIVIC_SCOPE_GAP",
+                        office=None,
+                    ),
+                    interaction=None,
+                    scope_gap_question=safe_question.text,
+                )
+            if decision.intent is None:
+                return self._build_followup_execution(
+                    request_id=selected_request_id,
+                    intent=Intent.UNKNOWN,
+                    pending_slot=None,
+                    selected_region=selected_region,
+                    started_ns=started_ns,
+                    persist_event=False,
+                )
+            intent = decision.intent
+            pending_slot = decision.pending_slot
+            if decision.route is ClassifierRoute.NEEDS_FOLLOWUP:
+                return self._build_followup_execution(
+                    request_id=selected_request_id,
+                    intent=intent,
+                    pending_slot=pending_slot,
+                    selected_region=selected_region,
+                    started_ns=started_ns,
+                    persist_event=True,
+                )
 
-        ranked = await self._ranked_knowledge(safe_question, intent)
+        if outcome.route is ClassifierRoute.NEEDS_FOLLOWUP and not intent_from_context:
+            return self._build_followup_execution(
+                request_id=selected_request_id,
+                intent=intent,
+                pending_slot=pending_slot,
+                selected_region=selected_region,
+                started_ns=started_ns,
+                persist_event=True,
+            )
+
+        if intent is Intent.UNKNOWN:
+            return self._build_followup_execution(
+                request_id=selected_request_id,
+                intent=Intent.UNKNOWN,
+                selected_region=selected_region,
+                pending_slot=None,
+                started_ns=started_ns,
+                persist_event=False,
+            )
+
+        context_topic_id = (
+            prior_context.topic_id if intent_from_context and prior_context is not None else None
+        )
+        ranked = await self._ranked_knowledge(
+            safe_question,
+            intent,
+            topic_id=context_topic_id,
+        )
         top = ranked[0] if ranked else None
         grounding = evaluate_grounding(
             safe_question,
@@ -352,11 +453,28 @@ class ChatService:
             )
             return _ChatExecution(response=fallback_response, interaction=interaction)
 
+        if contextual_action == "OFFICE" and selected_region is None:
+            return self._build_followup_execution(
+                request_id=selected_request_id,
+                intent=intent,
+                pending_slot=PendingSlot.REGION,
+                selected_region=None,
+                started_ns=started_ns,
+                persist_event=True,
+                topic_id=grounding.record.public_id,
+            )
+
         office = await self._load_optional_office(selected_region, intent)
         token = self._issue_context(
             intent=intent,
             selected_region=selected_region,
             answer_status="SUCCESS",
+            topic_id=grounding.record.public_id,
+            dialog_act=(
+                "CHANGING_TOPIC"
+                if topic_changed
+                else ("CHANGING_REGION" if contextual_action == "CHANGING_REGION" else "ANSWERED")
+            ),
         )
         answer_mode: AnswerMode = "TEMPLATE"
         materialized: MaterializedChatAnswer | None = None
@@ -368,7 +486,8 @@ class ChatService:
                     record=grounding.record,
                 )
                 if generation_attempt_state is None or generation_attempt_state.begin():
-                    result = await self._answer_generator.generate(grounded_request)
+                    async with asyncio.timeout_at(provider_deadline):
+                        result = await self._answer_generator.generate(grounded_request)
                 else:
                     result = None
                 if (
@@ -463,6 +582,7 @@ class ChatService:
                     intent=Intent(replay.intent),
                     selected_region=selected_region,
                     answer_status=replay.answer_status,
+                    dialog_act=("ANSWERED" if replay.answer_status == "SUCCESS" else "ASKING_SLOT"),
                 )
                 try:
                     return CHAT_RESPONSE_ADAPTER.validate_json(
@@ -514,18 +634,85 @@ class ChatService:
             )
         except (DatabaseRuleError, DatabaseUnavailableError):
             raise ChatUnavailableError() from None
+        if execution.scope_gap_question is not None:
+            await self._record_scope_gap_best_effort(execution.scope_gap_question)
         return execution.response
+
+    async def _classify_best_effort(
+        self,
+        question: SafeQuestion,
+        *,
+        deadline: float,
+    ) -> ClassifierDecision | None:
+        classifier = self._question_classifier
+        if classifier is None:
+            return None
+        try:
+            async with asyncio.timeout_at(deadline):
+                decision = await classifier.classify(question)
+        except Exception:
+            return None
+        return decision if type(decision) is ClassifierDecision else None
+
+    def _build_followup_execution(
+        self,
+        *,
+        request_id: UUID,
+        intent: Intent,
+        pending_slot: PendingSlot | None,
+        selected_region: Region | None,
+        started_ns: int,
+        persist_event: bool,
+        topic_id: str | None = None,
+    ) -> _ChatExecution:
+        option_ids = _followup_options(pending_slot)
+        token = self._issue_context(
+            intent=intent,
+            selected_region=selected_region,
+            answer_status="FOLLOWUP",
+            pending_slot=pending_slot,
+            dialog_act="ASKING_SLOT",
+            topic_id=topic_id,
+        )
+        response = build_followup_response(
+            request_id=request_id,
+            intent=intent,
+            confidence=None,
+            option_ids=option_ids,
+            context_token=token,
+        )
+        interaction = (
+            self._build_interaction(
+                request_id=request_id,
+                intent=intent,
+                answer_status=AnswerStatus.FOLLOWUP,
+                fallback_reason=None,
+                used_source_ids=(),
+                selected_region=selected_region,
+                office=None,
+                masked_question=None,
+                started_ns=started_ns,
+            )
+            if persist_event
+            else None
+        )
+        return _ChatExecution(response=response, interaction=interaction)
 
     async def _ranked_knowledge(
         self,
         question: SafeQuestion,
         intent: Intent,
+        *,
+        topic_id: str | None = None,
     ) -> tuple[RankedKnowledge, ...]:
         try:
             records = await self._repository.list_active_kb(intent)
         except DatabaseUnavailableError:
             raise ChatUnavailableError() from None
-        return rank_active_knowledge(question, intent, records)
+        ranked = rank_active_knowledge(question, intent, records)
+        if topic_id is None:
+            return ranked
+        return tuple(item for item in ranked if item.record.public_id == topic_id)
 
     async def _load_optional_office(
         self,
@@ -546,11 +733,22 @@ class ChatService:
         intent: Intent,
         selected_region: Region | None,
         answer_status: Literal["SUCCESS", "FOLLOWUP"],
+        dialog_act: Literal[
+            "ANSWERED",
+            "ASKING_SLOT",
+            "CHANGING_REGION",
+            "CHANGING_TOPIC",
+        ],
+        topic_id: str | None = None,
+        pending_slot: PendingSlot | None = None,
     ) -> str:
         return self._context_codec.issue(
             last_intent=intent.value,
             selected_region=selected_region.value if selected_region is not None else None,
             answer_status=answer_status,
+            topic_id=topic_id,
+            pending_slot=pending_slot.value if pending_slot is not None else None,
+            dialog_act=dialog_act,
         )
 
     def _build_interaction(
@@ -585,6 +783,12 @@ class ChatService:
         except DatabaseUnavailableError:
             return
 
+    async def _record_scope_gap_best_effort(self, masked_question: str) -> None:
+        try:
+            await self._repository.record_civic_scope_gap(masked_question)
+        except Exception:
+            return
+
     def _read_monotonic_ns(self) -> int:
         value = self._monotonic_ns()
         if type(value) is not int or value < 0:
@@ -600,15 +804,54 @@ def _selected_region(selected: str | None, context: ChatContext | None) -> Regio
     return Region(context.selected_region) if context.selected_region is not None else None
 
 
-def _is_contextual_followup(value: str) -> bool:
+def _compact_context_input(value: str) -> str:
+    return re.sub(
+        r"[^0-9a-z가-힣]",
+        "",
+        unicodedata.normalize("NFKC", value).casefold(),
+    )
+
+
+def _resolve_contextual_action(
+    value: str,
+    context: ChatContext | None,
+) -> Literal["DETAIL", "OFFICE", "CHANGING_REGION"] | None:
+    if context is None:
+        return None
+    compact = _compact_context_input(value)
+    if any(term in compact for term in _EXPLICIT_INTENT_TERMS):
+        return None
+    if _contextual_region(value, context) is not None:
+        return "CHANGING_REGION"
+    if any(term in compact for term in _CONTEXT_OFFICE_TERMS):
+        return "OFFICE"
+    if any(term in compact for term in _CONTEXT_DETAIL_TERMS):
+        return "DETAIL"
+    return None
+
+
+def _contextual_region(
+    value: str,
+    context: ChatContext | None,
+) -> Region | None:
+    if context is None:
+        return None
     compact = re.sub(
         r"[^0-9a-z가-힣]",
         "",
         unicodedata.normalize("NFKC", value).casefold(),
     )
-    return any(term in compact for term in _CONTEXT_DETAIL_TERMS) and not any(
-        term in compact for term in _EXPLICIT_INTENT_TERMS
+    selected = next(
+        (region for region in Region if region.value in compact),
+        None,
     )
+    if selected is None:
+        return None
+    if context.pending_slot == "REGION" or any(
+        term in compact for term in _CONTEXT_REGION_CHANGE_TERMS
+    ):
+        return selected
+    return None
 
 
 def _confidence(item: RankedKnowledge | None) -> float:
@@ -618,6 +861,18 @@ def _confidence(item: RankedKnowledge | None) -> float:
         return 0.99
     overlap = item.service_or_example_overlap + item.procedure_document_overlap
     return min(0.95, 0.7 + overlap * 0.05)
+
+
+def _followup_options(
+    pending_slot: PendingSlot | None,
+) -> tuple[FollowupOptionId, ...]:
+    if pending_slot is PendingSlot.CERTIFICATE_KIND:
+        return _CERTIFICATE_FOLLOWUP_OPTIONS
+    if pending_slot is PendingSlot.REGION:
+        return _REGION_FOLLOWUP_OPTIONS
+    if pending_slot is PendingSlot.WASTE_ITEM:
+        return _WASTE_ITEM_FOLLOWUP_OPTIONS
+    return cast(tuple[FollowupOptionId, ...], _FOLLOWUP_OPTIONS)
 
 
 __all__ = ["ChatRepository", "ChatResult", "ChatService", "ChatUnavailableError"]

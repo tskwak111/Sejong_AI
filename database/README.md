@@ -1,12 +1,13 @@
 # Database
 
-DB-001의 manifest 의미 버전은 disposable local/private `0.4.0-local`이다. pinned patched
-Supabase CLI의 exact single `127.0.0.1:54322`, current 9 forward/9 matching rollback,
-pgTAP 9 files/356 assertions와 rollback absence/reapply 36/36을 검증했다. 이는
-production/public readiness를 뜻하지 않는다.
+DB-001의 manifest 의미 버전은 disposable local/public-prepared `0.5.0-local`이다. pinned
+patched Supabase CLI의 exact single `127.0.0.1:54322`, current 11 forward/11 matching
+rollback, pgTAP 11 files/385 tests와 rollback absence/reapply·integration을 검증했다. 이는
+remote deployment나 production 운영 완료를 뜻하지 않는다.
 Q-SEC-003=A/D-046으로 exact privileged function 22 signatures의 property-only `00700`
-보정 방향은 확정됐지만 public 준비까지 구현을 보류한다. `00700`·matching compensation·전체
-regression 전에는 remote/public 배포, public admin/API, public backend DB credential을 금지한다.
+보정 방향을 확정했고 D-092가 public 준비·실행을 승인했다. 먼저 `00680` scope-gap queue를
+추가했고 `00700`·matching rollback·전체 regression도 PASS했다. ADR-0026에 따라 구성된
+remote 시민 target smoke는 별도이며 인증 없는 public admin/API는 계속 비활성이다.
 
 ## 권위와 계보
 
@@ -23,10 +24,13 @@ regression 전에는 remote/public 배포, public admin/API, public backend DB c
   20번째 ACTIVE admin regression이나 `/ready=200` 증거를 대신하지 않는다. 이들은 별도 final local
   application rehearsal에서 PASS했으며 public/remote readiness는 계속 뜻하지 않는다.
 
-Forward migration과 matching compensation은 현재 각각 9개다. 적용·commit된 migration은
+Forward migration과 matching compensation은 현재 각각 11개다. 적용·commit된 migration은
 수정하지 않고 보정이 필요하면 새 reviewed forward migration을 추가한다. 현재 local 전체
-보상 순서는 `00670 → 00660 → 00650 → 00600 → 00500 → 00400 → 00300 → 00200 → 00100`이며, 이어
+보상 순서는 `00700 → 00680 → 00670 → 00660 → 00650 → 00600 → 00500 → 00400 → 00300 → 00200 → 00100`이며, 이어
 `database/verify_db001_absent.sql`로 DB-001 객체 부재를 증명한다.
+
+CHAT-NATURAL의 `00700 → 00680 → 00670 → ... → 00100` rollback은 actual local gate로
+검증됐다. 00700은 ADR-0018 exact 22 signature의 function property만 변경한다.
 
 ## 로컬 실행과 검증 — patched repository gate만 허용
 
@@ -43,7 +47,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify_database.
 ```
 
 첫 DB gate는 pinned Supabase CLI `2.109.1`을 runner가 고정 loopback network로 시작하고 actual
-single `127.0.0.1:54322`를 검증한다. 이후에만 reset, login rotation, pgTAP, 9단계 보상,
+single `127.0.0.1:54322`를 검증한다. 이후에만 reset, login rotation, pgTAP, 11단계 보상,
 부재 확인, reset/replay,
 pgTAP, 실제 backend integration을 순서대로 수행한다. `-SkipStart`는 이미 실행 중인 local
 DB를 재사용할 때만 쓴다. `-SkipRollbackReplay`는 진단 옵션이며 완료 증거가 아니다.

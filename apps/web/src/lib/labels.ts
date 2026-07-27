@@ -25,11 +25,12 @@ export const INTENT_LABEL: Record<SupportedIntent, string> = {
   LOCAL_TAX_GENERAL: "지방세",
 };
 
-/** 폴백 사유 5종 한글 라벨 (계약: PRIVACY_UNRESOLVED 포함) */
+/** 폴백 사유 6종 한글 라벨 */
 export const FALLBACK_REASON_LABEL: Record<FallbackReason, string> = {
   INSUFFICIENT_GROUNDING: "근거 부족",
   PERSONAL_LOOKUP: "개인별 조회",
   LEGAL_JUDGMENT: "법적 판단",
+  CIVIC_SCOPE_GAP: "지원 범위 확대",
   OUT_OF_SCOPE: "범위 밖",
   PRIVACY_UNRESOLVED: "개인정보 미해소",
 };

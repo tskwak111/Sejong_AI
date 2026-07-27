@@ -2,7 +2,11 @@ import asyncio
 
 import pytest
 
-from sejong_ai_api.llm.limits import AttemptBudget, AttemptCapReached
+from sejong_ai_api.llm.limits import (
+    AttemptBudget,
+    AttemptCapReached,
+    ProviderAttemptLedger,
+)
 
 
 @pytest.mark.asyncio
@@ -68,3 +72,82 @@ def test_attempt_count_is_read_only() -> None:
     budget = AttemptBudget(cap=30, concurrency=1)
     with pytest.raises(AttributeError):
         budget.attempts_used = 1  # type: ignore[misc]
+
+
+@pytest.mark.asyncio
+async def test_provider_ledger_enforces_lane_and_combined_caps_atomically() -> None:
+    ledger = ProviderAttemptLedger(
+        classifier_cap=2,
+        generator_cap=2,
+        combined_cap=3,
+    )
+
+    async with ledger.reserve_classifier() as first:
+        assert first == 1
+    async with ledger.reserve_generator() as first:
+        assert first == 1
+    async with ledger.reserve_classifier() as second:
+        assert second == 2
+
+    with pytest.raises(AttemptCapReached, match="ATTEMPT_CAP_REACHED"):
+        async with ledger.reserve_generator():
+            raise AssertionError("combined cap must block the reservation")
+
+    assert ledger.classifier_attempts_used == 2
+    assert ledger.generator_attempts_used == 1
+    assert ledger.combined_attempts_used == 3
+
+
+@pytest.mark.asyncio
+async def test_provider_ledger_serializes_classifier_and_generator_lanes() -> None:
+    ledger = ProviderAttemptLedger(
+        classifier_cap=1,
+        generator_cap=1,
+        combined_cap=2,
+    )
+    classifier_entered = asyncio.Event()
+    release_classifier = asyncio.Event()
+    generator_entered = asyncio.Event()
+
+    async def classifier() -> None:
+        async with ledger.reserve_classifier():
+            classifier_entered.set()
+            await release_classifier.wait()
+
+    async def generator() -> None:
+        await classifier_entered.wait()
+        async with ledger.reserve_generator():
+            generator_entered.set()
+
+    classifier_task = asyncio.create_task(classifier())
+    generator_task = asyncio.create_task(generator())
+    await classifier_entered.wait()
+    await asyncio.sleep(0)
+
+    assert generator_entered.is_set() is False
+    release_classifier.set()
+    await asyncio.gather(classifier_task, generator_task)
+    assert generator_entered.is_set() is True
+
+
+def test_provider_ledger_has_no_reset_and_rejects_invalid_caps() -> None:
+    ledger = ProviderAttemptLedger(
+        classifier_cap=20,
+        generator_cap=30,
+        combined_cap=40,
+    )
+    assert not hasattr(ledger, "reset")
+
+    for caps in (
+        (0, 30, 40),
+        (20, 0, 40),
+        (20, 30, 0),
+        (20, 30, 51),
+        (True, 30, 40),
+    ):
+        with pytest.raises(ValueError, match="PROVIDER_ATTEMPT_LEDGER_INVALID"):
+            ProviderAttemptLedger(
+                classifier_cap=caps[0],
+                generator_cap=caps[1],
+                combined_cap=caps[2],
+            )

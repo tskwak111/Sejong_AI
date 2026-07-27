@@ -2,6 +2,197 @@
 
 ## [Unreleased]
 
+### Implemented — natural civic dialogue and governed scope operations
+
+- Added privacy-first hybrid classification, exact certificate follow-up choices, text-free signed
+  context v2, contextual follow-ups, direct region selection and an explicit new-conversation reset.
+- Added the isolated `CIVIC_SCOPE_GAP` 30-day masked review queue, typed admin API/Web review,
+  operator-authored general KB candidates and candidate status history.
+- Added property-only `00700` hardening for the ADR-0018 exact 22 functions with matching rollback,
+  body/owner/ACL fingerprints and an 11-migration replay gate.
+- Added a fixed PII-free 60-case classifier gate. Only 20 ambiguous cases use Upstage; the
+  corrective actual run passed 60/60 with policy/privacy outbound 0 and cumulative VAT-inclusive
+  cost USD 0.003873210.
+- Advanced application to `0.11.0-natural-dialogue`, Web to `0.7.0-natural-dialogue`, API to
+  `4.0.0-draft`, shared contracts to `1.0.0`, DB to `0.5.0-local`, prompt set to
+  `0.3.1-hybrid-classifier`, tests to `1.9.1-natural-dialogue` and docs to `2.24.1`.
+- Local DB hardening, immutable `.2` seed/19→20 and actual Upstage classifier gates pass.
+  Remote discovery found no configured application/DB target, credential, origin or saved version;
+  migration, seed, deploy and smoke are recorded as `Not executed: target not configured`.
+- Final verification passed all 33 root stages, 24 browser scenarios across 390/430/desktop and 135
+  focused privacy/classification/followup/admin scenarios. Documentation advanced to `2.25.0`.
+
+### Planned — natural dialogue implementation
+
+- Added the reviewed 18-task TDD plan for PII correction, hybrid classification, context v2,
+  scope-gap operations, public hardening, clean DB, actual Upstage and controlled remote evidence.
+- Repository discovery found no configured remote target/project, so remote deployment has an
+  exact `target not configured` evidence path while all independent work continues.
+- Advanced documentation from `2.23.0` to `2.23.1`; runtime, contract, DB, data and provider state
+  remain unchanged.
+
+### Approved — integrated natural dialogue specification and actual execution
+
+- Recorded D-091/D-092: the three approved design sections are consolidated into one
+  implementation specification with exact routing, context v2, scope-gap DB/API/admin,
+  failure, performance, test, rollback and version boundaries.
+- Actual PII-free Upstage classification, clean local DB reset and immutable `.2` seed, public
+  `00700` hardening and configured remote citizen-route verification are approved. Remote admin
+  remains disabled without authentication.
+- Advanced product specification from `2.5.0` to `2.6.0` and documentation from `2.22.6` to
+  `2.23.0`. Product code, contracts, DB and provider runtime remain unchanged in this documentation
+  commit.
+
+### Approved — natural chat design section 2
+
+- Recorded D-090 approval of the `CIVIC_SCOPE_GAP` public reason and separate 30-day masked review
+  queue, with NON_CIVIC/policy/privacy no-row boundaries preserved.
+- Approved context v2 closed topic/slot/dialog claims, v1 read-only TTL transition and an explicit
+  Web new-conversation reset. Exact contract/DB/runtime work remains unimplemented.
+- Product/API/DB/provider behavior is unchanged. Advanced documentation from `2.22.5` to `2.22.6`.
+
+### Approved — natural chat design section 1
+
+- Recorded D-089 approval of the privacy-first hybrid request pipeline and 15-minute
+  server-issued structured context without raw transcript or citizen profile storage.
+- Public response, persistence, error and test details remain in design review; product/API/DB/
+  provider behavior is unchanged. Advanced documentation from `2.22.4` to `2.22.5`.
+
+### Decided — realistic civic guidance and operations product target
+
+- Recorded Q-PROD-REAL-001=A/D-088: the product will mature as a realistic official-guidance,
+  office-routing and human-governed improvement platform.
+- Actual application submission, status lookup, payment and government/internal-system
+  transactions remain P2 and must not be claimed as current product behavior.
+- Moved CHAT-NATURAL-001 from product-scope interviewing to design review. Product/runtime/API/DB/
+  data/provider behavior remains unchanged. Advanced documentation from `2.22.3` to `2.22.4`.
+
+### Audited — natural dialogue and realistic civic-service readiness
+
+- Recorded Q-CLASS-002=A: the classifier is limited to one 3-second attempt, no retry, 1,024 input
+  characters, 128 output tokens and process sub-cap 20; grounded generation keeps sub-cap 30 and
+  the combined process cap is 40 with a VAT-inclusive USD 0.05 local synthetic stop line.
+- Audited current chat, context, retrieval, feedback, admin, source lifecycle, authentication,
+  rate-limit, backup, load and accessibility boundaries against active code and source-of-truth.
+- Added a P0/P1/P2 roadmap that prioritizes PII false-positive correction, hybrid routing,
+  text-free structured context, scope-gap review and general candidate authoring before public
+  hardening. Actual application/status/payment integration remains a product-scope decision.
+- Product/runtime/API/DB/data/provider/dependency behavior and actual calls remain unchanged.
+  Advanced documentation from `2.22.2` to `2.22.3`.
+
+### Decided — hybrid bounded LLM question classification
+
+- Recorded Q-CLASS-001=A and ADR-0025: deterministic PII/policy/high-confidence gates remain,
+  while only safely masked ambiguous questions may use a closed-enum Upstage classifier.
+- The model cannot decide answers, sources, KB IDs, candidate eligibility, retention or persistence.
+- Q-CLASS-002 budget and the written specification remain pending; product/runtime/provider calls
+  are unchanged. Advanced documentation from `2.22.1` to `2.22.2`.
+
+### Decided — separate civic scope-gap review queue
+
+- Recorded Q-SCOPE-001=A and ADR-0024: safely masked outside-current-scope civic requests will use
+  a separate 30-day scope-expansion review queue rather than the existing KB candidate workflow.
+- `NON_CIVIC` remains text/review-row free, and scope-gap rows cannot automatically become ACTIVE.
+- This is an accepted future direction only; runtime, OpenAPI, DB, provider and admin code remain
+  unchanged. Advanced documentation from `2.22.0` to `2.22.1`.
+
+### Documented — chat classification and PII false-positive gaps
+
+- Reproduced four reported fixture paths without persisting citizen text.
+- Isolated two PII contextual-name false positives and the missing distinction between non-civic,
+  current-scope gap and supported-intent ambiguity.
+- Recorded the recommended hybrid deterministic/bounded-LLM architecture and the separate
+  `CIVIC_SCOPE_GAP` retention decision. Product, contract, DB, provider and dependency code remain
+  unchanged. Advanced documentation from `2.21.9` to `2.22.0`.
+
+### Changed — certificate follow-up specification approval and TDD plan
+
+- Recorded D-084 approval of the category-aware certificate FOLLOWUP written specification.
+- Published a five-task TDD plan covering classifier priority, closed server labels, text-free
+  service orchestration, typed Web copy/context, full gates and version evidence.
+- Product code, API shape, DB, data, provider, dependencies and tests remain unchanged. Advanced
+  documentation only from `2.21.8` to `2.21.9`.
+
+### Changed — certificate category follow-up design approval
+
+- Recorded Q-CHAT-FOLLOWUP-001=A: a generic certificate request will return
+  `CERTIFICATE_ISSUANCE + FOLLOWUP` with five exact ACTIVE-KB-bounded certificate options instead
+  of repeating the four-category question.
+- Preserved unsupported compound certificates as OUT_OF_SCOPE, specific supported queries as
+  direct retrieval candidates, text-free FOLLOWUP events and the existing signed context design.
+- Published the written specification for review. Product code, API shape, DB, data, provider,
+  dependency and tests remain unchanged. Advanced documentation only from `2.21.7` to `2.21.8`.
+
+### Changed — actual chat and admin system audit
+
+- Exercised the actual local chat, admin and office read paths through the browser and UTF-8 API
+  requests. Specific supported questions, official source binding, safe fallbacks, 15-minute
+  context and responsive routes passed.
+- Reproduced three P0 gaps: the generic certificate option loops back to the same four-category
+  FOLLOWUP, arbitrary eligible failures cannot be authored into candidates, and the initial
+  citizen region selection path is unreachable even though the office endpoint works.
+- Confirmed that the apparent missing admin draft is an approved candidate hidden by the
+  pending-only view, not an LLM configuration failure. Current policy requires operators—not the
+  LLM—to author official answer, fee, department and source fields.
+- Product code, API contract, DB, data, provider and tests remain unchanged. Advanced
+  documentation only from `2.21.6` to `2.21.7`.
+
+### Changed — certificate category follow-up diagnosis
+
+- Reproduced the generic certificate request as `UNKNOWN + FOLLOWUP` and traced the four-category
+  prompt to the classifier's missing generic certificate cue plus the service's UNKNOWN-only
+  follow-up branch. The Web renders that server response faithfully.
+- Recorded a recommended category-aware FOLLOWUP that stays within the five approved certificate
+  KB topics, while leaving the exact option set for human product approval.
+- Product code, public contract, Web, DB, data, provider and tests remain unchanged. Advanced
+  documentation only from `2.21.5` to `2.21.6`.
+
+### Changed — local Web development dependency recovery
+
+- Diagnosed the Web startup failure as a production-only `node_modules` state followed by Next.js
+  attempting to spawn a bare `pnpm` executable that was not present on the user's PATH.
+- Restored the already-declared TypeScript development packages from the frozen lockfile through
+  Corepack. All 407 packages were reused from the local store, Web typecheck passed, and package
+  manifests plus the lockfile remained unchanged.
+- No provider, database, secret, API, product or Web source behavior changed. Advanced
+  documentation only from `2.21.4` to `2.21.5`.
+
+### Changed — ready 200 and local Web actual setup
+
+- Reconfirmed the user-started API at `/ready=200` without outputting its body.
+- Created an ignored, non-secret Web local environment with exact loopback API, actual chat,
+  local admin enabled and actual admin transport settings. All four aggregates passed and port
+  3000 was free.
+- Provider calls and DB query/write/reset/seed remained zero. Advanced documentation only from
+  `2.21.3` to `2.21.4`.
+
+### Changed — grounded mode false local verification
+
+- Verified without outputting values that the ignored local environment has exactly one lowercase
+  `false` grounded-mode assignment and the runtime loader remains `DISABLED`.
+- Confirmed the environment remains ignored and the Docker client/server plus local DB container
+  are ready for the next manual API step. No provider call or DB query/write was made.
+- Advanced documentation only from `2.21.2` to `2.21.3`.
+
+### Changed — explicit local grounded-mode guidance
+
+- Confirmed without printing values that a missing `UPSTAGE_GROUNDED_CHAT_MODE` leaves the exact
+  local grounded profile disabled. The fail-closed loader returned `DISABLED`.
+- Recommended one explicit `UPSTAGE_GROUNDED_CHAT_MODE=false` assignment for human-readable local
+  intent. Environment, product, provider, DB, data and dependencies were not changed.
+- Advanced documentation only from `2.21.1` to `2.21.2`.
+
+### Changed — post-PR #17 human action handoff
+
+- Recorded PR #17 merge authority `c945303` and separated the remaining human-only work from
+  Codex-owned implementation: manual display/accessibility/presentation rehearsal, A-052 Phase B
+  database selection, and teammate MFA/recovery confirmation.
+- Added a value-free Windows local start guide, five-question expected-result checklist, 200% zoom
+  and keyboard walkthrough, presentation timing, and a copyable result template.
+- Kept the current ACTIVE 20 database immutable for the rehearsal. Reset, seed, deletion, provider
+  actual, public/remote work, product/API/DB/data/dependency changes remain prohibited.
+- Advanced documentation only from `2.21.0` to `2.21.1`.
+
 ### Changed — final local demo readiness and performance smoke plan
 
 - Added a fixed-target local context-secret provisioner that generates a CSPRNG value, updates only

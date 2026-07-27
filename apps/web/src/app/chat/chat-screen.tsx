@@ -37,6 +37,11 @@ import FollowupCard from "@/components/citizen/FollowupCard";
 import FallbackCard from "@/components/citizen/FallbackCard";
 import LoadingSkeleton from "@/components/citizen/LoadingSkeleton";
 import PrivacyNotice from "@/components/citizen/PrivacyNotice";
+import RegionSelect from "@/components/citizen/RegionSelect";
+
+const INITIAL_WAITING_MESSAGE = "공식 자료에서 확인하고 있어요.";
+const SEARCHING_WAITING_MESSAGE = "관련 민원과 공식 출처를 찾고 있어요.";
+const VERIFYING_WAITING_MESSAGE = "답변 근거를 다시 확인하고 있어요.";
 
 interface UserMessage {
   role: "user";
@@ -81,12 +86,17 @@ export default function ChatScreen({
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [waitingMessage, setWaitingMessage] = useState(
+    INITIAL_WAITING_MESSAGE,
+  );
   const [failedDraft, setFailedDraft] = useState<FailedDraft | null>(null);
   const idRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const askedInitial = useRef(false);
   const contextTokenRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const nextId = () => `msg-${++idRef.current}`;
 
@@ -99,6 +109,7 @@ export default function ChatScreen({
     ) => {
       if (inFlightRef.current) return;
       inFlightRef.current = true;
+      setWaitingMessage(INITIAL_WAITING_MESSAGE);
       setLoading(true);
       setFailedDraft(null);
       if (appendUserMessage) {
@@ -110,6 +121,9 @@ export default function ChatScreen({
 
       try {
         const response = await transport.send(request, options);
+        // The network operation is complete; enable the newly rendered
+        // response controls before React paints them.
+        inFlightRef.current = false;
         // FALLBACK은 계약상 context_token이 항상 null - 탭 메모리 갱신 (§9)
         contextTokenRef.current =
           response.answer_status === "FALLBACK" ? null : response.context_token;
@@ -156,7 +170,8 @@ export default function ChatScreen({
       void sendRequest(
         {
           question: trimmed,
-          selected_region: opts?.region ?? null,
+          selected_region:
+            opts?.region !== undefined ? opts.region : selectedRegion,
           simple_language: true,
           context_token:
             opts?.contextToken !== undefined
@@ -167,7 +182,7 @@ export default function ChatScreen({
         { idempotencyKey: createIdempotencyKey() },
       );
     },
-    [createIdempotencyKey, sendRequest],
+    [createIdempotencyKey, selectedRegion, sendRequest],
   );
 
   // 첫 화면에서 넘어온 질문 자동 전송 - 탭 메모리 1회성 소비 (태성 리뷰 1)
@@ -188,6 +203,22 @@ export default function ChatScreen({
     });
   }, [messages, loading]);
 
+  useEffect(() => {
+    if (!loading) return;
+    const searchingTimer = window.setTimeout(
+      () => setWaitingMessage(SEARCHING_WAITING_MESSAGE),
+      2_000,
+    );
+    const verifyingTimer = window.setTimeout(
+      () => setWaitingMessage(VERIFYING_WAITING_MESSAGE),
+      6_000,
+    );
+    return () => {
+      window.clearTimeout(searchingTimer);
+      window.clearTimeout(verifyingTimer);
+    };
+  }, [loading]);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const q = input.trim();
@@ -200,6 +231,7 @@ export default function ChatScreen({
   const selectFollowup = (message: BotMessage, option: string) => {
     const token = message.response.context_token;
     if (isRegion(option)) {
+      setSelectedRegion(option);
       ask(message.question, {
         region: option,
         displayText: `${option}에 살아요`,
@@ -210,13 +242,28 @@ export default function ChatScreen({
     ask(option, { contextToken: token });
   };
 
+  const startNewConversation = () => {
+    if (inFlightRef.current) return;
+    setMessages([]);
+    setInput("");
+    setFailedDraft(null);
+    setSelectedRegion(null);
+    setWaitingMessage(INITIAL_WAITING_MESSAGE);
+    contextTokenRef.current = null;
+    idRef.current = 0;
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-bg">
       {/* fixture 모드 상시 배너 - 공지 배너와 구분되는 앰버 톤 (태성 리뷰 2) */}
       {transportMode === "fixture" && <FixtureNotice />}
       {/* 공지 배너 - 시민 전 페이지 최상단 (대화 화면 개정 1) */}
       <NoticeBanner />
-      <ChatHeader />
+      <ChatHeader
+        onNewConversation={startNewConversation}
+        disabled={loading}
+      />
 
       {/* 대화 컬럼 - 데스크톱 680px 고정 (§4-2). 새 답변을 스크린리더에 알린다 */}
       <main
@@ -243,15 +290,18 @@ export default function ChatScreen({
               disabled={loading || index !== messages.length - 1}
               onSelectFollowup={selectFollowup}
               onRegionChange={(message, dong) =>
-                ask(message.question, {
-                  region: dong,
-                  displayText: `${dong} 기준으로 다시 알려주세요`,
-                })
+                {
+                  setSelectedRegion(dong);
+                  ask(message.question, {
+                    region: dong,
+                    displayText: `${dong} 기준으로 다시 알려주세요`,
+                  });
+                }
               }
             />
           ),
         )}
-        {loading && <LoadingSkeleton />}
+        {loading && <LoadingSkeleton message={waitingMessage} />}
 
         {/* 네트워크·서버 오류 - 재시도가 주인공, 뱃지만 danger 톤 (§6-4).
             재시도는 같은 Idempotency-Key를 재사용한다 (계약). */}
@@ -317,12 +367,22 @@ export default function ChatScreen({
           className="mx-auto w-full max-w-[680px] px-5 pt-1 pb-3"
         >
           {/* 개인정보 경고 한 줄 - 입력 위 (§8) */}
+          {messages.length === 0 && !loading && (
+            <div className="pt-2">
+              <RegionSelect
+                current={selectedRegion}
+                label="거주 지역"
+                onSelect={setSelectedRegion}
+              />
+            </div>
+          )}
           <PrivacyNotice />
           <div className="mt-2 flex gap-2">
             <label htmlFor="chat-input" className="sr-only">
               질문 입력
             </label>
             <input
+              ref={inputRef}
               id="chat-input"
               type="text"
               value={input}
@@ -373,6 +433,7 @@ function BotResponse({
     case "FOLLOWUP":
       return (
         <FollowupCard
+          intent={response.intent}
           options={response.followup_options}
           disabled={disabled}
           onSelect={(option) => onSelectFollowup(message, option)}

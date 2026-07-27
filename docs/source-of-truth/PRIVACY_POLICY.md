@@ -92,6 +92,10 @@ text_purged_at
 - `PRIVACY_UNRESOLVED`: 텍스트 저장·실패 질문 행·후보·provider 호출 금지, 질문 없는 이벤트만 저장
 - 2026-07-25 local/private MVP에서는 D-059가 위 일반 정책보다 좁게 적용된다. `PERSONAL_LOOKUP`과 `LEGAL_JUDGMENT`도 질문 text·event·실패 질문 행·후보를 만들지 않는다.
 - `FOLLOWUP`: 실패가 아니므로 실패 질문 목록에 저장하지 않음
+- `CIVIC_SCOPE_GAP` planned: Q-SCOPE-001=A/ADR-0024에 따라 별도 범위확대 검토
+  queue에 PII-safe `masked_question`만 30일 보관하고 기존 failed/KB candidate와 분리한다.
+  자동 ACTIVE 승격은 금지하며 exact contract·migration 구현 전 current runtime에는 적용하지 않는다.
+- `NON_CIVIC` planned: 질문 text와 review row를 저장하지 않는다.
 - `text_expires_at`: `created_at + 30일`; 실패 행 전체가 아니라 `masked_question` 텍스트의 만료 시각
 - `text_purged_at`: 파기 전에는 NULL, 파기 후에는 실제 처리 시각
 
@@ -112,6 +116,12 @@ exact `solar-pro3`의 근거 제한형 시민 chat 사용을 승인했다. API k
   클라이언트 flag, intent, fixture ID, KB ID 또는 mode를 신뢰하지 않는다.
 - public/remote/실제 기관 운영의 시민 질문 전송은 별도 개인정보·법무·보안·비용·배포 승인
   전까지 계속 금지한다.
+
+Q-CLASS-001=A/D-086/ADR-0025는 future local/private classifier에 한해 위 deterministic
+supported-intent gate 앞의 제한된 예외 방향을 승인했다. PII-safe current question 중
+deterministic policy/high-confidence 결과가 없는 ambiguous 입력만 closed-enum 분류를 위해
+전송할 수 있고, 답변·KB·source·저장 여부는 전송하거나 모델에 위임하지 않는다.
+Q-CLASS-002 budget과 written specification/plan 전 current runtime/actual call은 0이다.
 
 ### 7.2 최소 전송
 

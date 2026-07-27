@@ -24,6 +24,29 @@ function visible(page: Page, role: "button" | "combobox", name?: string) {
   return locator.filter({ visible: true }).first();
 }
 
+async function fillOfficialCandidate(page: Page) {
+  await page.getByLabel("제목").fill("침대 프레임 배출 수수료");
+  await page.getByLabel("답변 요약").fill(
+    "공식 품목표의 침대 프레임 수수료는 1인용침대 8,000원, 2인용침대 10,000원으로 표시됩니다.",
+  );
+  await page.getByLabel("처리 절차 (한 줄에 한 단계)").fill(
+    "공식 품목표에서 침대 프레임의 1인용침대 또는 2인용침대 항목을 확인합니다.\n해당 수수료로 공식 배출 절차를 진행합니다.",
+  );
+  await page.getByLabel("수수료 (선택)").fill(
+    "1인용침대 8,000원; 2인용침대 10,000원",
+  );
+  await page.getByLabel("담당 부서").fill("세종특별자치시시설관리공단");
+  await page.getByLabel("공식 출처명").fill("배출항목선택");
+  await page.getByLabel("공식 출처 URL").fill(
+    "https://www.sjwaste.kr/wasteApp/appCategoryPopup.do?menuId=MENU00305",
+  );
+  await page.getByLabel("출처 확인일").fill("2026-07-18");
+  await page.getByLabel("주의사항 (선택)").fill(
+    "공식 품목표의 1인용침대·2인용침대 항목을 그대로 따릅니다. 매트리스 포함 가격이나 실제 규격을 단정하지 않습니다.",
+  );
+  await page.getByRole("button", { name: "후보 저장 후 승인 요청" }).click();
+}
+
 /** 근거 부족 실패 → 사유 확정 → KB 후보 생성 → 승인 화면 진입 (판정 직전까지) */
 async function seedCandidateAndOpenReview(page: Page) {
   await page.goto("/admin/failures");
@@ -42,8 +65,12 @@ async function seedCandidateAndOpenReview(page: Page) {
   await expect(page.getByText("사유가 확정되었습니다")).toBeVisible();
 
   await curatedRow().getByRole("button", { name: "KB 후보 생성" }).click();
+  await fillOfficialCandidate(page);
   await expect(
-    page.getByText(/KB 후보 초안이 생성되었습니다/).filter({ visible: true }).first(),
+    page
+      .getByText(/운영자가 작성한 KB 후보가 승인 요청되었습니다/)
+      .filter({ visible: true })
+      .first(),
   ).toBeVisible();
 
   await page.getByRole("link", { name: "KB 후보 승인으로 이동" }).click();
@@ -70,7 +97,7 @@ test("fixture keeps the sample banner and shows MOCK candidates that cannot reac
 
   // ③ 승인·반려 판정 비활성 + 사유 안내
   const approve = page.getByRole("button", { name: "승인하고 ACTIVE 반영" });
-  const reject = page.getByRole("button", { name: "반려" });
+  const reject = page.getByRole("button", { name: "반려", exact: true });
   await expect(approve).toBeVisible();
   await expect(approve).toBeDisabled();
   await expect(reject).toBeDisabled();

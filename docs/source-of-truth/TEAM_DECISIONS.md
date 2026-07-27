@@ -6,6 +6,8 @@
 - 구조: 시민용 민원 AI 플랫폼 + 관리자용 AI 민원 운영센터
 - 기준 문장: **모르면 지어내지 않고, 알면 끝까지 안내한다.**
 - 차별점: 실패 질문을 공식 KB 후보로 전환하고 담당자가 승인하는 개선 루프
+- 현실형 목표: 공식 근거를 자연스럽게 안내하고 담당 기관과 운영 개선으로 연결하는
+  안내·운영센터. 실제 신청·상태조회·결제 완료를 제공한다고 표현하지 않는다.
 - 현재 실제 개발 협업: 사용자 owner 1명 + Frontend 팀원 1명. PM·Frontend·Backend·AI/Data는
   책임 역할 구분이며 Backend·DB·계약·데이터·보안의 최종 책임은 사용자가 가진다.
 
@@ -16,6 +18,9 @@
 - P0: 질문·분류·공식 KB 답변·출처·후속질문·4개 행정-domain 폴백+privacy 안전 재질문·지역 선택·기관 카드·관리자 승인 루프
 - P1: 쉬운 말, 큰 글씨, 기본 명도 대비 4.5:1 이상, 실패 질문 필터, KPI, 품질 카드, 감사 이력, 성능 스모크 테스트
 - P2: 실제 GPS·지도 내장·상태조회·정부24/내부망 연계·다국어·음성·고급 분석·전체 KB CRUD
+- Q-PROD-REAL-001=A/D-088: 자연스러운 대화·공식 안내·기관 연결·범위 확대 검토·사람 승인
+  운영을 먼저 현실 사용 수준으로 고도화한다. 실제 신청·상태조회·결제·기관 transaction은
+  별도 범위 변경 전 P2다.
 
 ## 데이터
 
@@ -57,6 +62,13 @@
 - LEGAL_JUDGMENT: 후보 불가
 - OUT_OF_SCOPE: 후보 불가, 질문 텍스트 저장 금지
 - PRIVACY_UNRESOLVED: 안전한 마스킹 text 생성 불능 전용 HTTP 200 재질문; 후보·질문 text·실패 행·provider 호출 없음
+- CIVIC_SCOPE_GAP planned: 네 분야 밖 행정 민원은 기존 KB 후보와 분리된 범위확대 검토
+  queue에 PII-safe masked text만 30일 보관한다. public 응답은 `intent=OUT_OF_SCOPE`,
+  `fallback.reason=CIVIC_SCOPE_GAP`, candidate false다. 기존 event/failed/candidate와 분리하고
+  자동 KB/ACTIVE 전환은 금지하며 exact contract·migration 구현 전 current OUT_OF_SCOPE
+  무저장 runtime을 유지한다.
+- NON_CIVIC planned: 날씨·맛집 등 민원과 무관한 질문은 기존 OUT_OF_SCOPE 시민 응답을
+  사용하고 text/event/failed/review row를 저장하지 않는다.
 - 2026-07-25 local/private MVP의 PERSONAL_LOOKUP·LEGAL_JUDGMENT: 공개 `intent=UNKNOWN`+정확한 reason, 후보 불가, 질문 text·event·실패 행 저장 없음
 - 모호 질문: FOLLOWUP, 실패 질문이 아님
 
@@ -96,7 +108,17 @@
   event 통계를 평가 KPI로 사용하지 않는다. 정식 수치가 필요할 때의 reset·정식 `.2`
   재시드·필요한 19→20 승인 흐름 재현과 future rerun은 각각 별도 인간 승인이 필요하다.
   public/remote/실제 기관 운영은 계속 금지한다.
+- Q-CLASS-001=A/D-086 planned: PII·policy·명백한 supported/NON_CIVIC은 deterministic으로
+  유지하고 안전한 ambiguous 질문만 Upstage closed-enum classifier에 전달한다. 모델은
+  답변·출처·저장·candidate 여부를 결정하지 않는다. Q-CLASS-002=A/D-087의 classifier
+  한도는 요청당 1회·3초·retry 0·입력 1,024자·출력 128 token·process sub-cap 20이며,
+  generation sub-cap 30과 합친 process cap은 40, local synthetic run 비용 stop line은
+  VAT 포함 USD 0.05다. written spec·계획·별도 local actual 승인 전 current runtime call은 0이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
+- D-089/D-090 context v2 planned: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
+  pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
+  topic은 매 요청 ACTIVE/OFFICIAL 재검증한다. Web `새 대화`는 current-tab transcript와 token을
+  함께 초기화한다.
 
 ## 기술
 
@@ -108,7 +130,10 @@
   concurrency 1, retry 최대 1, run outbound attempt 30 경계를 유지한다. 후속 LLM-003 시민
   경로는 local/private에서 supported+masked+ACTIVE/OFFICIAL+grounded일 때만 8초·1 attempt·
   hidden retry 0·concurrency 1·process cap 30으로 호출하고, server-issued fact ID와
-  disabled/template fallback을 강제한다. public/remote/실제 기관 운영은 별도 승인 전 금지한다.
+  disabled/template fallback을 강제한다. future hybrid classifier는 3초·1 attempt·sub-cap 20,
+  generation과 합친 cap 40으로 제한한다. D-092는 PII-free allowlisted classifier actual과
+  ADR-0026의 admin-disabled remote 시민 검증을 승인했지만 real citizen/free-input provider
+  outbound와 실제 기관 운영은 개인정보·약관·법무 운영 gate 전까지 금지한다.
 - 초기 실행: local-first, 외부 인프라 예산 0원
 - 현재 웹 기준선: 사람이 병합한 Frontend PR #8과 owner 통합 commit `c15f61b`부터 local/private
   `/chat`과 `/admin`은 typed actual transport가 기본이고 fixture는 명시적 개발·테스트 mode에서만
@@ -159,10 +184,10 @@
 - 후보 gate: 후보 작성은 `REASON_CONFIRMED + INSUFFICIENT_GROUNDING + candidate_eligible=true` failure에서만 가능하다. 사유 확인은 질문/답변 snapshot 없이 metadata audit를 남긴다.
 - 승인 comment: 공개 OpenAPI가 승인·반려 모두 `review_comment`를 요구하므로 내부 승인 capability도 `approve_kb_candidate(uuid,text,text,text)`를 사용해 승인 comment를 후보와 metadata audit에 저장한다. 공개 wire 계약은 바뀌지 않는다.
 - 적용된 migration은 불변이다. 이미 commit된 migration을 수정하지 않고 reviewed forward를 추가한다.
-  현재 9개 rollback 순서는 `00670 → 00660 → 00650 → 00600 → 00500 → 00400 → 00300 → 00200 → 00100`이다.
+  현재 11개 rollback 순서는 `00700 → 00680 → 00670 → 00660 → 00650 → 00600 → 00500 → 00400 → 00300 → 00200 → 00100`이다.
 - deferred ACTIVE-question trigger 실행: `app_private.validate_active_kb_question()` 하나만 새 `00600`에서 제한된 SECURITY DEFINER로 전환한다. `sejong_schema_owner`, `search_path=pg_catalog, pg_temp`(공식 PostgreSQL 17 SECURITY DEFINER 지침에 따라 임시 스키마를 마지막에 명시), PUBLIC·anon·authenticated·backend 직접 EXECUTE revoke를 재확인하며 backend private schema/table grant와 repository/admin-DSN 우회는 금지한다. 사용자의 직전 추천안 뒤 계속 진행 지시는 Q-DB-003=A 승인으로 해석했고 문자 A를 직접 입력했다고 기록하지 않는다.
-- DB local schema 현재 기준선: forward/rollback 각 9개, pgTAP 9 files/356 assertions와 backend
-  integration·rollback/absence/reset/replay를 갖춘 disposable `0.4.0-local` 기준선이다. Q-SEC-006=A/D-031과 Q-TOOL-001=A/D-032의
+- DB local schema 현재 기준선: forward/rollback 각 11개, pgTAP 11 files/385 tests와 backend
+  integration·rollback/absence/reset/replay를 갖춘 disposable `0.5.0-local` 기준선이다. Q-SEC-006=A/D-031과 Q-TOOL-001=A/D-032의
   patched CLI는 source/patch/runtime hash를 분리 고정하고 runner가 stock/PATH fallback 없이
   patched binary만 사용한다. 2026-07-18 historical gate는 exact one `127.0.0.1:54322`, 당시 pgTAP
   8 files/320, integration·8단계 compensation/absence/reset/replay, final container/process 0·volume delete 0을
@@ -181,11 +206,11 @@
   `수정 계획 승인, 구현 시작`을 승인했고, checkout `.tools/s/a`, `.tools/s/b`와 pre-mutation
   absolute path budget, legacy partial-tree deny-only 경계, reproducible runtime manifest, patched-only
   runner와 actual full gate가 local에서 구현·검증됐다.
-- DB public release 경계: Q-SEC-003=A/D-046으로 exact privileged function 22 signatures를
-  property-only `00700`에서 `search_path=pg_catalog, pg_temp`로 보정하는 방향은 확정했다.
-  구현은 사용자의 지시대로 public 준비 단계까지 보류한다. `00700`·matching compensation·전체
-  regression과 별도 배포 승인이 끝날 때까지 remote/public 배포, public admin/API,
-  public backend DB credential 사용을 차단하고 local 기준선을 production-ready라고 부르지 않는다.
+- DB public release 경계: Q-SEC-003=A/D-046/D-092에 따라 exact privileged function 22
+  signatures의 property-only `00700`과 matching rollback·body/owner/ACL fingerprint·전체
+  regression을 local에서 구현·검증했다. 이는 remote/public 배포 완료가 아니다. ADR-0026의
+  configured citizen target smoke 전 production-ready를 주장하지 않으며 인증 없는 public
+  admin/API와 public backend DB credential 사용은 계속 차단한다.
 
 ## 2026-07-25 local/private 핵심 개선 루프 마일스톤
 
@@ -234,6 +259,23 @@
   automated backup, advanced UI,
   public/remote deploy와 `00700`은 deferred다. local role selector는 production authentication이 아니다.
 
+## 2026-07-27 자연스러운 민원 대화·운영 통합 결정
+
+- D-091로 설계 1~3부를 하나의
+  `docs/superpowers/specs/2026-07-27-natural-civic-dialogue-and-operations-design.md`에
+  통합한다. privacy-first hybrid classifier, context v2, `CIVIC_SCOPE_GAP` 별도 queue,
+  일반 후보 작성, 오류·성능·acceptance가 구현 권위다.
+- D-092로 PII-free actual Upstage, local DB reset·정식 `.2` seed, `00680` 뒤 `00700`
+  public hardening과 구성된 remote 시민 경로 검증을 승인한다.
+- public/remote에서도 인증 없는 `/admin`과 관리자 API는 비활성이다. 실제 신청·상태조회·결제는
+  P2이며 현재 시스템이 행정 처리를 완료한다고 표현하지 않는다.
+- remote target/credential이 없으면 코드·migration·runbook까지만 검증하고 target을 추측하거나
+  새 계정을 자동 생성하지 않는다.
+- D-095 actual evidence: frozen 60 classifier는 40 deterministic/20 provider, policy/privacy
+  outbound 0, corrective 60/60 PASS이며 두 bounded run 누적 비용은 VAT 포함 USD 0.003873210이다.
+  remote discovery에서 application/DB target·credential·origin·saved version이 모두 0이므로
+  migration·seed·deploy·smoke는 `Not executed: target not configured`다.
+
 ## 제출 정보
 
 - 팀명: [직접 입력]
@@ -241,4 +283,4 @@
 - 대표 연락처: [직접 입력]
 - 제출일: [직접 입력]
 - 최종 확인란: `팀 대표 확인`
-- 문서 버전: v2.5.0
+- 문서 버전: v2.6.0

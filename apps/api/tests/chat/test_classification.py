@@ -6,6 +6,7 @@ import pytest
 
 from sejong_ai_api.chat.classification import SafeQuestion, classify_question
 from sejong_ai_api.db.models import FallbackReason, Intent
+from sejong_ai_api.llm.classifier_contracts import ClassifierRoute, PendingSlot
 from sejong_ai_api.privacy.redaction import redact_question
 
 
@@ -37,16 +38,19 @@ def test_clear_out_of_scope_question_uses_the_policy_fallback() -> None:
     outcome = classify_question(safe_question("오늘 세종시 날씨를 알려주세요."))
 
     assert outcome.intent is Intent.OUT_OF_SCOPE
+    assert outcome.route is ClassifierRoute.NON_CIVIC
     assert outcome.followup_required is False
     assert outcome.fallback_reason is FallbackReason.OUT_OF_SCOPE
 
 
-def test_unsupported_pet_registration_is_out_of_scope() -> None:
+def test_unsupported_pet_registration_is_deferred_to_the_closed_provider() -> None:
     outcome = classify_question(safe_question("반려동물 등록 어디서 해요?"))
 
-    assert outcome.intent is Intent.OUT_OF_SCOPE
-    assert outcome.followup_required is False
-    assert outcome.fallback_reason is FallbackReason.OUT_OF_SCOPE
+    assert outcome.intent is Intent.UNKNOWN
+    assert outcome.route is None
+    assert outcome.needs_provider is True
+    assert outcome.followup_required is True
+    assert outcome.fallback_reason is None
 
 
 @pytest.mark.parametrize(
@@ -105,11 +109,20 @@ def test_general_tax_arrears_guidance_is_not_mistaken_for_personal_lookup() -> N
 
 
 @pytest.mark.parametrize("question", ["졸업증명서 발급 방법", "건강진단서 발급 방법"])
-def test_unsupported_certificate_domains_are_out_of_scope(question: str) -> None:
+def test_unsupported_certificate_domains_are_deferred_to_provider(question: str) -> None:
     outcome = classify_question(safe_question(question))
 
-    assert outcome.intent is Intent.OUT_OF_SCOPE
-    assert outcome.fallback_reason is FallbackReason.OUT_OF_SCOPE
+    assert outcome.intent is Intent.UNKNOWN
+    assert outcome.needs_provider is True
+    assert outcome.fallback_reason is None
+
+
+def test_family_relation_certificate_is_deferred_to_provider() -> None:
+    outcome = classify_question(safe_question("가족관계증명서 어떻게 발급받아요?"))
+
+    assert outcome.intent is Intent.UNKNOWN
+    assert outcome.needs_provider is True
+    assert outcome.pending_slot is None
 
 
 def test_canonical_bed_frame_question_is_supported_bulky_waste() -> None:
@@ -143,3 +156,43 @@ def test_generic_policy_fallbacks_use_unknown_intent(
     assert outcome.intent is Intent.UNKNOWN
     assert outcome.followup_required is False
     assert outcome.fallback_reason is expected_reason
+
+
+def test_deterministic_supported_fast_path_has_closed_route() -> None:
+    outcome = classify_question(safe_question("주민등록등본 발급"))
+
+    assert outcome.route is ClassifierRoute.SUPPORTED
+    assert outcome.intent is Intent.CERTIFICATE_ISSUANCE
+    assert outcome.needs_provider is False
+
+
+def test_generic_certificate_uses_bounded_certificate_followup() -> None:
+    outcome = classify_question(safe_question("증명서 발급해야해"))
+
+    assert outcome.route is ClassifierRoute.NEEDS_FOLLOWUP
+    assert outcome.intent is Intent.CERTIFICATE_ISSUANCE
+    assert outcome.followup_required is True
+    assert outcome.pending_slot is PendingSlot.CERTIFICATE_KIND
+    assert outcome.needs_provider is False
+
+
+def test_unsupported_civic_question_requires_closed_provider_classification() -> None:
+    outcome = classify_question(safe_question("청년 월세 지원 어떻게 해요?"))
+
+    assert outcome.route is None
+    assert outcome.intent is Intent.UNKNOWN
+    assert outcome.followup_required is True
+    assert outcome.needs_provider is True
+
+
+def test_classifier_outcome_rejects_inconsistent_provider_state() -> None:
+    with pytest.raises(ValueError, match="^CLASSIFICATION_OUTCOME_INVALID$"):
+        classify_question(safe_question("주민등록등본 발급")).__class__(
+            intent=Intent.CERTIFICATE_ISSUANCE,
+            followup_required=False,
+            fallback_reason=None,
+            route=ClassifierRoute.NON_CIVIC,
+            topic_id=None,
+            pending_slot=None,
+            needs_provider=False,
+        )
