@@ -163,6 +163,7 @@ class ClassificationOutcome:
     fallback_reason: FallbackReason | None
     route: ClassifierRoute | None = None
     topic_id: str | None = None
+    coverage_id: str | None = None
     pending_slot: PendingSlot | None = None
     needs_provider: bool = False
 
@@ -179,7 +180,11 @@ class ClassificationOutcome:
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
         if self.topic_id is not None and type(self.topic_id) is not str:
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+        if self.coverage_id is not None and type(self.coverage_id) is not str:
+            raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
         if self.pending_slot is not None and type(self.pending_slot) is not PendingSlot:
+            raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
+        if (self.topic_id is None) is not (self.coverage_id is None):
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
 
         if self.needs_provider:
@@ -189,6 +194,7 @@ class ClassificationOutcome:
                 or not self.followup_required
                 or self.fallback_reason is not None
                 or self.topic_id is not None
+                or self.coverage_id is not None
                 or self.pending_slot is not None
             ):
                 raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
@@ -204,6 +210,7 @@ class ClassificationOutcome:
                     FallbackReason.LEGAL_JUDGMENT,
                 }
                 or self.topic_id is not None
+                or self.coverage_id is not None
                 or self.pending_slot is not None
             ):
                 raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
@@ -215,6 +222,7 @@ class ClassificationOutcome:
                 or self.followup_required
                 or self.fallback_reason is not FallbackReason.OUT_OF_SCOPE
                 or self.topic_id is not None
+                or self.coverage_id is not None
                 or self.pending_slot is not None
             ):
                 raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
@@ -228,20 +236,27 @@ class ClassificationOutcome:
             ):
                 raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
         elif self.route is ClassifierRoute.NEEDS_FOLLOWUP:
-            if not self.followup_required or self.fallback_reason is not None:
+            if (
+                not self.followup_required
+                or self.fallback_reason is not None
+                or self.topic_id is not None
+                or self.coverage_id is not None
+            ):
                 raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
         else:
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
 
-        try:
-            ClassifierDecision(
-                route=self.route,
-                intent=self.intent,
-                topic_id=self.topic_id,
-                pending_slot=self.pending_slot,
-            )
-        except ValueError as error:
-            raise ValueError("CLASSIFICATION_OUTCOME_INVALID") from error
+        if self.route is not ClassifierRoute.SUPPORTED or self.topic_id is not None:
+            try:
+                ClassifierDecision(
+                    route=self.route,
+                    intent=self.intent,
+                    topic_id=self.topic_id,
+                    coverage_id=self.coverage_id,
+                    pending_slot=self.pending_slot,
+                )
+            except ValueError as error:
+                raise ValueError("CLASSIFICATION_OUTCOME_INVALID") from error
         if self.intent not in _SUPPORTED_INTENTS:
             raise ValueError("CLASSIFICATION_OUTCOME_INVALID")
 

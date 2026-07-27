@@ -28,6 +28,11 @@ from sejong_ai_api.chat.response import (
     build_success_response,
 )
 from sejong_ai_api.chat.retrieval import RankedKnowledge, rank_active_knowledge
+from sejong_ai_api.chat.topic_catalog import (
+    TopicCatalog,
+    TopicCoverage,
+    build_topic_catalog,
+)
 from sejong_ai_api.contracts.chat import (
     CHAT_RESPONSE_ADAPTER,
     AnswerMode,
@@ -71,14 +76,13 @@ type SupportedIntentValue = Literal[
     "BULKY_WASTE",
     "LOCAL_TAX_GENERAL",
 ]
-_SUPPORTED_INTENTS = frozenset(
-    {
-        Intent.MOVE_IN_RESIDENT_REGISTRATION,
-        Intent.CERTIFICATE_ISSUANCE,
-        Intent.BULKY_WASTE,
-        Intent.LOCAL_TAX_GENERAL,
-    }
+_SUPPORTED_INTENT_ORDER = (
+    Intent.MOVE_IN_RESIDENT_REGISTRATION,
+    Intent.CERTIFICATE_ISSUANCE,
+    Intent.BULKY_WASTE,
+    Intent.LOCAL_TAX_GENERAL,
 )
+_SUPPORTED_INTENTS = frozenset(_SUPPORTED_INTENT_ORDER)
 _FOLLOWUP_OPTIONS: tuple[
     Literal[
         "intent.move-in",
@@ -151,7 +155,11 @@ class ChatRepository(Protocol):
 
 
 class QuestionClassifierPort(Protocol):
-    async def classify(self, question: SafeQuestion) -> ClassifierDecision | None: ...
+    async def classify(
+        self,
+        question: SafeQuestion,
+        catalog: TopicCatalog,
+    ) -> ClassifierDecision | None: ...
 
 
 class ChatUnavailableError(Exception):
@@ -197,6 +205,7 @@ class ChatService:
         idempotency_claim_factory: Callable[[], UUID] = uuid4,
         answer_generator: GroundedAnswerGenerator | None = None,
         question_classifier: QuestionClassifierPort | None = None,
+        topic_coverage: Sequence[TopicCoverage] = (),
     ) -> None:
         if not callable(request_id_factory) or not callable(monotonic_ns):
             raise TypeError("CHAT_SERVICE_DEPENDENCY_INVALID")
@@ -210,6 +219,12 @@ class ChatService:
             raise ValueError("IDEMPOTENCY_CONFIGURATION_INVALID")
         if not callable(idempotency_claim_factory):
             raise TypeError("CHAT_SERVICE_DEPENDENCY_INVALID")
+        if not isinstance(topic_coverage, Sequence) or isinstance(
+            topic_coverage, (str, bytes)
+        ):
+            raise TypeError("CHAT_SERVICE_DEPENDENCY_INVALID")
+        if any(type(item) is not TopicCoverage for item in topic_coverage):
+            raise TypeError("CHAT_SERVICE_DEPENDENCY_INVALID")
         self._repository = repository
         self._context_codec = context_codec
         self._request_id_factory = request_id_factory
@@ -220,6 +235,7 @@ class ChatService:
         self._idempotency_claim_factory = idempotency_claim_factory
         self._answer_generator = answer_generator
         self._question_classifier = question_classifier
+        self._topic_coverage = tuple(topic_coverage)
 
     async def answer(
         self,
@@ -648,8 +664,20 @@ class ChatService:
         if classifier is None:
             return None
         try:
+            snapshot_parts = await asyncio.gather(
+                *(
+                    self._repository.list_active_kb(intent)
+                    for intent in _SUPPORTED_INTENT_ORDER
+                )
+            )
+            catalog = build_topic_catalog(
+                tuple(record for records in snapshot_parts for record in records),
+                self._topic_coverage,
+            )
+            if not catalog.provider_eligible:
+                return None
             async with asyncio.timeout_at(deadline):
-                decision = await classifier.classify(question)
+                decision = await classifier.classify(question, catalog)
         except Exception:
             return None
         return decision if type(decision) is ClassifierDecision else None
@@ -742,12 +770,23 @@ class ChatService:
         topic_id: str | None = None,
         pending_slot: PendingSlot | None = None,
     ) -> str:
+        context_pending_slot: Literal[
+            "CERTIFICATE_KIND",
+            "REGION",
+            "WASTE_ITEM",
+        ] | None = None
+        if pending_slot is PendingSlot.CERTIFICATE_KIND:
+            context_pending_slot = "CERTIFICATE_KIND"
+        elif pending_slot is PendingSlot.REGION:
+            context_pending_slot = "REGION"
+        elif pending_slot is PendingSlot.WASTE_ITEM:
+            context_pending_slot = "WASTE_ITEM"
         return self._context_codec.issue(
             last_intent=intent.value,
             selected_region=selected_region.value if selected_region is not None else None,
             answer_status=answer_status,
             topic_id=topic_id,
-            pending_slot=pending_slot.value if pending_slot is not None else None,
+            pending_slot=context_pending_slot,
             dialog_act=dialog_act,
         )
 

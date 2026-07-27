@@ -43,6 +43,7 @@ if TYPE_CHECKING:
 
     from sejong_ai_api.chat.classification import SafeQuestion
     from sejong_ai_api.chat.service import QuestionClassifierPort
+    from sejong_ai_api.chat.topic_catalog import TopicCatalog
     from sejong_ai_api.llm.classifier_contracts import ClassifierDecision
     from sejong_ai_api.llm.limits import ProviderAttemptLedger
     from sejong_ai_api.llm.settings import UpstageChatSettings, UpstageClassifierSettings
@@ -51,6 +52,12 @@ if TYPE_CHECKING:
     type GroundedChatRuntimeFactory = Callable[[UpstageChatSettings], GroundedChatRuntime]
 
 _LOCAL_ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+_TOPIC_COVERAGE_PATH = (
+    Path(__file__).resolve().parents[4]
+    / "data"
+    / "retrieval"
+    / "topic-coverage.v1.json"
+)
 _ALLOWED_ENV_KEYS = frozenset({"DATABASE_URL", "CONTEXT_TOKEN_SECRET"})
 _ALLOWED_DATABASE_CONNINFO_KEYS = frozenset({"user", "password", "host", "port", "dbname"})
 _EXPECTED_DATABASE_IDENTITY = ("sejong_local_login", "127.0.0.1", 54322, "postgres")
@@ -98,9 +105,13 @@ class _LazyQuestionClassifier:
         self._disabled = False
         self._init_lock = asyncio.Lock()
 
-    async def classify(self, question: SafeQuestion) -> ClassifierDecision | None:
+    async def classify(
+        self,
+        question: SafeQuestion,
+        catalog: TopicCatalog,
+    ) -> ClassifierDecision | None:
         delegate = await self._get_or_create()
-        return None if delegate is None else await delegate.classify(question)
+        return None if delegate is None else await delegate.classify(question, catalog)
 
     async def _get_or_create(self) -> QuestionClassifierPort | None:
         if self._disabled:
@@ -263,6 +274,9 @@ def create_local_app(
             runtime_factory=grounded_chat_runtime_factory,
             ledger=(classifier_runtime.ledger if classifier_runtime is not None else None),
         )
+        from sejong_ai_api.chat.topic_catalog import load_topic_coverage
+
+        topic_coverage = load_topic_coverage(_TOPIC_COVERAGE_PATH)
         service = ChatService(
             repository=repository,
             context_codec=ContextTokenCodec(
@@ -281,6 +295,7 @@ def create_local_app(
             question_classifier=(
                 classifier_runtime.classifier if classifier_runtime is not None else None
             ),
+            topic_coverage=topic_coverage,
         )
         responder = GuardedChatResponder(probe, service)
         office_directory = GuardedOfficeDirectory(

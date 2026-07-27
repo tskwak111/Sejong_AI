@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 import sejong_ai_api.local as local_module
 from sejong_ai_api.chat.idempotency import IdempotencyClaim, IdempotencyClaimStatus
 from sejong_ai_api.chat.readiness import INITIAL_ACTIVE_KB_IDS, REQUIRED_OFFICE_PROJECTIONS
+from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.contracts.admin import (
     CivicScopeGapSummary,
     FailedQuestion,
@@ -396,6 +397,29 @@ def _combined_provider_config() -> dict[str, str]:
     }
 
 
+def _write_single_topic_coverage(tmp_path: Path) -> Path:
+    path = tmp_path / "topic-coverage.v1.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "data_kind": "NON_FACTUAL_RETRIEVAL_METADATA",
+                "topics": [
+                    {
+                        "topic_id": "KB-WASTE-01",
+                        "intent": "BULKY_WASTE",
+                        "coverage_id": "GENERAL_BULKY_DISPOSAL",
+                        "coverage_label": "일반 가구류 배출 절차",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
 def test_process_environment_wins_over_the_known_env_file(tmp_path: Path) -> None:
     env_path = tmp_path / ".env"
     env_path.write_text(
@@ -754,6 +778,11 @@ def test_exact_classifier_profile_routes_ambiguous_local_chat_through_one_provid
     post_calls = 0
     close_calls = 0
     original_close = httpx.AsyncClient.aclose
+    monkeypatch.setattr(
+        local_module,
+        "_TOPIC_COVERAGE_PATH",
+        _write_single_topic_coverage(tmp_path),
+    )
 
     async def classify_once(
         _client: httpx.AsyncClient,
@@ -771,7 +800,8 @@ def test_exact_classifier_profile_routes_ambiguous_local_chat_through_one_provid
                         "message": {
                             "content": (
                                 '{"route":"CIVIC_SCOPE_GAP","intent":null,'
-                                '"topic_id":null,"pending_slot":null}'
+                                '"topic_id":null,"coverage_id":null,'
+                                '"pending_slot":null}'
                             )
                         },
                     }
@@ -817,6 +847,11 @@ def test_classifier_provider_failure_returns_safe_followup_without_persistence(
     pool = FakePool()
     repositories: list[FakeRepository] = []
     post_calls = 0
+    monkeypatch.setattr(
+        local_module,
+        "_TOPIC_COVERAGE_PATH",
+        _write_single_topic_coverage(tmp_path),
+    )
 
     async def fail_once(
         _client: httpx.AsyncClient,
@@ -878,7 +913,9 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
             del settings, client
             captured_ledgers["classifier"] = ledger
 
-        async def classify(self, _question: object) -> None:
+        async def classify(self, _question: object, catalog: TopicCatalog) -> None:
+            assert type(catalog) is TopicCatalog
+            assert catalog.provider_eligible
             return None
 
     def build_grounded_with_shared_ledger(

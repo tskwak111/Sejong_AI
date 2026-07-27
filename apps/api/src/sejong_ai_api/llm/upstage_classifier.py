@@ -7,15 +7,20 @@ from typing import Any
 import httpx
 
 from sejong_ai_api.chat.classification import SafeQuestion
+from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.llm.classifier_contracts import (
     ClassifierDecision,
     parse_classifier_decision,
 )
-from sejong_ai_api.llm.classifier_prompt import build_classifier_messages
+from sejong_ai_api.llm.classifier_prompt import (
+    build_classifier_messages,
+    estimate_classifier_input_upper_bound,
+)
 from sejong_ai_api.llm.limits import AttemptCapReached, ProviderAttemptLedger
 from sejong_ai_api.llm.settings import UpstageClassifierSettings
 
 _CHAT_COMPLETIONS_PATH = "/chat/completions"
+_MAX_INPUT_ESTIMATE = 4096
 
 
 def create_upstage_classifier_client(
@@ -63,12 +68,19 @@ class QuestionClassifier:
         self._client = client
         self._ledger = ledger
 
-    async def classify(self, question: SafeQuestion) -> ClassifierDecision | None:
+    async def classify(
+        self,
+        question: SafeQuestion,
+        catalog: TopicCatalog,
+    ) -> ClassifierDecision | None:
         try:
             messages = build_classifier_messages(
                 question,
+                catalog,
                 max_input_chars=self._settings.max_input_chars,
             )
+            if estimate_classifier_input_upper_bound(messages) > _MAX_INPUT_ESTIMATE:
+                return None
             payload = {
                 "model": self._settings.model,
                 "messages": list(messages),
@@ -93,10 +105,13 @@ class QuestionClassifier:
         except Exception:
             # No provider exception, prompt content, or response body crosses this boundary.
             return None
-        return _parse_response(response)
+        return _parse_response(response, catalog)
 
 
-def _parse_response(response: httpx.Response) -> ClassifierDecision | None:
+def _parse_response(
+    response: httpx.Response,
+    catalog: TopicCatalog,
+) -> ClassifierDecision | None:
     if response.status_code < 200 or response.status_code >= 300:
         return None
     try:
@@ -115,7 +130,7 @@ def _parse_response(response: httpx.Response) -> ClassifierDecision | None:
     if type(content) is not str or not content.strip():
         return None
     try:
-        return parse_classifier_decision(content.encode("utf-8"))
+        return parse_classifier_decision(content.encode("utf-8"), catalog)
     except (UnicodeEncodeError, ValueError):
         return None
 
