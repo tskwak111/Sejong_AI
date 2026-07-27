@@ -60,10 +60,7 @@ class ProviderCostReservation:
     _usage: TokenUsage | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
-        if (
-            type(self.lane) is not ProviderLane
-            or not _valid_positive_decimal(self.worst_case_usd)
-        ):
+        if type(self.lane) is not ProviderLane or not _valid_positive_decimal(self.worst_case_usd):
             raise ValueError("PROVIDER_COST_RESERVATION_INVALID")
 
     def record_usage(self, usage: TokenUsage) -> None:
@@ -193,11 +190,7 @@ class ProviderAttemptLedger:
 
 
 def _valid_positive_decimal(value: object) -> bool:
-    return (
-        type(value) is Decimal
-        and value.is_finite()
-        and value > Decimal("0")
-    )
+    return type(value) is Decimal and value.is_finite() and value > Decimal("0")
 
 
 def parse_provider_token_usage(
@@ -240,11 +233,7 @@ def parse_provider_token_usage(
     reported_cached_tokens: int | None = None
     if "cached_tokens" in value:
         cached_tokens = value["cached_tokens"]
-        if (
-            type(cached_tokens) is not int
-            or cached_tokens < 0
-            or cached_tokens > prompt_tokens
-        ):
+        if type(cached_tokens) is not int or cached_tokens < 0 or cached_tokens > prompt_tokens:
             return None
         reported_cached_tokens = cached_tokens
 
@@ -253,23 +242,14 @@ def parse_provider_token_usage(
         if type(details) is not dict or "cached_tokens" not in details:
             return None
         cached_tokens = details["cached_tokens"]
-        if (
-            type(cached_tokens) is not int
-            or cached_tokens < 0
-            or cached_tokens > prompt_tokens
-        ):
+        if type(cached_tokens) is not int or cached_tokens < 0 or cached_tokens > prompt_tokens:
             return None
-        if (
-            reported_cached_tokens is not None
-            and reported_cached_tokens != cached_tokens
-        ):
+        if reported_cached_tokens is not None and reported_cached_tokens != cached_tokens:
             return None
         reported_cached_tokens = cached_tokens
 
     return TokenUsage(
         input_tokens=prompt_tokens,
-        cached_input_tokens=(
-            0 if reported_cached_tokens is None else reported_cached_tokens
-        ),
+        cached_input_tokens=(0 if reported_cached_tokens is None else reported_cached_tokens),
         output_tokens=completion_tokens,
     )

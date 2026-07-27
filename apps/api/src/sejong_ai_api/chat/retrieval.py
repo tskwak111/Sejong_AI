@@ -275,9 +275,7 @@ def select_deterministic_topic(
         raise TypeError("TOPIC_CATALOG_REQUIRED")
 
     topics_by_id = {
-        topic.record.public_id: topic
-        for topic in catalog.topics
-        if topic.record.category is intent
+        topic.record.public_id: topic for topic in catalog.topics if topic.record.category is intent
     }
     ranked = rank_active_knowledge(
         question,

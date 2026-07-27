@@ -72,9 +72,7 @@ def _runtime_topic(
             topic_id=topic_id,
             intent=intent,
             coverage_id=(
-                "GENERAL_BULKY_DISPOSAL"
-                if index == 1
-                else f"GENERAL_BULKY_DISPOSAL_{index:02d}"
+                "GENERAL_BULKY_DISPOSAL" if index == 1 else f"GENERAL_BULKY_DISPOSAL_{index:02d}"
             ),
             coverage_label=coverage_label,
         ),
@@ -87,10 +85,7 @@ def _catalog(
     coverage_label: str = "일반 가구류 배출 절차",
 ) -> TopicCatalog:
     return TopicCatalog(
-        tuple(
-            _runtime_topic(index, coverage_label=coverage_label)
-            for index in range(1, size + 1)
-        )
+        tuple(_runtime_topic(index, coverage_label=coverage_label) for index in range(1, size + 1))
     )
 
 
@@ -114,9 +109,7 @@ def _provider_response(
     }
     if include_usage:
         envelope["usage"] = (
-            {"prompt_tokens": 20, "completion_tokens": 10}
-            if usage is None
-            else usage
+            {"prompt_tokens": 20, "completion_tokens": 10} if usage is None else usage
         )
     return httpx.Response(
         200,

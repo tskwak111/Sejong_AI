@@ -146,9 +146,7 @@ class SyntheticEvaluationService:
             or any(type(item) is not TopicCoverage for item in topic_coverage)
         ):
             raise ValueError("TOPIC_COVERAGE_INVALID")
-        self._topic_coverage = (
-            tuple(topic_coverage) if topic_coverage is not None else None
-        )
+        self._topic_coverage = tuple(topic_coverage) if topic_coverage is not None else None
         self._monotonic_ns = monotonic_ns
         self._uuid_factory = uuid_factory
 

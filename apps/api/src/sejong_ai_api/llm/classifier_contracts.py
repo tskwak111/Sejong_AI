@@ -11,9 +11,7 @@ from typing import Any
 from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.db.models import Intent
 
-_EXPECTED_KEYS = frozenset(
-    {"route", "intent", "topic_id", "coverage_id", "pending_slot"}
-)
+_EXPECTED_KEYS = frozenset({"route", "intent", "topic_id", "coverage_id", "pending_slot"})
 _IDENTIFIER_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,63}$")
 _SUPPORTED_INTENTS = frozenset(
     {
@@ -63,8 +61,7 @@ class ClassifierDecision:
         if self.intent is not None and type(self.intent) is not Intent:
             raise ValueError
         if self.topic_id is not None and (
-            type(self.topic_id) is not str
-            or _IDENTIFIER_PATTERN.fullmatch(self.topic_id) is None
+            type(self.topic_id) is not str or _IDENTIFIER_PATTERN.fullmatch(self.topic_id) is None
         ):
             raise ValueError
         if self.coverage_id is not None and (
@@ -87,8 +84,7 @@ class ClassifierDecision:
 
         if self.route is ClassifierRoute.NO_TOPIC_MATCH:
             if self.intent not in _SUPPORTED_INTENTS or any(
-                value is not None
-                for value in (self.topic_id, self.coverage_id, self.pending_slot)
+                value is not None for value in (self.topic_id, self.coverage_id, self.pending_slot)
             ):
                 raise ValueError
             return

@@ -90,10 +90,7 @@ class QuestionClassifier:
                 catalog,
                 max_input_chars=self._settings.max_input_chars,
             )
-            if (
-                estimate_classifier_input_upper_bound(messages)
-                > UPSTAGE_MAX_INPUT_TOKENS
-            ):
+            if estimate_classifier_input_upper_bound(messages) > UPSTAGE_MAX_INPUT_TOKENS:
                 return None
             payload = {
                 "model": self._settings.model,

@@ -276,9 +276,7 @@ async def test_noncanonical_raw_pii_never_reaches_provider_or_logs(
 ) -> None:
     provider = _CaptureProvider()
     service = SyntheticEvaluationService(
-        fixtures=(
-            _non_provider_fixture(question=f"전입신고 어떻게 해요? 연락처 {RAW_PHONE}"),
-        ),
+        fixtures=(_non_provider_fixture(question=f"전입신고 어떻게 해요? 연락처 {RAW_PHONE}"),),
         repository=_Repository((_move_in_record(),)),
         provider=provider,
     )
@@ -444,8 +442,7 @@ async def test_frozen_generation_fixtures_use_exact_typed_topics_once_without_lo
         fixture_id
         for fixture_id, selection in zip(allowed_ids, selections, strict=True)
         if selection is not None
-        and selection.evidence.kind
-        is GroundingEvidenceKind.VALIDATED_SEMANTIC_COVERAGE
+        and selection.evidence.kind is GroundingEvidenceKind.VALIDATED_SEMANTIC_COVERAGE
     }
     assert semantic_fixture_ids == {"T-02", "T-07", "T-08"}
 

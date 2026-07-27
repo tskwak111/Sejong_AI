@@ -658,8 +658,7 @@ class ChatService:
                     if replay.answer_status == "SUCCESS"
                     else (
                         prior_context.topic_id
-                        if pending_slot is PendingSlot.REGION
-                        and prior_context is not None
+                        if pending_slot is PendingSlot.REGION and prior_context is not None
                         else None
                     )
                 )

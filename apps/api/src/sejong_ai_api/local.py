@@ -53,10 +53,7 @@ if TYPE_CHECKING:
 
 _LOCAL_ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 _TOPIC_COVERAGE_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "data"
-    / "retrieval"
-    / "topic-coverage.v1.json"
+    Path(__file__).resolve().parents[4] / "data" / "retrieval" / "topic-coverage.v1.json"
 )
 _ALLOWED_ENV_KEYS = frozenset({"DATABASE_URL", "CONTEXT_TOKEN_SECRET"})
 _ALLOWED_DATABASE_CONNINFO_KEYS = frozenset({"user", "password", "host", "port", "dbname"})

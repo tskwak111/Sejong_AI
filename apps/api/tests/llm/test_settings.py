@@ -199,9 +199,7 @@ def test_combined_profile_rejects_every_non_exact_budget_value() -> None:
 
 
 def test_invalid_combined_budget_is_rejected_before_api_key_read() -> None:
-    invalid = _KeyReadFailsMapping(
-        {**COMBINED_VALID, "LLM_SESSION_COST_CAP_USD": "0.200"}
-    )
+    invalid = _KeyReadFailsMapping({**COMBINED_VALID, "LLM_SESSION_COST_CAP_USD": "0.200"})
 
     assert load_upstage_classifier_settings(environ=invalid, env_path=Path("missing")) is None
     assert load_upstage_chat_settings(environ=invalid, env_path=Path("missing")) is None

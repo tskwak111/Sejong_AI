@@ -222,15 +222,9 @@ def load_upstage_classifier_settings(
         if api_key is not None:
             return UpstageClassifierSettings(
                 api_key=api_key,
-                classifier_attempt_cap=int(
-                    expected_values["LLM_CLASSIFIER_ATTEMPT_CAP"]
-                ),
-                generator_attempt_cap=int(
-                    expected_values["LLM_GENERATOR_ATTEMPT_CAP"]
-                ),
-                combined_attempt_cap=int(
-                    expected_values["LLM_COMBINED_ATTEMPT_CAP"]
-                ),
+                classifier_attempt_cap=int(expected_values["LLM_CLASSIFIER_ATTEMPT_CAP"]),
+                generator_attempt_cap=int(expected_values["LLM_GENERATOR_ATTEMPT_CAP"]),
+                combined_attempt_cap=int(expected_values["LLM_COMBINED_ATTEMPT_CAP"]),
                 session_cost_cap_usd=(
                     LOCAL_INTERACTIVE_COST_CAP_USD
                     if "LLM_SESSION_COST_CAP_USD" in expected_values

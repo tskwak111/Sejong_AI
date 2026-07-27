@@ -292,9 +292,7 @@ async def test_semantic_selection_generator_failure_uses_selected_complete_templ
             pending_slot=None,
         )
     )
-    generator = CountingGenerator(
-        result=GroundedChatResult(code=GroundedChatOutcomeCode.TIMEOUT)
-    )
+    generator = CountingGenerator(result=GroundedChatResult(code=GroundedChatOutcomeCode.TIMEOUT))
 
     response = await service(
         FakeRepository(records=(other, selected)),

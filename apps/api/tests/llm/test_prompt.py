@@ -65,9 +65,7 @@ def _runtime_topic(
             topic_id=topic_id,
             intent=intent,
             coverage_id=(
-                "GENERAL_BULKY_DISPOSAL"
-                if index == 1
-                else f"GENERAL_BULKY_DISPOSAL_{index:02d}"
+                "GENERAL_BULKY_DISPOSAL" if index == 1 else f"GENERAL_BULKY_DISPOSAL_{index:02d}"
             ),
             coverage_label=coverage_label,
         ),
