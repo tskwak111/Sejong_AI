@@ -28,8 +28,12 @@ cost_cap_usd=0.20
 ```
 
 It also requires the recorded 48-case offline PASS and a clean repository
-secret-pattern scan. The runner reports only whether a key is present; it never
-prints a key, DSN, question, provider request, or provider response.
+secret-pattern scan. The fixture, coverage metadata, immutable `.2` official
+projection, release manifest, and offline evidence are bound to reviewed
+SHA-256 identities. The release must be schema v2 with exactly 19
+`ACTIVE`/`OFFICIAL` records, and protected inputs must have no tracked diff.
+The runner reports only whether a key is present; it never prints a key, DSN,
+citizen text, provider request, provider response, or exception detail.
 
 ## Execute exactly once
 
@@ -42,15 +46,30 @@ apps/api/.venv/Scripts/python.exe -B `
   --report docs/test-reports/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL.md
 ```
 
-Expected PASS evidence is 20 selected, 0 skipped, 11 deterministic and 9
-provider cases. Each provider result must satisfy the closed selector contract
-and current catalog membership where a topic is required. The report records
-fixture ID, route/topic match, outbound count, aggregate tokens, and
-VAT-inclusive Decimal cost only.
+Before client construction the runner exclusively creates
+`CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL.md.run.lock`. An existing lock or evidence
+report blocks the command before any provider operation. This prevents
+concurrent launches and makes a second run impossible without explicit human
+acknowledgement.
 
-If the process returns nonzero or the report says `FAIL`, stop. The bounded
-FAIL evidence is intentional: do not rerun, change the fixture, or bypass the
-pre-reservation budget without a new human instruction.
+Expected PASS evidence is 20 selected, 0 skipped, 11 prior-offline
+deterministic/provider-free cases and 9 fresh provider cases. Only the 9
+provider rows are labeled as fresh route/topic matches. Each provider result
+must satisfy the closed selector contract and current catalog membership where
+a topic is required. The report records safe input identities, fixture ID,
+evidence kind, outbound count, strictly parsed aggregate token usage, observed
+VAT-inclusive cost, conservative ledger charge, and reconciliation status.
+
+If the process returns nonzero or the report says `FAIL`, stop. Every
+controlled failure after argument validation writes bounded FAIL evidence
+atomically. A crash or evidence-write failure intentionally leaves the lock.
+Do not delete, overwrite, or rename the report/lock; change the fixture; or
+bypass the pre-reservation budget without a new human instruction.
+
+An approved rerun is a separate governed action. The human must first review
+and archive the prior report, explicitly authorize reset, and then remove the
+canonical report and any stale `.run.lock`. The runner never performs this
+reset itself.
 
 ## Restore and verify
 
