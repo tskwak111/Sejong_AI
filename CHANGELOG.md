@@ -22,8 +22,15 @@
   public/remote provider operation and automatic merge out of scope. The actual FAIL does not
   invalidate offline/template behavior, but provider configuration/availability must be diagnosed
   and a new human authorization obtained before any corrective actual rerun.
-- Advanced application `0.11.1→0.12.0`, Web `0.7.0→0.8.0`, prompt set `0.3.1→0.4.0`, tests
-  `1.9.2→2.1.0` and documentation `2.26.1→2.28.0`; API/shared/DB/data axes are unchanged.
+- Preserved the validated topic in durable SUCCESS and topic-bound REGION FOLLOWUP replay context,
+  so a network retry does not break the next short facet or region answer. Generic follow-ups remain
+  topic-free.
+- Final browser evidence is 27/27. API is 2,357 passed with 8 local-DB skips, shared contracts are
+  96/96, Mypy covers 114 files, and secret/bundle/protected-path findings are 0. The one final
+  aggregate wrapper is explicitly not PASS: it stopped at formatting after 19 unique prior stages;
+  formatter correction and every unrun constituent then passed independently.
+- Advanced application `0.11.1→0.12.1`, Web `0.7.0→0.8.0`, prompt set `0.3.1→0.4.0`, tests
+  `1.9.2→2.1.1` and documentation `2.26.1→2.29.0`; API/shared/DB/data axes are unchanged.
 
 ### Fixed — local hybrid classifier runtime composition
 

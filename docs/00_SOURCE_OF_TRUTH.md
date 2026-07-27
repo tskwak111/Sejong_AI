@@ -135,8 +135,11 @@ runtime ACTIVE/OFFICIAL 교집합은 19이며 metadata의 20번째 topic을 허�
 offline UAT는 48/48, official 57/57, classifier 60/60, focused 91 PASS·skip 0이다. Task 10
 PII-free Upstage actual은 정확히 한 번 실행해 20 selected·skip 0·11 provider-free·9 outbound를
 기록했지만 strict accepted usage와 provider match가 0이라 FAIL했고 재실행하지 않았다.
-final full gate/Draft PR은 Task 11이며 public/remote, DB reset/seed, official `.2` 수정과
-자동 merge는 아직 완료가 아니다. 상세 권위는 ADR-0027과
+Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
+Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
+FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는
+모두 별도 PASS했다. public/remote, DB reset/seed, official `.2` 수정과 자동 merge는 아직
+완료가 아니다. 상세 권위는 ADR-0027과
 `2026-07-27-bounded-hybrid-rag-conversation-design.md`다.
 
 ## 4. 변경 절차

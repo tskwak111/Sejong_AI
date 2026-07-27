@@ -307,8 +307,11 @@
   local/offline 구현·독립 검토가 완료됐다. immutable official `.2`의 runtime 교집합은 19이고
   synthetic UAT 48/48·official 57/57·classifier 60/60·focused 91 PASS/skip 0이다.
   D-105/Task 10 actual은 20 selected·skip 0·11 provider-free·9 outbound 뒤 strict accepted
-  usage/provider match 0으로 FAIL했고 재실행하지 않았다. final full gate/Draft PR은 Task 11이며
-  public/remote, DB reset/seed, official `.2` 변경, 자동 merge는 계속 미실행이다.
+  usage/provider match 0으로 FAIL했고 재실행하지 않았다. Task 11 local/private 마감은 browser
+  27/27, API 2,357 pass·8 local-DB skip, contracts 96/96, Mypy 114, secret/bundle/protected
+  diff 0이다. final wrapper 자체는 FORMAT-API exit 1로 PASS가 아니며 formatter 교정 뒤 미실행
+  constituent는 별도 PASS했다. public/remote, DB reset/seed, official `.2` 변경, 자동 merge는
+  계속 미실행이다.
 
 ## 제출 정보
 

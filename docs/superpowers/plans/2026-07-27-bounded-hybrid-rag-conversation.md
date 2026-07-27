@@ -1218,7 +1218,7 @@ git commit -m "test(llm): record bounded hybrid rag actual"
 - Modify: `versions/manifest.json`
 - Modify: `docs/implementation-notes/INDEX.md`
 
-- [ ] **Step 1: Run final repository gate once**
+- [x] **Step 1: Run final repository gate once**
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1
@@ -1227,7 +1227,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1
 If the aggregate wrapper reports a known harness-only failure, run and record every constituent
 gate; do not label the wrapper PASS.
 
-- [ ] **Step 2: Run final browser matrix**
+- [x] **Step 2: Run final browser matrix**
 
 ```powershell
 corepack.cmd pnpm --dir tools/web-e2e test -- `
@@ -1239,7 +1239,7 @@ corepack.cmd pnpm --dir tools/web-e2e test -- `
 Expected: citizen region/followup/suggestion and unchanged local admin core loop pass at
 390px, 430px and desktop.
 
-- [ ] **Step 3: Run security, privacy and protected-diff checks**
+- [x] **Step 3: Run security, privacy and protected-diff checks**
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -1252,14 +1252,14 @@ git diff --check
 
 Expected: secret/real-PII findings 0; official `.2`, migration and rollback diff 0.
 
-- [ ] **Step 4: Perform independent code review**
+- [x] **Step 4: Perform independent code review**
 
 Use `superpowers:requesting-code-review`. Review typed boundaries, provider-zero policy paths,
 request-local snapshot counts, invalid-topic failure, persistence deltas, source authority, Web
 storage 0, cost pre-reservation and test realism. Fix only verified findings through a focused
 RED/GREEN cycle.
 
-- [ ] **Step 5: Complete final implementation note**
+- [x] **Step 5: Complete final implementation note**
 
 Record:
 
@@ -1270,7 +1270,7 @@ Record:
 - exact rollback commits and provider-off switches;
 - any bounded non-pass or manual Pending item.
 
-- [ ] **Step 6: Commit closeout**
+- [x] **Step 6: Commit closeout**
 
 ```powershell
 git add CHANGELOG.md TASKS.md versions/manifest.json docs
@@ -1325,8 +1325,10 @@ and commit boundaries. Ellipses in Python protocol bodies are type-stub syntax, 
 ## Execution Status and Remaining Handoff
 
 Explicit plan approval was received and `superpowers:subagent-driven-development` was used for
-Tasks 1~10. The primary agent retained shared contracts, catalog types, `service.py`, provider budget
+Tasks 1~11. The primary agent retained shared contracts, catalog types, `service.py`, provider budget
 integration, versions and integration commits; independent agents implemented or reviewed bounded
 non-overlapping slices. Task 10's reviewed PII-free actual subset was run exactly once and recorded
-FAIL without rerun. Task 11 must run the final repository-wide/security/browser gates, independent
-review, push and Draft PR. No automatic merge is allowed.
+FAIL without rerun. Task 11 recorded browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
+Mypy 114 and zero secret/bundle/protected findings. The one final aggregate wrapper stopped at
+FORMAT-API and is not PASS; after formatting, every constituent that the wrapper had not run passed
+independently. Push and Draft PR publication remain Step 7. No automatic merge is allowed.
