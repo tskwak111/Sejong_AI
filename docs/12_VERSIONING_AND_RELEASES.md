@@ -75,8 +75,9 @@ DATA-SEED `.2` baseline·identity·A/B concurrency·19/3/10·replay·cleanup PAS
 first attempt는 stale Web env expectation 1건(집중 수정/통과)과 Windows PowerShell subprocess timeout
 9건 때문에 최종 green으로 주장하지 않는다. 별도 final local application rehearsal의 `/ready=200`과
 20번째 ACTIVE, sample 20/20, final API/Web/contracts/E2E/scanner, clean disposable DB와 root offline은
-PASS했다. current application/Web/API는 CHAT-NATURAL Slice 1~3 구현을 뜻한다.
-manual demo·formal actual Upstage aggregate와 configured remote smoke 완료를 뜻하지 않는다.
+PASS했다. current application/Web는 CHAT-NATURAL Slice 1~3 위에 CHAT-HYBRID-RAG
+Tasks 1~9 local/offline 구현을 포함하고 API는 `4.0.0-draft`를 유지한다.
+manual demo·새 PII-free 20-case actual selector와 configured remote smoke 완료를 뜻하지 않는다.
 `local` suffix는 공개·원격·production release가 아님을 명시한다. D-046/D-092의 `00700`
 local 구현·검증은 끝났고, remote 운영은 ADR-0026 gate가 별도다.
 

@@ -166,7 +166,10 @@ API 가상환경에서 chat/llm tests, Ruff, Mypy를 실행하고
 
 ### 롤백
 
-`4efc516..b32ec61` 관련 commit을 역순 revert한다. DB rollback·data restore는 필요 없다.
+위 `Implementation commits`의 명시 목록
+`4efc516`, `6f2638d`, `23e8436`, `700fa65`, `5b5831c`, `1dc5ad5`, `f55c84a`,
+`a7bd32c`, `2a443b6`, `bce7864`, `b32ec61`만 역순으로 revert한다. 중간에 섞인 다른
+Task의 commit을 range로 함께 되돌리지 않는다. DB rollback·data restore는 필요 없다.
 
 ### 다음 개발자 시작점
 

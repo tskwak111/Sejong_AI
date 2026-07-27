@@ -2,6 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Execution status (2026-07-27 KST):** 사용자가 계획과 Subagent-Driven 구현을 명시 승인했다.
+Tasks 1~9의 local/offline 구현·task-scoped 독립 검토·area/version gate는 `096dd20`까지
+완료했다. 아래 checkbox는 실행 명세를 보존하기 위한 것이며 live status 권위는 이 문단,
+`TASKS.md`, D-104와 구현 노트다. Task 10 actual provider 20건과 Task 11 final gate/Draft PR은
+Pending이다.
+
 **Goal:** 현재 ACTIVE/OFFICIAL KB 최대 20건만 사용해 일상어 paraphrase와 후속질문을 정확한 top-1 공식 안내로 연결하고, 근거가 없거나 모호한 질문은 route별 안전 FOLLOWUP/FALLBACK으로 닫는다.
 
 **Architecture:** PII·personal/legal/privacy gate 뒤 request-local ACTIVE snapshot과 versioned non-factual coverage metadata의 교집합으로 runtime catalog를 만든다. exact approved example, unique lexical, signed context facet은 서버가 먼저 판정하고, 그 밖의 안전한 질문만 Upstage가 closed `route+intent+topic_id+coverage_id+pending_slot`을 제안한다. 서버가 membership·intent·coverage·ACTIVE/OFFICIAL을 다시 검증하고 typed grounding evidence가 있을 때만 한 KB를 사용한다. 사실·출처·기관·저장·후보·승인은 계속 서버 소유다.
@@ -1315,10 +1321,11 @@ and commit boundaries. Ellipses in Python protocol bodies are type-stub syntax, 
 - historical provider profiles remain distinct from the local interactive profile.
 - official `.2`, current migrations and current ACTIVE DB are not mutated by this implementation.
 
-## Execution Handoff
+## Execution Status and Remaining Handoff
 
-After explicit plan approval, use `superpowers:subagent-driven-development`. The primary agent owns
-shared contracts, catalog types, `service.py`, provider budget integration, versions and final
-commits. Independent agents may implement or review non-overlapping API tests/metadata, Web UX/E2E
-and documentation/security checks. Run focused tests at each RED/GREEN boundary, one area gate after
-each completed slice and the repository-wide gate only at Tasks 9 and 11.
+Explicit plan approval was received and `superpowers:subagent-driven-development` was used for
+Tasks 1~9. The primary agent retained shared contracts, catalog types, `service.py`, provider budget
+integration, versions and integration commits; independent agents implemented or reviewed bounded
+non-overlapping slices. Task 10 must run the reviewed PII-free actual subset once, and Task 11 must
+run the final repository-wide/security/browser gates, independent review, push and Draft PR. No
+automatic merge is allowed.

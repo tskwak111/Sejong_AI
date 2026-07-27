@@ -154,7 +154,10 @@ shared generation/test, Web lint/typecheck/test/build, Playwright 390/430/deskto
 
 ### 롤백
 
-`3ebc114..9b90919`을 역순 revert하며 API fixture/generated TS/Web fixture를 함께 되돌린다.
+위 `Implementation commits`의 명시 목록
+`3ebc114`, `440d3ce`, `a8a244e`, `b86c956`, `c2c1861`, `9b90919`만 역순으로
+revert하며 API fixture/generated TS/Web fixture를 함께 되돌린다. 중간에 섞인 다른 Task의
+commit을 range로 함께 되돌리지 않는다.
 
 ### 다음 개발자 시작점
 

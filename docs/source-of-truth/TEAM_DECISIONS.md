@@ -62,12 +62,12 @@
 - LEGAL_JUDGMENT: 후보 불가
 - OUT_OF_SCOPE: 후보 불가, 질문 텍스트 저장 금지
 - PRIVACY_UNRESOLVED: 안전한 마스킹 text 생성 불능 전용 HTTP 200 재질문; 후보·질문 text·실패 행·provider 호출 없음
-- CIVIC_SCOPE_GAP planned: 네 분야 밖 행정 민원은 기존 KB 후보와 분리된 범위확대 검토
+- CIVIC_SCOPE_GAP active local/private: 네 분야 밖 행정 민원은 기존 KB 후보와 분리된 범위확대 검토
   queue에 PII-safe masked text만 30일 보관한다. public 응답은 `intent=OUT_OF_SCOPE`,
   `fallback.reason=CIVIC_SCOPE_GAP`, candidate false다. 기존 event/failed/candidate와 분리하고
-  자동 KB/ACTIVE 전환은 금지하며 exact contract·migration 구현 전 current OUT_OF_SCOPE
-  무저장 runtime을 유지한다.
-- NON_CIVIC planned: 날씨·맛집 등 민원과 무관한 질문은 기존 OUT_OF_SCOPE 시민 응답을
+  자동 KB/ACTIVE 전환은 금지한다. exact contract·`00680` migration·typed admin/API/Web 흐름은
+  D-093에서 local 검증을 통과했다.
+- NON_CIVIC active: 날씨·맛집 등 민원과 무관한 질문은 기존 OUT_OF_SCOPE 시민 응답을
   사용하고 text/event/failed/review row를 저장하지 않는다.
 - 2026-07-25 local/private MVP의 PERSONAL_LOOKUP·LEGAL_JUDGMENT: 공개 `intent=UNKNOWN`+정확한 reason, 후보 불가, 질문 text·event·실패 행 저장 없음
 - 모호 질문: FOLLOWUP, 실패 질문이 아님
@@ -108,14 +108,14 @@
   event 통계를 평가 KPI로 사용하지 않는다. 정식 수치가 필요할 때의 reset·정식 `.2`
   재시드·필요한 19→20 승인 흐름 재현과 future rerun은 각각 별도 인간 승인이 필요하다.
   public/remote/실제 기관 운영은 계속 금지한다.
-- Q-CLASS-001=A/D-086 planned: PII·policy·명백한 supported/NON_CIVIC은 deterministic으로
+- Q-CLASS-001=A/D-086 implemented local/private: PII·policy·명백한 supported/NON_CIVIC은 deterministic으로
   유지하고 안전한 ambiguous 질문만 Upstage closed-enum classifier에 전달한다. 모델은
-  답변·출처·저장·candidate 여부를 결정하지 않는다. Q-CLASS-002=A/D-087의 classifier
-  한도는 요청당 1회·3초·retry 0·입력 1,024자·출력 128 token·process sub-cap 20이며,
-  generation sub-cap 30과 합친 process cap은 40, local synthetic run 비용 stop line은
-  VAT 포함 USD 0.05다. written spec·계획·별도 local actual 승인 전 current runtime call은 0이다.
+  답변·출처·저장·candidate 여부를 결정하지 않는다. historical actual acceptance는
+  Q-CLASS-002=A/D-087의 20/30/40·USD 0.05이고 D-095에서 PII-free frozen 60 actual을 통과했다.
+  current local interactive profile은 D-099/D-104의 80/100/160·USD 0.20이며 Task 10의 새
+  PII-free 20-case selector actual은 아직 실행하지 않았다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
-- D-089/D-090 context v2 planned: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
+- D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
   topic은 매 요청 ACTIVE/OFFICIAL 재검증한다. Web `새 대화`는 current-tab transcript와 token을
   함께 초기화한다.
@@ -130,8 +130,9 @@
   concurrency 1, retry 최대 1, run outbound attempt 30 경계를 유지한다. 후속 LLM-003 시민
   경로는 local/private에서 supported+masked+ACTIVE/OFFICIAL+grounded일 때만 8초·1 attempt·
   hidden retry 0·concurrency 1·process cap 30으로 호출하고, server-issued fact ID와
-  disabled/template fallback을 강제한다. future hybrid classifier는 3초·1 attempt·sub-cap 20,
-  generation과 합친 cap 40으로 제한한다. D-092는 PII-free allowlisted classifier actual과
+  disabled/template fallback을 강제한다. hybrid classifier는 3초·1 attempt·retry 0이고
+  current local interactive profile은 classifier 80/generator 100/combined 160으로 제한한다.
+  D-092는 PII-free allowlisted classifier actual과
   ADR-0026의 admin-disabled remote 시민 검증을 승인했지만 real citizen/free-input provider
   outbound와 실제 기관 운영은 개인정보·약관·법무 운영 gate 전까지 금지한다.
 - 초기 실행: local-first, 외부 인프라 예산 0원

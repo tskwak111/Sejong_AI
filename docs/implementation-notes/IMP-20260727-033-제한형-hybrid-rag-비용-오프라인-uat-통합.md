@@ -165,8 +165,10 @@ workspace-root 자동 추론이며 build failure가 아니다.
 
 ### 롤백
 
-`d24893b..9f377d4`를 역순 revert한다. 환경의 cap 값은 `.env.example`/runbook과 함께 되돌린다.
-DB/data 복구는 필요 없다.
+최신 후속 문서 정합성 수정 commit을 먼저 revert하고, Task 9 문서·버전 통합 commit
+`096dd20`을 revert한 다음, base `9b90919` 다음의 `d24893b`부터 `9f377d4`까지를 포함한
+`9b90919..9f377d4`를 최신 commit부터 역순으로 revert한다. 환경의 cap 값은
+`.env.example`/runbook과 함께 되돌린다. DB/data 복구는 필요 없다.
 
 ### 다음 개발자 시작점
 
