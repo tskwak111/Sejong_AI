@@ -1,6 +1,6 @@
 # ADR-0025: deterministic safety gate와 bounded LLM의 hybrid 질문 분류
 
-- Status: Accepted / integrated specification approved / implementation pending
+- Status: Accepted / integrated / local runtime composition corrected
 - Date: 2026-07-27
 - Amends: ADR-0023의 provider 전 deterministic supported-intent gate
 - Preserves: PII 마스킹 선행, policy gate, ACTIVE-only retrieval, server-owned source,
@@ -65,6 +65,10 @@ sub-cap 합계보다 combined cap이 작으므로 어느 경로도 전체 proces
 - D-092는 PII-free allowlisted actual classifier run을 승인했다. ADR-0026에 따라 remote 시민
   검증은 provider-disabled가 기본이며, real citizen/free-input outbound와 실제 기관 운영은
   개인정보·약관·법무 운영 gate 전까지 call 0이다.
+- 2026-07-27 `CLASSIFIER-RUNTIME-WIRING-001`은 adapter·service까지만 구현되고
+  `create_local_app()` 조립이 빠졌던 결함을 교정했다. exact classifier profile은 실제 local
+  시민 route에 주입되고, combined profile은 classifier와 grounded generator가 같은
+  `ProviderAttemptLedger`를 공유한다. 공개·원격 승인 범위는 변하지 않는다.
 
 ## Rejected alternatives
 

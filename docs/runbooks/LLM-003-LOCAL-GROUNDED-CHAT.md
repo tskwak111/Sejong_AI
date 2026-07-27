@@ -85,17 +85,18 @@ exact ignored `.env`의 해당 한 줄만 원자 교체한다. 별도 경로나 
   scripts/provision_local_context_secret.py
 ```
 
-## 6. provider mode 하나만 선택
+## 6. provider mode 선택
 
 먼저 provider-disabled regression을 위한 기본값을 유지한다.
 
 ```dotenv
 UPSTAGE_SYNTHETIC_EVALUATION_MODE=false
+UPSTAGE_CLASSIFIER_MODE=false
 UPSTAGE_GROUNDED_CHAT_MODE=false
 ```
 
-offline 전체 gate와 disabled regression이 통과한 뒤 optional grounded actual에서만 다음
-non-secret profile을 정확히 선택한다.
+offline 전체 gate와 disabled regression이 통과한 뒤 optional local/private combined demo에서만
+다음 non-secret profile을 정확히 선택한다.
 
 ```dotenv
 LLM_PROVIDER=upstage
@@ -107,17 +108,27 @@ LLM_MAX_CONCURRENCY=1
 LLM_MAX_INPUT_TOKENS=4096
 LLM_MAX_OUTPUT_TOKENS=1024
 LLM_RUN_ATTEMPT_CAP=30
+LLM_CLASSIFIER_TIMEOUT_SECONDS=3
+LLM_CLASSIFIER_MAX_RETRIES=0
+LLM_CLASSIFIER_MAX_INPUT_CHARS=1024
+LLM_CLASSIFIER_MAX_OUTPUT_TOKENS=128
+LLM_CLASSIFIER_ATTEMPT_CAP=20
+LLM_GENERATOR_ATTEMPT_CAP=30
+LLM_COMBINED_ATTEMPT_CAP=40
 UPSTAGE_SYNTHETIC_EVALUATION_MODE=false
+UPSTAGE_CLASSIFIER_MODE=true
 UPSTAGE_GROUNDED_CHAT_MODE=true
 ```
 
-두 mode를 동시에 켜거나 제한값을 바꾸면 fail closed다.
+classifier-only 평가는 grounded mode를 `false`로 둔다. combined local demo는 두 mode를
+동시에 `true`로 둘 수 있으며 classifier와 generator가 combined 40-attempt ledger를 공유한다.
+exact 제한값을 바꾸거나 synthetic mode를 함께 켜면 fail closed다.
 
 ## 7. ignored key 설정
 
 `LLM_API_KEY`는 ignored `apps/api/.env` 또는 current process에만 둔다. 문서·shell history·Git,
-Cloud, CI에 값을 넣지 않는다. key가 없거나 빈 값이면 grounded runtime은 조립되지 않고 TEMPLATE
-mode를 유지한다.
+Cloud, CI에 값을 넣지 않는다. key가 없거나 빈 값이면 classifier와 grounded runtime은 조립되지
+않고 deterministic/TEMPLATE mode를 유지한다.
 
 ## 8. loopback API 시작
 
@@ -159,9 +170,10 @@ $uv = Join-Path (Split-Path $commonGitDir -Parent) ".tools\uv\uv.exe"
 
 optional actual은 전체 offline test가 통과한 뒤 별도 local 인간 gate에서만 한 번 수행한다.
 실패·출력 보정 뒤 재실행도 새 10-call network 사용이므로 별도 인간 재승인 없이는 수행하지 않는다.
-`FOLLOWUP`, `PRIVACY_UNRESOLVED`, `INSUFFICIENT_GROUNDING`, `PERSONAL_LOOKUP`,
-`LEGAL_JUDGMENT`, `OUT_OF_SCOPE`, readiness 실패는 provider call 0이어야 한다. actual 중에도
-질문·답변·prompt·provider body를 출력하거나 저장하지 않는다.
+명백한 `NON_CIVIC`, `PRIVACY_UNRESOLVED`, `PERSONAL_LOOKUP`, `LEGAL_JUDGMENT`와 readiness
+실패는 provider call 0이어야 한다. ambiguous classifier 실패 FOLLOWUP은 classifier 최대 1회,
+classifier가 SUPPORTED를 제안했지만 근거가 없는 `INSUFFICIENT_GROUNDING`은 classifier 최대 1회와
+generator 0회다. actual 중에도 질문·답변·prompt·provider body를 출력하거나 저장하지 않는다.
 
 승인 후 별도 API process를 직접 띄우는 대신 아래 고정 runner로 10건과 locally injected timeout
 증거를 한 번에 실행한다. 인수는 받지 않으며 질문·답변·provider body를 출력하지 않는다.
@@ -178,7 +190,7 @@ outbound를 추가하지 않는다.
 ## 11. rollback과 종료
 
 1. API process를 종료한다.
-2. `UPSTAGE_GROUNDED_CHAT_MODE=false`로 되돌린다.
+2. `UPSTAGE_CLASSIFIER_MODE=false`와 `UPSTAGE_GROUNDED_CHAT_MODE=false`로 되돌린다.
 3. ignored `LLM_API_KEY` 값을 제거한다.
 4. API를 다시 시작해 `/ready=200`과 TEMPLATE regression을 확인한다.
 5. local stack이 더 필요 없으면 volume/prune 없이 정상 종료한다.

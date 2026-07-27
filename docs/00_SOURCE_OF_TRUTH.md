@@ -108,6 +108,13 @@ version을 찾지 못했다. 따라서 remote migration·seed·deploy·smoke는
 `Not executed: target not configured`이며 local DB ACTIVE 20과 00700 evidence를 remote
 production-ready로 해석하지 않는다.
 
+2026-07-27 `CLASSIFIER-RUNTIME-WIRING-001`은 위 classifier adapter와 `ChatService` port가
+실제 local `create_local_app()`에 조립되지 않았던 완료 판정 결함을 교정했다. exact
+classifier-only/combined profile에서 ambiguous safe question만 classifier를 사용하며,
+combined profile은 classifier 20/generator 30/combined 40의 같은 process ledger를 공유한다.
+NON_CIVIC·PERSONAL_LOOKUP·LEGAL_JUDGMENT·privacy/policy fast path는 provider 호출과 질문
+row가 계속 0이다. API 계약·DB·공식 데이터·public/remote 경계는 변하지 않는다.
+
 ## 4. 변경 절차
 
 제품 범위, 공개 계약, DB, 개인정보, 외부 공급자, 배포 아키텍처가 바뀌면:

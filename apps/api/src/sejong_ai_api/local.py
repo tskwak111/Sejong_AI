@@ -39,7 +39,13 @@ from sejong_ai_api.main import create_app
 from sejong_ai_api.office.service import GuardedOfficeDirectory, OfficeDirectoryService
 
 if TYPE_CHECKING:
-    from sejong_ai_api.llm.settings import UpstageChatSettings
+    import httpx
+
+    from sejong_ai_api.chat.classification import SafeQuestion
+    from sejong_ai_api.chat.service import QuestionClassifierPort
+    from sejong_ai_api.llm.classifier_contracts import ClassifierDecision
+    from sejong_ai_api.llm.limits import ProviderAttemptLedger
+    from sejong_ai_api.llm.settings import UpstageChatSettings, UpstageClassifierSettings
     from sejong_ai_api.llm.upstage_chat import GroundedChatRuntime
 
     type GroundedChatRuntimeFactory = Callable[[UpstageChatSettings], GroundedChatRuntime]
@@ -56,6 +62,87 @@ _DEFAULT_PURGE_INTERVAL_SECONDS = 60.0
 class LocalSettings:
     database_url: str = field(repr=False)
     context_token_secret: bytes = field(repr=False)
+
+
+@dataclass(frozen=True, slots=True)
+class _ClassifierRuntime:
+    classifier: _LazyQuestionClassifier
+    ledger: ProviderAttemptLedger
+
+    async def aclose(self) -> None:
+        await self.classifier.aclose()
+
+
+class _LazyQuestionClassifier:
+    """Own the classifier client only after the first eligible request."""
+
+    __slots__ = (
+        "_client",
+        "_delegate",
+        "_disabled",
+        "_init_lock",
+        "_ledger",
+        "_settings",
+    )
+
+    def __init__(
+        self,
+        *,
+        settings: UpstageClassifierSettings,
+        ledger: ProviderAttemptLedger,
+    ) -> None:
+        self._settings = settings
+        self._ledger = ledger
+        self._client: httpx.AsyncClient | None = None
+        self._delegate: QuestionClassifierPort | None = None
+        self._disabled = False
+        self._init_lock = asyncio.Lock()
+
+    async def classify(self, question: SafeQuestion) -> ClassifierDecision | None:
+        delegate = await self._get_or_create()
+        return None if delegate is None else await delegate.classify(question)
+
+    async def _get_or_create(self) -> QuestionClassifierPort | None:
+        if self._disabled:
+            return None
+        if self._delegate is not None:
+            return self._delegate
+        async with self._init_lock:
+            if self._disabled:
+                return None
+            if self._delegate is not None:
+                return self._delegate
+            client: httpx.AsyncClient | None = None
+            try:
+                from sejong_ai_api.llm.upstage_classifier import (
+                    QuestionClassifier,
+                    create_upstage_classifier_client,
+                )
+
+                client = create_upstage_classifier_client(self._settings)
+                delegate = QuestionClassifier(
+                    settings=self._settings,
+                    client=client,
+                    ledger=self._ledger,
+                )
+            except Exception:
+                self._disabled = True
+                if client is not None:
+                    with suppress(Exception):
+                        await client.aclose()
+                return None
+            self._client = client
+            self._delegate = delegate
+            return delegate
+
+    async def aclose(self) -> None:
+        async with self._init_lock:
+            self._disabled = True
+            client = self._client
+            self._client = None
+            self._delegate = None
+        if client is not None:
+            await client.aclose()
 
 
 class LocalPool(Protocol):
@@ -166,10 +253,15 @@ def create_local_app(
         pool = selected_pool_factory(settings.database_url)
         repository = selected_repository_factory(pool)
         probe = RepositoryReadinessProbe(repository)
+        classifier_runtime = _compose_optional_classifier_runtime(
+            environ=environ,
+            env_path=env_path,
+        )
         grounded_chat_runtime = _compose_optional_grounded_chat_runtime(
             environ=environ,
             env_path=env_path,
             runtime_factory=grounded_chat_runtime_factory,
+            ledger=(classifier_runtime.ledger if classifier_runtime is not None else None),
         )
         service = ChatService(
             repository=repository,
@@ -185,6 +277,9 @@ def create_local_app(
             idempotency_claim_factory=uuid4,
             answer_generator=(
                 grounded_chat_runtime.generator if grounded_chat_runtime is not None else None
+            ),
+            question_classifier=(
+                classifier_runtime.classifier if classifier_runtime is not None else None
             ),
         )
         responder = GuardedChatResponder(probe, service)
@@ -231,6 +326,9 @@ def create_local_app(
             if grounded_chat_runtime is not None:
                 with suppress(Exception):
                     await grounded_chat_runtime.aclose()
+            if classifier_runtime is not None:
+                with suppress(Exception):
+                    await classifier_runtime.aclose()
             with suppress(Exception):
                 await pool.close()
             probe.disable()
@@ -244,6 +342,7 @@ def _compose_optional_grounded_chat_runtime(
     environ: Mapping[str, str] | None,
     env_path: Path | None,
     runtime_factory: GroundedChatRuntimeFactory | None,
+    ledger: ProviderAttemptLedger | None,
 ) -> GroundedChatRuntime | None:
     """Lazily compose the exact local profile without making an outbound request."""
 
@@ -253,12 +352,45 @@ def _compose_optional_grounded_chat_runtime(
         chat_settings = load_upstage_chat_settings(environ=environ, env_path=env_path)
         if chat_settings is None:
             return None
-        selected_factory = runtime_factory
-        if selected_factory is None:
-            from sejong_ai_api.llm.upstage_chat import build_upstage_chat_runtime
+        if runtime_factory is not None:
+            if ledger is not None:
+                return None
+            return runtime_factory(chat_settings)
+        from sejong_ai_api.llm.upstage_chat import build_upstage_chat_runtime
 
-            selected_factory = build_upstage_chat_runtime
-        return selected_factory(chat_settings)
+        return build_upstage_chat_runtime(chat_settings, ledger=ledger)
+    except Exception:
+        return None
+
+
+def _compose_optional_classifier_runtime(
+    *,
+    environ: Mapping[str, str] | None,
+    env_path: Path | None,
+) -> _ClassifierRuntime | None:
+    """Lazily compose the exact classifier profile without an eager request."""
+
+    try:
+        from sejong_ai_api.llm.limits import ProviderAttemptLedger
+        from sejong_ai_api.llm.settings import load_upstage_classifier_settings
+        classifier_settings = load_upstage_classifier_settings(
+            environ=environ,
+            env_path=env_path,
+        )
+        if classifier_settings is None:
+            return None
+        ledger = ProviderAttemptLedger(
+            classifier_cap=classifier_settings.classifier_attempt_cap,
+            generator_cap=classifier_settings.generator_attempt_cap,
+            combined_cap=classifier_settings.combined_attempt_cap,
+        )
+        return _ClassifierRuntime(
+            classifier=_LazyQuestionClassifier(
+                settings=classifier_settings,
+                ledger=ledger,
+            ),
+            ledger=ledger,
+        )
     except Exception:
         return None
 
