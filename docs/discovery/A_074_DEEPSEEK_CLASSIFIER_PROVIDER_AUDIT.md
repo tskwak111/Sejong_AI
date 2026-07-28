@@ -2,7 +2,10 @@
 
 - Task ID: `A-074-DEEPSEEK-CLASSIFIER-PROVIDER`
 - Date: 2026-07-29 KST
-- Source SHA at discovery start: `a362c191aa57a968a9264a2926610b57ca7c9588`
+- Formal A-074 baseline after A-073 closure:
+  `50aab6e` (`docs(llm): close A-073 scoped review`)
+- Earlier read-only audit start:
+  `a362c191aa57a968a9264a2926610b57ca7c9588`
 - Human decision: `Q-LLM-PROVIDER-001=A`
 - Status: Complete — no unresolved implementation blocker
 
@@ -98,6 +101,16 @@ Pricing is mutable external information. A-074 freezes the checked rates in vers
 uses a conservative cache-miss upper-bound estimator plus the existing 10% VAT safety multiplier.
 The actual report must identify the rate source and checked date without storing request content.
 
+The rates checked at `2026-07-29T05:14:21+09:00` are:
+
+- cache-hit input: USD `0.0028` per million tokens;
+- cache-miss input: USD `0.14` per million tokens;
+- output: USD `0.28` per million tokens.
+
+Acceptance prices every prompt token at the cache-miss rate and applies a 10% VAT safety
+multiplier. With the internal pre-reservation ceiling of 16,384 prompt tokens and 128 output
+tokens, the configured nine-call upper bound is USD `0.02306304`, below USD `0.20`.
+
 ## 6. Security and privacy audit
 
 The implementation must prove:
@@ -111,13 +124,21 @@ The implementation must prove:
 - provider failure returns the existing deterministic fallback;
 - actual evidence is aggregate-only and immutable after its first run.
 
+The ordinary public `sejong_ai_api.main` composition remains provider-free. DeepSeek construction
+exists only in `sejong_ai_api.local.create_local_app`, and the approved runner binds loopback
+`127.0.0.1`, disables proxy headers and access logging, and uses one local worker. This is the
+technical local/private boundary. It permits owner-entered local MVP/UAT questions; it does not
+authorize exposing that process to real citizens. Public deployment or remote/free-input
+operation requires a new decision and architecture gate.
+
 The fixed actual subset is synthetic and PII-free. Four policy/privacy probes run before the
 selected 20 and must demonstrate outbound 0 without becoming selected fixtures or stored evidence.
 
 ## 7. Cost and failure audit
 
 The current cost reservation is Upstage-specific and is the main implementation risk. A-074 must
-inject an estimator per provider lane while preserving the shared request budget. DeepSeek prompt
+inject an estimator per provider lane while preserving the shared process-lifetime budget of
+classifier 80, generator 100 and combined 160. DeepSeek prompt
 tokens are conservatively priced as cache misses; cache-hit discounts are not required to pass the
 cap. Missing, inconsistent or negative usage fails closed.
 
@@ -167,4 +188,3 @@ removes the DeepSeek adapter, settings, estimator and runner while leaving the e
 classifier and grounded-answer generator intact. No API, DB, data or migration rollback is needed.
 Never read, print, copy or delete a user's ignored `.env`; the human removes or rotates a key in
 the provider dashboard or local environment.
-

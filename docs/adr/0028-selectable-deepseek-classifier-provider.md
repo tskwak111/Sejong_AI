@@ -29,6 +29,10 @@ untrusted.
 4. Add DeepSeek `deepseek-v4-flash` for question classification only.
 5. Keep ADR-0023's optional Upstage grounded citizen-answer generation unchanged and separately
    configured. The A-074 DeepSeek actual disables that generator so its evidence is classifier-only.
+   DeepSeek is composed only by `sejong_ai_api.local.create_local_app`; the public
+   `sejong_ai_api.main` application remains provider-free. The approved local runner binds only
+   `127.0.0.1`. This allows owner-operated local MVP/UAT and does not authorize a real-citizen
+   service.
 6. Keep the provider wire byte-for-byte compatible:
    `route`, `intent`, `topic_id`, `coverage_id`, `pending_slot`; every value is a JSON string and
    every nullable value is exact uppercase `NONE`.
@@ -44,9 +48,12 @@ untrusted.
     cross the log, DB, report or public-error boundary.
 12. On timeout, empty content, HTTP error, JSON error, usage error, contract violation, catalog
     mismatch or budget failure, use the existing deterministic fail-closed fallback.
-13. Generalize the internal cost reservation to accept a provider-specific estimator. Preserve the
-    Upstage estimator and add a conservative DeepSeek cache-miss upper-bound estimator based on the
-    official rates checked on 2026-07-29, with a 10% VAT safety multiplier.
+13. Generalize the process-lifetime 80/100/160 internal cost reservation to accept a
+    provider-specific estimator. Preserve the Upstage estimator and add a conservative DeepSeek
+    cache-miss upper-bound estimator based on the official rates checked at
+    `2026-07-29T05:14:21+09:00`: hit input USD 0.0028/M, miss input USD 0.14/M and output
+    USD 0.28/M, with a 10% VAT safety multiplier. Nine reservations at 16,384 input and 128 output
+    tokens have a configured upper bound of USD 0.02306304.
 14. Actual evidence is local/private, fixed-fixture, aggregate-only and one-shot. The DeepSeek
     actual cap is USD 0.20. It may run once after the new A-074 offline gate and clean-source
     review; failure is final for this run and is not automatically retried.
@@ -108,4 +115,3 @@ reading or printing its value.
 A new human decision and ADR amendment are required before public/remote/free-input use, a final
 answer-provider change, provider fallback cascade, a new production dependency, altered public
 wire, or a changed retention policy.
-

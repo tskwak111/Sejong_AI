@@ -459,6 +459,16 @@ provider 연결은 0이다. 이후 버전 승격은 위 manifest와 `CHANGELOG.m
 - data lineage
 - implementation notes/handoff
 
+## A-074 selectable classifier design checkpoint
+
+2026-07-29 Q-LLM-PROVIDER-001=A/D-122/ADR-0028의 discovery, Accepted ADR, Approved written
+specification과 executable plan을 게시해 documentation을 `2.30.7→2.30.8`로 올렸다.
+Application `0.12.4`, prompt `0.4.3`, tests `2.1.7`과 product/API/contracts/Web/DB/data/
+dependency 축은 아직 불변이다. Offline 구현을 완료하면 application
+`0.13.0-selectable-classifier-provider`, tests `2.2.0-deepseek-classifier-provider`,
+documentation `2.31.0-deepseek-classifier-provider`로 전진한다. A-073 failed wrapper와
+기존 Upstage actual evidence는 버전 승격 근거로 재실행하지 않는다.
+
 ## CHAT-NATURAL-001 grouped implementation promotion
 
 2026-07-27 세 수직 흐름의 계약·코드·DB·Web 검증 완료로 application

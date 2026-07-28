@@ -227,6 +227,20 @@ final stdout/exit를 회수하지 못해 aggregate를 `NOT VERIFIED/FAIL`로 기
 독립 docs/secret/diff/status는 PASS, provider/network actual call/cost는 계속 0/USD 0이다.
 현재 종료 지시에 따라 Task 6 A-073 corrective actual은 실행하지 않았고 기존 Upstage actual도
 재실행하지 않았다.
+
+2026-07-29 Q-LLM-PROVIDER-001=A/D-122/ADR-0028은 질문 분류 공급자 역할만 좁게 보완한다.
+`CLASSIFIER_PROVIDER`로 `disabled|upstage|deepseek`를 명시 선택하며 DeepSeek exact
+`deepseek-v4-flash`는 `sejong_ai_api.local.create_local_app`의 loopback local/private
+classifier에만 사용한다. public `sejong_ai_api.main`, remote DB와 실제 시민 운영에는
+연결하지 않는다. 기존 Upstage classifier와 ADR-0023의 grounded final answer generator는
+삭제·교체하지 않는다. exact five-string/uppercase `NONE`, deterministic PII/policy/obvious
+route, shared parser·ACTIVE/OFFICIAL grounding·server-owned source와 무보관 경계는 불변이다.
+DeepSeek `json_object`는 신뢰 경계가 아니며 3초·retry0·concurrency1·output128,
+temperature0/thinking disabled와 보수적 USD0.20 cap을 적용한다. 새 A-074 offline wrapper
+1회와 clean-source review 뒤 고정 synthetic 20 actual lease 1회만 승인됐고, PASS/FAIL과
+무관하게 자동 재실행하지 않는다. A-073 root/Upstage actual은 이 작업에서 재사용·재실행하지
+않는다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

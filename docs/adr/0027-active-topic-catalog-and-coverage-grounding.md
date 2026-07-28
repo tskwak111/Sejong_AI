@@ -1,5 +1,9 @@
 # ADR-0027: ACTIVE topic catalog와 coverage grounding을 사용하는 제한형 Hybrid RAG
 
+> Amended by ADR-0028 only for selectable local/private classifier-provider ownership. The
+> ACTIVE/OFFICIAL catalog, grounding, source, storage and server-validation boundaries remain
+> active.
+
 - Status: Accepted — Tasks 1~9 local/offline complete; Task 10 actual FAIL recorded; Task 11 pending
 - Date: 2026-07-27
 - Extends: ADR-0006, ADR-0010, ADR-0023, ADR-0025

@@ -189,7 +189,7 @@ owner PR 과제다. owner Draft PR review/merge와 manual demo는 인간 Pending
 | Backend | FastAPI + Python 3.12+uv | 초기 로컬 실행·백업; Render는 공개 배포 승인 후 |
 | DB | Supabase PostgreSQL + Supabase CLI 버전 SQL migration | Docker local stack 우선; 원격 push·파괴 변경은 별도 승인 |
 | 검색 | 키워드+메타데이터 기본, 임베딩 보조 | KB 20건에서 예측 가능성 우선 |
-| LLM | Upstage direct API + provider adapter | exact `solar-pro3`; 합성 evaluator의 max 1024/concurrency 1/retry 1/cap 30과 별도로, 승인된 local/private 시민 경로는 supported+masked+ACTIVE/OFFICIAL+grounded, 8초·1 attempt·server-issued fact ID·전체 template fallback |
+| LLM | selectable classifier adapter + Upstage grounded generator | classifier는 local/private에서 disabled/Upstage/DeepSeek exact `deepseek-v4-flash`를 명시 선택하고, 최종 시민 답변 생성은 Upstage exact `solar-pro3`를 유지한다. 합성 evaluator의 max 1024/concurrency 1/retry 1/cap 30과 별도로, 승인된 local/private 시민 경로는 supported+masked+ACTIVE/OFFICIAL+grounded, 8초·1 attempt·server-issued fact ID·전체 template fallback |
 | 차트 | Recharts | 기본 KPI만 |
 | 테스트 | Pytest, Playwright, k6/Locust, 수동 표본 평가 | 품질·UI·성능 분리 |
 
@@ -272,8 +272,10 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
 - 외부 LLM 호출 전 백엔드에서 개인정보를 마스킹한다.
 - local/private 시민 경로는 마스킹된 현재 질문과 실제 답변에 필요한 최소 ACTIVE/OFFICIAL
   KB, server-issued fact ID와 strict schema만 전달한다.
-- 공급자는 Upstage direct API의 exact `solar-pro3`를 사용한다. 키는 ignored backend local
-  환경변수에만 두며 새 충전·자동 충전·잔액 조회를 하지 않는다.
+- 최종 시민 답변 생성 공급자는 Upstage direct API의 exact `solar-pro3`를 유지한다. 질문
+  분류 공급자는 Q-LLM-PROVIDER-001=A/D-122/ADR-0028에 따라 local/private에서
+  disabled/Upstage/DeepSeek exact `deepseek-v4-flash`를 명시 선택한다. 각 키는 서로 다른
+  ignored backend local 환경변수에만 두며 새 충전·자동 충전·잔액 조회를 하지 않는다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.
@@ -289,6 +291,10 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   구조화 KB template를 반환한다. 근거가 없으면 provider call 0의 안전 폴백이다.
 - provider는 기본 disabled이고 합성 mode와 시민 chat mode를 분리한다. public/remote/실제 기관
   운영은 별도 개인정보·보안·비용·배포 승인 전까지 provider 호출을 금지한다.
+- DeepSeek는 `sejong_ai_api.local.create_local_app`와 `127.0.0.1` local runner에만 구성한다.
+  exact five-string/uppercase `NONE`을 shared server parser가 재검증하며 `json_object`를
+  schema 신뢰 경계로 보지 않는다. DeepSeek actual은 fixed synthetic 20, 3초·retry0·
+  concurrency1·max output128·temperature0/thinking disabled·USD0.20 cap의 one-shot이다.
 
 ### 마스킹·대화·오류 경계
 

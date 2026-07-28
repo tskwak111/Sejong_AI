@@ -195,6 +195,14 @@
   다른 version axis와 API/contracts/Web/DB/data/dependency는 불변이다. Task 5 root aggregate
   `NOT VERIFIED/FAIL`, invocation/rerun `1/0`을 그대로 보존한다. A-073 corrective actual은
   실행 0이며 기존 Upstage actual도 재실행하지 않고 offline review 상태로 종료한다.
+- D-122/Q-LLM-PROVIDER-001=A: DeepSeek exact `deepseek-v4-flash`를 local/private
+  질문 분류의 명시적 선택 공급자로 추가한다. exact five-string/`NONE`, server parser,
+  deterministic PII/policy/obvious route, ACTIVE/OFFICIAL grounding과 server-owned source를
+  유지하고 기존 Upstage classifier·grounded final generator를 보존한다. DeepSeek는 local
+  `create_local_app`/loopback에만 구성하며 public main·remote DB·실제 시민 운영에는 연결하지
+  않는다. 새 A-074 offline gate 1회와 clean-source review 뒤 고정 synthetic 20 actual을
+  1회만 실행하고 실패도 aggregate evidence로 닫아 rerun0을 유지한다. 새 production
+  dependency, final answer 공급자 변경과 자동 merge는 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
@@ -207,7 +215,9 @@
 - Backend: FastAPI + Python
 - 개발 기준: Node 24.x+pnpm, Python 3.12+uv
 - DB/Search: Supabase PostgreSQL + Supabase CLI 버전 SQL migration + 키워드·메타데이터 검색; MVP embedding off
-- LLM: Upstage direct API, exact `solar-pro3`. 합성 evaluator는 기존 max output 1024,
+- LLM: 최종 시민 답변 생성은 Upstage direct API exact `solar-pro3`를 유지한다. 질문
+  classifier는 explicit selector로 disabled/Upstage/DeepSeek `deepseek-v4-flash` 중 하나를
+  local/private에서 선택할 수 있다. 합성 evaluator는 기존 max output 1024,
   concurrency 1, retry 최대 1, run outbound attempt 30 경계를 유지한다. 후속 LLM-003 시민
   경로는 local/private에서 supported+masked+ACTIVE/OFFICIAL+grounded일 때만 8초·1 attempt·
   hidden retry 0·concurrency 1·process cap 30으로 호출하고, server-issued fact ID와

@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### Approved — A-074 selectable DeepSeek classifier provider
+
+- Recorded Q-LLM-PROVIDER-001=A/D-122 and ADR-0028: DeepSeek exact
+  `deepseek-v4-flash` becomes a selectable local/private classifier-only provider while the
+  existing Upstage classifier and ADR-0023 final answer generator remain available.
+- Preserved the exact five-string/uppercase `NONE` wire, untrusted provider-output boundary,
+  deterministic PII/policy/obvious routing, ACTIVE/OFFICIAL server validation, source binding and
+  no-retention policy. The public `sejong_ai_api.main` composition remains provider-free; only the
+  loopback local app may compose DeepSeek.
+- Froze the official rates checked at `2026-07-29T05:14:21+09:00`: hit input USD0.0028/M,
+  miss input USD0.14/M and output USD0.28/M. Acceptance charges all prompt as cache miss plus a
+  10% VAT safety multiplier; nine 16,384-input/128-output reservations are USD0.02306304, below
+  the USD0.20 cap.
+- Approved Subagent-Driven offline TDD, one new output-preserved A-074 gate and one fixed,
+  synthetic, PII-free DeepSeek actual after clean-source review. Failure is immutable aggregate
+  evidence and is not rerun. A-073 root `NOT VERIFIED/FAIL` invocation/rerun 1/0 and all existing
+  Upstage actual evidence remain untouched.
+- Advanced documentation `2.30.7→2.30.8` for the approved discovery/ADR/spec/plan checkpoint.
+  Application, prompt, tests, public API/contracts, Web, DB, official/mock data and dependencies
+  are unchanged until offline implementation evidence.
+
 ### Implemented — A-073 classifier enum-shape correction offline
 
 - Implemented one shared typed decision builder with value-free route, intent, pending-slot,

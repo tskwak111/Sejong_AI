@@ -73,6 +73,8 @@ without compromising completed offline work.
 - API/DB 변경: none.
 - 보안/개인정보: no raw/body/value/secret/exception retention; fixed synthetic actual only.
 - 실패/장애 처리: retry 0 and existing deterministic fail-closed fallback; no provider cascade.
+- local/private enforcement: only `sejong_ai_api.local.create_local_app` may compose DeepSeek;
+  `sejong_ai_api.main` remains provider-free and the supported runner binds loopback only.
 
 ## 단계별 구현
 
@@ -97,7 +99,7 @@ Files:
 
 - add DeepSeek settings module
 - modify provider-neutral runtime settings/factory
-- modify `.env.example` without values
+- modify `apps/api/.env.example` without values
 - focused settings tests
 
 TDD:
@@ -119,7 +121,8 @@ Files:
 TDD:
 
 1. RED for exact URL/model/json_object/thinking disabled/temp0/max128.
-2. RED for raw-PII outbound protection and request/body/value/secret/exception non-retention.
+2. RED for the typed `SafeQuestion` transport boundary and one end-to-end redaction flow, plus
+   request/body/value/secret/exception non-retention.
 3. RED for timeout/empty/HTTP/JSON/key/type/enum/shape/catalog/usage failures.
 4. GREEN using existing exact parser; network tests use controlled `httpx.MockTransport` only.
 5. Commit after focused review.
@@ -152,13 +155,17 @@ TDD:
 
 1. readiness performs no network, lock, report or secret output;
 2. actual lease is acquired before network and cannot be reused;
-3. fixed input/hash yields 20/0/11/9;
+3. exact fixture
+   `apps/api/tests/chat/fixtures/hybrid-rag-uat.v1.json` at SHA-256
+   `4c6bf8cad6a00c94775f36b3731e7878a10722a2031e97e2a49fb8cb2141351d`
+   yields 20/0/11/9;
 4. four policy/privacy probes produce outbound 0;
 5. report is aggregate-only and forbids questions/bodies/invalid values/secrets;
 6. PASS requires all 9 HTTP/parse/accepted/oracle matches and cost cap;
 7. any failure writes immutable FAIL and rerun remains 0;
-8. A-074 offline wrapper invokes root `verify.ps1 -Offline` once, continuously preserves output,
-   uses a long timeout and never invokes A-073/Upstage actual.
+8. `scripts/run_a074_offline_gate.ps1` invokes root `verify.ps1 -Offline` once, continuously
+   preserves output in the plan-owned ignored SDD directory, uses a long timeout and never invokes
+   A-073/Upstage actual.
 9. Commit after focused review.
 
 ### Task 6 — Area integration, versions and documentation
@@ -179,17 +186,22 @@ Actions:
 
 ### Task 7 — New A-074 offline gate exactly once
 
-1. Confirm the A-074 wrapper has no prior result/lock.
+1. Confirm these paths do not exist:
+   `.superpowers/sdd/2026-07-29-deepseek-classifier-provider/a074-offline-gate-result.json`
+   and its one-shot lock.
 2. Start it with a 60-minute bound and continuous ignored stdout/stderr files.
 3. Invoke exactly once; poll without losing process/output.
-4. Record exit, bounded stage, output hash/byte count and invocation/rerun `1/0`.
+4. Record source SHA, exit, bounded stage, output hash/byte count and invocation/rerun `1/0` in the
+   ignored result. Actual must consume the same clean HEAD; no tracked evidence commit occurs in
+   between.
 5. Never rerun it, including on environment failure.
 
 ### Task 8 — Clean-source review and DeepSeek actual exactly once
 
 1. independent code/security/privacy review with no Critical/Important findings;
 2. clean committed source SHA and pinned fixture/report paths;
-3. value-free readiness without network or lease;
+3. value-free readiness without network or lease against the pinned fixture/hash, canonical
+   report `docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-ACTUAL.md` and exact same source SHA;
 4. if ready, execute actual once;
 5. record PASS/FAIL aggregate and rerun 0;
 6. do not inspect or retain provider body and do not attempt a correction rerun.
@@ -223,7 +235,8 @@ offline gate runs at the final source. The A-073 wrapper and Upstage actual are 
 - api/shared/web/database/data/product: unchanged
 - prompt: `0.4.3-explicit-route-matrix`, unchanged unless bytes change
 - tests: `2.1.7-classifier-wire-correction` → `2.2.0-deepseek-classifier-provider`
-- docs: `2.30.7` → `2.31.0-deepseek-classifier-provider`
+- docs: `2.30.7` → `2.30.8` approved design checkpoint →
+  `2.31.0-deepseek-classifier-provider`
 
 ## 위험과 롤백
 
@@ -271,4 +284,3 @@ Still prohibited:
 - A-073 failed root evidence and Upstage actual are immutable.
 - No public API, DB, data, Web or dependency change is planned.
 - Actual readiness and actual lease are separate; actual failure cannot trigger a rerun.
-
