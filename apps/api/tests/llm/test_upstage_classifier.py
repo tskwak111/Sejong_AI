@@ -286,6 +286,17 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
     ):
         assert forbidden not in serialized
     response_schema = json.loads(request.content)["response_format"]["json_schema"]["schema"]
+    assert tuple(response_schema["properties"]) == (
+        "route",
+        "intent",
+        "topic_id",
+        "coverage_id",
+        "pending_slot",
+    )
+    assert all(
+        property_schema == {"type": "string"}
+        for property_schema in response_schema["properties"].values()
+    )
     assert "enum" not in json.dumps(response_schema)
     assert safe.text not in json.dumps(response_schema, ensure_ascii=False)
     for forbidden_schema_value in (
@@ -710,7 +721,48 @@ async def test_timeout_returns_none_without_retry_or_content_exception() -> None
                     '"coverage_id":"NONE","pending_slot":"NONE"}'
                 )
             ),
-            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"NO_TOPIC_MATCH","intent":"UNBOUNDED",'
+                    '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"NEEDS_FOLLOWUP","intent":"NONE",'
+                    '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"UNBOUNDED"}'
+                )
+            ),
+            ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+                    '"topic_id":"INVALID VALUE","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+                    '"pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"CIVIC_SCOPE_GAP","intent":"LOCAL_TAX_GENERAL",'
+                    '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
             False,
         ),
         (
