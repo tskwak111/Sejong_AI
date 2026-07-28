@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -81,14 +82,14 @@ def test_exact_deepseek_classifier_settings_expose_only_fixed_profile_limits() -
 def test_deepseek_settings_reject_conflicts_without_reading_any_provider_key() -> None:
     from sejong_ai_api.llm.deepseek_settings import load_deepseek_classifier_settings
 
-    for key, invalid in (
+    for key, invalid_value in (
         ("CLASSIFIER_PROVIDER", "upstage"),
         ("DEEPSEEK_MODEL", "deepseek-v3"),
         ("DEEPSEEK_BASE_URL", "https://example.invalid"),
         ("UPSTAGE_SYNTHETIC_EVALUATION_MODE", "true"),
         ("UPSTAGE_CLASSIFIER_MODE", "true"),
     ):
-        candidate = {**DEEPSEEK_VALID, key: invalid}
+        candidate = {**DEEPSEEK_VALID, key: invalid_value}
         assert (
             load_deepseek_classifier_settings(
                 environ=candidate,
@@ -97,10 +98,16 @@ def test_deepseek_settings_reject_conflicts_without_reading_any_provider_key() -
             is None
         )
 
-    invalid = _ProviderKeyReadFailsMapping(
+    invalid_profile = _ProviderKeyReadFailsMapping(
         {**DEEPSEEK_VALID, "DEEPSEEK_MODEL": "deepseek-v3"}
     )
-    assert load_deepseek_classifier_settings(environ=invalid, env_path=Path("missing")) is None
+    assert (
+        load_deepseek_classifier_settings(
+            environ=invalid_profile,
+            env_path=Path("missing"),
+        )
+        is None
+    )
 
 
 def test_deepseek_and_valid_upstage_generator_profiles_remain_independent() -> None:
@@ -181,6 +188,7 @@ def test_grounded_generator_requires_a_valid_independently_loaded_upstage_capabi
 
 def test_grounded_generator_rejects_wrong_capability_type() -> None:
     from sejong_ai_api.llm.deepseek_settings import load_deepseek_classifier_settings
+    from sejong_ai_api.llm.settings import UpstageChatSettings
 
     profile = {
         **DEEPSEEK_VALID,
@@ -191,7 +199,7 @@ def test_grounded_generator_rejects_wrong_capability_type() -> None:
         load_deepseek_classifier_settings(
             environ=profile,
             env_path=Path("missing"),
-            upstage_chat_settings=object(),
+            upstage_chat_settings=cast(UpstageChatSettings, object()),
         )
         is None
     )
@@ -334,8 +342,7 @@ def test_invalid_deepseek_dotenv_profile_never_enters_key_extraction(
     )
 
     assert (
-        deepseek_settings.load_deepseek_classifier_settings(environ={}, env_path=env_path)
-        is None
+        deepseek_settings.load_deepseek_classifier_settings(environ={}, env_path=env_path) is None
     )
 
 

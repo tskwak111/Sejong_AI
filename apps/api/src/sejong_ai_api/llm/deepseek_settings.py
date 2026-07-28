@@ -110,14 +110,12 @@ def _load_profile_api_key(
         return None
 
     non_secret_values = {
-        key: _merged_value(key, environ, dotenv_profile.values)
-        for key in _EXACT_NON_SECRET_VALUES
+        key: _merged_value(key, environ, dotenv_profile.values) for key in _EXACT_NON_SECRET_VALUES
     }
     if any(value is None or not _is_safe_value(value) for value in non_secret_values.values()):
         return None
     if any(
-        non_secret_values[key] != expected
-        for key, expected in _EXACT_NON_SECRET_VALUES.items()
+        non_secret_values[key] != expected for key, expected in _EXACT_NON_SECRET_VALUES.items()
     ):
         return None
     if not _has_valid_grounded_chat_capability(

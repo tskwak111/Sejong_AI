@@ -269,12 +269,18 @@ Still prohibited:
 - 2026-07-29: A-074 code, docs and gate discovery audits completed; no A blocker.
 - 2026-07-29: ADR-0028, written specification and executable plan drafted under the user's
   explicit approval.
+- 2026-07-29: Tasks 1~6 offline implementation, area integration, documentation/version
+  synchronization and independent review completed. No A-074 offline gate or provider actual has
+  run; invocation/rerun remain 0/0.
 
 ## 결과와 회고
 
-- 실제 결과: pending implementation.
-- 계획과 달라진 점: update after execution.
-- 다음 단계: Subagent-Driven Task 1.
+- 실제 결과: offline implementation complete through one-shot runner/wrapper; A-074 gate and
+  DeepSeek actual both pending with invocation/rerun 0/0.
+- 계획과 달라진 점: independent wrapper review found and corrected lock-owner and unconfirmed
+  termination races before any real gate execution.
+- 다음 단계: Task 7 — commit a clean source checkpoint and run the new A-074 offline gate
+  exactly once.
 
 ## Plan self-review
 

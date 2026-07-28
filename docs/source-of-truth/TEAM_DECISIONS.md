@@ -202,7 +202,10 @@
   `create_local_app`/loopback에만 구성하며 public main·remote DB·실제 시민 운영에는 연결하지
   않는다. 새 A-074 offline gate 1회와 clean-source review 뒤 고정 synthetic 20 actual을
   1회만 실행하고 실패도 aggregate evidence로 닫아 rerun0을 유지한다. 새 production
-  dependency, final answer 공급자 변경과 자동 merge는 금지한다.
+  dependency, final answer 공급자 변경과 자동 merge는 금지한다. Offline Tasks 1~6은
+  selector/settings, strict transport, provider별 비용·usage, local composition과 controlled
+  one-shot runner/wrapper까지 구현·독립 review를 완료했다. 이 checkpoint의 A-074 gate와
+  DeepSeek actual invocation은 각각 0이며 token·비용·PASS/FAIL은 아직 없다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

@@ -276,6 +276,10 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   분류 공급자는 Q-LLM-PROVIDER-001=A/D-122/ADR-0028에 따라 local/private에서
   disabled/Upstage/DeepSeek exact `deepseek-v4-flash`를 명시 선택한다. 각 키는 서로 다른
   ignored backend local 환경변수에만 두며 새 충전·자동 충전·잔액 조회를 하지 않는다.
+- A-074 offline Tasks 1~6은 selector/settings, strict DeepSeek transport, provider별
+  보수 비용·usage, local composition과 one-shot runner/wrapper를 TDD·독립 review로
+  완료했다. public main과 final answer provider는 불변이며 A-074 offline gate·DeepSeek
+  actual은 아직 invocation 0이다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.

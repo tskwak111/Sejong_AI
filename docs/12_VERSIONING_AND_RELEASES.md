@@ -55,7 +55,7 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.10
-application: 0.12.4-classifier-wire-diagnostics
+application: 0.13.0-selectable-classifier-provider
 web: 0.8.0-guided-chat
 api: 4.0.0-draft
 shared_contracts: 1.0.0
@@ -63,8 +63,8 @@ database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.3-explicit-route-matrix
-test_suite: 2.1.7-classifier-wire-correction
-documentation: 2.30.7
+test_suite: 2.2.0-deepseek-classifier-provider
+documentation: 2.31.0-deepseek-classifier-provider
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -468,6 +468,19 @@ dependency 축은 아직 불변이다. Offline 구현을 완료하면 applicatio
 `0.13.0-selectable-classifier-provider`, tests `2.2.0-deepseek-classifier-provider`,
 documentation `2.31.0-deepseek-classifier-provider`로 전진한다. A-073 failed wrapper와
 기존 Upstage actual evidence는 버전 승격 근거로 재실행하지 않는다.
+
+## A-074 selectable classifier offline implementation promotion
+
+2026-07-29 provider별 settings·비용/usage, strict DeepSeek transport, local selector
+composition과 one-shot runner/wrapper의 TDD·독립 review 완료로 application을
+`0.12.4→0.13.0-selectable-classifier-provider`, tests를
+`2.1.7→2.2.0-deepseek-classifier-provider`, documentation을
+`2.30.8→2.31.0-deepseek-classifier-provider`로 승격했다. Prompt
+`0.4.3-explicit-route-matrix`와 product/repository guidance/API/contracts/Web/DB/
+official/mock data/dependency 축은 불변이다. 이 checkpoint에서 A-074 offline wrapper와
+DeepSeek actual invocation은 각각 0이며 결과·token·비용·PASS/FAIL은 기록하지 않는다.
+A-073 root `NOT VERIFIED/FAIL`, invocation/rerun `1/0`과 기존 Upstage actual을 재실행하지
+않았다.
 
 ## CHAT-NATURAL-001 grouped implementation promotion
 

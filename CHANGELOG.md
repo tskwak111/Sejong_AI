@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### Implemented offline — A-074 selectable DeepSeek classifier provider
+
+- Added the explicit local/private classifier selector, strict DeepSeek settings and
+  `deepseek-v4-flash` transport while preserving the Upstage classifier and grounded final-answer
+  generator. The public `sejong_ai_api.main` composition remains provider-free.
+- Reused the existing exact five-string/uppercase `NONE` parser and request-local
+  ACTIVE/OFFICIAL catalog. DeepSeek `json_object` output is revalidated and every configuration,
+  timeout, HTTP, empty, JSON, wire, catalog, usage or cost failure returns to the deterministic
+  fail-closed path without retry or provider cascade.
+- Added provider-specific conservative usage/cost accounting and a local one-shot runner,
+  immutable lease, aggregate-only report contract, Windows PowerShell 5.1 offline wrapper and
+  controlled race/termination tests. No new production dependency was added.
+- Offline TDD and review are complete: Task 5 finished with 348 tests plus 5 subtests and the
+  Task 6 area suite passed 1,012 tests plus 5 subtests. Ruff, Mypy, PowerShell parser, secret,
+  docs and diff checks pass; final Task 5 independent review found Critical 0 and Important 0.
+- The A-074 offline wrapper and DeepSeek actual have not run yet: invocation count 0, rerun count
+  0 and no observed token/cost metric exists. A-073 remains `NOT VERIFIED/FAIL` with invocation/rerun
+  `1/0`; no A-073 root wrapper or Upstage actual was rerun.
+- Promoted application `0.12.4→0.13.0-selectable-classifier-provider`, tests
+  `2.1.7→2.2.0-deepseek-classifier-provider` and documentation
+  `2.30.8→2.31.0-deepseek-classifier-provider`. Prompt `0.4.3`, public API/contracts, Web, DB,
+  official/mock data and dependency axes are unchanged.
+
 ### Approved — A-074 selectable DeepSeek classifier provider
 
 - Recorded Q-LLM-PROVIDER-001=A/D-122 and ADR-0028: DeepSeek exact
