@@ -242,7 +242,6 @@ def test_classifier_prompt_declares_exact_closed_wire_vocabularies_without_ambig
         "WASTE_ITEM",
     ):
         assert pending_slot in system
-    assert "provider intents: the four supported intents or NONE" in system
     for forbidden in (
         "default=NONE",
         "NONE=없음",
@@ -250,6 +249,21 @@ def test_classifier_prompt_declares_exact_closed_wire_vocabularies_without_ambig
         "DOMAIN?NONE:지원,,,",
     ):
         assert forbidden not in system
+
+
+def test_classifier_prompt_declares_one_contiguous_exact_provider_intent_vocabulary() -> None:
+    system = build_classifier_messages(
+        _safe_question(),
+        _catalog(),
+        max_input_chars=1024,
+    )[0]["content"]
+    exact_vocabulary = (
+        "provider intents: "
+        "MOVE_IN_RESIDENT_REGISTRATION|CERTIFICATE_ISSUANCE|"
+        "BULKY_WASTE|LOCAL_TAX_GENERAL|NONE;"
+    )
+
+    assert system.count(exact_vocabulary) == 1
 
 
 def test_classifier_prompt_encodes_every_complete_route_matrix_row() -> None:

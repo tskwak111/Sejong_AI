@@ -34,6 +34,31 @@ from sejong_ai_api.llm.settings import UpstageClassifierSettings  # noqa: E402
 
 _RUNNER_MODULE_NAME = "_sejong_hybrid_rag_actual_runner_test"
 _RUNNER_PATH = _REPOSITORY_ROOT / "scripts" / "run_hybrid_rag_actual.py"
+_APPROVED_CASE_TABLE_COLUMNS = (
+    "Fixture ID",
+    "Evidence kind",
+    "Provider decision accepted",
+    "Actual provider route/topic match",
+    "Outbound",
+)
+_FORBIDDEN_PRIVACY_MARKERS = (
+    "provider payload",
+    "provider body",
+    "response body",
+    "invalid value",
+    "status detail",
+    "exception",
+    "question",
+    "api_key",
+    "authorization",
+    "bearer ",
+    "database_url",
+    "dsn",
+    "postgresql://",
+    "offline-test-key",
+    "secret",
+    "| Fixture ID | Provider response stage |",
+)
 
 
 def _runner() -> ModuleType:
@@ -68,6 +93,41 @@ def _oracle_wire_payload(decision: ClassifierDecision) -> bytes:
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode("utf-8")
+
+
+def _markdown_columns(line: str) -> tuple[str, ...]:
+    return tuple(cell.strip() for cell in line.strip().strip("|").split("|"))
+
+
+def _assert_aggregate_case_table_and_non_retention(
+    markdown: str,
+    *,
+    selected_questions: tuple[str, ...],
+    console: str = "",
+) -> None:
+    lines = markdown.splitlines()
+    case_headers = tuple(
+        (index, line)
+        for index, line in enumerate(lines)
+        if _markdown_columns(line)[:1] == ("Fixture ID",)
+    )
+
+    assert len(case_headers) == 1
+    header_index, header = case_headers[0]
+    assert _markdown_columns(header) == _APPROVED_CASE_TABLE_COLUMNS
+    assert len(_markdown_columns(lines[header_index + 1])) == len(
+        _APPROVED_CASE_TABLE_COLUMNS
+    )
+    for row in lines[header_index + 2 :]:
+        if not row.startswith("|"):
+            break
+        assert len(_markdown_columns(row)) == len(_APPROVED_CASE_TABLE_COLUMNS)
+
+    evidence = (console + markdown).casefold()
+    for question in selected_questions:
+        assert question.casefold() not in evidence
+    for marker in _FORBIDDEN_PRIVACY_MARKERS:
+        assert marker.casefold() not in evidence
 
 
 def test_actual_subset_is_the_exact_pii_free_allowlist() -> None:
@@ -212,14 +272,10 @@ def test_injected_offline_selector_writes_only_case_id_aggregates() -> None:
     assert (
         "`PRIOR_OFFLINE_PROVIDER_FREE` | `not-applicable` | `not-applicable` | `0`"
     ) in markdown
-    for forbidden in (
-        selected[0].question,
-        "api_key",
-        "postgresql://",
-        "payload",
-        "response body",
-    ):
-        assert forbidden.casefold() not in markdown.casefold()
+    _assert_aggregate_case_table_and_non_retention(
+        markdown,
+        selected_questions=tuple(case.question for case in selected),
+    )
 
 
 def test_cost_gate_stops_before_injected_selector_call() -> None:
@@ -832,20 +888,13 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
     assert "`cost_reconciled` | `True`" in report
     assert "`acceptance` | `PASS`" in report
     assert not list(tmp_path.glob(".*.tmp"))
-    for forbidden in (
-        "provider payload",
-        "invalid value",
-        "status detail",
-        "exception",
-        "offline-test-key",
-        "postgresql://",
-        "| Fixture ID | Provider response stage |",
-        fixtures[0].question,
-    ):
-        assert (
-            forbidden.casefold()
-            not in (first_console.out + first_console.err + report).casefold()
-        )
+    _assert_aggregate_case_table_and_non_retention(
+        report,
+        selected_questions=tuple(
+            case.question for case in fixtures if case.actual_subset
+        ),
+        console=first_console.out + first_console.err,
+    )
 
     report_before_rerun = report_path.read_bytes()
     assert runner.main([]) == 2

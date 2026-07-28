@@ -808,6 +808,66 @@ async def test_http_response_emits_one_value_free_terminal_stage(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("content", "expected_stage"),
+    [
+        pytest.param(
+            '{"route":"BAD_ROUTE","intent":"BAD_INTENT","topic_id":"NONE",'
+            '"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+            id="route-before-intent",
+        ),
+        pytest.param(
+            '{"route":"NEEDS_FOLLOWUP","intent":"BAD_INTENT",'
+            '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"BAD_SLOT"}',
+            ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            id="intent-before-pending-slot",
+        ),
+        pytest.param(
+            '{"route":"SUPPORTED","intent":"BULKY_WASTE","topic_id":"bad topic",'
+            '"coverage_id":"GENERAL_BULKY_DISPOSAL","pending_slot":"BAD_SLOT"}',
+            ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
+            id="pending-slot-before-identifier",
+        ),
+        pytest.param(
+            '{"route":"NON_CIVIC","intent":"BULKY_WASTE","topic_id":"bad topic",'
+            '"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
+            id="identifier-before-route-shape",
+        ),
+        pytest.param(
+            '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+            '"topic_id":"KB-WASTE-UNKNOWN","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+            '"pending_slot":"REGION"}',
+            ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
+            id="route-shape-before-catalog",
+        ),
+    ],
+)
+async def test_compound_errors_emit_one_adjacent_precedence_stage_through_classifier(
+    content: str,
+    expected_stage: ClassifierResponseStage,
+) -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    observed: list[ClassifierResponseStage] = []
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(lambda _request: _provider_response(content=content)),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=_ledger(),
+            response_stage_observer=observed.append,
+        ).classify(_question(), _catalog())
+
+    assert decision is None
+    assert observed == [expected_stage]
+    assert all(type(stage) is ClassifierResponseStage for stage in observed)
+
+
+@pytest.mark.asyncio
 async def test_response_stage_observer_failure_does_not_change_accepted_decision() -> None:
     settings = UpstageClassifierSettings(api_key=SECRET)
 

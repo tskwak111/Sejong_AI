@@ -1,7 +1,9 @@
 # Upstage Classifier Explicit Route Matrix and Refined Diagnostics — Written Specification
 
 - Task ID: `A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION`
-- Status: Approved — plan approved; Tasks 1~4 implemented offline; Task 5 root/clean-source gate and Task 6 actual pending
+- Status: Approved — Tasks 1~4 implemented offline; Task 5 exact-one root invocation consumed,
+  aggregate `NOT VERIFIED/FAIL`, rerun 0; final review fix wave 1 implemented and final review
+  pending; Task 6 blocked pending root-gate resolution plus exact human approval
 - Date: 2026-07-29 KST
 - Human authority: 사용자의 `ㅇㅋ 진행해`, `명세 승인`, `계획 승인, 1번 Subagent-Driven으로 구현 시작`
 - Decision authority: D-117, D-118, D-119, D-120
@@ -352,7 +354,12 @@ written specification 승인과 implementation plan Review publication은 docume
 `2.30.5`다. D-120의 plan 승인과 Tasks 1~4 offline 구현으로 application
 `0.12.4-classifier-wire-diagnostics`, prompt `0.4.3-explicit-route-matrix`, tests
 `2.1.7-classifier-wire-correction`, documentation `2.30.6`을 적용했다. API/contracts/Web/
-DB/data/dependency/provider actual call/cost는 불변이며 Task 5와 actual은 아직 남아 있다.
+DB/data/dependency/provider actual call/cost는 불변이다. Task 5 root wrapper exact-one
+invocation은 이미 소비됐고 harness timeout 124로 aggregate는 `NOT VERIFIED/FAIL`, rerun은
+0이다. final review fix wave 1은 누락된 contiguous provider-intent vocabulary, adjacent
+first-failure precedence와 runner non-retention 증거를 offline TDD로 교정했으며 final review는
+pending이다. Task 6은 root-gate 해소와 별도 exact human approval 전까지 blocked다. 이 review
+correction은 version axis를 전진시키지 않는다.
 
 ## 10. 인수 기준
 

@@ -3,7 +3,8 @@
 - Date/Time (KST): 2026-07-29T03:01:55+09:00
 - Task ID: A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION
 - Type: implementation-provider-offline
-- Status: Tasks 1~4 offline Done; Task 5 root aggregate NOT VERIFIED/FAIL, independent review pending; Task 6 blocked
+- Status: Tasks 1~4 offline Done; Task 5 exact-one root aggregate `NOT VERIFIED/FAIL`,
+  rerun 0; final review fix wave 1 implemented, final review pending; Task 6 blocked
 - Author/Agent: 사용자 결정자 + Codex controller + Task 1~5 구현 에이전트
 - Branch: `codex/a-072-strict-classifier-wire`
 - Base commit: `34cc45d1132a5316a1e5e31c2adb3c77d4338aef`
@@ -50,7 +51,7 @@ API server, manual chat, `.env`·key·DSN 접근은 금지하고 Task 6 actual�
 | What — 무엇을 | five refined stages, shared typed builder, explicit route matrix, bounded grouped catalog, production-wire oracle, version/권위/6W1H evidence |
 | Why — 왜 | D-117의 exact five-key 응답 9건이 broad `ENUM_SHAPE_REJECTED`에서 종료한 prompt ambiguity를 제거하고 재발 시 값 없이 실패 계층을 구분하기 위해 |
 | How — 어떻게 | Task별 RED→GREEN, controlled doubles, exact area/quality 명령, manifest allowlist와 D-120 authority synchronization |
-| How much — 어느 정도 | production 3파일, approved tests 4파일과 baseline-stale controlled fixture 1줄, area 386, controlled-double 39, Ruff/Mypy 115; Task 5 root wrapper exact-one invocation 1(aggregate NOT VERIFIED/FAIL), provider/network call 0, USD 0 |
+| How much — 어느 정도 | A-073 cumulative production 3파일, approved tests와 baseline-stale controlled fixture; final review 뒤 area 397, controlled-double 39, Ruff/Mypy 115; Task 5 root wrapper exact-one invocation 1(aggregate NOT VERIFIED/FAIL), review-wave rerun 0, provider/network call 0, USD 0 |
 
 ## 3. 시작 전 상태
 
@@ -71,7 +72,7 @@ API server, manual chat, `.env`·key·DSN 접근은 금지하고 Task 6 actual�
 | D-120 | 인간 승인 | Tasks 1~5 plan과 Subagent-Driven 구현 시작 | 승인됨 | offline code/test/docs 허용 |
 | T4-SCOPE-001 | 내부 범위 | controlled evaluation mock이 plan allowlist에 없었음 | controller가 test-only `null→"NONE"` 한 줄을 승인 | production/schema 동작 영향 0, cumulative scope에 test 파일 1개 추가 |
 | A-073-ACTUAL | 인간 승인 | Task 6 corrective actual exactly once | 미승인 | provider/network/API actual 0 유지 |
-| Internal-guard | 구현 가정 | governed 20 topic + 256-char prompt가 complete guard 안이어야 함 | 실제 4,064, margin 32 | 확장 시 재예산 필요 |
+| Internal-guard | 구현 가정 | governed 20 topic + 256-char prompt가 complete guard 안이어야 함 | final review correction 뒤 실제 4,067, margin 29 | 확장 시 재예산 필요 |
 
 ## 5. 설계 결정과 대안
 
@@ -155,6 +156,12 @@ Task 4 evidence commit과 Tasks 3→1 commits를 역순 revert하고 manifest를
 | `python -B scripts/check_repository_docs.py` | PASS | repository documentation check passed | terminal evidence |
 | `check_secret_patterns.ps1 -RepositoryRoot .` | PASS | exit 0; findings/value output 0 | terminal evidence |
 | `git diff --check` | PASS | whitespace errors 0; working-copy line-ending warning 1 | terminal evidence |
+| final review exact vocabulary focused RED→GREEN | PASS | expected RED 1 failed → 4 passed; complete prompt 4,067, margin 29 | final review terminal evidence |
+| final review temporary precedence mutation | PASS | expected RED 2 failed/8 passed → restore GREEN 10 passed | mutation uncommitted, production order restored |
+| final review runner non-retention focused | PASS | 2 passed | selected 20 questions, exact case-table columns, forbidden markers |
+| final review classifier/Hybrid RAG area | PASS | 397 passed, skip 0, known Starlette warning 1, 3.96s | final review terminal evidence |
+| final review controlled-double | PASS | 39 passed, skip 0, 1.51s | provider/network call 0 |
+| final review Ruff/Mypy | PASS | API 115 formatted/lint clean; Mypy 115; direct runner test format/lint clean | final review terminal evidence |
 
 ### 미실행 검증과 이유
 
@@ -192,7 +199,8 @@ Task 4 evidence commit과 Tasks 3→1 commits를 역순 revert하고 manifest를
   해결한 뒤에도 exact `A-073 corrective actual 1회 실행 승인` 없이는 provider call 0이어야 한다.
 - controlled-double 첫 RED는 production 결함이 아니라 baseline-stale provider-wire mock이었다.
   current exact string contract를 약화하지 않고 test fixture 한 줄만 교정했다.
-- 20-topic/256-character prompt margin이 32자이므로 future prompt/catalog 증가는 재예산이 필요하다.
+- 20-topic/256-character prompt의 final review correction 뒤 margin이 29자이므로 future
+  prompt/catalog 증가는 재예산이 필요하다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
 
@@ -224,15 +232,15 @@ rollback은 필요 없다.
 ### 다음 개발자 시작점
 
 Task 5의 root wrapper one-shot은 이미 소비됐으므로 현재 plan 아래 재실행하지 않는다.
-independent review가 scope/code를 확인하고, root aggregate capture gap은 인간이 별도로
-결정한다. 사용자의 exact Task 6 승인과 root-gate 해소 전에는 D-117 report archive/delete나
-provider readiness/actual을 실행하지 않는다.
+final review fix wave 1은 구현됐지만 final review가 아직 pending이다. root aggregate capture
+gap은 인간이 별도로 결정한다. 사용자의 exact Task 6 승인과 root-gate 해소 전에는 D-117
+report archive/delete나 provider readiness/actual을 실행하지 않는다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
 - 실제 provider가 explicit matrix를 준수하는지는 아직 검증되지 않았다.
 - Task 5 root wrapper는 exact-one invocation을 소비했지만 timeout 124로 aggregate가
-  `NOT VERIFIED/FAIL`이다. independent code/scope review와 root-gate capture gap의 인간 결정이
+  `NOT VERIFIED/FAIL`이다. rerun은 0이며 final review와 root-gate capture gap의 인간 결정이
   남아 있다.
 - actual에서 rejection이 남으면 refined aggregate만 기록하며 provider body/value를 열람하거나
   자동 재실행하지 않는다.
@@ -285,6 +293,51 @@ provider readiness/actual을 실행하지 않는다.
   `git status --short` output 0 before evidence edits.
 - provider/network/API server/manual chat/actual runner invocation 0, cost USD 0. D-117 report와
   archives, ADR-0027, product code/tests/contracts/DB/data/dependencies/version axes는 불변이다.
-- independent scope/code review는 pending이다. Task 6은 blocked이며, root gate가 별도 인간
+- final independent review는 pending이다. Task 6은 blocked이며, root gate가 별도 인간
   결정으로 해소된 뒤에도 exact future approval
   `A-073 corrective actual 1회 실행 승인`이 필요하다.
+
+## 18. Final review fix wave 1
+
+### 범위와 원인
+
+- final review에서 production prompt의 contiguous provider-intent declaration이
+  `MOVE_IN_RESIDENT_REGISTRATION|LOCAL_TAX_GENERAL`만 열거하고
+  `CERTIFICATE_ISSUANCE|BULKY_WASTE`를 special follow-up row에만 흩어 둔 결함을 확인했다.
+- parser production precedence 자체는
+  route→intent→pending-slot→identifier→route-shape→catalog 순서로 이미 맞았다. 기존
+  compound coverage가 route-first 한 건뿐이어서 adjacent boundary를 mutation-proof하게
+  보강했다.
+- controlled runner production report shape는 바꾸지 않고 test-only non-retention 검증만
+  모든 selected fixture 질문과 exact approved case-table column으로 확장했다.
+
+### RED/GREEN 증거
+
+| 검증 | 결과 | 의미 |
+|---|---|---|
+| exact contiguous provider-intent focused RED | expected RED: 1 failed | unchanged production에서 exact vocabulary count가 0임을 확인 |
+| minimal prompt correction focused GREEN | 4 passed | prompt vocabulary와 governed 20-topic/256-character transport guard 통과 |
+| temporary identifier-before-pending mutation | expected RED: 2 failed, 8 passed | parser와 real `QuestionClassifier` observer가 같은 adjacent precedence break를 검출 |
+| mutation restore 뒤 focused precedence | GREEN: 10 passed | production order 복원, five adjacent boundary와 enum-only exactly-once observer 통과 |
+| runner aggregate/non-retention focused | GREEN: 2 passed | selected 20개 질문 전수 비보관, exact five case-table columns, forbidden privacy markers 비노출 |
+
+temporary wrong-order mutation은 commit/stage하지 않고 `apply_patch`로 즉시 원복했다.
+`classifier_contracts.py`는 final review diff에 포함되지 않는다. final governed
+20-topic + 256-character complete-message 길이는 정확히 4,067자, 4,096 guard margin은
+29자다. route/topic/coverage/label/approved-example/same-row/exact `NONE`/five-string schema
+semantics는 삭제하거나 절단·샘플링하지 않았다.
+
+### Gate와 권한
+
+- Task 5 exact-one root wrapper invocation count는 이미 1로 소비됐고 aggregate는
+  `NOT VERIFIED/FAIL`; 이 review wave의 root rerun은 0이다.
+- Task 6은 root-gate resolution과 exact
+  `A-073 corrective actual 1회 실행 승인` 전까지 blocked다.
+- provider/network/API server/manual chat/actual runner 호출 0, 비용 USD 0이다.
+- D-117 report, ADR-0027, `.env`, key, DSN, public contracts, Web, DB/migration,
+  official/mock data, dependency/package/lockfile와 모든 version axis는 불변이다.
+- final review fix 구현은 완료했지만 final independent review는 pending이다.
+- final area suite는 397 passed/skip 0(known Starlette warning 1), controlled-double suite는
+  39 passed/skip 0이다. API `src tests` Ruff format/check와 Mypy 115, direct runner-test Ruff
+  format/check가 PASS했다. 첫 Ruff format check가 changed test 2개를 식별한 뒤 해당 changed
+  files만 format하고 final check를 재실행했다.

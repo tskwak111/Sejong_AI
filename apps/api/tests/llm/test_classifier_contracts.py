@@ -331,6 +331,52 @@ def test_provider_wire_reports_refined_first_failure_without_reflecting_value(
     assert forbidden_value not in repr(result)
 
 
+@pytest.mark.parametrize(
+    ("payload", "expected_stage"),
+    [
+        pytest.param(
+            b'{"route":"BAD_ROUTE","intent":"BAD_INTENT","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+            id="route-before-intent",
+        ),
+        pytest.param(
+            b'{"route":"NEEDS_FOLLOWUP","intent":"BAD_INTENT",'
+            b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"BAD_SLOT"}',
+            ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            id="intent-before-pending-slot",
+        ),
+        pytest.param(
+            b'{"route":"SUPPORTED","intent":"BULKY_WASTE","topic_id":"bad topic",'
+            b'"coverage_id":"GENERAL_BULKY_DISPOSAL","pending_slot":"BAD_SLOT"}',
+            ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
+            id="pending-slot-before-identifier",
+        ),
+        pytest.param(
+            b'{"route":"NON_CIVIC","intent":"BULKY_WASTE","topic_id":"bad topic",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
+            id="identifier-before-route-shape",
+        ),
+        pytest.param(
+            b'{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+            b'"topic_id":"KB-WASTE-UNKNOWN","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+            b'"pending_slot":"REGION"}',
+            ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
+            id="route-shape-before-catalog",
+        ),
+    ],
+)
+def test_provider_wire_compound_errors_follow_adjacent_validation_precedence(
+    payload: bytes,
+    expected_stage: ClassifierResponseStage,
+) -> None:
+    result = parse_classifier_wire_decision_with_stage(payload, _catalog())
+
+    assert result.decision is None
+    assert result.stage is expected_stage
+
+
 def test_canonical_and_provider_parsers_share_refined_stage_mapping() -> None:
     canonical = parse_classifier_decision_with_stage(
         b'{"route":"BAD_ROUTE","intent":null,"topic_id":null,'
