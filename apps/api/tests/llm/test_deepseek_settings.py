@@ -122,8 +122,12 @@ def test_deepseek_and_valid_upstage_generator_profiles_remain_independent() -> N
         "UPSTAGE_GROUNDED_CHAT_MODE": "true",
     }
 
-    deepseek = load_deepseek_classifier_settings(environ=profile, env_path=Path("missing"))
     upstage_chat = load_upstage_chat_settings(environ=profile, env_path=Path("missing"))
+    deepseek = load_deepseek_classifier_settings(
+        environ=profile,
+        env_path=Path("missing"),
+        upstage_chat_settings=upstage_chat,
+    )
 
     assert deepseek is not None
     assert isinstance(upstage_chat, UpstageChatSettings)
@@ -132,7 +136,7 @@ def test_deepseek_and_valid_upstage_generator_profiles_remain_independent() -> N
 def test_incomplete_grounded_generator_fails_before_llm_api_key_access() -> None:
     from sejong_ai_api.llm.deepseek_settings import load_deepseek_classifier_settings
 
-    incomplete_generator = _UpstageKeyReadFailsMapping(
+    incomplete_generator = _ProviderKeyReadFailsMapping(
         {
             **DEEPSEEK_VALID,
             "UPSTAGE_GROUNDED_CHAT_MODE": "true",
@@ -147,6 +151,100 @@ def test_incomplete_grounded_generator_fails_before_llm_api_key_access() -> None
         )
         is None
     )
+
+
+@pytest.mark.parametrize("invalid_api_key", ("", "unsafe\nkey"))
+def test_grounded_generator_requires_a_valid_independently_loaded_upstage_capability(
+    invalid_api_key: str,
+) -> None:
+    from sejong_ai_api.llm.deepseek_settings import load_deepseek_classifier_settings
+    from sejong_ai_api.llm.settings import load_upstage_chat_settings
+
+    profile = {
+        **DEEPSEEK_VALID,
+        "LLM_PROVIDER": "upstage",
+        "LLM_API_KEY": invalid_api_key,
+        "LLM_MODEL": "solar-pro3",
+        "LLM_BASE_URL": "https://api.upstage.ai/v1",
+        "LLM_TIMEOUT_SECONDS": "8",
+        "LLM_MAX_RETRIES": "0",
+        "LLM_MAX_CONCURRENCY": "1",
+        "LLM_MAX_INPUT_TOKENS": "4096",
+        "LLM_MAX_OUTPUT_TOKENS": "1024",
+        "LLM_RUN_ATTEMPT_CAP": "30",
+        "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+    }
+
+    assert load_upstage_chat_settings(environ=profile, env_path=Path("missing")) is None
+    assert load_deepseek_classifier_settings(environ=profile, env_path=Path("missing")) is None
+
+
+def test_grounded_generator_rejects_wrong_capability_type() -> None:
+    from sejong_ai_api.llm.deepseek_settings import load_deepseek_classifier_settings
+
+    profile = {
+        **DEEPSEEK_VALID,
+        "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+    }
+
+    assert (
+        load_deepseek_classifier_settings(
+            environ=profile,
+            env_path=Path("missing"),
+            upstage_chat_settings=object(),
+        )
+        is None
+    )
+
+
+def test_grounded_generator_rejects_forged_upstage_settings_capability() -> None:
+    from sejong_ai_api.llm.deepseek_settings import load_deepseek_classifier_settings
+    from sejong_ai_api.llm.settings import UpstageChatSettings
+
+    profile = {
+        **DEEPSEEK_VALID,
+        "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+    }
+
+    assert (
+        load_deepseek_classifier_settings(
+            environ=profile,
+            env_path=Path("missing"),
+            upstage_chat_settings=UpstageChatSettings(
+                api_key="forged-upstage-key-not-a-real-secret"
+            ),
+        )
+        is None
+    )
+
+
+def test_grounded_deepseek_loader_never_reads_llm_api_key_from_the_configuration() -> None:
+    from sejong_ai_api.llm.deepseek_settings import load_deepseek_classifier_settings
+    from sejong_ai_api.llm.settings import load_upstage_chat_settings
+
+    profile = {
+        **DEEPSEEK_VALID,
+        "LLM_PROVIDER": "upstage",
+        "LLM_API_KEY": "upstage-test-key-not-a-real-secret",
+        "LLM_MODEL": "solar-pro3",
+        "LLM_BASE_URL": "https://api.upstage.ai/v1",
+        "LLM_TIMEOUT_SECONDS": "8",
+        "LLM_MAX_RETRIES": "0",
+        "LLM_MAX_CONCURRENCY": "1",
+        "LLM_MAX_INPUT_TOKENS": "4096",
+        "LLM_MAX_OUTPUT_TOKENS": "1024",
+        "LLM_RUN_ATTEMPT_CAP": "30",
+        "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+    }
+    upstage_chat = load_upstage_chat_settings(environ=profile, env_path=Path("missing"))
+
+    deepseek = load_deepseek_classifier_settings(
+        environ=_UpstageKeyReadFailsMapping(profile),
+        env_path=Path("missing"),
+        upstage_chat_settings=upstage_chat,
+    )
+
+    assert deepseek is not None
 
 
 def test_deepseek_loader_reads_no_upstage_key_and_upstage_loader_reads_no_deepseek_key() -> None:
