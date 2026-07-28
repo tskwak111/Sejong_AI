@@ -130,8 +130,7 @@ def test_injected_offline_selector_writes_only_case_id_aggregates() -> None:
     assert report["acceptance"] == "PASS"
     assert "HR-001" in markdown
     assert (
-        "`PRIOR_OFFLINE_PROVIDER_FREE` | `not-applicable` | "
-        "`not-applicable` | `0`"
+        "`PRIOR_OFFLINE_PROVIDER_FREE` | `not-applicable` | `not-applicable` | `0`"
     ) in markdown
     for forbidden in (
         selected[0].question,

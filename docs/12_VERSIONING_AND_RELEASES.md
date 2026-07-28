@@ -63,8 +63,8 @@ database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.0-topic-coverage
-test_suite: 2.1.2-patched-cli-advisory
-documentation: 2.29.2
+test_suite: 2.1.3-value-free-provider-diagnostics
+documentation: 2.29.3
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -76,8 +76,9 @@ first attempt는 stale Web env expectation 1건(집중 수정/통과)과 Windows
 9건 때문에 최종 green으로 주장하지 않는다. 별도 final local application rehearsal의 `/ready=200`과
 20번째 ACTIVE, sample 20/20, final API/Web/contracts/E2E/scanner, clean disposable DB와 root offline은
 PASS했다. current application/Web는 CHAT-NATURAL Slice 1~3 위에 CHAT-HYBRID-RAG
-Tasks 1~10 구현·검증을 포함하고 API는 `4.0.0-draft`를 유지한다. Task 10 actual은
-정확히 한 번 실행했으나 strict accepted usage/provider match 0으로 FAIL했으며 재실행하지 않았다.
+Tasks 1~10 구현·검증을 포함하고 API는 `4.0.0-draft`를 유지한다. Task 10 initial actual은
+strict accepted usage/provider match 0으로 FAIL했다. D-106의 value-free corrective actual도
+9/9 HTTP 4xx class로 FAIL했고, 정확한 client-rejection 원인은 A-070으로 남았다.
 manual demo·actual PASS·configured remote smoke 완료를 뜻하지 않는다.
 `local` suffix는 공개·원격·production release가 아님을 명시한다. D-046/D-092의 `00700`
 local 구현·검증은 끝났고, remote 운영은 ADR-0026 gate가 별도다.
@@ -129,6 +130,14 @@ Documentation `2.29.2`는 사용자가 통합 선택지 1을 택해 pinned CLI a
 public/remote deployment는 수행하지 않았다. application/API/contract/DB/data/prompt/test
 버전은 `2.29.1` 기준과 동일하고 병합된 local `main`의 31단계 repository gate는 967초,
 exit 0으로 PASS했다.
+
+Test suite `2.1.3-value-free-provider-diagnostics`와 documentation `2.29.3`은 A-069의
+값 비노출 진단과 승인된 corrective actual 1회를 기록한다. prior D-105 FAIL은 archive로
+보존하고 runner가 HTTP family, transport/no-response, usage, closed decision과 contract
+mismatch만 집계하도록 보강했다. source `1f337ad`의 실행은 20 selected·skip 0·11
+provider-free·9 outbound였고 9 response 모두 4xx class, 2xx/5xx/transport/usage/decision/match
+0으로 FAIL했다. application/API/contracts/DB/data/prompt/dependency는 바뀌지 않았고 provider
+본문·질문·status detail·key·DSN 보관은 0이다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

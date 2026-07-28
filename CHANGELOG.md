@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Diagnosed — value-free Hybrid RAG provider rejection
+
+- Pushed the approved local `main` baseline `d973abc` to the private `origin/main`.
+- Preserved the D-105 FAIL report under `docs/test-reports/archive/` and added
+  aggregate-only HTTP-family, transport, usage, closed-decision and contract-mismatch diagnostics.
+- Executed the separately approved corrective actual exactly once from source `1f337ad`: 20
+  selected, 0 skipped, 11 provider-free and 9 outbound. All 9 attempts received 4xx-class
+  responses; 2xx, 5xx, no-response/transport, accepted usage, accepted decisions and matches were
+  all 0, so acceptance remains FAIL.
+- Retained no question, provider body, status detail, key or DSN. Process-scoped overrides ended
+  and ignored local provider modes were confirmed false/false. No additional provider run is
+  authorized; exact auth/access/request-shape/quota diagnosis remains A-070.
+- Advanced tests `2.1.2→2.1.3-value-free-provider-diagnostics` and documentation
+  `2.29.2→2.29.3`; runtime, API, contracts, DB, data, prompt and dependency versions are unchanged.
+
 ### Integrated — pinned CLI advisory patch into local main
 
 - The user selected local integration, and `main` fast-forwarded from `028053d` to feature commit

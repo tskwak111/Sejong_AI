@@ -920,10 +920,18 @@ def _build_evidence_report(
     usage_responses = (
         0 if evidence.recorder is None else evidence.recorder.complete_response_count
     )
-    response_count = 0 if evidence.recorder is None else evidence.recorder.response_count
-    http_2xx_count = 0 if evidence.recorder is None else evidence.recorder.http_2xx_count
-    http_4xx_count = 0 if evidence.recorder is None else evidence.recorder.http_4xx_count
-    http_5xx_count = 0 if evidence.recorder is None else evidence.recorder.http_5xx_count
+    response_count = (
+        0 if evidence.recorder is None else evidence.recorder.response_count
+    )
+    http_2xx_count = (
+        0 if evidence.recorder is None else evidence.recorder.http_2xx_count
+    )
+    http_4xx_count = (
+        0 if evidence.recorder is None else evidence.recorder.http_4xx_count
+    )
+    http_5xx_count = (
+        0 if evidence.recorder is None else evidence.recorder.http_5xx_count
+    )
     http_other_count = (
         0 if evidence.recorder is None else evidence.recorder.http_other_count
     )

@@ -135,6 +135,12 @@ runtime ACTIVE/OFFICIAL 교집합은 19이며 metadata의 20번째 topic을 허�
 offline UAT는 48/48, official 57/57, classifier 60/60, focused 91 PASS·skip 0이다. Task 10
 PII-free Upstage actual은 정확히 한 번 실행해 20 selected·skip 0·11 provider-free·9 outbound를
 기록했지만 strict accepted usage와 provider match가 0이라 FAIL했고 재실행하지 않았다.
+2026-07-28 D-106의 별도 승인으로 prior FAIL을 archive하고 value-free failure-stage counters를
+추가한 source `1f337ad`에서 corrective actual을 정확히 한 번 더 실행했다. 9/9 outbound는 모두
+HTTP response를 받았지만 전부 4xx class였고 2xx·5xx·transport/timeout·usage parse·closed
+decision·route/topic match는 0이었다. 따라서 provider client-rejection 단계까지는 진단됐지만
+auth/access/request-shape/quota 중 정확한 원인은 보관하지 않은 body/status detail 없이
+단정하지 않는다. corrective 결과도 FAIL이며 추가 실제 호출은 새 승인 전 금지한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는
