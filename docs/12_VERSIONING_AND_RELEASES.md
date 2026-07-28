@@ -55,15 +55,15 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.10
-application: 0.12.2-response-stage-diagnostics
+application: 0.12.3-structured-classifier-wire
 web: 0.8.0-guided-chat
 api: 4.0.0-draft
 shared_contracts: 1.0.0
 database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.4.1-json-mode-instruction
-test_suite: 2.1.5-response-stage-diagnostics
+prompt_set: 0.4.2-exact-five-key-schema
+test_suite: 2.1.6-structured-classifier-wire
 documentation: 2.30.1
 ```
 
@@ -204,6 +204,17 @@ implementation plan Review publication이다. Tasks 1~5는 wire parser, full-nam
 strict schema transport, area/version integration, root/clean-source gate를 구현한다. Task 6
 actual은 plan 승인 범위 밖이며 Tasks 1~5 PASS 뒤 exact 별도 승인이 필요하다. application,
 prompt, tests runtime 축과 API/contracts/DB/data/dependency/provider call은 아직 변하지 않았다.
+
+Application `0.12.3-structured-classifier-wire`, prompt set
+`0.4.2-exact-five-key-schema`, test suite `2.1.6-structured-classifier-wire`는 D-116의 A-072
+Tasks 1~4 offline 구현 기준선이다. provider boundary에서 exact string `NONE`만 nullable
+domain `None`으로 정규화하고 canonical JSON-null parser와 server-owned enum/shape/current
+catalog validation을 공유한다. Upstage request는 매 호출 fresh strict five-key string
+`json_schema`를 사용하며 prompt는 동일한 canonical field names와 sentinel을 4,096 guard 안에서
+표현한다. area 333, controlled-double actual-runner 24, Ruff/Mypy 115가 PASS했고 provider
+actual call/cost는 0이다. API/shared contracts, DB schema, official/mock data, dependency,
+package와 lockfile은 불변이다. Task 5 root/clean-source gate와 D-117 corrective actual 인간
+gate는 아직 남아 있다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

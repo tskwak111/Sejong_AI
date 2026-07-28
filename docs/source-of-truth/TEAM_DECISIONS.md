@@ -150,6 +150,12 @@
 - D-115: A-072 written specification을 Approved로 전환하고 exact RED/GREEN Tasks 1~5 plan을
   Review로 게시했다. Task 6 actual은 이 plan 승인과 분리하며 Tasks 1~5 PASS·clean source 뒤
   exact 별도 승인이 필요하다. code/provider call/dependency/API/DB/data/push/merge는 아직 0이다.
+- D-116: 사용자의 `계획 승인, 1번으로 구현 시작`으로 A-072 Tasks 1~5와 Subagent-Driven
+  실행을 승인했다. exact `NONE` provider parser, bounded canonical prompt, fresh strict schema와
+  offline area/version integration을 구현해 area 333·controlled-double runner 24·Ruff/Mypy
+  115 PASS를 얻었다. application/prompt/tests만 `0.12.3/0.4.2/2.1.6`으로 전진하고 API/contracts/
+  DB/data/dependency/provider actual call/cost는 0이다. Task 5 뒤 corrective actual은 D-117
+  별도 exact 인간 승인 전 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

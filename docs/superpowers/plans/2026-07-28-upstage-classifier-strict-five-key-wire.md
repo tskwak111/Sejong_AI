@@ -719,7 +719,7 @@ git diff --check
 
 - [ ] **Step 5: Record and commit aggregate evidence**
 
-Update D-116 with the exact aggregate result and preserve all historical reports. Then:
+Update D-117 with the exact aggregate result and preserve all historical reports. Then:
 
 ```powershell
 git add docs/test-reports docs/implementation-notes `

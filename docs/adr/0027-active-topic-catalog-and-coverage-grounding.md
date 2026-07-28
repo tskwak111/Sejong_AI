@@ -83,6 +83,13 @@ set에서 거절됐음을 확인했다. Q-LLM-014=A와 D-112~D-114에 따라 pro
 동적 ACTIVE catalog enum은 provider schema에 복제하지 않는다. model은 계속 topic/coverage를
 제안할 뿐이며 current ACTIVE/OFFICIAL membership과 source binding은 서버가 소유한다.
 
+D-116 offline 구현은 이 addendum을 코드로 닫았다. provider wire parser는 nullable 4필드의
+exact `NONE`만 내부 `None`으로 바꾸고 canonical parser의 JSON null 계약과 같은 server
+validator를 재사용한다. request마다 새 strict five-key string schema를 만들며 bounded prompt는
+동일한 canonical field와 sentinel을 사용한다. area 333·controlled-double actual-runner 24·
+Ruff/Mypy 115 PASS이고 provider call/cost는 0이다. API/contracts/DB/data/dependency는 불변이며
+Task 5 root/clean-source gate와 D-117 actual 인간 gate는 별도다.
+
 ## References
 
 - Q-RAG-001=A, Q-DATA-RAG-001=A, Q-UX-REGION-001=A,

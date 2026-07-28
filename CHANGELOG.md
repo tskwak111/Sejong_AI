@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Implemented — A-072 strict classifier wire offline
+
+- Added a provider-boundary parser that accepts exact string `NONE` only for the four nullable
+  fields, converts it to the existing internal `None`, and reuses the canonical closed
+  enum/shape/current-catalog validator. Canonical JSON-null parsing and the public generic failure
+  remain unchanged.
+- Replaced the Upstage classifier request's loose `json_object` mode with a fresh strict
+  `json_schema`: exactly five required string keys and no additional properties. The bounded
+  prompt now uses the same canonical field names and exact sentinel without weakening the
+  4,096-character guard.
+- Offline evidence passed: classifier/Hybrid RAG area `333`, controlled-double actual-runner `24`,
+  Ruff format/lint and Mypy over `115` files. Provider/network calls and cost remained `0`.
+- Advanced application `0.12.2→0.12.3-structured-classifier-wire`, prompt
+  `0.4.1→0.4.2-exact-five-key-schema` and tests
+  `2.1.5→2.1.6-structured-classifier-wire`. API/shared contracts, DB schema, official/mock data,
+  dependencies, package and lockfiles are unchanged. A corrective actual remains D-117 and requires
+  a separate exact approval after the root/clean-source gate.
+
 ### Planned — A-072 strict classifier wire
 
 - Approved the written specification and published an exact RED/GREEN implementation plan for

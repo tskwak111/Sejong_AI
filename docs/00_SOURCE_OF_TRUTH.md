@@ -187,6 +187,12 @@ provider wire parser→canonical prompt→strict schema transport→area/version
 root/clean-source gate의 exact TDD Tasks 1~5 plan을 Review로 게시했다. Task 6 actual은 plan
 승인에 포함되지 않으며 Tasks 1~5 PASS 뒤 별도 exact 승인이 필요하다. code/provider call,
 API/DB/data/dependency, push/merge는 아직 0이다.
+D-116은 사용자의 `계획 승인, 1번으로 구현 시작`으로 Tasks 1~5와 Subagent-Driven 실행을
+승인했다. provider-only exact `NONE` parser, bounded canonical prompt와 fresh strict schema를
+TDD로 구현했고 area 333·controlled-double runner 24·Ruff/Mypy 115 PASS를 확인했다. application
+`0.12.3`, prompt `0.4.2`, tests `2.1.6`으로 전진했지만 API/contracts/DB/data/dependency와
+provider actual call/cost는 0이다. Task 5 root/clean-source gate가 다음이며 실제 1회 호출은
+D-117 별도 exact 승인 전 금지한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

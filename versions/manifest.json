@@ -1,18 +1,18 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-28T21:41:57+09:00",
+  "updated_at": "2026-07-28T23:13:12+09:00",
   "versions": {
     "product_spec": "2.6.0",
     "repo_guidance": "1.7.10",
-    "application": "0.12.2-response-stage-diagnostics",
+    "application": "0.12.3-structured-classifier-wire",
     "web": "0.8.0-guided-chat",
     "api": "4.0.0-draft",
     "shared_contracts": "1.0.0",
     "database_schema": "0.5.0-local",
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
-    "prompt_set": "0.4.1-json-mode-instruction",
-    "test_suite": "2.1.5-response-stage-diagnostics",
+    "prompt_set": "0.4.2-exact-five-key-schema",
+    "test_suite": "2.1.6-structured-classifier-wire",
     "documentation": "2.30.1"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
