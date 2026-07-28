@@ -166,6 +166,12 @@ D-111은 clean source `0646db0`에서 승인된 exact-one actual을 실행했다
 재실행하지 않았다. 비용은 VAT 포함 USD 0.002626503이고 local ignored modes false/false,
 lock 0, 질문·provider body·status detail·key·DSN 보관 0이다. A-071은 원인 단계 진단으로
 해결됐고 exact five-key 교정과 새 actual gate는 A-072다.
+D-112/Q-LLM-014=A는 A-072의 provider-only wire를 strict Upstage `json_schema`로 확정한다.
+응답은 `route`, `intent`, `topic_id`, `coverage_id`, `pending_slot` 다섯 required string만
+허용하고 nullable 의미는 고정 `NONE` sentinel로 표현한 뒤 서버가 기존 내부 `None`으로
+정규화한다. public classifier/chat 계약, DB/data/dependency와 서버 소유 출처 결합은 바뀌지
+않는다. 상세 설계 승인 전 제품 코드와 provider call은 0이고 corrective actual은 구현·offline
+검증 후 별도 인간 gate다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

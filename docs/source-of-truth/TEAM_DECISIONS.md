@@ -134,6 +134,11 @@
   `KEY_SET_REJECTED`에서 종료했다. accepted/match 0이라 FAIL이며 retry 0, 비용은 VAT 포함
   USD0.002626503이다. body/status detail/key/DSN/question 보관 0과 local modes false/false를
   유지한다. A-071은 resolved, exact-key corrective와 새 actual은 A-072 human gate다.
+- D-112/Q-LLM-014=A: A-072 provider wire는 Upstage strict `json_schema`를 사용하고
+  `route`, `intent`, `topic_id`, `coverage_id`, `pending_slot` 다섯 필드를 모두 required
+  string으로 제한한다. nullable 의미는 wire의 고정 `NONE` sentinel로 표현한 뒤 서버가 기존
+  내부 `None`으로 정규화한다. public API/DB/data/dependency와 server-bound source는 불변이다.
+  상세 설계 승인 전 code/provider call은 0이고 새 actual은 구현·offline 검증 뒤 별도 gate다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

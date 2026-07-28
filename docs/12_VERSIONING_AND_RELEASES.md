@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.1-json-mode-instruction
 test_suite: 2.1.5-response-stage-diagnostics
-documentation: 2.29.8
+documentation: 2.29.9
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -179,6 +179,12 @@ acceptance는 FAIL이고 retry하지 않았다. observed/ledger cost는 VAT 포�
 USD 0.20 cap 아래에서 일치한다. 질문·provider body·status detail·key·DSN 보관 0,
 ignored local modes false/false, lock 0이다. application/test/prompt/API/contracts/DB/data/
 dependency는 `2.29.7` 기준과 같고 다음 exact-key 교정·actual은 A-072 인간 gate다.
+
+Documentation `2.29.9`는 Q-LLM-014=A/D-112의 A-072 wire 결정 checkpoint다. Upstage
+provider-only 응답을 strict `json_schema`의 required string 5필드와 fixed `NONE` sentinel로
+고정하고 서버가 sentinel을 기존 내부 `None`으로 정규화하는 방향을 선택했다. application,
+prompt, tests, public API/contracts, DB/data/dependency는 불변이며 상세 설계 승인 전 제품 코드와
+provider call은 0이다. corrective actual은 구현·offline 검증 뒤 별도 인간 gate다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

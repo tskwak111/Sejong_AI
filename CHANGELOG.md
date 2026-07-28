@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Decided — strict five-key classifier wire
+
+- Chose Q-LLM-014=A for A-072: the Upstage provider-only response will use strict `json_schema`
+  with exactly five required string fields and a fixed `NONE` sentinel for nullable meaning.
+- The server will normalize `NONE` to the existing internal `None` before the unchanged closed
+  enum/catalog validation. Public API, DB, data, dependencies and server-bound sources stay
+  unchanged.
+- Advanced documentation `2.29.8→2.29.9`. Product code and provider calls remain zero until the
+  detailed design is approved; a corrective actual remains a separate human gate.
+
 ### Implemented — value-free classifier response-stage diagnostics
 
 - Added a closed 13-value terminal-stage enum across the production Upstage response parser and
