@@ -328,6 +328,19 @@ def test_classifier_prompt_forbids_none_translations_null_and_explanatory_output
     assert "NONE=없음" not in system
 
 
+def test_classifier_prompt_separates_catalog_grammar_from_supported_rule() -> None:
+    system = build_classifier_messages(
+        _safe_question(),
+        _catalog(),
+        max_input_chars=1024,
+    )[0]["content"]
+
+    assert (
+        "cat={intent:[[topic_id,coverage_id,coverage_label,approved_examples]]};"
+        "SUPPORTED intent=cat group key; topic_id/coverage_id=same row" in system
+    )
+
+
 def test_classifier_prompt_uses_at_most_two_approved_examples_without_sampling_topics() -> None:
     catalog = _catalog(
         2,
