@@ -13,7 +13,10 @@ from sejong_ai_api.chat.topic_catalog import RuntimeTopic, TopicCatalog, TopicCo
 from sejong_ai_api.db.models import Intent, KnowledgeRecord
 from sejong_ai_api.llm.classifier_contracts import ClassifierDecision, ClassifierRoute
 from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
-from sejong_ai_api.llm.classifier_prompt import build_classifier_messages
+from sejong_ai_api.llm.classifier_prompt import (
+    build_classifier_messages,
+    estimate_classifier_input_upper_bound,
+)
 from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.cost import estimate_cost_usd
 from sejong_ai_api.llm.deepseek_classifier import (
@@ -165,6 +168,28 @@ async def test_client_factory_uses_exact_base_authorization_and_three_second_tim
 
 
 @pytest.mark.asyncio
+async def test_client_factory_pins_zero_transport_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = DeepSeekClassifierSettings(api_key=SECRET)
+    object.__setattr__(settings, "max_retries", 7)
+    constructed_retries: list[int] = []
+    original_transport = httpx.AsyncHTTPTransport
+
+    def capturing_transport(*, retries: int = 0) -> httpx.AsyncHTTPTransport:
+        constructed_retries.append(retries)
+        return original_transport(retries=retries)
+
+    monkeypatch.setattr(httpx, "AsyncHTTPTransport", capturing_transport)
+    client = create_deepseek_classifier_client(settings)
+
+    try:
+        assert constructed_retries == [0]
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_success_posts_one_exact_deepseek_json_object_request() -> None:
     settings = DeepSeekClassifierSettings(api_key=SECRET)
     safe = _question()
@@ -280,6 +305,88 @@ async def test_real_redaction_flow_sends_only_masked_safe_question() -> None:
     assert len(seen_bodies) == 1
     assert raw_email not in seen_bodies[0]
     assert "[이메일]" in seen_bodies[0]
+
+
+@pytest.mark.asyncio
+async def test_multibyte_byte_and_framing_overflow_is_rejected_before_reservation() -> None:
+    settings = DeepSeekClassifierSettings(api_key=SECRET)
+    safe = _question()
+    catalog = _catalog(coverage_label="가" * 3800)
+    messages = build_classifier_messages(
+        safe,
+        catalog,
+        max_input_chars=settings.max_input_chars,
+    )
+    request_utf8_bytes = sum(
+        len(message["role"].encode("utf-8")) + len(message["content"].encode("utf-8"))
+        for message in messages
+    )
+    calls = 0
+    ledger = _ledger()
+
+    assert estimate_classifier_input_upper_bound(messages) <= settings.max_input_usage_tokens
+    assert request_utf8_bytes <= settings.max_input_usage_tokens
+    assert request_utf8_bytes + 4096 > settings.max_input_usage_tokens
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _provider_response()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        decision = await DeepSeekQuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+        ).classify(safe, catalog)
+
+    assert decision is None
+    assert calls == 0
+    assert ledger.classifier_attempts_used == 0
+    assert ledger.actual_cost_usd == Decimal("0")
+
+
+@pytest.mark.asyncio
+async def test_approved_twenty_topic_prompt_remains_within_byte_and_framing_bound(
+    governed_catalog_20: TopicCatalog,
+) -> None:
+    settings = DeepSeekClassifierSettings(api_key=SECRET)
+    safe = _question(("How do I get general public service guidance? " * 10)[:256])
+    messages = build_classifier_messages(
+        safe,
+        governed_catalog_20,
+        max_input_chars=settings.max_input_chars,
+    )
+    request_utf8_bytes = sum(
+        len(message["role"].encode("utf-8")) + len(message["content"].encode("utf-8"))
+        for message in messages
+    )
+    calls = 0
+    ledger = _ledger()
+
+    assert request_utf8_bytes + 4096 <= settings.max_input_usage_tokens
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _provider_response()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        decision = await DeepSeekQuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+        ).classify(safe, governed_catalog_20)
+
+    assert decision is not None
+    assert calls == 1
+    assert ledger.classifier_attempts_used == 1
 
 
 @pytest.mark.asyncio

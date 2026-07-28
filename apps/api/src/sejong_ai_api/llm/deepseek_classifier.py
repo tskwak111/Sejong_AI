@@ -14,10 +14,7 @@ from sejong_ai_api.llm.classifier_contracts import (
     parse_classifier_wire_decision_with_stage,
 )
 from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
-from sejong_ai_api.llm.classifier_prompt import (
-    build_classifier_messages,
-    estimate_classifier_input_upper_bound,
-)
+from sejong_ai_api.llm.classifier_prompt import build_classifier_messages
 from sejong_ai_api.llm.deepseek_settings import DeepSeekClassifierSettings
 from sejong_ai_api.llm.deepseek_usage import parse_deepseek_token_usage
 from sejong_ai_api.llm.limits import (
@@ -27,6 +24,10 @@ from sejong_ai_api.llm.limits import (
 )
 
 _CHAT_COMPLETIONS_PATH = "/chat/completions"
+# UTF-8 byte fallback bounds role/content at no more than one token per byte. An additional
+# 4,096-token allowance is intentionally generous for provider chat framing and special tokens,
+# while leaving the approved roughly 6.5-KiB 20-topic request well inside the 16,384-token cap.
+_DEEPSEEK_CHAT_FRAMING_SPECIAL_TOKEN_MARGIN = 4096
 ResponseStageObserver = Callable[[ClassifierResponseStage], None]
 
 
@@ -61,7 +62,7 @@ def create_deepseek_classifier_client(
             "Content-Type": "application/json",
         },
         timeout=timeout,
-        transport=httpx.AsyncHTTPTransport(retries=settings.max_retries),
+        transport=httpx.AsyncHTTPTransport(retries=0),
     )
 
 
@@ -115,7 +116,10 @@ class DeepSeekQuestionClassifier:
                 catalog,
                 max_input_chars=self._max_input_chars,
             )
-            if estimate_classifier_input_upper_bound(messages) > self._max_input_usage_tokens:
+            if (
+                _estimate_deepseek_request_token_upper_bound(messages)
+                > self._max_input_usage_tokens
+            ):
                 return None
             payload = {
                 "model": self._model,
@@ -164,6 +168,15 @@ class DeepSeekQuestionClassifier:
         except Exception:
             # Diagnostics must never change the citizen decision or fallback.
             return
+
+
+def _estimate_deepseek_request_token_upper_bound(
+    messages: tuple[dict[str, str], ...],
+) -> int:
+    return _DEEPSEEK_CHAT_FRAMING_SPECIAL_TOKEN_MARGIN + sum(
+        len(message["role"].encode("utf-8")) + len(message["content"].encode("utf-8"))
+        for message in messages
+    )
 
 
 def _parse_response(
