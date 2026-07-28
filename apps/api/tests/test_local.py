@@ -803,9 +803,9 @@ def test_exact_classifier_profile_routes_ambiguous_local_chat_through_one_provid
                         "finish_reason": "stop",
                         "message": {
                             "content": (
-                                '{"route":"CIVIC_SCOPE_GAP","intent":null,'
-                                '"topic_id":null,"coverage_id":null,'
-                                '"pending_slot":null}'
+                                '{"route":"CIVIC_SCOPE_GAP","intent":"NONE",'
+                                '"topic_id":"NONE","coverage_id":"NONE",'
+                                '"pending_slot":"NONE"}'
                             )
                         },
                     }
