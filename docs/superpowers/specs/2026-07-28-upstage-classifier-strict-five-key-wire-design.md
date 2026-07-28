@@ -1,7 +1,7 @@
 # Upstage Classifier Strict Five-Key Wire — Written Specification
 
 - Task ID: `A-072-CLASSIFIER-EXACT-KEY-CORRECTION`
-- Status: Review — design sections 1 and 2 approved; written specification approval pending
+- Status: Approved — implementation plan Review; product code/provider actual unchanged
 - Date: 2026-07-28 KST
 - Human authority: `Q-LLM-014=A`, `설계 1부 승인`, `설계 2부 승인`
 - Decision authority: D-111~D-114

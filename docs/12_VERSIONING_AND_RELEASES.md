@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.1-json-mode-instruction
 test_suite: 2.1.5-response-stage-diagnostics
-documentation: 2.30.0
+documentation: 2.30.1
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -198,6 +198,12 @@ validator authority 보존, fixed-stage fail-closed, exact TDD/root/actual gate�
 구현 목표는 application `0.12.3-structured-classifier-wire`, prompt
 `0.4.2-exact-five-key-schema`, tests `2.1.6-structured-classifier-wire`이며 현재 runtime
 축은 아직 변하지 않았다. API/contracts/DB/data/dependency와 provider call은 불변이다.
+
+Documentation `2.30.1`은 D-115의 A-072 written specification 승인과 exact TDD
+implementation plan Review publication이다. Tasks 1~5는 wire parser, full-name prompt,
+strict schema transport, area/version integration, root/clean-source gate를 구현한다. Task 6
+actual은 plan 승인 범위 밖이며 Tasks 1~5 PASS 뒤 exact 별도 승인이 필요하다. application,
+prompt, tests runtime 축과 API/contracts/DB/data/dependency/provider call은 아직 변하지 않았다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

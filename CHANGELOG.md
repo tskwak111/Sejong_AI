@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Planned — A-072 strict classifier wire
+
+- Approved the written specification and published an exact RED/GREEN implementation plan for
+  provider-wire parsing, canonical prompt fields, strict transport schema, area/version integration
+  and the root/clean-source gate.
+- Kept the one-shot corrective actual outside plan approval; it requires a new exact approval after
+  Tasks 1~5 pass.
+- Advanced documentation `2.30.0→2.30.1`; runtime, API, DB, data, dependencies, provider calls,
+  push and merge remain unchanged.
+
 ### Specified — A-072 strict five-key classifier wire
 
 - Approved design section 2 and published the integrated written specification for review.

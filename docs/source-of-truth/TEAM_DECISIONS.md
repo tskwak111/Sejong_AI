@@ -147,6 +147,9 @@
   게시했다. provider-only parser는 exact `NONE`만 canonical `None`으로 바꾸며 기존 validator와
   fixed terminal stage를 공유한다. target application/prompt/tests는 `0.12.3/0.4.2/2.1.6`이고
   API/DB/data/dependency는 불변이다. actual은 offline/root gate와 clean source 뒤 별도 승인 전 0이다.
+- D-115: A-072 written specification을 Approved로 전환하고 exact RED/GREEN Tasks 1~5 plan을
+  Review로 게시했다. Task 6 actual은 이 plan 승인과 분리하며 Tasks 1~5 PASS·clean source 뒤
+  exact 별도 승인이 필요하다. code/provider call/dependency/API/DB/data/push/merge는 아직 0이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
