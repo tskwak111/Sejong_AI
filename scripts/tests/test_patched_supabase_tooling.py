@@ -1961,6 +1961,104 @@ if (
             self.assertEqual(result.stdout.strip(), "BUILD-ARGV-OK")
             self.assertFalse(result.stderr)
 
+    def test_version_probe_accepts_only_the_official_upgrade_advisory(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="sejong version advisory ") as directory:
+            root = Path(directory)
+            harness = root / "version_advisory_harness.ps1"
+            harness.write_text(
+                r"""
+param([string]$Bootstrap, [string]$ProbeStderr)
+$ErrorActionPreference = "Stop"
+$tokens = $null
+$errors = $null
+$ast = [System.Management.Automation.Language.Parser]::ParseFile(
+    $Bootstrap,
+    [ref]$tokens,
+    [ref]$errors
+)
+if ($errors.Count -ne 0) {
+    exit 1
+}
+$wanted = @(
+    "Throw-PatchedBootstrapFailure",
+    "Test-PatchedSupabaseVersionStderr",
+    "Test-PatchedSupabaseVersion"
+)
+foreach ($functionAst in @($ast.FindAll(
+    {
+        param($node)
+        $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+            $wanted -contains $node.Name
+    },
+    $true
+))) {
+    . ([ScriptBlock]::Create($functionAst.Extent.Text))
+}
+function Invoke-PatchedChild {
+    return [pscustomobject]@{
+        ExitCode = 0
+        Stdout = "2.109.1`n"
+        Stderr = $ProbeStderr
+        TimedOut = $false
+    }
+}
+$script:CurrentStep = "VERIFY-PATCHED-SUPABASE-BINARY"
+$script:RepositoryRoot = (Get-Location).Path
+$binary = Join-Path $script:RepositoryRoot "synthetic-supabase.exe"
+[System.IO.File]::WriteAllBytes($binary, [byte[]]@(77, 90))
+Test-PatchedSupabaseVersion $binary
+[Console]::Out.WriteLine("VERSION-ADVISORY-OK")
+""".lstrip(),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    powershell_executable(),
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(harness),
+                    str(BOOTSTRAP_PATH),
+                    (
+                        "A new version of Supabase CLI is available: v2.110.0 "
+                        "(currently installed v2.109.1)\n"
+                        "We recommend updating regularly for new features and bug fixes: "
+                        "https://supabase.com/docs/guides/cli/getting-started"
+                        "#updating-the-supabase-cli\n"
+                    ),
+                ],
+                cwd=root,
+                capture_output=True,
+                check=False,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(result.stdout.strip(), "VERSION-ADVISORY-OK")
+            self.assertFalse(result.stderr)
+            rejected = subprocess.run(
+                [
+                    powershell_executable(),
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(harness),
+                    str(BOOTSTRAP_PATH),
+                    "unexpected child diagnostic",
+                ],
+                cwd=root,
+                capture_output=True,
+                check=False,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30,
+            )
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertNotIn("VERSION-ADVISORY-OK", rejected.stdout)
+
     def test_install_rollback_preserves_backup_on_restore_failure(self) -> None:
         with tempfile.TemporaryDirectory(prefix="sejong rollback recovery ") as directory:
             root = Path(directory)

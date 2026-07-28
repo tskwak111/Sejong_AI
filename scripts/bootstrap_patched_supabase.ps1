@@ -1088,6 +1088,27 @@ function Assert-PatchedChildSuccess {
     }
 }
 
+function Test-PatchedSupabaseVersionStderr {
+    param([string]$Value)
+
+    if ([string]::IsNullOrEmpty($Value)) {
+        return $true
+    }
+    $pattern = (
+        "\AA new version of Supabase CLI is available: " +
+        "v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*) " +
+        "\(currently installed v2\.109\.1\)\r?\n" +
+        "We recommend updating regularly for new features and bug fixes: " +
+        "https://supabase\.com/docs/guides/cli/getting-started" +
+        "#updating-the-supabase-cli(?:\r?\n)?\z"
+    )
+    return [System.Text.RegularExpressions.Regex]::IsMatch(
+        $Value,
+        $pattern,
+        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
+    )
+}
+
 function Test-PatchedSupabaseVersion {
     param([string]$BinaryPath)
 
@@ -1109,7 +1130,7 @@ function Test-PatchedSupabaseVersion {
     if (
         $result.TimedOut -or
         $result.ExitCode -ne 0 -or
-        -not [string]::IsNullOrEmpty($result.Stderr) -or
+        -not (Test-PatchedSupabaseVersionStderr $result.Stderr) -or
         $versionOutput -cne "2.109.1"
     ) {
         Throw-PatchedBootstrapFailure $script:CurrentStep "child" 1

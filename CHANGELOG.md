@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Fixed — pinned Supabase CLI official update advisory
+
+- Kept the pinned, hash-verified Supabase CLI at `2.109.1` while accepting only its exact official
+  two-line update advisory on `--version`; arbitrary stderr, version drift, hash drift and nonzero
+  exit remain fail-closed.
+- Reproduced the time-dependent failure after Supabase published `2.110.0`, added RED/GREEN coverage
+  for the exact advisory and a rejected diagnostic, and passed the actual binary verifier plus all
+  25 patched-tooling tests.
+- Re-ran the post-PR-20 local smoke with provider modes off: `/ready=200`, actual local DB/admin
+  transport, Web production build and 27 browser scenarios across 390/430/desktop passed. The
+  provider-off smoke intentionally does not claim Hybrid RAG Upstage quality or actual-provider PASS.
+- Passed the fresh 31-stage repository gate in 1191.5 seconds, including data release/seed,
+  Web/API/contracts, secret and Web-bundle scans, package validation and final diff checks.
+- Advanced repository guidance `1.7.9→1.7.10`, tests
+  `2.1.1→2.1.2-patched-cli-advisory` and documentation `2.29.0→2.29.1`; application, API, contracts,
+  DB, official data and prompt versions are unchanged.
+
 ### Implemented — bounded ACTIVE-topic Hybrid RAG
 
 - Added a versioned 20-topic metadata catalog whose runtime view is the request-local

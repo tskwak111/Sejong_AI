@@ -54,7 +54,7 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 
 ```text
 product_spec: 2.6.0
-repo_guidance: 1.7.9
+repo_guidance: 1.7.10
 application: 0.12.1-bounded-hybrid-rag
 web: 0.8.0-guided-chat
 api: 4.0.0-draft
@@ -63,8 +63,8 @@ database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.0-topic-coverage
-test_suite: 2.1.1-bounded-hybrid-rag-closeout
-documentation: 2.29.0
+test_suite: 2.1.2-patched-cli-advisory
+documentation: 2.29.1
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -114,6 +114,14 @@ browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96, Mypy 114와
 secret/bundle/protected diff 0을 기록했다. final wrapper는 FORMAT-API exit 1이라 PASS가 아니고,
 formatter 교정 뒤 미실행 constituent를 별도로 모두 통과했다. public/remote, DB reset/seed,
 automatic merge 완료를 뜻하지 않는다.
+
+Repository guidance `1.7.10`, test suite `2.1.2-patched-cli-advisory`, documentation `2.29.1`은
+고정된 Supabase CLI `2.109.1`이 새 `2.110.0` 공지 이후 `--version` stderr에 출력하는 공식
+2줄 업데이트 알림만 허용하도록 local bootstrap 검증기를 교정한 patch다. 고정 버전 stdout,
+manifest SHA-256, exit 0은 그대로 강제하고 임의 stderr는 계속 거부한다. 실제 바이너리 검증과
+patched-tooling 25/25, provider-off local `/ready=200`, Web build, 390/430/desktop 27/27을
+재검증했다. final repository gate도 1191.5초 동안 31단계 전부 PASS했다. 이 patch는
+application/API/contract/DB/data/prompt 동작이나 actual Upstage 결과를 변경하지 않는다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
