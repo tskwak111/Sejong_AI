@@ -35,3 +35,4 @@
 - 0025: deterministic safety gate와 bounded LLM의 hybrid 질문 분류
 - 0026: controlled public 시민 경로 검증과 admin/provider fail-closed
 - 0027: ACTIVE topic catalog와 coverage grounding을 사용하는 제한형 Hybrid RAG
+- 0028: 선택 가능한 DeepSeek 질문 분류 공급자와 기존 Upstage 역할 보존
