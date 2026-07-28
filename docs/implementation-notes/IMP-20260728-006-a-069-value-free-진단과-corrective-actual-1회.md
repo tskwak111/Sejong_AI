@@ -10,7 +10,7 @@
 - Diagnostic source commit: `1f337ad`
 - Related: D-105/D-106, A-069/A-070, ADR-0027,
   [runbook](../runbooks/UPSTAGE-HYBRID-RAG-ACTUAL.md),
-  [current actual report](../test-reports/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL.md)
+  [D-106 actual report](../test-reports/archive/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL-20260728-D106-4XX-FAIL.md)
 
 ## 1. 사용자 요청과 완료 기준
 

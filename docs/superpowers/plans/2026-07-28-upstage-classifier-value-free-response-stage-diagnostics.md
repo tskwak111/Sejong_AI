@@ -285,7 +285,7 @@ CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL-20260728-D107-2XX-DECISION-REJECT-FAIL.md
 Record D-109 spec/plan approval, implemented enum-only observer, no API/DB/data/prompt/dependency
 change, and actual pending from a clean source.
 
-- [ ] **Step 3: Run pre-actual gates**
+- [x] **Step 3: Run pre-actual gates**
 
 ```powershell
 apps/api/.venv/Scripts/python.exe -m pytest `
@@ -299,7 +299,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 git diff --check
 ```
 
-- [ ] **Step 4: Commit exact source**
+- [x] **Step 4: Commit exact source**
 
 ```powershell
 git add apps/api/src/sejong_ai_api/llm apps/api/tests/llm `
@@ -320,12 +320,12 @@ Require a clean working tree and record the exact source SHA.
 - Modify: `docs/implementation-notes/INDEX.md`
 - Modify: decision/ambiguity/SOT/TASKS/version/CHANGELOG with observed result
 
-- [ ] **Step 1: Run value-free preflight**
+- [x] **Step 1: Run value-free preflight**
 
 Require clean source, report absent, lock absent, secret scan PASS, exact profile valid, key presence
 boolean true, fixed hashes and modes set only in the process.
 
-- [ ] **Step 2: Execute exactly once**
+- [x] **Step 2: Execute exactly once**
 
 ```powershell
 apps/api/.venv/Scripts/python.exe -B scripts/run_hybrid_rag_actual.py `
@@ -335,21 +335,21 @@ apps/api/.venv/Scripts/python.exe -B scripts/run_hybrid_rag_actual.py `
 
 Do not execute this command a second time for any exit code.
 
-- [ ] **Step 3: Inspect aggregate evidence only**
+- [x] **Step 3: Inspect aggregate evidence only**
 
 Record 20 selected, skip, provider-free/outbound, HTTP/usage/decision/match, stage counts, cost,
 acceptance and elapsed time. Do not inspect or recover response content.
 
-- [ ] **Step 4: Verify safe restoration**
+- [x] **Step 4: Verify safe restoration**
 
 Confirm ignored `.env` modes false/false, lock 0, no secret/PII findings and no DB/data changes.
 
-- [ ] **Step 5: Complete implementation note and final verification**
+- [x] **Step 5: Complete implementation note and final verification**
 
 Run focused tests, Ruff, Mypy, docs, secret and diff gates again. Record any warning or unrun
 repository-wide gate honestly.
 
-- [ ] **Step 6: Commit evidence**
+- [x] **Step 6: Commit evidence**
 
 ```powershell
 git add docs/test-reports/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL.md `

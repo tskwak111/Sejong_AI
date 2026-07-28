@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.1-json-mode-instruction
 test_suite: 2.1.5-response-stage-diagnostics
-documentation: 2.29.7
+documentation: 2.29.8
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -171,6 +171,14 @@ optional observer는 HTTP response당 enum 하나만 받고 실패해도 기존 
 142 focused tests, Ruff, format, Mypy가 통과했고 D-107 evidence는 archive했다. prompt set,
 API/shared contract/DB/official/mock data/dependency는 불변이며 actual provider call은 clean
 source commit 전 0이다.
+
+Documentation `2.29.8`은 source `0646db0`의 A-071 exact-one actual evidence patch다.
+fixed 20 중 11건은 provider-free, 9건은 outbound였고 skip 0, HTTP 2xx·strict usage·terminal
+stage total은 각각 9다. 9건 모두 `KEY_SET_REJECTED`, accepted decision/match는 0이므로
+acceptance는 FAIL이고 retry하지 않았다. observed/ledger cost는 VAT 포함 USD 0.002626503으로
+USD 0.20 cap 아래에서 일치한다. 질문·provider body·status detail·key·DSN 보관 0,
+ignored local modes false/false, lock 0이다. application/test/prompt/API/contracts/DB/data/
+dependency는 `2.29.7` 기준과 같고 다음 exact-key 교정·actual은 A-072 인간 gate다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

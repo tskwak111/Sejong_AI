@@ -160,6 +160,12 @@ D-110은 A-071의 code/test/runner 구현을 완료했다. production parser는 
 decision/fallback을 바꾸지 않는다. runner는 전체 aggregate count만 기록하며 per-fixture stage,
 질문·provider body·status detail·exception·key·DSN은 기록하지 않는다. 142개 집중 테스트와
 Ruff/Mypy가 통과했고, clean source commit 뒤 exact-one actual만 남았다.
+D-111은 clean source `0646db0`에서 승인된 exact-one actual을 실행했다. 20 selected·0 skip·
+11 provider-free·9 outbound, HTTP 2xx/strict usage/stage total은 모두 9였고 9건 전부
+`KEY_SET_REJECTED`에서 종료했다. accepted decision/match 0이라 전체 acceptance는 FAIL이며
+재실행하지 않았다. 비용은 VAT 포함 USD 0.002626503이고 local ignored modes false/false,
+lock 0, 질문·provider body·status detail·key·DSN 보관 0이다. A-071은 원인 단계 진단으로
+해결됐고 exact five-key 교정과 새 actual gate는 A-072다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

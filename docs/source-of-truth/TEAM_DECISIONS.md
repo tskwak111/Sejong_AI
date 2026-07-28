@@ -129,6 +129,11 @@
   TDD로 구현했다. 13개 terminal enum 외 값은 진단 경계를 통과하지 않고 observer 오류는
   시민 decision/fallback을 바꾸지 않는다. 142 focused PASS와 Ruff/Mypy PASS 뒤 D-107 report를
   archive했으며, clean source commit과 exact-one actual은 다음 gate다.
+- D-111: clean source `0646db0`의 approved exact-one actual은 20 selected·0 skip·11
+  provider-free·9 outbound, 9/9 HTTP 2xx·strict usage·stage total을 기록했고 모든 response가
+  `KEY_SET_REJECTED`에서 종료했다. accepted/match 0이라 FAIL이며 retry 0, 비용은 VAT 포함
+  USD0.002626503이다. body/status detail/key/DSN/question 보관 0과 local modes false/false를
+  유지한다. A-071은 resolved, exact-key corrective와 새 actual은 A-072 human gate다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

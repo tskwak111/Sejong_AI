@@ -16,6 +16,12 @@
 - Archived D-107 evidence and advanced application
   `0.12.1→0.12.2-response-stage-diagnostics`, tests
   `2.1.4→2.1.5-response-stage-diagnostics` and documentation `2.29.6→2.29.7`.
+- Executed the separately approved exact-one actual from clean source `0646db0`: 20 selected,
+  0 skipped, 11 provider-free and 9 outbound. All 9 responses were HTTP 2xx with strict usage,
+  all 9 terminated at `KEY_SET_REJECTED`, and accepted decisions/matches remained 0, so acceptance
+  is FAIL and no retry occurred. Observed/ledger cost reconciled at USD 0.002626503 including VAT.
+- Preserved local ignored modes false/false, lock 0 and question/provider body/status detail/key/DSN
+  retention 0. Advanced documentation `2.29.7→2.29.8`; a new corrective actual is not authorized.
 
 ### Specified — value-free classifier response-stage diagnostics
 
