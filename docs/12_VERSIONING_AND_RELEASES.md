@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.2-exact-five-key-schema
 test_suite: 2.1.6-structured-classifier-wire
-documentation: 2.30.3
+documentation: 2.30.5
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -226,6 +226,22 @@ checkpoint다. 승인된 clean source `efc0b34`에서 실제 명령은 정확히
 `ENUM_SHAPE_REJECTED`에서 종료해 accepted/match 0, 최종 acceptance `FAIL`이다. retry 0,
 비용은 VAT 포함 USD 0.002496648이며 재실행하지 않았다. application/prompt/tests/API/contracts,
 DB/data/dependency는 불변이고 current FAIL과 D-111 archive를 모두 보존한다.
+
+Documentation `2.30.4`는 D-118의 A-073 explicit route matrix와 refined value-free
+diagnostics written specification Review checkpoint다. exact uppercase `NONE`, route별
+five-field matrix, same-row topic/coverage와 route·intent·pending-slot·identifier·route-shape
+first-failure aggregate를 설계했다. application/prompt/tests/API/contracts/DB/data/dependency와
+provider call/cost는 불변이다.
+
+Documentation `2.30.5`는 D-119의 A-073 written specification 승인과 TDD implementation
+plan Review checkpoint다. Tasks 1~5는 shared builder→bounded prompt→production-wire
+oracle→area/version integration→offline root/clean-source gate 순서다. configured safe-question
+max 1,024와 complete-message 4,096 guard는 유지하며 governed 20-topic/256-character
+actual-eligible prompt를 절단 없이 guard 안에 둔다. implementation target은 application
+`0.12.4-classifier-wire-diagnostics`, prompt `0.4.3-explicit-route-matrix`, tests
+`2.1.7-classifier-wire-correction`이지만 현재 runtime에는 아직 적용하지 않았다.
+API/contracts/Web/DB/data/dependency/provider call/cost는 불변이며 Task 6 actual은 별도 exact
+인간 승인 전 금지한다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

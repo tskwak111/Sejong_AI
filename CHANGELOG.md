@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Planned — A-073 classifier enum-shape correction
+
+- Approved the A-073 written specification and published a bite-sized TDD implementation plan for
+  the shared typed decision builder, five refined value-free stages, explicit route matrix,
+  intent-grouped provider catalog, production-wire oracle and offline clean-source gate.
+- Preserved configured masked-question max 1,024 and the complete-message 4,096 fail-closed guard.
+  The governed 20-topic/256-character actual-eligible prompt must fit without truncation or
+  sampling; longer complete messages remain provider-free fallback.
+- Advanced documentation `2.30.4→2.30.5`. Runtime, prompt, tests, API/contracts, Web, DB/data,
+  dependencies, provider calls and cost remain unchanged. The corrective actual is excluded and
+  still needs separate exact human approval.
+
 ### Specified — A-073 explicit classifier route matrix and refined diagnostics
 
 - Approved the design direction and published the integrated written specification for review.

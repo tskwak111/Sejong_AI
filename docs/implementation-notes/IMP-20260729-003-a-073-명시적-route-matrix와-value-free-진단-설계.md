@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-29T01:22:26+09:00
 - Task ID: A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION
 - Type: decision-design-spec
-- Status: Decision-only — Done; written specification Review
+- Status: Decision-only — Done; written specification Approved, implementation plan Review
 - Author/Agent: Codex `/root`, 병렬 read-only reviewers
 - Branch: codex/a-072-strict-classifier-wire
 - Base commit: 178750b
@@ -187,8 +187,8 @@ explicit prompt에 전달하고, response를 exact key/type→NONE→refined enu
 
 ### 다음 개발자 시작점
 
-- written specification human review를 받고 `writing-plans` 절차로 exact RED/GREEN plan을
-  작성한다. plan 승인 전 code/provider call을 시작하지 않는다.
+- D-119에서 승인된 written specification과 Review 상태의 TDD plan을 대조한다. plan 승인
+  뒤 Tasks 1~5만 실행하며 Task 6 actual은 별도 exact 인간 승인 전 시작하지 않는다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 

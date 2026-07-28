@@ -169,6 +169,13 @@
   aggregate하며 질문·provider body·wrong value·fixture별 stage를 보관하지 않는다.
   written specification과 plan 승인 전 code/provider call은 0이고, actual은 별도 exact 승인
   전 금지한다.
+- D-119: 사용자의 `명세 승인`으로 A-073 written specification을 Approved로 확정하고 TDD
+  implementation plan을 Review로 게시했다. Tasks 1~5는 offline TDD·영역 검증·clean-source
+  gate까지만 포함한다. provider-only catalog는 intent별 compact row로 직렬화하되 exact
+  topic/coverage/label과 approved example 최대 2개를 보존한다. configured question 1,024와
+  complete-message 4,096 guard는 유지하며 actual-eligible 20-topic/256-character prompt만
+  guard 통과를 요구한다. 제품 코드·provider call·DB/data/API/dependency는 이 checkpoint에서
+  0이고 Task 6 actual은 별도 exact 인간 승인 전 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

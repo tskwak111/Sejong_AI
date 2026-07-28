@@ -204,6 +204,14 @@ FAIL이다. retry 0, 비용은 VAT 포함 USD 0.002496648로 cap USD 0.20 미만
 않았다. 질문·provider body·status detail·key·DSN 보관 0, lock 0, local modes false/false다.
 따라서 시민 runtime은 계속 결정론적 fail-closed 경로가 권위이고, 다음 교정 actual은 새
 인간 결정·별도 승인 전 금지한다.
+D-118은 A-073의 다음 최소 교정으로 explicit route matrix, exact uppercase `NONE`,
+same-row topic/coverage와 route·intent·pending-slot·identifier·route-shape의 value-free
+first-failure aggregate를 승인했다. D-119의 `명세 승인`으로 written specification은
+Approved이며 Tasks 1~5 TDD plan은 Review다. configured safe-question max 1,024와
+complete-message 4,096 guard는 유지하고 actual-eligible 20-topic/256-character prompt만
+guard 통과를 요구한다. 초과 complete message는 질문/catalog 절단 없이 provider 전에
+fail closed한다. 이 checkpoint에서 application/prompt/tests/API/contracts/DB/data/dependency와
+provider call/cost는 불변이며 Task 6 actual은 별도 exact 인간 승인 전 금지한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

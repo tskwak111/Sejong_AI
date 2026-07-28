@@ -1,10 +1,10 @@
 # Upstage Classifier Explicit Route Matrix and Refined Diagnostics — Written Specification
 
 - Task ID: `A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION`
-- Status: Review — design approved; written specification confirmation pending
+- Status: Approved — implementation plan Review
 - Date: 2026-07-29 KST
-- Human authority: 사용자의 `ㅇㅋ 진행해`
-- Decision authority: D-117, D-118
+- Human authority: 사용자의 `ㅇㅋ 진행해`, `명세 승인`
+- Decision authority: D-117, D-118, D-119
 - Extends: ADR-0025, ADR-0027, A-071 response-stage diagnostics, A-072 strict five-key wire
 - Preserves: provider 전 PII 마스킹, ACTIVE/OFFICIAL-only, server-owned validation·facts·sources,
   질문·provider body·잘못된 field value·status detail·key·DSN 비보관, retry 0,
@@ -170,8 +170,15 @@ dynamic `SUPPORTED` example도 same-row membership와 4,096 guard 검증 대상�
 
 ### 4.3 Bound and failure
 
-- existing masked question, governed catalog max 20과 approved example max 2를 유지한다.
-- worst-case prompt는 기존 4,096-character upper bound를 통과해야 한다.
+- configured masked-question max 1,024와 governed catalog max 20, approved example max 2를
+  유지한다.
+- provider-only catalog는 exact intent별로 묶고 각 row에
+  `topic_id`, `coverage_id`, `coverage_label`, approved example 최대 2개를 보존한다.
+  이 표현에서 중복되는 `service_name`만 생략하며 public record와 공식 데이터는 바꾸지 않는다.
+- actual-eligible 경계인 governed 20-topic catalog와 256-character safe question의 complete
+  prompt는 기존 4,096-character upper bound를 통과해야 한다.
+- configured question max 안이더라도 complete message가 4,096을 넘으면 기존 guard가
+  provider 호출 전에 fail closed한다. 질문이나 catalog를 자르거나 축약해 통과시키지 않는다.
 - rule matrix와 catalog를 절단·샘플링하지 않는다.
 - bound를 만족하지 못하면 provider를 호출하지 않고 기존 deterministic fallback으로 닫는다.
 
@@ -267,7 +274,8 @@ raw citizen question
 6. 9개 actual subset oracle을 provider wire JSON으로 직렬화해 production parser가 수용한다.
 7. public/fixture `OUT_OF_SCOPE` semantics가 provider wire
    `CIVIC_SCOPE_GAP + intent NONE`을 거쳐 server 후처리되는 경계를 검증한다.
-8. worst-case 20-topic prompt가 4,096 guard를 통과한다.
+8. actual-eligible 20-topic/256-character prompt가 4,096 guard를 통과하고, 이를 넘는 complete
+   message는 provider 호출 전에 fail closed한다.
 
 ### 7.2 Parser/observer RED/GREEN
 
@@ -340,6 +348,8 @@ decision/provider match 9다. 실패하면 refined aggregate를 기록하고 자
 
 target version은 written specification 승인과 implementation plan에서 다시 대조한다.
 public API, shared contract, DB schema, official/mock data와 dependency axis는 바뀌지 않는다.
+written specification 승인과 implementation plan Review publication은 documentation
+`2.30.5`이며 runtime 목표값은 아직 적용하지 않는다.
 
 ## 10. 인수 기준
 
@@ -364,7 +374,9 @@ public API, shared contract, DB schema, official/mock data와 dependency axis는
 ## 12. References
 
 - D-117, D-118, A-073
+- D-119
 - ADR-0025, ADR-0027
+- `docs/superpowers/plans/2026-07-29-upstage-classifier-explicit-route-matrix-and-refined-diagnostics.md`
 - `docs/test-reports/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL.md`
 - `docs/superpowers/specs/2026-07-28-upstage-classifier-strict-five-key-wire-design.md`
 - `docs/superpowers/specs/2026-07-28-upstage-classifier-value-free-response-stage-diagnostics-design.md`
