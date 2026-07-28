@@ -135,6 +135,78 @@ class ClassifierDecisionParseResult:
     stage: ClassifierResponseStage
 
 
+def _build_classifier_decision_with_stage(
+    *,
+    route_raw: str,
+    intent_raw: str | None,
+    topic_id: str | None,
+    coverage_id: str | None,
+    slot_raw: str | None,
+) -> ClassifierDecisionParseResult:
+    try:
+        route = ClassifierRoute(route_raw)
+    except ValueError:
+        return ClassifierDecisionParseResult(
+            None,
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+        )
+
+    intent: Intent | None = None
+    if intent_raw is not None:
+        try:
+            intent = Intent(intent_raw)
+        except ValueError:
+            return ClassifierDecisionParseResult(
+                None,
+                ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            )
+        if intent not in _SUPPORTED_INTENTS:
+            return ClassifierDecisionParseResult(
+                None,
+                ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            )
+
+    pending_slot: PendingSlot | None = None
+    if slot_raw is not None:
+        try:
+            pending_slot = PendingSlot(slot_raw)
+        except ValueError:
+            return ClassifierDecisionParseResult(
+                None,
+                ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
+            )
+
+    if (
+        (topic_id is not None and _IDENTIFIER_PATTERN.fullmatch(topic_id) is None)
+        or (
+            coverage_id is not None
+            and _IDENTIFIER_PATTERN.fullmatch(coverage_id) is None
+        )
+    ):
+        return ClassifierDecisionParseResult(
+            None,
+            ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
+        )
+
+    try:
+        decision = ClassifierDecision(
+            route=route,
+            intent=intent,
+            topic_id=topic_id,
+            coverage_id=coverage_id,
+            pending_slot=pending_slot,
+        )
+    except (TypeError, ValueError):
+        return ClassifierDecisionParseResult(
+            None,
+            ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
+        )
+    return ClassifierDecisionParseResult(
+        decision,
+        ClassifierResponseStage.ACCEPTED,
+    )
+
+
 def parse_classifier_wire_decision_with_stage(
     payload: bytes,
     catalog: TopicCatalog,
@@ -216,19 +288,16 @@ def _parse_classifier_payload_with_stage(
             stage=ClassifierResponseStage.FIELD_TYPE_REJECTED,
         )
 
-    try:
-        decision = ClassifierDecision(
-            route=ClassifierRoute(route_raw),
-            intent=Intent(intent_raw) if intent_raw is not None else None,
-            topic_id=topic_id,
-            coverage_id=coverage_id,
-            pending_slot=PendingSlot(slot_raw) if slot_raw is not None else None,
-        )
-    except (TypeError, ValueError):
-        return ClassifierDecisionParseResult(
-            decision=None,
-            stage=ClassifierResponseStage.ENUM_SHAPE_REJECTED,
-        )
+    result = _build_classifier_decision_with_stage(
+        route_raw=route_raw,
+        intent_raw=intent_raw,
+        topic_id=topic_id,
+        coverage_id=coverage_id,
+        slot_raw=slot_raw,
+    )
+    if result.decision is None:
+        return result
+    decision = result.decision
 
     if decision.route is ClassifierRoute.SUPPORTED:
         selected_topic_id = decision.topic_id

@@ -21,6 +21,15 @@ from sejong_ai_api.llm.classifier_contracts import (
 from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 
 
+EXPECTED_REFINED_STAGES = (
+    ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+    ClassifierResponseStage.INTENT_ENUM_REJECTED,
+    ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
+    ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
+    ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
+)
+
+
 def _catalog() -> TopicCatalog:
     intent = Intent.BULKY_WASTE
     return TopicCatalog(
@@ -212,22 +221,22 @@ def test_provider_wire_normalizes_exact_none_and_accepts_closed_shapes(
         (
             b'{"route":"NONE","intent":"NONE","topic_id":"NONE",'
             b'"coverage_id":"NONE","pending_slot":"NONE"}',
-            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
         ),
         (
             b'{"route":"NON_CIVIC","intent":"none","topic_id":"NONE",'
             b'"coverage_id":"NONE","pending_slot":"NONE"}',
-            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+            ClassifierResponseStage.INTENT_ENUM_REJECTED,
         ),
         (
             b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE ",'
             b'"coverage_id":"NONE","pending_slot":"NONE"}',
-            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+            ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
         ),
         (
             b'{"route":"NON_CIVIC","intent":"BULKY_WASTE","topic_id":"NONE",'
             b'"coverage_id":"NONE","pending_slot":"NONE"}',
-            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+            ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
         ),
         (
             b'{"route":"SUPPORTED","intent":"BULKY_WASTE",'
@@ -251,6 +260,140 @@ def test_provider_wire_rejects_invalid_type_key_sentinel_shape_or_catalog(
 
     assert result.decision is None
     assert result.stage is expected_stage
+
+
+def test_refined_classifier_response_stage_values_are_closed_and_legacy_is_retained() -> None:
+    assert tuple(stage.value for stage in EXPECTED_REFINED_STAGES) == (
+        "ROUTE_ENUM_REJECTED",
+        "INTENT_ENUM_REJECTED",
+        "PENDING_SLOT_ENUM_REJECTED",
+        "IDENTIFIER_SHAPE_REJECTED",
+        "ROUTE_SHAPE_REJECTED",
+    )
+    assert ClassifierResponseStage.ENUM_SHAPE_REJECTED.value == "ENUM_SHAPE_REJECTED"
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_stage", "forbidden_value"),
+    [
+        (
+            b'{"route":"BAD_ROUTE","intent":"NONE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+            "BAD_ROUTE",
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"BAD_INTENT","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            "BAD_INTENT",
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"OUT_OF_SCOPE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            "OUT_OF_SCOPE",
+        ),
+        (
+            b'{"route":"NEEDS_FOLLOWUP","intent":"BULKY_WASTE",'
+            b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"BAD_SLOT"}',
+            ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
+            "BAD_SLOT",
+        ),
+        (
+            b'{"route":"SUPPORTED","intent":"BULKY_WASTE","topic_id":"bad topic",'
+            b'"coverage_id":"GENERAL_BULKY_DISPOSAL","pending_slot":"NONE"}',
+            ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
+            "bad topic",
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"BULKY_WASTE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
+            "BULKY_WASTE",
+        ),
+        (
+            b'{"route":"BAD_ROUTE","intent":"BAD_INTENT","topic_id":"bad topic",'
+            b'"coverage_id":"bad coverage","pending_slot":"BAD_SLOT"}',
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+            "BAD_ROUTE",
+        ),
+    ],
+)
+def test_provider_wire_reports_refined_first_failure_without_reflecting_value(
+    payload: bytes,
+    expected_stage: ClassifierResponseStage,
+    forbidden_value: str,
+) -> None:
+    result = parse_classifier_wire_decision_with_stage(payload, _catalog())
+
+    assert result.decision is None
+    assert result.stage is expected_stage
+    assert forbidden_value not in repr(result)
+
+
+def test_canonical_and_provider_parsers_share_refined_stage_mapping() -> None:
+    canonical = parse_classifier_decision_with_stage(
+        b'{"route":"BAD_ROUTE","intent":null,"topic_id":null,'
+        b'"coverage_id":null,"pending_slot":null}',
+        _catalog(),
+    )
+    provider = parse_classifier_wire_decision_with_stage(
+        b'{"route":"BAD_ROUTE","intent":"NONE","topic_id":"NONE",'
+        b'"coverage_id":"NONE","pending_slot":"NONE"}',
+        _catalog(),
+    )
+
+    assert canonical.stage is ClassifierResponseStage.ROUTE_ENUM_REJECTED
+    assert provider.stage is canonical.stage
+
+
+def test_direct_classifier_decision_keeps_route_shape_invariant() -> None:
+    with pytest.raises(ValueError, match="^CLASSIFIER_DECISION_INVALID$"):
+        ClassifierDecision(
+            route=ClassifierRoute.CIVIC_SCOPE_GAP,
+            intent=Intent.OUT_OF_SCOPE,
+            topic_id=None,
+            coverage_id=None,
+            pending_slot=None,
+        )
+
+
+def test_public_parser_keeps_generic_non_reflective_failure() -> None:
+    marker = "BAD_ROUTE"
+
+    with pytest.raises(ValueError) as error:
+        parse_classifier_decision(
+            b'{"route":"BAD_ROUTE","intent":null,"topic_id":null,'
+            b'"coverage_id":null,"pending_slot":null}',
+            _catalog(),
+        )
+
+    assert str(error.value) == "CLASSIFIER_DECISION_INVALID"
+    assert marker not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b'{"route":"BAD_ROUTE","intent":"NONE","topic_id":"NONE",'
+        b'"coverage_id":"NONE","pending_slot":"NONE"}',
+        b'{"route":"NON_CIVIC","intent":"BAD_INTENT","topic_id":"NONE",'
+        b'"coverage_id":"NONE","pending_slot":"NONE"}',
+        b'{"route":"NEEDS_FOLLOWUP","intent":"BULKY_WASTE",'
+        b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"BAD_SLOT"}',
+        b'{"route":"SUPPORTED","intent":"BULKY_WASTE","topic_id":"bad topic",'
+        b'"coverage_id":"GENERAL_BULKY_DISPOSAL","pending_slot":"NONE"}',
+        b'{"route":"NON_CIVIC","intent":"BULKY_WASTE","topic_id":"NONE",'
+        b'"coverage_id":"NONE","pending_slot":"NONE"}',
+    ],
+)
+def test_new_parser_path_never_emits_legacy_enum_shape_stage(payload: bytes) -> None:
+    result = parse_classifier_wire_decision_with_stage(payload, _catalog())
+
+    assert result.decision is None
+    assert result.stage in EXPECTED_REFINED_STAGES
+    assert result.stage is not ClassifierResponseStage.ENUM_SHAPE_REJECTED
 
 
 def test_canonical_parser_keeps_json_null_and_rejects_provider_sentinel() -> None:
@@ -421,7 +564,7 @@ def test_parser_never_reflects_provider_content_in_errors() -> None:
         (
             b'{"route":"UNBOUNDED","intent":null,"topic_id":null,'
             b'"coverage_id":null,"pending_slot":null}',
-            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
             False,
         ),
         (
