@@ -229,6 +229,34 @@ async def test_provider_ledger_uses_injected_deepseek_estimator_and_blocks_cost_
 
 
 @pytest.mark.asyncio
+async def test_provider_reservation_reuses_validated_actual_cost_without_reestimating() -> None:
+    estimator_calls = 0
+
+    def one_shot_estimator(_usage: TokenUsage) -> Decimal:
+        nonlocal estimator_calls
+        estimator_calls += 1
+        if estimator_calls > 1:
+            raise RuntimeError("ESTIMATOR_MUST_NOT_RUN_DURING_FINALIZE")
+        return Decimal("0.001")
+
+    ledger = ProviderAttemptLedger(
+        classifier_cap=1,
+        generator_cap=1,
+        combined_cap=1,
+        cost_cap_usd=Decimal("0.01"),
+        classifier_worst_case_usd=Decimal("0.01"),
+        generator_worst_case_usd=GENERATOR_WORST_CASE_USD,
+        classifier_cost_estimator=one_shot_estimator,
+    )
+
+    async with ledger.reserve_classifier() as reservation:
+        reservation.record_usage(TokenUsage(20, 0, 10))
+
+    assert estimator_calls == 1
+    assert ledger.actual_cost_usd == Decimal("0.001")
+
+
+@pytest.mark.asyncio
 async def test_provider_ledger_keeps_upstage_estimator_as_default_for_cached_usage() -> None:
     usage = TokenUsage(20, 10, 10)
     ledger = _provider_ledger(cost_cap_usd=CLASSIFIER_WORST_CASE_USD)

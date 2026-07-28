@@ -60,6 +60,7 @@ class ProviderCostReservation:
     worst_case_usd: Decimal
     cost_estimator: CostEstimator = field(default=estimate_cost_usd, repr=False)
     _usage: TokenUsage | None = field(default=None, init=False, repr=False)
+    _actual_cost_usd: Decimal | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         if (
@@ -74,14 +75,16 @@ class ProviderCostReservation:
             raise ValueError("TOKEN_USAGE_INVALID")
         if self._usage is not None:
             raise ValueError("PROVIDER_USAGE_ALREADY_RECORDED")
-        if self._estimate_cost_usd(usage) > self.worst_case_usd:
+        actual_cost_usd = self._estimate_cost_usd(usage)
+        if actual_cost_usd > self.worst_case_usd:
             raise ValueError("PROVIDER_USAGE_EXCEEDS_RESERVATION")
         self._usage = usage
+        self._actual_cost_usd = actual_cost_usd
 
     def _final_cost_usd(self) -> Decimal:
-        if self._usage is None:
+        if self._actual_cost_usd is None:
             return self.worst_case_usd
-        return self._estimate_cost_usd(self._usage)
+        return self._actual_cost_usd
 
     def _estimate_cost_usd(self, usage: TokenUsage) -> Decimal:
         try:
