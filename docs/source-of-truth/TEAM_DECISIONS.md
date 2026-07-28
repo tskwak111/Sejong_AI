@@ -184,8 +184,10 @@
   controlled mock의 JSON null 1건은 RED 뒤 exact string `"NONE"`으로만 교정했다. application
   `0.12.4-classifier-wire-diagnostics`, prompt_set `0.4.3-explicit-route-matrix`, test_suite
   `2.1.7-classifier-wire-correction`, documentation `2.30.6`만 전진하고 API/contracts/Web/DB/
-  data/dependency는 불변이다. A-073은 offline implemented이며 Task 5 root/clean-source gate와
-  Task 6 exact-one actual 승인은 아직 남아 있다.
+  data/dependency는 불변이다. Task 5 root wrapper는 exact 1회 호출했지만 harness timeout
+  `124`로 final stdout/exit를 회수하지 못해 aggregate를 `NOT VERIFIED/FAIL`로 기록하고
+  재실행하지 않았다. 독립 docs/secret/diff/status는 PASS이며 provider/network actual
+  call/cost는 계속 0/USD 0이다. Task 6은 root-gate 해소와 exact-one actual 승인 전 blocked다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

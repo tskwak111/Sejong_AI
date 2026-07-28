@@ -20,6 +20,12 @@
   API/contracts, Web, DB schema/migration, official/mock data, dependencies, packages and
   lockfiles are unchanged. Provider/network actual calls and cost are `0`; Task 6 still requires
   the separate exact approval `A-073 corrective actual 1회 실행 승인`.
+- Consumed the Task 5 offline root wrapper exactly once. The shell harness returned timeout
+  `124` after 14.056 seconds and did not preserve final stdout/exit, although the detached wrapper
+  later exited after observed `TEST-ROOT`, `TEST-DATA-SEED` and `TEST-API` phases. The aggregate is
+  therefore `NOT VERIFIED/FAIL`, not PASS, and was not rerun. Independent docs/secret/diff/status
+  checks pass, provider calls/cost remain `0`/USD `0`, and Task 6 is blocked pending root-gate
+  resolution plus its exact future approval.
 
 ### Planned — A-073 classifier enum-shape correction
 

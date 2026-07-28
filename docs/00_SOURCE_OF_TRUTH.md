@@ -219,8 +219,10 @@ TDD로 구현했고 area 386·controlled-double 39·Ruff/Mypy 115가 PASS했다.
 controlled mock의 JSON null 1건은 RED 뒤 exact wire `"NONE"`으로만 교정했다. application
 `0.12.4`, prompt `0.4.3`, tests `2.1.7`, docs `2.30.6`만 전진하며 API/contracts/Web/DB/data/
 dependency와 provider/network actual call/cost는 0이다. A-073은
-`Implemented offline / actual exact-one approval pending`이며 Task 5 root/clean-source gate와
-Task 6 actual은 분리된다. actual은 exact `A-073 corrective actual 1회 실행 승인` 전 금지한다.
+offline 구현 상태다. Task 5 root wrapper는 exact 1회 호출했지만 shell harness timeout 124로
+final stdout/exit를 회수하지 못해 aggregate를 `NOT VERIFIED/FAIL`로 기록하고 재실행하지 않았다.
+독립 docs/secret/diff/status는 PASS, provider/network actual call/cost는 계속 0/USD 0이다.
+Task 6은 root-gate 해소와 exact `A-073 corrective actual 1회 실행 승인` 전 금지한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

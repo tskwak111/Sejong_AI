@@ -3,8 +3,8 @@
 - Date/Time (KST): 2026-07-29T03:01:55+09:00
 - Task ID: A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION
 - Type: implementation-provider-offline
-- Status: Done — Tasks 1~4 offline implementation/version integration; Task 5 root/clean-source gate and Task 6 actual pending
-- Author/Agent: 사용자 결정자 + Codex controller + Task 1~4 구현 에이전트
+- Status: Tasks 1~4 offline Done; Task 5 root aggregate NOT VERIFIED/FAIL, independent review pending; Task 6 blocked
+- Author/Agent: 사용자 결정자 + Codex controller + Task 1~5 구현 에이전트
 - Branch: `codex/a-072-strict-classifier-wire`
 - Base commit: `34cc45d1132a5316a1e5e31c2adb3c77d4338aef`
 - Implementation commits:
@@ -50,7 +50,7 @@ API server, manual chat, `.env`·key·DSN 접근은 금지하고 Task 6 actual�
 | What — 무엇을 | five refined stages, shared typed builder, explicit route matrix, bounded grouped catalog, production-wire oracle, version/권위/6W1H evidence |
 | Why — 왜 | D-117의 exact five-key 응답 9건이 broad `ENUM_SHAPE_REJECTED`에서 종료한 prompt ambiguity를 제거하고 재발 시 값 없이 실패 계층을 구분하기 위해 |
 | How — 어떻게 | Task별 RED→GREEN, controlled doubles, exact area/quality 명령, manifest allowlist와 D-120 authority synchronization |
-| How much — 어느 정도 | production 3파일, approved tests 4파일과 baseline-stale controlled fixture 1줄, area 386, controlled-double 39, Ruff/Mypy 115; provider/network call 0, USD 0 |
+| How much — 어느 정도 | production 3파일, approved tests 4파일과 baseline-stale controlled fixture 1줄, area 386, controlled-double 39, Ruff/Mypy 115; Task 5 root wrapper exact-one invocation 1(aggregate NOT VERIFIED/FAIL), provider/network call 0, USD 0 |
 
 ## 3. 시작 전 상태
 
@@ -185,8 +185,11 @@ Task 4 evidence commit과 Tasks 3→1 commits를 역순 revert하고 manifest를
 ## 11. 인간이 반드시 알아야 하거나 승인할 내용
 
 - A-073 code/prompt/test/area integration은 offline 완료됐지만 실제 Upstage 품질 PASS 증거가
-  아니다. Task 5 root/clean-source gate도 이 Task 4에서 실행하지 않았다.
-- Task 6은 exact `A-073 corrective actual 1회 실행 승인` 전 provider call 0이어야 한다.
+  아니다. Task 5 root wrapper는 정확히 한 번 호출했지만 실행 도구가 14.056초에 timeout 124를
+  반환해 최종 stdout과 wrapper exit code를 회수하지 못했다. detached PID가 이후 종료된 것은
+  확인했으나 aggregate는 `NOT VERIFIED/FAIL`이며 PASS로 승격하지 않는다.
+- Task 6은 현재 root aggregate가 green이 아니므로 blocked다. 이 차이를 별도 인간 결정으로
+  해결한 뒤에도 exact `A-073 corrective actual 1회 실행 승인` 없이는 provider call 0이어야 한다.
 - controlled-double 첫 RED는 production 결함이 아니라 baseline-stale provider-wire mock이었다.
   current exact string contract를 약화하지 않고 test fixture 한 줄만 교정했다.
 - 20-topic/256-character prompt margin이 32자이므로 future prompt/catalog 증가는 재예산이 필요하다.
@@ -220,15 +223,17 @@ rollback은 필요 없다.
 
 ### 다음 개발자 시작점
 
-Task 5 owner는 Task 4 clean commit에서 offline root wrapper를 정확히 한 번 실행하고 결과를
-있는 그대로 기록한다. independent review, docs/secret/diff와 clean SHA를 확보한 뒤 멈춘다.
-사용자의 exact Task 6 승인 없이는 D-117 report archive/delete나 provider readiness/actual을
-실행하지 않는다.
+Task 5의 root wrapper one-shot은 이미 소비됐으므로 현재 plan 아래 재실행하지 않는다.
+independent review가 scope/code를 확인하고, root aggregate capture gap은 인간이 별도로
+결정한다. 사용자의 exact Task 6 승인과 root-gate 해소 전에는 D-117 report archive/delete나
+provider readiness/actual을 실행하지 않는다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
 - 실제 provider가 explicit matrix를 준수하는지는 아직 검증되지 않았다.
-- Task 5 root wrapper와 independent code/scope review가 남아 있다.
+- Task 5 root wrapper는 exact-one invocation을 소비했지만 timeout 124로 aggregate가
+  `NOT VERIFIED/FAIL`이다. independent code/scope review와 root-gate capture gap의 인간 결정이
+  남아 있다.
 - actual에서 rejection이 남으면 refined aggregate만 기록하며 provider body/value를 열람하거나
   자동 재실행하지 않는다.
 - current D-117 report와 ADR-0027은 변경하지 않았다.
@@ -261,3 +266,25 @@ Task 5 owner는 Task 4 clean commit에서 offline root wrapper를 정확히 한 
   `git status --short`는 위 세 expected document만 modified로 표시했다.
 - Rollback: review correction commit 하나를 revert하면 되며 DB/data/secret/dependency rollback은
   필요 없다.
+
+## 17. Task 5 exact-one offline root gate evidence
+
+- 시작 source: `4d4d6ddabf30c3e61c7462a724479b4821aeada7`, 시작 tree clean.
+- exact invocation count: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+  scripts/verify.ps1 -Offline` 1회.
+- command transport result: 14.056초 뒤 timeout, exit `124`, captured stdout 0.
+- detached process evidence: 원래 wrapper PID `37544`가 계속 실행된 뒤 종료된 것을 확인했다.
+  child command line으로 `TEST-ROOT`, `TEST-DATA-SEED`, Web dependency boundary와 `TEST-API`
+  진입을 관찰했고 generated contract timestamp도 후속 단계 진입을 보였다. 그러나 최종 stdout과
+  wrapper exit code는 회수할 수 없으므로 constituent/aggregate PASS로 해석하지 않는다.
+- aggregate result: `NOT VERIFIED / FAIL — execution harness timeout 124`; rerun 0.
+- Step 2 immutable checks:
+  `python -B scripts/check_repository_docs.py` PASS,
+  `check_secret_patterns.ps1 -RepositoryRoot .` exit 0/findings 0,
+  `git diff --check` errors 0,
+  `git status --short` output 0 before evidence edits.
+- provider/network/API server/manual chat/actual runner invocation 0, cost USD 0. D-117 report와
+  archives, ADR-0027, product code/tests/contracts/DB/data/dependencies/version axes는 불변이다.
+- independent scope/code review는 pending이다. Task 6은 blocked이며, root gate가 별도 인간
+  결정으로 해소된 뒤에도 exact future approval
+  `A-073 corrective actual 1회 실행 승인`이 필요하다.
