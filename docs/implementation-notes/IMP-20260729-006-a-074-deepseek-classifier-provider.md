@@ -1,6 +1,7 @@
 # IMP-20260729-006 — A-074 DeepSeek classifier provider
 
 - Date/Time (KST): 2026-07-29T05:21:53+09:00
+- Last updated (KST): 2026-07-29T08:21:43+09:00
 - Task ID: A-074-DEEPSEEK-CLASSIFIER-PROVIDER
 - Type: implementation-provider-offline
 - Status: In Progress
@@ -8,6 +9,9 @@
 - Branch: codex/a-074-deepseek-classifier-provider
 - Formal A-074 base commit: 50aab6e
 - Task 1 reviewed checkpoint: 8d36e04
+- Original Task 6 checkpoint: 0b15572
+- Task 6b hardened source: 이 노트를 포함하는 clean checkpoint commit이며, exact SHA는
+  forthcoming immutable A-074 offline result가 기록한다.
 - Related plan/ADR/RFP: ADR-0028, D-122, A-074, SFR-002,
   `docs/superpowers/plans/2026-07-29-deepseek-classifier-provider.md`
 
@@ -88,6 +92,10 @@ classifier와 final generator를 보존할 수 있다.
 | `run_deepseek_classifier_actual.py` | fixed20 readiness·permanent lease·aggregate-only actual evidence | secret/body/value 없는 exact-one 증거 |
 | `run_a074_offline_gate.ps1` | clean SHA의 root offline gate exact-one wrapper | A-073 wrapper 재사용 없이 stdout/stderr 보존 |
 | Task 5 controlled tests/runbook | lock ownership, timeout tree termination, report no-overwrite | concurrency·hard-failure false evidence 차단 |
+| strict JSON/DeepSeek transport | recursive duplicate-key rejection, identity/raw 65,535-byte streaming cap | decoded/raw body·duplicate-key trust 우회 차단 |
+| DeepSeek/actual deadlines | complete exchange 3초, exact-one batch 32초 | slow-stream·aggregate overrun을 retry 없이 차단 |
+| actual pre-lease identity | hashed exact bytes parse와 source/catalog/settings/artifact 재검증 | readiness→lease TOCTOU 차단 |
+| A-074 wrapper finalization | nonzero taskkill 거부, post-child original HEAD·clean tree 재검증 | 살아 있는 descendant·source drift에서 false PASS 차단 |
 | authority/version docs | offline 구현 상태와 세 version 축 승격 | actual 전 상태를 과장하지 않고 동기화 |
 
 ### 데이터 흐름/상태 변화
@@ -122,7 +130,7 @@ environment에서 `CLASSIFIER_PROVIDER=disabled`로 되돌리는 것이며 DB mi
 
 | 축 | Before | After | 변경 이유 |
 |---|---|---|---|
-| Application | 0.12.4-classifier-wire-diagnostics | 0.13.0-selectable-classifier-provider | selectable local classifier 구현 |
+| Application | 0.12.4-classifier-wire-diagnostics | 0.13.1-selectable-classifier-provider-hardening | selectable classifier와 pre-gate internal hardening |
 | Web | 0.8.0-guided-chat | 동일 | 시민 UI 변경 없음 |
 | API | 4.0.0-draft | 동일 | 공개 계약 변경 없음 |
 | Shared contracts | 1.0.0 | 동일 | 공개 schema 변경 없음 |
@@ -130,8 +138,8 @@ environment에서 `CLASSIFIER_PROVIDER=disabled`로 되돌리는 것이며 DB mi
 | Official data | 0.1.0-initial.2 | 동일 | immutable approved data 사용 |
 | Mock data | 0.0.0-not-populated | 동일 | mock 추가 없음 |
 | Prompt set | 0.4.3-explicit-route-matrix | 동일 | A-073 prompt byte 변경 없음 |
-| Test suite | 2.1.7-classifier-wire-correction | 2.2.0-deepseek-classifier-provider | provider·one-shot TDD |
-| Docs | 2.30.8 | 2.31.0-deepseek-classifier-provider | offline 구현·runbook 동기화 |
+| Test suite | 2.1.7-classifier-wire-correction | 2.2.1-deepseek-classifier-provider-hardening | provider·one-shot·review-fix TDD |
+| Docs | 2.30.8 | 2.31.1-deepseek-classifier-provider-hardening | offline 구현·hardening·runbook 동기화 |
 
 ## 8. 명령과 테스트 증거
 
@@ -151,6 +159,14 @@ environment에서 `CLASSIFIER_PROVIDER=disabled`로 되돌리는 것이며 DB mi
 | API Mypy strict | PASS | 122 source files | `apps/api/pyproject.toml` config |
 | Task 5 runner Mypy strict | PASS | 3 source files | exact command below |
 | Docs/secret/diff checks | PASS | links/secret patterns/diff | repository scripts below |
+| Integrated pre-gate review | NOT READY | Critical 0 / Important 5 | one-shot 실행 전 review |
+| Task 6b RED wave 1 | expected FAIL | Python 19 + fake-wrapper 3 | governed wrapper/provider/network 사용 0 |
+| Task 6b GREEN wave 1 | PASS | focused 195; area 655 + 5 subtests | exact boundary tests |
+| Independent review wave 2 | NOT READY | Critical 0 / Important 1 | compressed decoding boundary |
+| Task 6b GREEN wave 2 | PASS | focused 196; area 656 + 5 subtests | identity/raw streaming correction |
+| Final fresh scoped review | READY | Critical 0 / Important 0 / Minor 0 | reviewer focused 257 PASS |
+| Final Ruff/Mypy/PS parser | PASS | Ruff 126; API Mypy 123; runner Mypy 3; parser 1,523/0 | hardened source |
+| Final docs/secret/diff | PASS | repository docs, secret scan, diff | artifact·secret 노출 0 |
 
 ### Task 6 재현 명령
 
@@ -186,9 +202,10 @@ git diff --check
 
 ### 미실행 검증과 이유
 
-- A-074 offline gate: source checkpoint commit 전이므로 invocation 0, rerun 0.
+- A-074 offline gate: hardened source checkpoint commit 전이므로 invocation 0, rerun 0이고
+  canonical result/lock/stdout/stderr artifact가 없다.
 - DeepSeek actual: offline gate·same-SHA clean review 전이므로 invocation 0, rerun 0이고
-  관측 token·비용 metric은 존재하지 않는다.
+  report/lease artifact와 관측 token·비용 metric은 존재하지 않는다.
 - A-073 root wrapper와 모든 Upstage actual: 사용자 금지에 따라 재실행하지 않았다.
 - public/remote/실제 시민 free-input: 승인 범위 밖이다.
 
@@ -198,10 +215,12 @@ git diff --check
   question, request/response body, invalid field value, exception 상세를 DB·로그·report에
   영속하지 않는다. policy/privacy 고정 probe는 provider outbound 0으로 고정한다.
 - Security: DeepSeek key와 Upstage key는 서로 다른 ignored local 설정이고, public main은
-  provider-free다. exact URL/model/settings, no retry/cascade, strict server parser/catalog,
-  permanent lease와 result no-overwrite를 적용한다.
+  provider-free다. exact URL/model/settings, no retry/cascade, recursive duplicate-key
+  rejection, identity/raw 65,535-byte streaming cap, strict server parser/catalog, exact-byte
+  pre-lease identity, permanent lease와 result no-overwrite를 적용한다.
 - Accessibility: Web·시민 화면 계약 변경이 없어 직접 영향이 없다.
-- Performance/cost: request 3초, concurrency 1, retry 0, output 128이다. actual은 all-miss+
+- Performance/cost: complete exchange 3초, actual aggregate 32초, concurrency 1, retry 0,
+  output 128이다. actual은 all-miss+
   VAT 보수 계산으로 9회 최대 USD0.02306304이며 session cap USD0.20 아래다. 아직 실행하지
   않아 관측 token·비용 metric은 존재하지 않는다.
 
@@ -228,9 +247,14 @@ git diff --check
 
 - ProviderAttemptLedger는 역할별 estimator를 주입받아 DeepSeek cache hit가 있어도 acceptance
   비용은 전 input cache miss로 보수 계상한다.
-- response observer는 value-free stage와 aggregate usage/HTTP class만 센다.
-- offline wrapper는 lock을 실제 획득한 process만 result를 쓰며 child 종료가 확인되지 않으면
-  mutable log hash를 발행하지 않는다.
+- response observer는 value-free stage와 aggregate usage/HTTP class만 세며 body를 읽지 않는다.
+- shared strict JSON decoder는 모든 object depth의 duplicate key를 후속 key/type/enum 검증보다
+  먼저 value-free `JSON_REJECTED`로 닫는다.
+- offline wrapper는 lock을 실제 획득한 process만 result를 쓰며 nonzero taskkill, child 종료
+  미확인, original HEAD 변경 또는 dirty tracked/untracked source에서는 mutable log hash나
+  PASS evidence를 발행하지 않는다.
+- actual runner는 bounded exact bytes를 hash·parse하고 lease 직전에 source, pinned file,
+  offline evidence, profile과 report/lease absence를 다시 검증한다.
 - readiness-only는 client/network/lease/report/temp file을 만들지 않는다.
 
 ## 13. 인수인계·재현·롤백
@@ -252,7 +276,7 @@ git diff --check
 
 ### 다음 개발자 시작점
 
-- Task 6 source checkpoint commit을 기준으로 clean HEAD를 확인한다.
+- Task 6b hardened source checkpoint commit을 기준으로 clean HEAD를 확인한다.
 - Task 7 새 A-074 wrapper exact1 → Task 8 same-SHA review/readiness/actual exact1 순서를 바꾸지
   않는다.
 - A-073 root wrapper와 Upstage actual은 어떤 이유로도 재실행하지 않는다.
@@ -268,6 +292,7 @@ git diff --check
 
 - [x] A-073 증거 불변과 A-074 offline 구현 요청 충족
 - [x] Task 6 area/repository 검증
+- [x] Task 6b two-wave RED/GREEN과 final fresh C0/I0/M0 review
 - [x] source-of-truth/계약/버전 동기화 — 공개 계약은 불변
 - [x] 개인정보 원문·provider body·invalid value·secret 노출 없음
 - [x] 구현 노트 INDEX 갱신

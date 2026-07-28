@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -11,6 +10,7 @@ from typing import Any
 from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.db.models import Intent
 from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
+from sejong_ai_api.llm.strict_json import load_strict_json_bytes
 
 _EXPECTED_KEYS = frozenset({"route", "intent", "topic_id", "coverage_id", "pending_slot"})
 _NONE_SENTINEL = "NONE"
@@ -243,8 +243,8 @@ def _parse_classifier_payload_with_stage(
             stage=ClassifierResponseStage.JSON_REJECTED,
         )
     try:
-        raw: Any = json.loads(payload.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+        raw: Any = load_strict_json_bytes(payload)
+    except (UnicodeDecodeError, ValueError):
         return ClassifierDecisionParseResult(
             decision=None,
             stage=ClassifierResponseStage.JSON_REJECTED,

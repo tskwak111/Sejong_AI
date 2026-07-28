@@ -31,7 +31,8 @@
 
 ## 사전 조건
 
-1. Task 6의 focused/area/Ruff/Mypy/docs/secret/diff 검증과 source commit을 먼저 끝낸다.
+1. Task 6b의 focused/area/Ruff/Mypy/docs/secret/diff 검증, C0/I0/M0 fresh review와 source
+   commit을 먼저 끝낸다.
 2. tracked 변경과 untracked source가 모두 없는 clean `HEAD`여야 한다.
 3. ignored local configuration은 아래 exact DeepSeek profile이어야 한다.
 
@@ -43,12 +44,15 @@
 | `DEEPSEEK_API_KEY` | 값은 ignored local environment에만 존재; 출력·복사 금지 |
 
 actual runner는 세 Upstage mode를 현재 process memory에서만 `false`로 강제하고 `finally`에서
-원래 값으로 복원한다. `.env`를 수정하지 않는다. timeout 3초, retry 0, concurrency 1,
-output 128, temperature 0, thinking disabled와 USD 0.20 cap 중 하나라도 다르면 readiness에서
-종료한다.
+원래 값으로 복원한다. `.env`를 수정하지 않는다. Complete provider exchange timeout 3초,
+aggregate actual deadline 32초, retry 0, concurrency 1, output 128, temperature 0, thinking
+disabled와 USD 0.20 cap 중 하나라도 다르면 readiness에서 종료한다. Provider transport는
+`Accept-Encoding: identity`만 요청·수락하고 raw response를 `<64 KiB`로 streaming 제한한다.
 
 offline result와 actual은 정확히 같은 clean `HEAD`에 묶인다. Offline gate 뒤 actual 전에
-tracked evidence commit을 끼우지 않는다.
+tracked evidence commit을 끼우지 않는다. Runner는 hash에 사용한 exact bytes를 그대로
+parse하고 actual lease 직전에 source, fixture/catalog identity, offline result, 설정,
+report/lease 부재를 다시 검증한다.
 
 ## 1. A-074 offline gate — 정확히 한 번
 
@@ -73,12 +77,15 @@ wrapper는 permanent lock을 원자적으로 만든 뒤
 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File <repo>\scripts\verify.ps1 -Offline`
 을 `Start-Process`로 정확히 한 번 호출한다. stdout/stderr는 고정 ignored log에 실행 중 계속
 redirect된다. timeout은 3,600초, poll은 1초다. Timeout이면 `taskkill /PID <pid> /T /F` 후
-process 종료를 기다린다.
+process 종료를 기다린다. `taskkill`이 nonzero이면 parent가 이미 종료됐더라도 descendant
+종료를 증명하지 못한 것으로 처리한다.
 
 동시 시작에서 lock을 직접 획득하지 못한 process는 다른 process의 log/result를 만지지 않고
-종료한다. Timeout 또는 예외 뒤 process tree 종료를 확인할 수 없으면 permanent lock과 기존
-log만 남기고 result와 log hash를 만들지 않는다. 실행 중인 log를 immutable evidence로
-오인하지 않기 위한 fail-closed 상태이며, 이 경우에도 재실행하지 않는다.
+종료한다. Timeout·예외·nonzero `taskkill` 뒤 process tree 종료를 확인할 수 없으면 permanent
+lock과 기존 log만 남기고 result와 log hash를 만들지 않는다. 정상 child 종료 뒤에도 original
+HEAD와 tracked/untracked clean tree를 다시 확인하고 drift가 있으면 PASS를 만들지 않는다.
+실행 중이거나 source identity가 바뀐 log를 immutable evidence로 오인하지 않기 위한
+fail-closed 상태이며, 이 경우에도 재실행하지 않는다.
 
 결과 JSON은 source SHA, PASS/FAIL, exit, timeout 여부, stdout/stderr SHA-256·byte 수와
 invocation/rerun `1/0`만 저장한다. PASS든 FAIL이든 lock·log·result를 삭제·덮어쓰기·재실행하지
@@ -109,6 +116,9 @@ apps/api/.venv/Scripts/python.exe -B `
 - tracked와 untracked source가 모두 없는 clean tree;
 - actual report와 permanent lease 부재;
 - exact DeepSeek configuration과 9회 worst-case all-cache-miss+VAT 비용이 USD 0.20 이하.
+- hash와 parse가 동일한 bounded exact-byte snapshot을 사용함;
+- lease 직전 source, fixture/coverage/official manifest, offline result, 설정과 artifact
+  absence가 최초 readiness와 동일함.
 
 실패하면 actual은 아직 소비되지 않는다. 값을 출력하거나 설정을 추측해 고치지 말고
 value-free readiness 원인만 검토한다.
@@ -126,7 +136,8 @@ apps/api/.venv/Scripts/python.exe -B `
 
 runner는 readiness가 끝난 뒤에만 permanent actual lease를 `CreateNew`+fsync로 만든다. 그
 다음에만 client를 만들고 network를 시작한다. 이 lease는 정상·실패·hard crash·report write
-실패 모두에서 영구 보존한다.
+실패 모두에서 영구 보존한다. Lease 뒤 전체 9-case actual은 32초 aggregate deadline을 넘기면
+FAIL evidence로 닫으며 자동 재실행하지 않는다.
 
 PASS는 아래 aggregate가 모두 exact일 때만 가능하다.
 

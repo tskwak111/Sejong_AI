@@ -241,13 +241,17 @@ temperature0/thinking disabled와 보수적 USD0.20 cap을 적용한다. 새 A-0
 무관하게 자동 재실행하지 않는다. A-073 root/Upstage actual은 이 작업에서 재사용·재실행하지
 않는다.
 
-2026-07-29 A-074 offline Tasks 1~6으로 selector/settings, DeepSeek strict transport,
-provider별 보수 비용·usage, local composition과 one-shot runner/wrapper를 구현하고 독립
-review까지 완료했다. public main·API/contracts/Web/DB/data/dependency는 변경하지 않았고
-A-074 offline wrapper와 DeepSeek actual은 아직 각각 invocation 0·rerun 0이며 관측 token·
-비용 metric은 존재하지 않는다.
-다음 상태 전이는 clean source에서 새 A-074 offline gate exact 1회이며, 그 결과가 PASS일
-때에만 같은 source SHA의 DeepSeek actual lease exact 1회를 소비한다.
+2026-07-29 A-074 offline Tasks 1~6b로 selector/settings, DeepSeek strict transport,
+provider별 보수 비용·usage, local composition과 one-shot runner/wrapper를 구현했다. Initial
+integrated pre-gate review의 Critical 0 / Important 5 `NOT READY`와 후속 compressed-decoding
+Important 1을 두 RED/GREEN wave로 닫았고, 최종 fresh review는 Critical 0 / Important 0 /
+Minor 0 `READY`였다. Recursive duplicate-key 거부, identity/raw `<64 KiB` bounded
+streaming, complete exchange 3초·aggregate 32초 deadline, exact-byte/pre-lease TOCTOU
+재검증, nonzero `taskkill`·post-child source drift fail-closed가 현재 경계다.
+public main·API/contracts/Web/DB/data/dependency는 변경하지 않았고 A-074 offline wrapper와
+DeepSeek actual은 아직 각각 invocation/rerun 0/0이며 artifact와 관측 token·비용 metric은
+없다. 다음 상태 전이는 이 hardened clean source에서 새 A-074 offline gate exact 1회이며,
+그 결과가 PASS일 때에만 같은 source SHA의 DeepSeek actual lease exact 1회를 소비한다.
 
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는

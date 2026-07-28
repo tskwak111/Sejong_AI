@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from collections import Counter
 from dataclasses import replace
 from decimal import Decimal
@@ -354,7 +355,7 @@ def test_offline_pass_is_bound_to_exact_head_invocation_one_rerun_zero(
     stderr_path = tmp_path / "a074-offline-gate.stderr.log"
     stdout_path.write_bytes(b"offline stdout\n")
     stderr_path.write_bytes(b"")
-    lock_path.write_text(runner._OFFLINE_LEASE_TEXT, encoding="ascii")
+    lock_path.write_bytes(runner._OFFLINE_LEASE_TEXT.encode("ascii"))
     result_path.write_text(
         json.dumps(
             {
@@ -385,6 +386,186 @@ def test_offline_pass_is_bound_to_exact_head_invocation_one_rerun_zero(
     assert identity == _sha256(result_path)
     with pytest.raises(runner._ConfigurationInvalid):
         runner._require_offline_gate("b" * 40)
+
+
+def test_exact_byte_loaders_parse_the_same_snapshot_they_hash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = _runner()
+    fixture_bytes = runner._FIXTURE_PATH.read_bytes()
+    coverage_bytes = runner._COVERAGE_PATH.read_bytes()
+    official_bytes = runner._OFFICIAL_RECORDS_PATH.read_bytes()
+    manifest_bytes = runner._RELEASE_MANIFEST_PATH.read_bytes()
+    snapshots: dict[Path, bytes] = {
+        runner._FIXTURE_PATH.resolve(): fixture_bytes,
+        runner._COVERAGE_PATH.resolve(): coverage_bytes,
+        runner._OFFICIAL_RECORDS_PATH.resolve(): official_bytes,
+        runner._RELEASE_MANIFEST_PATH.resolve(): manifest_bytes,
+    }
+    reads: Counter[Path] = Counter()
+
+    def read_once(path: Path, *, max_bytes: int) -> bytes:
+        resolved = path.resolve()
+        reads[resolved] += 1
+        payload = snapshots[resolved]
+        assert len(payload) <= max_bytes
+        return payload
+
+    monkeypatch.setattr(runner, "_read_bounded_file_once", read_once)
+    monkeypatch.setattr(
+        Path,
+        "read_text",
+        lambda *_args, **_kwargs: pytest.fail("loader reread after hashing"),
+    )
+
+    fixtures = runner._load_fixtures(runner._FIXTURE_PATH)
+    catalog = runner._load_pinned_catalog()
+
+    assert len(fixtures) == 48
+    assert len(catalog.topics) == 19
+    assert reads == Counter(
+        {
+            runner._FIXTURE_PATH.resolve(): 1,
+            runner._COVERAGE_PATH.resolve(): 1,
+            runner._OFFICIAL_RECORDS_PATH.resolve(): 1,
+            runner._RELEASE_MANIFEST_PATH.resolve(): 1,
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("head", "dirty", "fixture", "offline", "settings"),
+)
+def test_prelease_revalidation_rejects_every_prepared_identity_drift(
+    mutation: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = _runner()
+    prepared = _prepared(runner, tmp_path / "actual.md")
+    fixture = tmp_path / "fixture.json"
+    coverage = tmp_path / "coverage.json"
+    official = tmp_path / "records.json"
+    manifest = tmp_path / "manifest.json"
+    fixture.write_bytes(b"fixture-snapshot")
+    coverage.write_bytes(b"coverage-snapshot")
+    official.write_bytes(b"official-snapshot")
+    manifest.write_bytes(b"manifest-snapshot")
+    identities = replace(
+        prepared.identities,
+        fixture_sha256=_sha256(fixture),
+        coverage_sha256=_sha256(coverage),
+        official_records_sha256=_sha256(official),
+        release_manifest_sha256=_sha256(manifest),
+        offline_result_sha256="e" * 64,
+    )
+    prepared = replace(prepared, identities=identities)
+    monkeypatch.setattr(runner, "_FIXTURE_PATH", fixture)
+    monkeypatch.setattr(runner, "_COVERAGE_PATH", coverage)
+    monkeypatch.setattr(runner, "_OFFICIAL_RECORDS_PATH", official)
+    monkeypatch.setattr(runner, "_RELEASE_MANIFEST_PATH", manifest)
+    monkeypatch.setattr(runner, "_source_sha", lambda: prepared.source_sha)
+    monkeypatch.setattr(runner, "_require_clean_worktree", lambda: None)
+    monkeypatch.setattr(
+        runner,
+        "_require_offline_gate",
+        lambda _source_sha: prepared.identities.offline_result_sha256,
+    )
+    monkeypatch.setattr(
+        runner,
+        "load_deepseek_classifier_settings",
+        lambda: prepared.settings,
+    )
+
+    if mutation == "head":
+        monkeypatch.setattr(runner, "_source_sha", lambda: "f" * 40)
+    elif mutation == "dirty":
+        monkeypatch.setattr(
+            runner,
+            "_require_clean_worktree",
+            lambda: (_ for _ in ()).throw(runner._ConfigurationInvalid()),
+        )
+    elif mutation == "fixture":
+        fixture.write_bytes(b"mutated-fixture")
+    elif mutation == "offline":
+        monkeypatch.setattr(
+            runner,
+            "_require_offline_gate",
+            lambda _source_sha: "0" * 64,
+        )
+    else:
+        changed_settings = DeepSeekClassifierSettings(api_key="different-synthetic-key")
+        monkeypatch.setattr(
+            runner,
+            "load_deepseek_classifier_settings",
+            lambda: changed_settings,
+        )
+
+    with pytest.raises(runner._ConfigurationInvalid):
+        runner._revalidate_prepared_run(prepared)
+
+
+def test_main_revalidates_immediately_before_lease_and_client(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    runner = _runner()
+    report_path = tmp_path / "actual.md"
+    options = runner._RunnerOptions(
+        fixture_path=runner._FIXTURE_PATH,
+        report_path=report_path,
+        readiness_only=False,
+    )
+    prepared = _prepared(runner, report_path)
+    lease_calls = 0
+    client_calls = 0
+    monkeypatch.setattr(runner, "_parse_args", lambda _argv=None: options)
+    monkeypatch.setattr(runner, "_perform_readiness", lambda _options: prepared)
+    monkeypatch.setattr(
+        runner,
+        "_revalidate_prepared_run",
+        lambda _prepared: (_ for _ in ()).throw(runner._ConfigurationInvalid()),
+    )
+
+    def lease_forbidden(_path: object) -> None:
+        nonlocal lease_calls
+        lease_calls += 1
+
+    def client_forbidden(_settings: object) -> None:
+        nonlocal client_calls
+        client_calls += 1
+
+    monkeypatch.setattr(runner._RunLease, "acquire", lease_forbidden)
+    monkeypatch.setattr(runner, "create_deepseek_classifier_client", client_forbidden)
+
+    assert runner.main([]) == 2
+    captured = capsys.readouterr()
+
+    assert lease_calls == 0
+    assert client_calls == 0
+    assert "READINESS_INVALID" in captured.err
+    assert not report_path.exists()
+    assert not report_path.with_name(f"{report_path.name}.run.lock").exists()
+
+
+def test_aggregate_actual_deadline_bounds_slow_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = _runner()
+
+    async def slow_actual(_prepared: object, _evidence: object) -> None:
+        await asyncio.sleep(0.05)
+
+    monkeypatch.setattr(runner, "_execute_actual", slow_actual)
+    monkeypatch.setattr(runner, "_ACTUAL_RUN_DEADLINE_SECONDS", 0.01)
+    started = time.monotonic()
+    with pytest.raises(TimeoutError):
+        asyncio.run(runner._execute_actual_with_deadline(object(), object()))
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 0.04
 
 
 def test_readiness_rejects_nine_worst_case_costs_over_cap_before_lease_or_network(
@@ -514,23 +695,31 @@ def test_real_adapter_mock_transport_derives_nine_aggregate_observations_without
                 },
                 separators=(",", ":"),
             )
+        response_envelope = {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {"content": content},
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 10,
+                "total_tokens": 110,
+                "prompt_cache_hit_tokens": 50,
+                "prompt_cache_miss_tokens": 50,
+            },
+        }
         return httpx.Response(
             200,
-            json={
-                "choices": [
-                    {
-                        "finish_reason": "stop",
-                        "message": {"content": content},
-                    }
-                ],
-                "usage": {
-                    "prompt_tokens": 100,
-                    "completion_tokens": 10,
-                    "total_tokens": 110,
-                    "prompt_cache_hit_tokens": 50,
-                    "prompt_cache_miss_tokens": 50,
-                },
-            },
+            headers={"Content-Type": "application/json"},
+            stream=httpx.ByteStream(
+                json.dumps(
+                    response_envelope,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ),
         )
 
     def client_factory(settings: DeepSeekClassifierSettings) -> httpx.AsyncClient:
@@ -664,6 +853,7 @@ def test_post_lease_failure_writes_one_immutable_aggregate_fail_and_keeps_lease(
 
     monkeypatch.setattr(runner, "_parse_args", lambda _argv=None: options)
     monkeypatch.setattr(runner, "_perform_readiness", lambda _options: prepared)
+    monkeypatch.setattr(runner, "_revalidate_prepared_run", lambda _prepared: None)
 
     async def fail_after_lease(_prepared: object, _evidence: object) -> None:
         nonlocal execution_calls
@@ -717,6 +907,7 @@ def test_runtime_exception_forces_fail_even_if_all_observed_aggregates_pass(
     passing_evidence = _passing_evidence(runner, report_path)
     monkeypatch.setattr(runner, "_parse_args", lambda _argv=None: options)
     monkeypatch.setattr(runner, "_perform_readiness", lambda _options: prepared)
+    monkeypatch.setattr(runner, "_revalidate_prepared_run", lambda _prepared: None)
     monkeypatch.setattr(runner, "_new_evidence", lambda _prepared: passing_evidence)
 
     async def fail_after_complete_observation(
@@ -802,6 +993,7 @@ def test_report_write_failure_retains_permanent_lease(
     prepared = _prepared(runner, report_path)
     monkeypatch.setattr(runner, "_parse_args", lambda _argv=None: options)
     monkeypatch.setattr(runner, "_perform_readiness", lambda _options: prepared)
+    monkeypatch.setattr(runner, "_revalidate_prepared_run", lambda _prepared: None)
 
     async def fail(_prepared: object, _evidence: object) -> None:
         raise RuntimeError("synthetic-secret-marker")

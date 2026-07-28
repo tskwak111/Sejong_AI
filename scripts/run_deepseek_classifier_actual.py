@@ -110,6 +110,13 @@ _ACTUAL_COST_CAP_USD = Decimal("0.20")
 _ACTUAL_INVOCATION_COUNT = 1
 _ACTUAL_RETRY_COUNT = 0
 _ACTUAL_RERUN_COUNT = 0
+_ACTUAL_RUN_DEADLINE_SECONDS = 32
+_FIXTURE_MAX_BYTES = 1024 * 1024
+_COVERAGE_MAX_BYTES = 1024 * 1024
+_OFFICIAL_RECORDS_MAX_BYTES = 4 * 1024 * 1024
+_RELEASE_MANIFEST_MAX_BYTES = 256 * 1024
+_OFFLINE_RESULT_MAX_BYTES = 64 * 1024
+_OFFLINE_LOG_MAX_BYTES = 64 * 1024 * 1024
 _OFFLINE_LEASE_TEXT = "A-074-OFFLINE-GATE one-shot lease\n"
 _ACTUAL_LEASE_TEXT = "A-074-DEEPSEEK-CLASSIFIER one-shot lease\n"
 _UPSTAGE_MODE_KEYS = (
@@ -148,8 +155,8 @@ if str(_API_SOURCE) not in sys.path:
 from sejong_ai_api.chat.classification import SafeQuestion, classify_question  # noqa: E402
 from sejong_ai_api.chat.topic_catalog import (  # noqa: E402
     TopicCatalog,
+    TopicCoverage,
     build_topic_catalog,
-    load_topic_coverage,
 )
 from sejong_ai_api.db.models import Intent, KnowledgeRecord  # noqa: E402
 from sejong_ai_api.llm.classifier_contracts import (  # noqa: E402
@@ -162,6 +169,7 @@ from sejong_ai_api.llm.classifier_diagnostics import (  # noqa: E402
 from sejong_ai_api.llm.contracts import TokenUsage  # noqa: E402
 from sejong_ai_api.llm.deepseek_classifier import (  # noqa: E402
     DeepSeekQuestionClassifier,
+    DeepSeekResponseObservation,
     create_deepseek_classifier_client,
 )
 from sejong_ai_api.llm.deepseek_settings import (  # noqa: E402
@@ -186,9 +194,9 @@ from sejong_ai_api.llm.deepseek_usage import (  # noqa: E402
     DEEPSEEK_PRICING_CHECKED_ON,
     DEEPSEEK_PRICING_SOURCE_URL,
     estimate_deepseek_cost_usd,
-    parse_deepseek_token_usage,
 )
 from sejong_ai_api.llm.limits import ProviderAttemptLedger  # noqa: E402
+from sejong_ai_api.llm.strict_json import load_strict_json_bytes  # noqa: E402
 from sejong_ai_api.privacy.redaction import redact_question  # noqa: E402
 
 
@@ -378,31 +386,18 @@ class _UsageRecorder:
         self.usage_rejected_count = 0
         self.usage = TokenUsage(0, 0, 0)
 
-    async def capture(self, response: httpx.Response) -> None:
+    def capture(self, observation: DeepSeekResponseObservation) -> None:
+        if type(observation) is not DeepSeekResponseObservation:
+            raise ValueError("DEEPSEEK_RESPONSE_OBSERVATION_INVALID")
         self.response_count += 1
-        if 200 <= response.status_code < 300:
+        if observation.http_2xx:
             self.http_2xx_count += 1
         else:
             self.http_rejected_count += 1
-        try:
-            await response.aread()
-            if not 200 <= response.status_code < 300:
-                return
-            envelope = response.json()
-            if type(envelope) is not dict:
-                self.usage_rejected_count += 1
-                return
-            usage = parse_deepseek_token_usage(
-                envelope.get("usage"),
-                max_input_tokens=DEEPSEEK_MAX_INPUT_USAGE_TOKENS,
-                max_output_tokens=DEEPSEEK_MAX_OUTPUT_TOKENS,
-            )
-            if usage is None:
-                self.usage_rejected_count += 1
-                return
-        except Exception:
-            if 200 <= response.status_code < 300:
-                self.usage_rejected_count += 1
+            return
+        usage = observation.usage
+        if usage is None:
+            self.usage_rejected_count += 1
             return
         self.usage = TokenUsage(
             self.usage.input_tokens + usage.input_tokens,
@@ -448,31 +443,43 @@ def _resolve_repository_path(value: object) -> Path:
     return (path if path.is_absolute() else _REPOSITORY_ROOT / path).resolve()
 
 
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
+def _read_bounded_file_once(path: Path, *, max_bytes: int) -> bytes:
+    if not isinstance(path, Path) or type(max_bytes) is not int or max_bytes <= 0:
+        raise _ConfigurationInvalid
     try:
         with path.open("rb") as stream:
-            while chunk := stream.read(1024 * 1024):
-                digest.update(chunk)
+            payload = stream.read(max_bytes + 1)
     except OSError:
         raise _ConfigurationInvalid from None
-    return digest.hexdigest()
+    if len(payload) > max_bytes:
+        raise _ConfigurationInvalid
+    return payload
 
 
-def _require_exact_sha(path: Path, expected: str) -> str:
-    actual = _sha256_file(path)
+def _sha256_bytes(payload: bytes) -> str:
+    if type(payload) is not bytes:
+        raise _ConfigurationInvalid
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _require_exact_bytes(path: Path, expected: str, *, max_bytes: int) -> bytes:
+    payload = _read_bounded_file_once(path, max_bytes=max_bytes)
+    actual = _sha256_bytes(payload)
     if actual != expected:
         raise _ConfigurationInvalid
-    return actual
+    return payload
 
 
 def _load_fixtures(path: Path) -> tuple[_Fixture, ...]:
     if path.resolve() != _FIXTURE_PATH.resolve():
         raise _FixturesInvalid
     try:
-        if _sha256_file(path) != _EXPECTED_FIXTURE_SHA256:
-            raise _FixturesInvalid
-        document = json.loads(path.read_text(encoding="utf-8"))
+        payload = _require_exact_bytes(
+            path,
+            _EXPECTED_FIXTURE_SHA256,
+            max_bytes=_FIXTURE_MAX_BYTES,
+        )
+        document = load_strict_json_bytes(payload)
         raw_cases = document["cases"]
     except (OSError, UnicodeError, ValueError, KeyError, TypeError):
         raise _FixturesInvalid from None
@@ -624,19 +631,63 @@ def _parse_knowledge_record(raw: dict[str, Any]) -> KnowledgeRecord:
     )
 
 
+def _parse_topic_coverage_bytes(payload: bytes) -> tuple[TopicCoverage, ...]:
+    try:
+        document = load_strict_json_bytes(payload)
+    except (UnicodeError, TypeError, ValueError):
+        raise _ConfigurationInvalid from None
+    if (
+        type(document) is not dict
+        or frozenset(document) != {"schema_version", "data_kind", "topics"}
+        or document["schema_version"] != 1
+        or document["data_kind"] != "NON_FACTUAL_RETRIEVAL_METADATA"
+        or type(document["topics"]) is not list
+    ):
+        raise _ConfigurationInvalid
+    coverage: list[TopicCoverage] = []
+    try:
+        for raw in document["topics"]:
+            if type(raw) is not dict or frozenset(raw) != {
+                "topic_id",
+                "intent",
+                "coverage_id",
+                "coverage_label",
+            }:
+                raise _ConfigurationInvalid
+            coverage.append(
+                TopicCoverage(
+                    topic_id=raw["topic_id"],
+                    intent=Intent(raw["intent"]),
+                    coverage_id=raw["coverage_id"],
+                    coverage_label=raw["coverage_label"],
+                )
+            )
+    except (KeyError, TypeError, ValueError):
+        raise _ConfigurationInvalid from None
+    if len({item.topic_id for item in coverage}) != len(coverage):
+        raise _ConfigurationInvalid
+    return tuple(sorted(coverage, key=lambda item: item.topic_id))
+
+
 def _load_pinned_catalog() -> TopicCatalog:
-    _require_exact_sha(_COVERAGE_PATH, _EXPECTED_COVERAGE_SHA256)
-    _require_exact_sha(
+    coverage_payload = _require_exact_bytes(
+        _COVERAGE_PATH,
+        _EXPECTED_COVERAGE_SHA256,
+        max_bytes=_COVERAGE_MAX_BYTES,
+    )
+    records_payload = _require_exact_bytes(
         _OFFICIAL_RECORDS_PATH,
         _EXPECTED_OFFICIAL_RECORDS_SHA256,
+        max_bytes=_OFFICIAL_RECORDS_MAX_BYTES,
     )
-    _require_exact_sha(
+    manifest_payload = _require_exact_bytes(
         _RELEASE_MANIFEST_PATH,
         _EXPECTED_RELEASE_MANIFEST_SHA256,
+        max_bytes=_RELEASE_MANIFEST_MAX_BYTES,
     )
     try:
-        manifest = json.loads(_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8"))
-        release = json.loads(_OFFICIAL_RECORDS_PATH.read_text(encoding="utf-8"))
+        manifest = load_strict_json_bytes(manifest_payload)
+        release = load_strict_json_bytes(records_payload)
         raw_records = release["records"]
         artifacts = manifest["artifacts"]
     except (OSError, UnicodeError, ValueError, KeyError, TypeError):
@@ -670,7 +721,8 @@ def _load_pinned_catalog() -> TopicCatalog:
         raise _ConfigurationInvalid
     try:
         records = tuple(_parse_knowledge_record(raw) for raw in raw_records)
-        catalog = build_topic_catalog(records, load_topic_coverage(_COVERAGE_PATH))
+        coverage = _parse_topic_coverage_bytes(coverage_payload)
+        catalog = build_topic_catalog(records, coverage)
     except (KeyError, TypeError, ValueError):
         raise _ConfigurationInvalid from None
     if (
@@ -723,10 +775,26 @@ def _require_offline_gate(source_sha: str) -> str:
     if re.fullmatch(r"[0-9a-f]{40}", source_sha) is None:
         raise _ConfigurationInvalid
     try:
-        if _OFFLINE_LOCK_PATH.read_text(encoding="ascii") != _OFFLINE_LEASE_TEXT:
+        lock_payload = _read_bounded_file_once(
+            _OFFLINE_LOCK_PATH,
+            max_bytes=1024,
+        )
+        if lock_payload != _OFFLINE_LEASE_TEXT.encode("ascii"):
             raise _ConfigurationInvalid
-        document = json.loads(_OFFLINE_RESULT_PATH.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, ValueError, TypeError):
+        result_payload = _read_bounded_file_once(
+            _OFFLINE_RESULT_PATH,
+            max_bytes=_OFFLINE_RESULT_MAX_BYTES,
+        )
+        document = load_strict_json_bytes(result_payload)
+        stdout_payload = _read_bounded_file_once(
+            _OFFLINE_STDOUT_PATH,
+            max_bytes=_OFFLINE_LOG_MAX_BYTES,
+        )
+        stderr_payload = _read_bounded_file_once(
+            _OFFLINE_STDERR_PATH,
+            max_bytes=_OFFLINE_LOG_MAX_BYTES,
+        )
+    except (UnicodeError, ValueError, TypeError):
         raise _ConfigurationInvalid from None
     if (
         type(document) is not dict
@@ -745,13 +813,10 @@ def _require_offline_gate(source_sha: str) -> str:
         or type(document["stderr_sha256"]) is not str
     ):
         raise _ConfigurationInvalid
-    stdout_hash = _sha256_file(_OFFLINE_STDOUT_PATH)
-    stderr_hash = _sha256_file(_OFFLINE_STDERR_PATH)
-    try:
-        stdout_bytes = _OFFLINE_STDOUT_PATH.stat().st_size
-        stderr_bytes = _OFFLINE_STDERR_PATH.stat().st_size
-    except OSError:
-        raise _ConfigurationInvalid from None
+    stdout_hash = _sha256_bytes(stdout_payload)
+    stderr_hash = _sha256_bytes(stderr_payload)
+    stdout_bytes = len(stdout_payload)
+    stderr_bytes = len(stderr_payload)
     if (
         document["stdout_sha256"] != stdout_hash
         or document["stdout_bytes"] != stdout_bytes
@@ -759,7 +824,7 @@ def _require_offline_gate(source_sha: str) -> str:
         or document["stderr_bytes"] != stderr_bytes
     ):
         raise _ConfigurationInvalid
-    return _sha256_file(_OFFLINE_RESULT_PATH)
+    return _sha256_bytes(result_payload)
 
 
 def _validate_settings(settings: DeepSeekClassifierSettings) -> None:
@@ -854,6 +919,57 @@ def _perform_readiness(options: _RunnerOptions) -> _PreparedRun:
         identities=identities,
         report_path=options.report_path,
     )
+
+
+def _revalidate_prepared_run(prepared: _PreparedRun) -> None:
+    """Recheck the prepared source and every pinned identity immediately pre-lease."""
+
+    if type(prepared) is not _PreparedRun:
+        raise _ConfigurationInvalid
+    if _source_sha() != prepared.source_sha:
+        raise _ConfigurationInvalid
+    _require_clean_worktree()
+    identities = prepared.identities
+    if (
+        _sha256_bytes(
+            _read_bounded_file_once(
+                _FIXTURE_PATH,
+                max_bytes=_FIXTURE_MAX_BYTES,
+            )
+        )
+        != identities.fixture_sha256
+        or _sha256_bytes(
+            _read_bounded_file_once(
+                _COVERAGE_PATH,
+                max_bytes=_COVERAGE_MAX_BYTES,
+            )
+        )
+        != identities.coverage_sha256
+        or _sha256_bytes(
+            _read_bounded_file_once(
+                _OFFICIAL_RECORDS_PATH,
+                max_bytes=_OFFICIAL_RECORDS_MAX_BYTES,
+            )
+        )
+        != identities.official_records_sha256
+        or _sha256_bytes(
+            _read_bounded_file_once(
+                _RELEASE_MANIFEST_PATH,
+                max_bytes=_RELEASE_MANIFEST_MAX_BYTES,
+            )
+        )
+        != identities.release_manifest_sha256
+        or _require_offline_gate(prepared.source_sha)
+        != identities.offline_result_sha256
+    ):
+        raise _ConfigurationInvalid
+    current_settings = load_deepseek_classifier_settings()
+    if current_settings is None:
+        raise _ConfigurationInvalid
+    _validate_settings(current_settings)
+    if current_settings != prepared.settings:
+        raise _ConfigurationInvalid
+    _require_actual_absent(prepared.report_path)
 
 
 def _worst_case_classifier_cost() -> Decimal:
@@ -991,7 +1107,6 @@ async def _execute_actual(
     client = create_deepseek_classifier_client(prepared.settings)
     if not isinstance(client, httpx.AsyncClient):
         raise _RuntimeFailed
-    client.event_hooks.setdefault("response", []).append(usage_recorder.capture)
     try:
         async with client:
             classifier = DeepSeekQuestionClassifier(
@@ -999,6 +1114,7 @@ async def _execute_actual(
                 client=client,
                 ledger=ledger,
                 response_stage_observer=stage_recorder.capture,
+                response_observer=usage_recorder.capture,
             )
             await _evaluate_selected(
                 prepared.selection.selected,
@@ -1021,6 +1137,14 @@ async def _execute_actual(
         evidence.usage = usage_recorder.usage
         evidence.response_stage_counts = Counter(stage_recorder.counts)
         evidence.conservative_cost_usd = ledger.actual_cost_usd
+
+
+async def _execute_actual_with_deadline(
+    prepared: _PreparedRun,
+    evidence: _RunEvidence,
+) -> None:
+    async with asyncio.timeout(_ACTUAL_RUN_DEADLINE_SECONDS):
+        await _execute_actual(prepared, evidence)
 
 
 def _all_response_stages_are_accepted(evidence: _RunEvidence) -> bool:
@@ -1289,6 +1413,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         try:
             evidence = _new_evidence(prepared)
+            _revalidate_prepared_run(prepared)
         except Exception:
             print(
                 "DEEPSEEK_CLASSIFIER_ACTUAL_READINESS_INVALID",
@@ -1313,7 +1438,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         execution_failed = False
         try:
-            asyncio.run(_execute_actual(prepared, evidence))
+            asyncio.run(_execute_actual_with_deadline(prepared, evidence))
         except Exception:
             execution_failed = True
             evidence.runtime_failure_count = 1

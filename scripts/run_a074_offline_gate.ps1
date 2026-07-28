@@ -85,10 +85,39 @@ function Stop-ProcessTreeAndWait {
         -PassThru `
         -Wait `
         -WindowStyle Hidden
-    if ($killer.ExitCode -ne 0 -and -not $Process.HasExited) {
+    if ($killer.ExitCode -ne 0) {
         throw "PROCESS_TREE_KILL_FAILED"
     }
     $Process.WaitForExit()
+    if (-not $Process.HasExited) {
+        throw "PROCESS_TREE_TERMINATION_UNCONFIRMED"
+    }
+}
+
+function Assert-OriginalSourceIdentityAndClean {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RepositoryRoot,
+        [Parameter(Mandatory = $true)]
+        [string]$OriginalSourceSha
+    )
+
+    $currentShaOutput = @(
+        & git -C $RepositoryRoot rev-parse HEAD 2>$null
+    )
+    if (
+        $LASTEXITCODE -ne 0 -or
+        $currentShaOutput.Count -ne 1 -or
+        $currentShaOutput[0].Trim() -cne $OriginalSourceSha
+    ) {
+        throw "SOURCE_SHA_DRIFTED"
+    }
+    $currentStatusOutput = @(
+        & git -C $RepositoryRoot status --porcelain=v1 --untracked-files=all 2>$null
+    )
+    if ($LASTEXITCODE -ne 0 -or $currentStatusOutput.Count -ne 0) {
+        throw "SOURCE_NOT_CLEAN"
+    }
 }
 
 try {
@@ -204,6 +233,9 @@ try {
         $processTerminationConfirmed = $true
         $exitCode = [int]$process.ExitCode
     }
+    Assert-OriginalSourceIdentityAndClean `
+        -RepositoryRoot $repoRoot `
+        -OriginalSourceSha $sourceSha
     if (-not $timedOut -and $exitCode -eq 0) {
         $outcome = "PASS"
     }
@@ -218,7 +250,7 @@ catch {
     }
     if (-not $processTerminationConfirmed -and $null -ne $process) {
         try {
-            if ($process.HasExited) {
+            if (-not $processTerminationAttempted -and $process.HasExited) {
                 $process.WaitForExit()
                 $processTerminationConfirmed = $true
             }
@@ -251,6 +283,16 @@ try {
     }
     if (-not (Test-Path -LiteralPath $stderrPath -PathType Leaf)) {
         New-EmptyFsyncedFile -LiteralPath $stderrPath
+    }
+    try {
+        Assert-OriginalSourceIdentityAndClean `
+            -RepositoryRoot $repoRoot `
+            -OriginalSourceSha $sourceSha
+    }
+    catch {
+        $postLeaseFailure = $true
+        $exitCode = 125
+        $outcome = "FAIL"
     }
 
     $stdoutItem = Get-Item -LiteralPath $stdoutPath

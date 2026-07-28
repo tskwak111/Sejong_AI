@@ -339,3 +339,119 @@ def test_unconfirmed_timeout_termination_never_publishes_mutable_log_hashes(
         "started",
         "finished",
     ]
+
+
+@pytest.mark.parametrize("mutation", ("new-head", "untracked"))
+def test_post_child_source_drift_consumes_gate_as_fail_never_pass(
+    mutation: str,
+    tmp_path: Path,
+) -> None:
+    repository = _fake_repository(tmp_path)
+    source_sha = _git(repository, "rev-parse", "HEAD")
+    verify_path = repository / "scripts" / "verify.ps1"
+    if mutation == "new-head":
+        verify_path.write_text(
+            "\n".join(
+                (
+                    "param([switch]$Offline)",
+                    "$repo = Split-Path -Parent $PSScriptRoot",
+                    '$tracked = Join-Path $repo "tracked-drift.txt"',
+                    '[System.IO.File]::WriteAllText($tracked, "drift")',
+                    "& git -C $repo add tracked-drift.txt",
+                    '& git -C $repo commit -qm "controlled post-start drift"',
+                    "exit 0",
+                    "",
+                )
+            ),
+            encoding="utf-8",
+        )
+    else:
+        verify_path.write_text(
+            "\n".join(
+                (
+                    "param([switch]$Offline)",
+                    "$repo = Split-Path -Parent $PSScriptRoot",
+                    '$untracked = Join-Path $repo "untracked-drift.txt"',
+                    '[System.IO.File]::WriteAllText($untracked, "drift")',
+                    "exit 0",
+                    "",
+                )
+            ),
+            encoding="utf-8",
+        )
+    _commit_controlled_change(repository, "add controlled source drift")
+    source_sha = _git(repository, "rev-parse", "HEAD")
+
+    completed = _run_wrapper(repository)
+
+    assert completed.returncode == 125
+    result_path = repository / _RESULT_RELATIVE
+    assert result_path.is_file()
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    assert result["source_sha"] == source_sha
+    assert result["outcome"] == "FAIL"
+    assert result["exit_code"] == 125
+    assert result["invocation_count"] == 1
+    assert result["rerun_count"] == 0
+    assert (repository / _LOCK_RELATIVE).is_file()
+
+
+def test_nonzero_tree_kill_is_unconfirmed_even_after_parent_exits(
+    tmp_path: Path,
+) -> None:
+    repository = _fake_repository(tmp_path)
+    wrapper_path = repository / "scripts" / _WRAPPER_PATH.name
+    source = wrapper_path.read_text(encoding="utf-8")
+    source = source.replace("$TimeoutSeconds = 3600", "$TimeoutSeconds = 1")
+    killer_block = """$killer = Start-Process `
+        -FilePath $taskkill `
+        -ArgumentList $killArguments `
+        -PassThru `
+        -Wait `
+        -WindowStyle Hidden"""
+    assert source.count(killer_block) == 1
+    source = source.replace(
+        killer_block,
+        "Start-Sleep -Milliseconds 1200`n"
+        "    $killer = [pscustomobject]@{ ExitCode = 1 }",
+    )
+    wrapper_path.write_text(source, encoding="utf-8")
+    late_child_path = repository / "scripts" / "late-child.ps1"
+    late_child_path.write_text(
+        "\n".join(
+            (
+                "param([string]$LogPath)",
+                "Start-Sleep -Milliseconds 3500",
+                '[System.IO.File]::AppendAllText($LogPath, "`nlate-descendant-mutation")',
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    verify_path = repository / "scripts" / "verify.ps1"
+    verify_path.write_text(
+        "\n".join(
+            (
+                "param([switch]$Offline)",
+                "$repo = Split-Path -Parent $PSScriptRoot",
+                '$log = Join-Path $repo ".superpowers\\sdd\\2026-07-29-deepseek-classifier-provider\\a074-offline-gate.stdout.log"',
+                '$child = Join-Path $PSScriptRoot "late-child.ps1"',
+                "$quotedChild = '\"' + $child + '\"'",
+                "$quotedLog = '\"' + $log + '\"'",
+                'Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoProfile", "-File", $quotedChild, "-LogPath", $quotedLog) -WindowStyle Hidden',
+                "Start-Sleep -Milliseconds 1600",
+                "exit 0",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    _commit_controlled_change(repository, "add controlled nonzero tree kill")
+
+    completed = _run_wrapper(repository)
+
+    assert completed.returncode == 125
+    assert (repository / _LOCK_RELATIVE).is_file()
+    assert not (repository / _RESULT_RELATIVE).exists()
+    time.sleep(4)
+    assert not (repository / _RESULT_RELATIVE).exists()

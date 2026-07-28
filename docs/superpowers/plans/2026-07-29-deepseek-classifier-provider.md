@@ -184,6 +184,28 @@ Actions:
 4. run docs, secret and diff checks;
 5. commit truthful offline implementation evidence.
 
+### Task 6b — Integrated pre-gate hardening
+
+The original approved plan did not predict this review-driven patch. It is a realized hardening
+addendum before consuming either one-shot:
+
+1. preserve the initial integrated review result Critical 0 / Important 5 `NOT READY`;
+2. preserve RED evidence: 19 Python and 3 controlled fake-wrapper failures;
+3. reject recursive duplicate JSON keys and bound identity/raw response streaming below 64 KiB;
+4. enforce a complete-exchange 3-second deadline and aggregate actual 32-second deadline;
+5. parse the exact bytes that were hashed and revalidate source, fixture/catalog/settings/offline
+   evidence and report/lease absence immediately before lease acquisition;
+6. recheck original HEAD and clean tree after the offline child exits, and treat nonzero `taskkill`
+   as unconfirmed termination without publishing mutable-log evidence;
+7. preserve wave 1 GREEN focused 195 / area 655+5;
+8. preserve the second review Critical 0 / Important 1 `NOT READY` for compressed decoding;
+9. preserve wave 2 GREEN focused 196 / area 656+5;
+10. require a final fresh Critical 0 / Important 0 / Minor 0 `READY` review before Task 7.
+
+Final hardening evidence also includes reviewer focused 257, Ruff 126 files, API Mypy 123 files,
+runner strict Mypy 3 files, PowerShell parser 1,523 tokens, and docs/secret/diff PASS. Neither
+A-074 one-shot was consumed; both remain invocation/rerun 0/0 with artifacts absent.
+
 ### Task 7 — New A-074 offline gate exactly once
 
 1. Confirm these paths do not exist:
@@ -238,6 +260,11 @@ offline gate runs at the final source. The A-073 wrapper and Upstage actual are 
 - docs: `2.30.7` → `2.30.8` approved design checkpoint →
   `2.31.0-deepseek-classifier-provider`
 
+Those values are the historical approved implementation target. The realized Task 6b internal
+hardening patch advances application to `0.13.1-selectable-classifier-provider-hardening`, tests to
+`2.2.1-deepseek-classifier-provider-hardening`, and docs to
+`2.31.1-deepseek-classifier-provider-hardening`; every other version axis remains unchanged.
+
 ## 위험과 롤백
 
 - 위험: wrong provider price, selector ambiguity, JSON-mode over-trust, mixed-provider accounting,
@@ -272,15 +299,24 @@ Still prohibited:
 - 2026-07-29: Tasks 1~6 offline implementation, area integration, documentation/version
   synchronization and independent review completed. No A-074 offline gate or provider actual has
   run; invocation/rerun remain 0/0.
+- 2026-07-29: integrated pre-gate review returned C0/I5 `NOT READY`. Task 6b preserved 19 Python
+  and 3 fake-wrapper REDs, then passed wave 1 focused 195 / area 655+5.
+- 2026-07-29: second review returned C0/I1 `NOT READY` for compressed decoding. Wave 2 passed
+  focused 196 / area 656+5, and the final fresh review returned C0/I0/M0 `READY`; reviewer focused
+  257, Ruff/Mypy/PowerShell parser/docs/secret/diff also passed.
+- 2026-07-29: A-074 gate/actual invocation/rerun remain 0/0 with artifacts absent. A-073 remains
+  `NOT VERIFIED/FAIL`, invocation/rerun 1/0.
 
 ## 결과와 회고
 
-- 실제 결과: offline implementation complete through one-shot runner/wrapper; A-074 gate and
-  DeepSeek actual both pending with invocation/rerun 0/0.
-- 계획과 달라진 점: independent wrapper review found and corrected lock-owner and unconfirmed
-  termination races before any real gate execution.
-- 다음 단계: Task 7 — commit a clean source checkpoint and run the new A-074 offline gate
-  exactly once.
+- 실제 결과: hardened offline implementation complete through Task 6b; A-074 gate and DeepSeek
+  actual both pending with invocation/rerun 0/0 and artifacts absent.
+- 계획과 달라진 점: original wrapper review corrected lock-owner/unconfirmed termination races.
+  The later integrated pre-gate review additionally found recursive JSON, response-boundary,
+  total-deadline, exact-byte/pre-lease TOCTOU and post-child source/termination gaps. Two
+  RED/GREEN waves closed all Critical/Important/Minor findings before any real gate execution.
+- 다음 단계: Task 7 — commit the reviewed hardening as a clean source checkpoint and run the new
+  A-074 offline gate exactly once.
 
 ## Plan self-review
 

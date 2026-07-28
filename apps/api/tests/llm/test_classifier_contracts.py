@@ -196,6 +196,43 @@ def test_provider_wire_normalizes_exact_none_and_accepts_closed_shapes(
 
 
 @pytest.mark.parametrize(
+    "payload",
+    (
+        b'{"route":"NON_CIVIC","route":"NON_CIVIC","intent":"NONE",'
+        b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}',
+        b'{"route":"NON_CIVIC","intent":"NONE","intent":"NONE",'
+        b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}',
+        b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE",'
+        b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}',
+        b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE",'
+        b'"coverage_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}',
+        b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE",'
+        b'"coverage_id":"NONE","pending_slot":"NONE","pending_slot":"NONE"}',
+        b'{"route":"NON_CIVIC","intent":{"ambiguous":"NONE","ambiguous":"NONE"},'
+        b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}',
+        b'{"route":"BAD_ROUTE","intent":"BAD_INTENT","intent":"NONE",'
+        b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}',
+    ),
+    ids=(
+        "duplicate-route",
+        "duplicate-intent",
+        "duplicate-topic-id",
+        "duplicate-coverage-id",
+        "duplicate-pending-slot",
+        "nested-duplicate",
+        "duplicate-precedes-bad-enums",
+    ),
+)
+def test_provider_wire_rejects_duplicate_keys_as_json_before_other_validation(
+    payload: bytes,
+) -> None:
+    result = parse_classifier_wire_decision_with_stage(payload, _catalog())
+
+    assert result.decision is None
+    assert result.stage is ClassifierResponseStage.JSON_REJECTED
+
+
+@pytest.mark.parametrize(
     ("payload", "expected_stage"),
     [
         (

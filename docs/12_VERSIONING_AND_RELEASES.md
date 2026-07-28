@@ -55,7 +55,7 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.10
-application: 0.13.0-selectable-classifier-provider
+application: 0.13.1-selectable-classifier-provider-hardening
 web: 0.8.0-guided-chat
 api: 4.0.0-draft
 shared_contracts: 1.0.0
@@ -63,8 +63,8 @@ database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.3-explicit-route-matrix
-test_suite: 2.2.0-deepseek-classifier-provider
-documentation: 2.31.0-deepseek-classifier-provider
+test_suite: 2.2.1-deepseek-classifier-provider-hardening
+documentation: 2.31.1-deepseek-classifier-provider-hardening
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -481,6 +481,27 @@ official/mock data/dependency 축은 불변이다. 이 checkpoint에서 A-074 of
 DeepSeek actual invocation은 각각 0이며 결과·token·비용·PASS/FAIL은 기록하지 않는다.
 A-073 root `NOT VERIFIED/FAIL`, invocation/rerun `1/0`과 기존 Upstage actual을 재실행하지
 않았다.
+
+## A-074 pre-gate hardening patch
+
+2026-07-29 initial integrated pre-gate review는 Critical 0 / Important 5로 `NOT READY`였다.
+Task 6b의 첫 RED는 Python 19건과 controlled fake-wrapper 3건이었고, 첫 GREEN은 focused
+195·area 655+5였다. 두 번째 독립 review가 compressed decoding 1건을 Important로 남겨
+`NOT READY`를 유지했으며, wave 2는 focused 196·area 656+5로 이를 닫았다. 최종 fresh
+review는 Critical 0 / Important 0 / Minor 0으로 `READY`였고 reviewer focused 257도
+PASS했다. Ruff 126 files, API Mypy 123 files, runner strict Mypy 3 files, PowerShell parser
+1,523 tokens, docs·secret·diff 검사가 모두 PASS했다.
+
+이 patch는 recursive duplicate-key rejection, identity/raw response의 `<64 KiB` bounded
+streaming, complete exchange 3초·actual aggregate 32초 deadline, exact-byte/pre-lease
+TOCTOU 재검증, nonzero `taskkill`과 post-child source drift의 fail-closed 처리를 추가한다.
+따라서 application은 `0.13.0→0.13.1-selectable-classifier-provider-hardening`, tests는
+`2.2.0→2.2.1-deepseek-classifier-provider-hardening`, documentation은
+`2.31.0→2.31.1-deepseek-classifier-provider-hardening`으로 patch 승격했다. Prompt
+`0.4.3-explicit-route-matrix`와 product/repository guidance/API/contracts/Web/DB/
+official/mock data/dependency 축은 불변이다. A-074 offline gate와 DeepSeek actual은
+여전히 invocation/rerun `0/0`이고 artifact도 없다. A-073 root는
+`NOT VERIFIED/FAIL`, invocation/rerun `1/0`을 그대로 보존한다.
 
 ## CHAT-NATURAL-001 grouped implementation promotion
 

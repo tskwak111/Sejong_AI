@@ -1,10 +1,10 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-29T07:13:16+09:00",
+  "updated_at": "2026-07-29T08:21:43+09:00",
   "versions": {
     "product_spec": "2.6.0",
     "repo_guidance": "1.7.10",
-    "application": "0.13.0-selectable-classifier-provider",
+    "application": "0.13.1-selectable-classifier-provider-hardening",
     "web": "0.8.0-guided-chat",
     "api": "4.0.0-draft",
     "shared_contracts": "1.0.0",
@@ -12,8 +12,8 @@
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.4.3-explicit-route-matrix",
-    "test_suite": "2.2.0-deepseek-classifier-provider",
-    "documentation": "2.31.0-deepseek-classifier-provider"
+    "test_suite": "2.2.1-deepseek-classifier-provider-hardening",
+    "documentation": "2.31.1-deepseek-classifier-provider-hardening"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

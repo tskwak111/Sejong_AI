@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import gzip
 import json
+import time
 from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
@@ -21,6 +24,7 @@ from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.cost import estimate_cost_usd
 from sejong_ai_api.llm.deepseek_classifier import (
     DeepSeekQuestionClassifier,
+    DeepSeekResponseObservation,
     create_deepseek_classifier_client,
 )
 from sejong_ai_api.llm.deepseek_settings import DeepSeekClassifierSettings
@@ -127,11 +131,46 @@ def _provider_response(
     }
     if include_usage:
         envelope["usage"] = _usage() if usage is None else usage
-    return httpx.Response(200, json=envelope)
+    return httpx.Response(
+        200,
+        headers={"Content-Type": "application/json"},
+        stream=httpx.ByteStream(
+            json.dumps(envelope, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ),
+    )
 
 
 def _envelope_response(envelope: object) -> httpx.Response:
-    return httpx.Response(200, json=envelope)
+    return httpx.Response(
+        200,
+        headers={"Content-Type": "application/json"},
+        stream=httpx.ByteStream(
+            json.dumps(envelope, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ),
+    )
+
+
+class _ChunkedResponseStream(httpx.AsyncByteStream):
+    def __init__(
+        self,
+        chunks: tuple[bytes, ...],
+        *,
+        delay_seconds: float = 0,
+    ) -> None:
+        self.chunks = chunks
+        self.delay_seconds = delay_seconds
+        self.yielded = 0
+        self.closed = False
+
+    async def __aiter__(self):  # type: ignore[no-untyped-def]
+        for chunk in self.chunks:
+            if self.delay_seconds:
+                await asyncio.sleep(self.delay_seconds)
+            self.yielded += 1
+            yield chunk
+
+    async def aclose(self) -> None:
+        self.closed = True
 
 
 def _ledger(
@@ -222,6 +261,7 @@ async def test_success_posts_one_exact_deepseek_json_object_request() -> None:
     request = seen[0]
     assert request.method == "POST"
     assert str(request.url) == "https://api.deepseek.com/chat/completions"
+    assert request.headers["Accept-Encoding"] == "identity"
     assert json.loads(request.content) == {
         "model": "deepseek-v4-flash",
         "messages": list(
@@ -395,7 +435,7 @@ async def test_approved_twenty_topic_prompt_remains_within_byte_and_framing_boun
     [
         (httpx.Response(429), ClassifierResponseStage.HTTP_REJECTED, False),
         (
-            httpx.Response(200, content=b"not-json"),
+            httpx.Response(200, stream=httpx.ByteStream(b"not-json")),
             ClassifierResponseStage.ENVELOPE_REJECTED,
             False,
         ),
@@ -541,6 +581,202 @@ async def test_response_emits_one_value_free_terminal_stage(
     assert (decision is not None) is decision_expected
     assert observed == [expected_stage]
     assert all(type(stage) is ClassifierResponseStage for stage in observed)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "body",
+    (
+        b'{"choices":[],"choices":[],"usage":{"prompt_tokens":0,'
+        b'"completion_tokens":0,"total_tokens":0}}',
+        b'{"choices":[],"usage":{"prompt_tokens":0,"prompt_tokens":0,'
+        b'"completion_tokens":0,"total_tokens":0}}',
+        b'{"choices":[{"finish_reason":"stop","message":{"content":"{}",'
+        b'"content":"{}"}}],"usage":{"prompt_tokens":0,'
+        b'"completion_tokens":0,"total_tokens":0}}',
+    ),
+    ids=("duplicate-envelope", "duplicate-usage", "duplicate-nested-message"),
+)
+async def test_duplicate_deepseek_envelope_keys_fail_before_usage_or_decision(
+    body: bytes,
+) -> None:
+    settings = DeepSeekClassifierSettings(api_key=SECRET)
+    stages: list[ClassifierResponseStage] = []
+    observations: list[DeepSeekResponseObservation] = []
+    ledger = _ledger()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(200, stream=httpx.ByteStream(body))
+        ),
+    ) as client:
+        decision = await DeepSeekQuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+            response_stage_observer=stages.append,
+            response_observer=observations.append,
+        ).classify(_question(), _catalog())
+
+    assert decision is None
+    assert stages == [ClassifierResponseStage.ENVELOPE_REJECTED]
+    assert len(observations) == 1
+    assert observations[0].http_2xx is True
+    assert observations[0].usage is None
+    assert ledger.actual_cost_usd == DEEPSEEK_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_streaming_response_cap_rejects_cap_plus_one_without_reading_tail() -> None:
+    settings = DeepSeekClassifierSettings(api_key=SECRET)
+    stream = _ChunkedResponseStream(
+        (
+            b"{" + (b" " * 65534),
+            b"x",
+            b"synthetic-provider-body-marker-must-not-be-read",
+        )
+    )
+    stages: list[ClassifierResponseStage] = []
+    observations: list[DeepSeekResponseObservation] = []
+    ledger = _ledger()
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(lambda _request: httpx.Response(200, stream=stream)),
+    ) as client:
+        decision = await DeepSeekQuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+            response_stage_observer=stages.append,
+            response_observer=observations.append,
+        ).classify(_question(), _catalog())
+
+    assert decision is None
+    assert stream.yielded == 2
+    assert stream.closed is True
+    assert stages == [ClassifierResponseStage.ENVELOPE_REJECTED]
+    assert len(observations) == 1
+    assert observations[0].http_2xx is True
+    assert observations[0].usage is None
+    assert ledger.actual_cost_usd == DEEPSEEK_WORST_CASE_USD
+
+
+@pytest.mark.asyncio
+async def test_compressed_response_is_rejected_before_decoding_or_body_read(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = DeepSeekClassifierSettings(api_key=SECRET)
+    expanded = b'{"synthetic-provider-body-marker":"' + (b"x" * 70000) + b'"}'
+    compressed = gzip.compress(expanded)
+    stream = _ChunkedResponseStream(
+        (
+            compressed,
+            b"synthetic-provider-body-tail-must-not-be-read",
+        )
+    )
+    calls = 0
+    accept_encodings: list[str] = []
+    stages: list[ClassifierResponseStage] = []
+    observations: list[DeepSeekResponseObservation] = []
+    ledger = _ledger()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        accept_encodings.append(request.headers["Accept-Encoding"])
+        return httpx.Response(
+            200,
+            headers={"Content-Encoding": "gzip"},
+            stream=stream,
+        )
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        classifier = DeepSeekQuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+            response_stage_observer=stages.append,
+            response_observer=observations.append,
+        )
+        decision = await classifier.classify(_question(), _catalog())
+
+    assert decision is None
+    assert calls == 1
+    assert accept_encodings == ["identity"]
+    assert stream.yielded == 0
+    assert stream.closed is True
+    assert stages == [ClassifierResponseStage.ENVELOPE_REJECTED]
+    assert observations == [DeepSeekResponseObservation(http_2xx=True, usage=None)]
+    assert ledger.classifier_attempts_used == 1
+    assert ledger.actual_cost_usd == DEEPSEEK_WORST_CASE_USD
+    exposed = caplog.text + repr(classifier)
+    assert "synthetic-provider-body-marker" not in exposed
+    assert "synthetic-provider-body-tail-must-not-be-read" not in exposed
+
+
+@pytest.mark.asyncio
+async def test_complete_exchange_has_strict_wall_clock_not_slow_drip_timeout() -> None:
+    settings = DeepSeekClassifierSettings(api_key=SECRET)
+    object.__setattr__(settings, "timeout_seconds", 0.01)
+    response_body = json.dumps(
+        {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {
+                        "content": (
+                            '{"route":"CIVIC_SCOPE_GAP","intent":"NONE",'
+                            '"topic_id":"NONE","coverage_id":"NONE",'
+                            '"pending_slot":"NONE"}'
+                        ),
+                    },
+                }
+            ],
+            "usage": _usage(),
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    stream = _ChunkedResponseStream(
+        (response_body,),
+        delay_seconds=0.05,
+    )
+    calls = 0
+    ledger = _ledger()
+    observations: list[DeepSeekResponseObservation] = []
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(200, stream=stream)
+
+    started = time.monotonic()
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(handler),
+        timeout=None,
+    ) as client:
+        decision = await DeepSeekQuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+            response_observer=observations.append,
+        ).classify(_question(), _catalog())
+    elapsed = time.monotonic() - started
+
+    assert decision is None
+    assert calls == 1
+    assert elapsed < 0.04
+    assert len(observations) == 1
+    assert observations[0].http_2xx is True
+    assert observations[0].usage is None
+    assert ledger.classifier_attempts_used == 1
+    assert ledger.actual_cost_usd == DEEPSEEK_WORST_CASE_USD
 
 
 @pytest.mark.asyncio
@@ -731,6 +967,9 @@ async def test_observer_failure_cannot_change_an_accepted_decision() -> None:
     def failing_observer(_stage: ClassifierResponseStage) -> None:
         raise RuntimeError("OBSERVER-DETAIL-MUST-NOT-ESCAPE")
 
+    def failing_response_observer(_observation: object) -> None:
+        raise RuntimeError("RESPONSE-OBSERVER-DETAIL-MUST-NOT-ESCAPE")
+
     async with httpx.AsyncClient(
         base_url=settings.base_url,
         transport=httpx.MockTransport(lambda _request: _provider_response()),
@@ -740,6 +979,7 @@ async def test_observer_failure_cannot_change_an_accepted_decision() -> None:
             client=client,
             ledger=_ledger(),
             response_stage_observer=failing_observer,
+            response_observer=failing_response_observer,
         ).classify(_question(), _catalog())
 
     assert decision is not None

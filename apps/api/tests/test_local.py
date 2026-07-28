@@ -418,6 +418,38 @@ def _deepseek_classifier_config(*, grounded_chat: bool = False) -> dict[str, str
     }
 
 
+def _deepseek_scope_gap_response(request: httpx.Request) -> httpx.Response:
+    body = json.dumps(
+        {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {
+                        "content": (
+                            '{"route":"CIVIC_SCOPE_GAP","intent":"NONE",'
+                            '"topic_id":"NONE","coverage_id":"NONE",'
+                            '"pending_slot":"NONE"}'
+                        )
+                    },
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 20,
+                "completion_tokens": 10,
+                "total_tokens": 30,
+            },
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return httpx.Response(
+        200,
+        request=request,
+        headers={"Content-Type": "application/json"},
+        stream=httpx.ByteStream(body),
+    )
+
+
 def _write_single_topic_coverage(tmp_path: Path) -> Path:
     path = tmp_path / "topic-coverage.v1.json"
     path.write_text(
@@ -917,29 +949,7 @@ def test_deepseek_selector_is_lazy_and_masks_one_safe_ambiguous_request(
         nonlocal outbound_calls
         outbound_calls += 1
         assert raw_email.encode() not in request.content
-        return httpx.Response(
-            200,
-            request=request,
-            json={
-                "choices": [
-                    {
-                        "finish_reason": "stop",
-                        "message": {
-                            "content": (
-                                '{"route":"CIVIC_SCOPE_GAP","intent":"NONE",'
-                                '"topic_id":"NONE","coverage_id":"NONE",'
-                                '"pending_slot":"NONE"}'
-                            )
-                        },
-                    }
-                ],
-                "usage": {
-                    "prompt_tokens": 20,
-                    "completion_tokens": 10,
-                    "total_tokens": 30,
-                },
-            },
-        )
+        return _deepseek_scope_gap_response(request)
 
     def client_factory(_settings: object) -> httpx.AsyncClient:
         nonlocal client_factory_calls
@@ -1318,29 +1328,7 @@ def test_deepseek_classifier_and_upstage_generator_use_separate_clients_and_shar
     def deepseek_handler(request: httpx.Request) -> httpx.Response:
         nonlocal deepseek_outbound
         deepseek_outbound += 1
-        return httpx.Response(
-            200,
-            request=request,
-            json={
-                "choices": [
-                    {
-                        "finish_reason": "stop",
-                        "message": {
-                            "content": (
-                                '{"route":"CIVIC_SCOPE_GAP","intent":"NONE",'
-                                '"topic_id":"NONE","coverage_id":"NONE",'
-                                '"pending_slot":"NONE"}'
-                            )
-                        },
-                    }
-                ],
-                "usage": {
-                    "prompt_tokens": 20,
-                    "completion_tokens": 10,
-                    "total_tokens": 30,
-                },
-            },
-        )
+        return _deepseek_scope_gap_response(request)
 
     def upstage_handler(request: httpx.Request) -> httpx.Response:
         nonlocal upstage_outbound

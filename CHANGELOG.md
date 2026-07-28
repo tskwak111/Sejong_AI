@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Hardened offline — A-074 pre-gate review fix wave
+
+- The initial integrated pre-gate review returned Critical 0 / Important 5 and `NOT READY`.
+  TDD preserved 19 Python REDs and three controlled fake-wrapper REDs before wave 1 passed
+  focused 195 and area 655+5.
+- A second independent review returned Critical 0 / Important 1 and kept `NOT READY` because
+  compressed decoding could cross the raw response boundary. Wave 2 passed focused 196 and
+  area 656+5. The final fresh review returned Critical 0 / Important 0 / Minor 0 `READY`, and its
+  reviewer-focused suite passed 257.
+- Added recursive duplicate-key rejection, identity/raw `<64 KiB` bounded streaming, a complete
+  exchange three-second timeout and 32-second actual aggregate deadline, exact-byte plus immediate
+  pre-lease TOCTOU revalidation, and fail-closed nonzero `taskkill`/post-child source checks.
+- Final static and repository evidence passed: Ruff 126 files, API Mypy 123 files, runner strict
+  Mypy 3 files, PowerShell parser 1,523 tokens, docs, secret and diff checks.
+- Advanced application `0.13.0→0.13.1-selectable-classifier-provider-hardening`, tests
+  `2.2.0→2.2.1-deepseek-classifier-provider-hardening` and documentation
+  `2.31.0→2.31.1-deepseek-classifier-provider-hardening`. All other version axes are unchanged.
+  The A-074 gate and DeepSeek actual remain unexecuted at invocation/rerun `0/0` with artifacts
+  absent. A-073 remains `NOT VERIFIED/FAIL`, invocation/rerun `1/0`.
+
 ### Implemented offline — A-074 selectable DeepSeek classifier provider
 
 - Added the explicit local/private classifier selector, strict DeepSeek settings and
@@ -14,16 +34,18 @@
 - Added provider-specific conservative usage/cost accounting and a local one-shot runner,
   immutable lease, aggregate-only report contract, Windows PowerShell 5.1 offline wrapper and
   controlled race/termination tests. No new production dependency was added.
-- Offline TDD and review are complete: Task 5 finished with 348 tests plus 5 subtests and the
-  Task 6 area suite passed 1,012 tests plus 5 subtests. Ruff, Mypy, PowerShell parser, secret,
-  docs and diff checks pass; final Task 5 independent review found Critical 0 and Important 0.
+- The original Task 5 checkpoint finished with 348 tests plus 5 subtests and the original Task 6
+  area suite passed 1,012 tests plus 5 subtests. Ruff, Mypy, PowerShell parser, secret, docs and
+  diff checks passed and Task 5 review found Critical 0 / Important 0. The later integrated
+  pre-gate review and its superseding Task 6b hardening evidence are recorded above.
 - The A-074 offline wrapper and DeepSeek actual have not run yet: invocation count 0, rerun count
   0 and no observed token/cost metric exists. A-073 remains `NOT VERIFIED/FAIL` with invocation/rerun
   `1/0`; no A-073 root wrapper or Upstage actual was rerun.
 - Promoted application `0.12.4→0.13.0-selectable-classifier-provider`, tests
   `2.1.7→2.2.0-deepseek-classifier-provider` and documentation
   `2.30.8→2.31.0-deepseek-classifier-provider`. Prompt `0.4.3`, public API/contracts, Web, DB,
-  official/mock data and dependency axes are unchanged.
+  official/mock data and dependency axes are unchanged. The pre-gate hardening patch above
+  supersedes these three current version values without changing the original promotion history.
 
 ### Approved — A-074 selectable DeepSeek classifier provider
 
