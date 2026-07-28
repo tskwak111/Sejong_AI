@@ -24,7 +24,7 @@ PR #20 병합 이후 현재 시스템 개발을 즉시 계속하고, AI가 수�
 - Web production build와 390/430/desktop 브라우저 회귀를 확인한다.
 - 발견된 재현 가능한 도구 회귀는 TDD로 최소 수정하고 arbitrary stderr fail-closed를 유지한다.
 - 비밀값·DSN·질문 원문을 로그나 문서에 남기지 않고 실제 Upstage 결과를 과장하지 않는다.
-- 구현 노트·INDEX·버전·변경 이력을 동기화하고 Draft PR까지만 게시한다.
+- 구현 노트·INDEX·버전·변경 이력을 동기화하고 통합 방식은 인간이 선택한다.
 
 ## 2. 육하원칙(6W1H)
 
@@ -159,7 +159,7 @@ PR #20 병합 이후 현재 시스템 개발을 즉시 계속하고, AI가 수�
   처리한다. Hybrid RAG의 실제 분류 품질을 확인하려면 기존 FAIL 원인을 교정한 뒤 별도 actual
   Upstage rerun 승인이 필요하다.
 - 이 PR은 pinned CLI/검증 문서 patch다. application, DB, KB, prompt를 바꾸지 않는다.
-- Draft PR은 사람이 검토·병합해야 하며 Codex는 자동 merge하지 않는다.
+- 사용자는 후속 통합 요청에서 local merge를 선택했다. remote push/PR/merge는 수행하지 않았다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
 

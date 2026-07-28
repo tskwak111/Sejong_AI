@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.0-topic-coverage
 test_suite: 2.1.2-patched-cli-advisory
-documentation: 2.29.1
+documentation: 2.29.2
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -122,6 +122,13 @@ manifest SHA-256, exit 0은 그대로 강제하고 임의 stderr는 계속 거�
 patched-tooling 25/25, provider-off local `/ready=200`, Web build, 390/430/desktop 27/27을
 재검증했다. final repository gate도 1191.5초 동안 31단계 전부 PASS했다. 이 patch는
 application/API/contract/DB/data/prompt 동작이나 actual Upstage 결과를 변경하지 않는다.
+
+Documentation `2.29.2`는 사용자가 통합 선택지 1을 택해 pinned CLI advisory patch commit
+`968d27e`를 로컬 `main`에 fast-forward한 기록이다. merge 전 local `main`과 `origin/main`은
+모두 `028053d`였고 충돌은 0이었다. remote push/PR/merge, provider call, DB reset/seed,
+public/remote deployment는 수행하지 않았다. application/API/contract/DB/data/prompt/test
+버전은 `2.29.1` 기준과 동일하고 병합된 local `main`의 31단계 repository gate는 967초,
+exit 0으로 PASS했다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

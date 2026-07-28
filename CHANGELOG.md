@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Integrated — pinned CLI advisory patch into local main
+
+- The user selected local integration, and `main` fast-forwarded from `028053d` to feature commit
+  `968d27e` without conflict after confirming exact parity with `origin/main`.
+- No remote push, pull request, remote merge, provider call, DB reset/seed or deployment occurred.
+- The merged local `main` passed the fresh 31-stage repository gate in 967 seconds.
+- The registered worktree and its ignored long-path caches were removed, and the fully merged local
+  feature branch was deleted after an explicit ancestry check; other worktrees were untouched.
+- Advanced documentation `2.29.1→2.29.2`; all runtime, contract, DB, data, prompt and test versions
+  remain unchanged.
+
 ### Fixed — pinned Supabase CLI official update advisory
 
 - Kept the pinned, hash-verified Supabase CLI at `2.109.1` while accepting only its exact official
