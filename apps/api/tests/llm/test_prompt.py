@@ -137,9 +137,9 @@ def test_classifier_prompt_contains_only_masked_question_and_governed_catalog_fi
     )
 
     assert json.loads(messages[1]["content"]) == {
-        "masked_question": "안전한 질문",
-        "topic_catalog": {
-            "columns": CLASSIFIER_CATALOG_COLUMNS,
+        "ask": "안전한 질문",
+        "catalog": {
+            "cols": CLASSIFIER_CATALOG_COLUMNS,
             "rows": [
                 [
                     "KB-WASTE-01",
@@ -221,12 +221,12 @@ def test_classifier_prompt_uses_at_most_two_approved_examples_without_sampling_t
     )
     payload = json.loads(messages[1]["content"])
 
-    assert len(payload["topic_catalog"]["rows"]) == 2
-    assert payload["topic_catalog"]["rows"][0][5] == [
+    assert len(payload["catalog"]["rows"]) == 2
+    assert payload["catalog"]["rows"][0][5] == [
         "첫 번째 승인 예시",
         "두 번째 승인 예시",
     ]
-    assert payload["topic_catalog"]["rows"][1][5] == [
+    assert payload["catalog"]["rows"][1][5] == [
         "첫 번째 승인 예시",
         "두 번째 승인 예시",
     ]
@@ -254,9 +254,9 @@ def test_real_governed_catalog_fits_and_preserves_every_approved_value(
     assert len(catalog.topics) == expected_size
     assert classifier_prompt_module.estimate_classifier_input_upper_bound(messages) <= 4096
     assert json.loads(messages[1]["content"]) == {
-        "masked_question": "안전한 질문",
-        "topic_catalog": {
-            "columns": CLASSIFIER_CATALOG_COLUMNS,
+        "ask": "안전한 질문",
+        "catalog": {
+            "cols": CLASSIFIER_CATALOG_COLUMNS,
             "rows": [
                 [
                     topic.record.public_id,

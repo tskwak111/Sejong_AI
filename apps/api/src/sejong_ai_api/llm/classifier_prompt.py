@@ -17,14 +17,11 @@ _CATALOG_COLUMNS = (
     "approved_examples",
 )
 _SYSTEM_MESSAGE = (
-    "JSON만. 필드 route,intent,topic_id,coverage_id,pending_slot 5개; "
-    "모두 문자열. 없음=NONE, 추가 금지. "
-    "SUPPORTED: intent/topic_id/coverage_id는 catalog row, pending_slot=NONE. "
-    "NO_TOPIC_MATCH: intent는 지원 intent, topic_id/coverage_id/pending_slot=NONE. "
-    "CIVIC_SCOPE_GAP/NON_CIVIC: intent/topic_id/coverage_id/pending_slot=NONE. "
-    "NEEDS_FOLLOWUP: topic_id/coverage_id=NONE, pending_slot="
-    "DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM. "
-    "pending_slot=DOMAIN: intent=NONE, 그 외 intent=지원 intent."
+    "JSON route,intent,topic_id,coverage_id,pending_slot=5 strings;NONE=없음;+X;"
+    "SUPPORTED=row*3,NONE;NO_TOPIC_MATCH=지원,NONE*3;"
+    "CIVIC_SCOPE_GAP/NON_CIVIC=NONE*4;"
+    "NEEDS_FOLLOWUP=DOMAIN?NONE:지원,NONE*2,"
+    "DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM"
 )
 
 
@@ -47,9 +44,9 @@ def build_classifier_messages(
     ):
         raise ValueError("CLASSIFIER_PROMPT_INVALID")
     payload = {
-        "masked_question": question.text,
-        "topic_catalog": {
-            "columns": list(_CATALOG_COLUMNS),
+        "ask": question.text,
+        "catalog": {
+            "cols": list(_CATALOG_COLUMNS),
             "rows": [
                 [
                     topic.record.public_id,
