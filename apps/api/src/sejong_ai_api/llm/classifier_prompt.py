@@ -45,7 +45,7 @@ def build_classifier_messages(
         raise ValueError("CLASSIFIER_PROMPT_INVALID")
     payload = {
         "ask": question.text,
-        "c": [
+        "cat": [
             list(_CATALOG_COLUMNS),
             [
                 [

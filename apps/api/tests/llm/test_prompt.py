@@ -138,7 +138,7 @@ def test_classifier_prompt_contains_only_masked_question_and_governed_catalog_fi
 
     assert json.loads(messages[1]["content"]) == {
         "ask": "안전한 질문",
-        "c": [
+        "cat": [
             CLASSIFIER_CATALOG_COLUMNS,
             [
                 [
@@ -209,15 +209,19 @@ def test_classifier_prompt_uses_canonical_wire_names_and_exact_none() -> None:
 
 
 def test_classifier_prompt_explicitly_maps_supported_values_and_forbids_extra_keys() -> None:
-    system = build_classifier_messages(
+    messages = build_classifier_messages(
         _safe_question(),
         _catalog(),
         max_input_chars=1024,
-    )[0]["content"]
+    )
+    system = messages[0]["content"]
+    payload = json.loads(messages[1]["content"])
 
     assert "extra=NO" in system
     assert "default=NONE" in system
     assert "SUPPORTED=cat[intent,topic_id,coverage_id]" in system
+    assert payload["cat"][0] == CLASSIFIER_CATALOG_COLUMNS
+    assert payload["cat"][1][0][0] == "KB-WASTE-01"
     assert "NO_TOPIC_MATCH=지원" in system
     assert "CIVIC_SCOPE_GAP/NON_CIVIC" in system
     assert "NEEDS_FOLLOWUP=DOMAIN?NONE:지원,,," in system
@@ -238,12 +242,12 @@ def test_classifier_prompt_uses_at_most_two_approved_examples_without_sampling_t
     )
     payload = json.loads(messages[1]["content"])
 
-    assert len(payload["c"][1]) == 2
-    assert payload["c"][1][0][5] == [
+    assert len(payload["cat"][1]) == 2
+    assert payload["cat"][1][0][5] == [
         "첫 번째 승인 예시",
         "두 번째 승인 예시",
     ]
-    assert payload["c"][1][1][5] == [
+    assert payload["cat"][1][1][5] == [
         "첫 번째 승인 예시",
         "두 번째 승인 예시",
     ]
@@ -272,7 +276,7 @@ def test_real_governed_catalog_fits_and_preserves_every_approved_value(
     assert classifier_prompt_module.estimate_classifier_input_upper_bound(messages) <= 4096
     assert json.loads(messages[1]["content"]) == {
         "ask": "안전한 질문",
-        "c": [
+        "cat": [
             CLASSIFIER_CATALOG_COLUMNS,
             [
                 [
