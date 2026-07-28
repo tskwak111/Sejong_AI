@@ -45,8 +45,9 @@ private `main` push를 승인하고, A-069을 값 비노출 방식으로 진단�
 - local `main`은 `d973abc`였고 private `origin/main`보다 3 commits 앞서 있었다.
 - 최초 D-105 actual은 9 outbound 뒤 usage/match 0이었지만 HTTP·transport·usage·contract
   실패 지점을 나누지 못했다.
-- 같은 key/model/endpoint/JSON mode의 historical CHAT-NATURAL actual은 provider 20/20
-  응답과 60/60 corrective PASS를 기록했으므로 인증이나 request shape를 추측으로 단정할 수 없었다.
+- 같은 configured model/endpoint/JSON mode와 key-present profile의 historical CHAT-NATURAL
+  actual은 provider 20/20 응답과 60/60 corrective PASS를 기록했다. key 값은 비교하지 않았으므로
+  인증이나 request shape를 추측으로 단정할 수 없었다.
 - ignored `.env`는 key assignment 1개, model/base pin과 provider mode false/false였다.
 
 ## 4. 미지의 영역·가정·인터뷰
