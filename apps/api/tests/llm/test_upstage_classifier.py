@@ -146,12 +146,12 @@ def test_prompt_defines_supported_boundary_and_closed_route_meanings() -> None:
     system = messages[0]["content"]
 
     for required in (
-        "CIVIC_SCOPE_GAP",
-        "NON_CIVIC",
-        "NEEDS_FOLLOWUP",
-        "NO_TOPIC_MATCH",
-        "topic_id",
-        "coverage_id",
+        "keys: route,intent,topic_id,coverage_id,pending_slot",
+        "all five values are strings",
+        "no extra key, prose or Markdown",
+        "NONE is exact uppercase ASCII; 없음/none/null/empty are forbidden",
+        "cat={intent:[[topic_id,coverage_id,coverage_label,approved_examples]]}",
+        "SUPPORTED intent=cat group key; topic_id/coverage_id=same row",
     ):
         assert required in system
 
@@ -181,15 +181,25 @@ def test_prompt_defines_all_closed_pending_slots_and_route_shapes() -> None:
     ):
         assert output_key in system
 
-    assert system.startswith("JSON:route,intent,topic_id,coverage_id,pending_slot;5문자열;")
-    assert "NONE=없음" in system
-    assert "extra=NO" in system
-    assert "default=NONE" in system
-    assert "SUPPORTED=cat[intent,topic_id,coverage_id]" in system
-    assert "NO_TOPIC_MATCH=지원" in system
-    assert "CIVIC_SCOPE_GAP/NON_CIVIC" in system
-    assert "NEEDS_FOLLOWUP=DOMAIN?NONE:지원,,," in system
-    assert system.endswith("DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM")
+    for row in (
+        "SUPPORTED|catalog intent|same-row topic_id|same-row coverage_id|NONE",
+        "NO_TOPIC_MATCH|supported intent|NONE|NONE|NONE",
+        "CIVIC_SCOPE_GAP|NONE|NONE|NONE|NONE",
+        "NON_CIVIC|NONE|NONE|NONE|NONE",
+        "NEEDS_FOLLOWUP|NONE|NONE|NONE|DOMAIN",
+        "NEEDS_FOLLOWUP|supported intent|NONE|NONE|TOPIC_CHOICE",
+        "NEEDS_FOLLOWUP|CERTIFICATE_ISSUANCE|NONE|NONE|CERTIFICATE_KIND",
+        "NEEDS_FOLLOWUP|supported intent|NONE|NONE|REGION",
+        "NEEDS_FOLLOWUP|BULKY_WASTE|NONE|NONE|WASTE_ITEM",
+    ):
+        assert row in system
+    for obsolete in (
+        "NONE=없음",
+        "default=NONE",
+        "NO_TOPIC_MATCH=지원",
+        "DOMAIN?NONE:지원,,,",
+    ):
+        assert obsolete not in system
 
 
 @pytest.mark.asyncio
