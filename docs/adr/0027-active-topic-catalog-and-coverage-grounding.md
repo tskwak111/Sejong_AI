@@ -65,6 +65,24 @@ USD0.20 pre-reservation stop을 사용한다. historical 20/30/40·USD0.05 actua
 - 모델이 선택한 topic을 server 검증 없이 사용: ACTIVE/official/source 경계를 깨뜨려 거절한다.
 - 여러 KB를 초기에 합성: 절차·수수료·출처 충돌 위험 때문에 거절한다.
 
+## 2026-07-28 A-072 strict provider wire addendum
+
+D-111 actual은 outbound 9건 모두 HTTP 2xx와 strict usage를 통과했지만 exact canonical key
+set에서 거절됐음을 확인했다. Q-LLM-014=A와 D-112~D-114에 따라 provider-only wire를 다음처럼
+교정한다.
+
+1. Upstage `response_format`은 strict `json_schema`와 exact required string five-key를 사용한다.
+2. nullable `intent`, `topic_id`, `coverage_id`, `pending_slot`은 exact `NONE`을 사용한다.
+3. provider-only parser가 sentinel을 canonical `None`으로 바꾸고 기존 closed route/shape/current
+   catalog validator를 재사용한다.
+4. canonical parser의 JSON `null` 계약과 public API는 바꾸지 않는다.
+5. prompt는 full canonical field names를 사용하며 old shorthand를 제거한다.
+6. fixed-stage observer, retry 0, fail-closed, body/question/key/DSN non-retention을 유지한다.
+7. actual은 offline/root gate와 clean source 뒤 별도 인간 승인 없이는 실행하지 않는다.
+
+동적 ACTIVE catalog enum은 provider schema에 복제하지 않는다. model은 계속 topic/coverage를
+제안할 뿐이며 current ACTIVE/OFFICIAL membership과 source binding은 서버가 소유한다.
+
 ## References
 
 - Q-RAG-001=A, Q-DATA-RAG-001=A, Q-UX-REGION-001=A,
@@ -72,4 +90,5 @@ USD0.20 pre-reservation stop을 사용한다. historical 20/30/40·USD0.05 actua
 - D-096~D-105, A-064~A-068
 - `docs/superpowers/specs/2026-07-27-bounded-hybrid-rag-conversation-design.md`
 - `docs/superpowers/plans/2026-07-27-bounded-hybrid-rag-conversation.md`
+- `docs/superpowers/specs/2026-07-28-upstage-classifier-strict-five-key-wire-design.md`
 - `docs/implementation-notes/IMP-20260727-021-*` through `IMP-20260728-001-*`

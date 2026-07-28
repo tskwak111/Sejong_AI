@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.1-json-mode-instruction
 test_suite: 2.1.5-response-stage-diagnostics
-documentation: 2.29.10
+documentation: 2.30.0
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -191,6 +191,13 @@ Documentation `2.29.10`은 D-113의 A-072 설계 1부 승인 checkpoint다. exac
 server-owned enum/catalog validation과 retry 0·fail-closed 경계를 승인했다. application,
 prompt, tests, API/contracts, DB/data/dependency는 그대로이고 설계 2부와 written specification
 승인 전 code/provider call은 0이다.
+
+Documentation `2.30.0`은 D-114의 설계 2부 승인과 A-072 integrated written specification
+Review publication이다. provider-only exact `NONE` normalization, 기존 canonical parser와
+validator authority 보존, fixed-stage fail-closed, exact TDD/root/actual gate를 통합했다.
+구현 목표는 application `0.12.3-structured-classifier-wire`, prompt
+`0.4.2-exact-five-key-schema`, tests `2.1.6-structured-classifier-wire`이며 현재 runtime
+축은 아직 변하지 않았다. API/contracts/DB/data/dependency와 provider call은 불변이다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

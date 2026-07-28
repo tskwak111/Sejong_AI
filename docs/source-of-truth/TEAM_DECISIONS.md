@@ -143,6 +143,10 @@
   normalization, full-name prompt, 기존 closed server validation, retry 0·fail-closed가 권위다.
   provider schema는 동적 catalog enum을 복제하지 않는다. 설계 2부와 written specification
   승인 전 code/provider call은 0이다.
+- D-114: A-072 설계 2부를 승인하고 strict wire integrated written specification을 Review로
+  게시했다. provider-only parser는 exact `NONE`만 canonical `None`으로 바꾸며 기존 validator와
+  fixed terminal stage를 공유한다. target application/prompt/tests는 `0.12.3/0.4.2/2.1.6`이고
+  API/DB/data/dependency는 불변이다. actual은 offline/root gate와 clean source 뒤 별도 승인 전 0이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

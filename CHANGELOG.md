@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Specified — A-072 strict five-key classifier wire
+
+- Approved design section 2 and published the integrated written specification for review.
+- Isolated exact `NONE` normalization to the provider wire while preserving canonical JSON-null
+  parsing, server-owned enum/shape/catalog validation and fixed-stage fail-closed diagnostics.
+- Defined focused/area/root TDD, target application `0.12.3`, prompt `0.4.2`, tests `2.1.6` and a
+  separately approved corrective actual after clean-source offline verification.
+- Advanced documentation `2.29.10→2.30.0`; runtime, API, DB, data, dependencies and provider calls
+  remain unchanged.
+
 ### Approved — A-072 wire design section 1
 
 - Approved strict five-key string schema, exact `NONE` normalization for the four nullable
