@@ -191,8 +191,11 @@ D-116은 사용자의 `계획 승인, 1번으로 구현 시작`으로 Tasks 1~5�
 승인했다. provider-only exact `NONE` parser, bounded canonical prompt와 fresh strict schema를
 TDD로 구현했고 area 333·controlled-double runner 24·Ruff/Mypy 115 PASS를 확인했다. application
 `0.12.3`, prompt `0.4.2`, tests `2.1.6`으로 전진했지만 API/contracts/DB/data/dependency와
-provider actual call/cost는 0이다. Task 5 root/clean-source gate가 다음이며 실제 1회 호출은
-D-117 별도 exact 승인 전 금지한다.
+provider actual call/cost는 0이다. Task 5 clean-source review는 완료됐지만 root wrapper는 단
+1회 실행 중 environment-only `PREFLIGHT-UV reason=exception code=2`에서 FAIL했고 재실행하지
+않았으므로 PASS가 아니다. 나머지 constituent·security·scope 검사는 documented skip을 제외하고
+PASS했다. provider call/cost는 계속 0이며 실제 1회 호출은 D-117의 별도 exact 문구
+`A-072 corrective actual 1회 실행 승인` 전까지 금지한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

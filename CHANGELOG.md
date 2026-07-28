@@ -17,8 +17,11 @@
 - Advanced application `0.12.2→0.12.3-structured-classifier-wire`, prompt
   `0.4.1→0.4.2-exact-five-key-schema` and tests
   `2.1.5→2.1.6-structured-classifier-wire`. API/shared contracts, DB schema, official/mock data,
-  dependencies, package and lockfiles are unchanged. A corrective actual remains D-117 and requires
-  a separate exact approval after the root/clean-source gate.
+  dependencies, package and lockfiles are unchanged. Task 5 clean-source review is complete, but
+  the root wrapper's single invocation FAILed at environment-only `PREFLIGHT-UV`, was not rerun and
+  is not a PASS. Remaining constituents/security/scope checks passed with documented bounded skips;
+  provider calls/cost remain `0`. The D-117 actual remains pending and requires the exact approval
+  `A-072 corrective actual 1회 실행 승인`.
 
 ### Planned — A-072 strict classifier wire
 
