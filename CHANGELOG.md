@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Implemented — value-free classifier response-stage diagnostics
+
+- Added a closed 13-value terminal-stage enum across the production Upstage response parser and
+  strict classifier contract parser. The optional observer receives exactly one enum for each HTTP
+  response and receives no question, response body, status detail, exception, key or DSN.
+- Preserved the public `ClassifierDecision | None` behavior, generic
+  `CLASSIFIER_DECISION_INVALID` failure and fail-closed citizen fallback; observer errors cannot
+  change an accepted decision.
+- Added aggregate-only stage counters and acceptance invariants to the exact-one actual runner.
+  Per-fixture stage disclosure, API/DB/data/prompt/dependency changes and provider calls remain zero
+  at this clean-source checkpoint.
+- Archived D-107 evidence and advanced application
+  `0.12.1→0.12.2-response-stage-diagnostics`, tests
+  `2.1.4→2.1.5-response-stage-diagnostics` and documentation `2.29.6→2.29.7`.
+
 ### Specified — value-free classifier response-stage diagnostics
 
 - Approved the written specification and exact RED/GREEN inline implementation plan. Product code

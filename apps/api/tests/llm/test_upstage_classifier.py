@@ -16,6 +16,7 @@ from sejong_ai_api.llm.classifier_contracts import (
     ClassifierDecision,
     ClassifierRoute,
 )
+from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 from sejong_ai_api.llm.classifier_prompt import build_classifier_messages
 from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.cost import estimate_cost_usd
@@ -115,6 +116,10 @@ def _provider_response(
         200,
         json=envelope,
     )
+
+
+def _provider_envelope_response(envelope: object) -> httpx.Response:
+    return httpx.Response(200, json=envelope)
 
 
 def _ledger(
@@ -575,6 +580,7 @@ async def test_http_failures_return_none_without_retry(
 async def test_timeout_returns_none_without_retry_or_content_exception() -> None:
     settings = UpstageClassifierSettings(api_key=SECRET)
     calls = 0
+    observed: list[ClassifierResponseStage] = []
     sensitive_question = "장학금 신청 어떻게 해요?"
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -590,10 +596,156 @@ async def test_timeout_returns_none_without_retry_or_content_exception() -> None
             settings=settings,
             client=client,
             ledger=_ledger(),
+            response_stage_observer=observed.append,
         ).classify(_question(sensitive_question), _catalog())
 
     assert decision is None
     assert calls == 1
+    assert observed == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response", "expected_stage", "decision_expected"),
+    [
+        (httpx.Response(429), ClassifierResponseStage.HTTP_REJECTED, False),
+        (
+            httpx.Response(200, content=b"not-json"),
+            ClassifierResponseStage.ENVELOPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_envelope_response([]),
+            ClassifierResponseStage.ENVELOPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(include_usage=False),
+            ClassifierResponseStage.USAGE_REJECTED,
+            False,
+        ),
+        (
+            _provider_envelope_response(
+                {
+                    "usage": {"prompt_tokens": 20, "completion_tokens": 10},
+                    "choices": [],
+                }
+            ),
+            ClassifierResponseStage.CHOICE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(finish_reason="length"),
+            ClassifierResponseStage.FINISH_REASON_REJECTED,
+            False,
+        ),
+        (
+            _provider_envelope_response(
+                {
+                    "usage": {"prompt_tokens": 20, "completion_tokens": 10},
+                    "choices": [{"finish_reason": "stop", "message": []}],
+                }
+            ),
+            ClassifierResponseStage.MESSAGE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(content=" "),
+            ClassifierResponseStage.CONTENT_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(content="not-json"),
+            ClassifierResponseStage.JSON_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(content="[]"),
+            ClassifierResponseStage.KEY_SET_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":1,"intent":null,"topic_id":null,'
+                    '"coverage_id":null,"pending_slot":null}'
+                )
+            ),
+            ClassifierResponseStage.FIELD_TYPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"UNBOUNDED","intent":null,"topic_id":null,'
+                    '"coverage_id":null,"pending_slot":null}'
+                )
+            ),
+            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+                    '"topic_id":"KB-WASTE-99","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+                    '"pending_slot":null}'
+                )
+            ),
+            ClassifierResponseStage.CATALOG_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(),
+            ClassifierResponseStage.ACCEPTED,
+            True,
+        ),
+    ],
+)
+async def test_http_response_emits_one_value_free_terminal_stage(
+    response: httpx.Response,
+    expected_stage: ClassifierResponseStage,
+    decision_expected: bool,
+) -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    observed: list[ClassifierResponseStage] = []
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(lambda _request: response),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=_ledger(),
+            response_stage_observer=observed.append,
+        ).classify(_question(), _catalog())
+
+    assert (decision is not None) is decision_expected
+    assert observed == [expected_stage]
+    assert all(type(stage) is ClassifierResponseStage for stage in observed)
+
+
+@pytest.mark.asyncio
+async def test_response_stage_observer_failure_does_not_change_accepted_decision() -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+
+    def failing_observer(_stage: ClassifierResponseStage) -> None:
+        raise RuntimeError("OBSERVER_FAILURE_SENTINEL")
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(lambda _request: _provider_response()),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=_ledger(),
+            response_stage_observer=failing_observer,
+        ).classify(_question(), _catalog())
+
+    assert decision is not None
+    assert decision.route is ClassifierRoute.CIVIC_SCOPE_GAP
 
 
 @pytest.mark.asyncio

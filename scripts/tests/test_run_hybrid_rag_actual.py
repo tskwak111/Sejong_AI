@@ -23,6 +23,9 @@ from sejong_ai_api.llm.classifier_contracts import (  # noqa: E402
     ClassifierDecision,
     ClassifierRoute,
 )
+from sejong_ai_api.llm.classifier_diagnostics import (  # noqa: E402
+    ClassifierResponseStage,
+)
 from sejong_ai_api.llm.contracts import TokenUsage  # noqa: E402
 from sejong_ai_api.llm.cost import estimate_cost_usd  # noqa: E402
 from sejong_ai_api.llm.settings import UpstageClassifierSettings  # noqa: E402
@@ -271,6 +274,36 @@ def test_usage_recorder_records_value_free_response_families_and_strict_usage() 
     assert recorder.usage_rejected_count == 1
 
 
+def test_response_stage_recorder_accepts_only_closed_enum_and_counts_aggregates() -> (
+    None
+):
+    runner = _runner()
+    recorder = runner._ResponseStageRecorder()
+
+    recorder.capture(ClassifierResponseStage.ACCEPTED)
+    recorder.capture(ClassifierResponseStage.ACCEPTED)
+    recorder.capture(ClassifierResponseStage.JSON_REJECTED)
+
+    assert recorder.total == 3
+    assert recorder.count(ClassifierResponseStage.ACCEPTED) == 2
+    assert recorder.count(ClassifierResponseStage.JSON_REJECTED) == 1
+    with pytest.raises(ValueError, match="CLASSIFIER_RESPONSE_STAGE_INVALID"):
+        recorder.capture("ACCEPTED")
+
+
+def test_report_has_all_response_stage_aggregate_fields_in_fixed_order() -> None:
+    runner = _runner()
+    stage_fields = tuple(
+        field for field in runner._REPORT_FIELDS if field.startswith("provider_stage_")
+    )
+
+    assert stage_fields == tuple(
+        f"provider_stage_{stage.value.casefold()}_count"
+        for stage in ClassifierResponseStage
+    )
+    assert "provider_response_stage_total" in runner._REPORT_FIELDS
+
+
 def test_cross_process_lease_blocks_concurrent_and_existing_evidence(
     tmp_path: Path,
 ) -> None:
@@ -444,6 +477,7 @@ def test_main_partial_failure_records_bounded_attempt_and_cost_evidence(
         ledger: Any,
         catalog: Any,
         recorder: Any,
+        response_stages: Any,
     ) -> Any:
         del catalog
 
@@ -467,6 +501,7 @@ def test_main_partial_failure_records_bounded_attempt_and_cost_evidence(
                                 },
                             )
                         )
+                        response_stages.capture(ClassifierResponseStage.ACCEPTED)
                         return _oracle_decision(runner, "HR-001")
                     raise RuntimeError(
                         f"private question payload key postgresql:// {question.text}"
@@ -485,6 +520,8 @@ def test_main_partial_failure_records_bounded_attempt_and_cost_evidence(
     assert "`provider_http_2xx_count` | `1`" in report
     assert "`provider_transport_no_response_count` | `1`" in report
     assert "`provider_decision_accepted_count` | `1`" in report
+    assert "`provider_response_stage_total` | `1`" in report
+    assert "`provider_stage_accepted_count` | `1`" in report
     assert "`observed_usage_response_count` | `1`" in report
     assert "`conservative_charged_attempt_count` | `1`" in report
     assert "`acceptance` | `FAIL`" in report
@@ -618,6 +655,7 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
         ledger: Any,
         _catalog: Any,
         recorder: Any,
+        response_stages: Any,
     ) -> Any:
         class PassingSelector:
             async def classify(self, safe: SafeQuestion) -> ClassifierDecision:
@@ -637,6 +675,7 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
                             },
                         )
                     )
+                    response_stages.capture(ClassifierResponseStage.ACCEPTED)
                 return _oracle_decision(
                     runner,
                     fixture_id_by_question[safe.text],
@@ -661,6 +700,13 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
     assert "`provider_decision_accepted_count` | `9`" in report
     assert "`provider_decision_rejected_count` | `0`" in report
     assert "`provider_contract_mismatch_count` | `0`" in report
+    assert "`provider_response_stage_total` | `9`" in report
+    assert "`provider_stage_accepted_count` | `9`" in report
+    for stage in ClassifierResponseStage:
+        expected = 9 if stage is ClassifierResponseStage.ACCEPTED else 0
+        assert (
+            f"`provider_stage_{stage.value.casefold()}_count` | `{expected}`" in report
+        )
     assert "`cost_reconciled` | `True`" in report
     assert "`acceptance` | `PASS`" in report
     assert not list(tmp_path.glob(".*.tmp"))

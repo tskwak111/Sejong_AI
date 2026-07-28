@@ -1,7 +1,7 @@
 # Upstage Classifier Value-Free Response-Stage Diagnostics — Written Specification
 
 - Task ID: `A-071-RESPONSE-STAGE-DIAGNOSTICS`
-- Status: Approved — TDD implementation authorized
+- Status: Implemented offline — clean-source exact-one actual pending
 - Date: 2026-07-28 KST
 - Human authority: 사용자 `ㅇㅋ 구현해`, 후속 `명세 승인, 빠르게 구현 ㄱㄱ`
 - Decision authority: D-107 후속 D-108

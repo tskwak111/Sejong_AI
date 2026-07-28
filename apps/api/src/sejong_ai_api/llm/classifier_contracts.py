@@ -10,6 +10,7 @@ from typing import Any
 
 from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.db.models import Intent
+from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 
 _EXPECTED_KEYS = frozenset({"route", "intent", "topic_id", "coverage_id", "pending_slot"})
 _IDENTIFIER_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,63}$")
@@ -124,34 +125,56 @@ class ClassifierDecision:
             raise ValueError
 
 
-def parse_classifier_decision(
+@dataclass(frozen=True, slots=True)
+class ClassifierDecisionParseResult:
+    """A closed decision or one value-free terminal validation stage."""
+
+    decision: ClassifierDecision | None
+    stage: ClassifierResponseStage
+
+
+def parse_classifier_decision_with_stage(
     payload: bytes,
     catalog: TopicCatalog,
-) -> ClassifierDecision:
-    """Parse a provider response without reflecting its content on failure."""
+) -> ClassifierDecisionParseResult:
+    """Parse a closed decision while returning no provider-controlled diagnostic value."""
+
+    if type(payload) is not bytes or type(catalog) is not TopicCatalog:
+        return ClassifierDecisionParseResult(
+            decision=None,
+            stage=ClassifierResponseStage.JSON_REJECTED,
+        )
+    try:
+        raw: Any = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+        return ClassifierDecisionParseResult(
+            decision=None,
+            stage=ClassifierResponseStage.JSON_REJECTED,
+        )
+    if type(raw) is not dict or frozenset(raw) != _EXPECTED_KEYS:
+        return ClassifierDecisionParseResult(
+            decision=None,
+            stage=ClassifierResponseStage.KEY_SET_REJECTED,
+        )
+
+    route_raw = raw["route"]
+    intent_raw = raw["intent"]
+    topic_id = raw["topic_id"]
+    coverage_id = raw["coverage_id"]
+    slot_raw = raw["pending_slot"]
+    if (
+        type(route_raw) is not str
+        or (intent_raw is not None and type(intent_raw) is not str)
+        or (topic_id is not None and type(topic_id) is not str)
+        or (coverage_id is not None and type(coverage_id) is not str)
+        or (slot_raw is not None and type(slot_raw) is not str)
+    ):
+        return ClassifierDecisionParseResult(
+            decision=None,
+            stage=ClassifierResponseStage.FIELD_TYPE_REJECTED,
+        )
 
     try:
-        if type(payload) is not bytes or type(catalog) is not TopicCatalog:
-            raise ValueError
-        raw: Any = json.loads(payload.decode("utf-8"))
-        if type(raw) is not dict or frozenset(raw) != _EXPECTED_KEYS:
-            raise ValueError
-        route_raw = raw["route"]
-        intent_raw = raw["intent"]
-        topic_id = raw["topic_id"]
-        coverage_id = raw["coverage_id"]
-        slot_raw = raw["pending_slot"]
-        if type(route_raw) is not str:
-            raise ValueError
-        if intent_raw is not None and type(intent_raw) is not str:
-            raise ValueError
-        if topic_id is not None and type(topic_id) is not str:
-            raise ValueError
-        if coverage_id is not None and type(coverage_id) is not str:
-            raise ValueError
-        if slot_raw is not None and type(slot_raw) is not str:
-            raise ValueError
-
         decision = ClassifierDecision(
             route=ClassifierRoute(route_raw),
             intent=Intent(intent_raw) if intent_raw is not None else None,
@@ -159,26 +182,50 @@ def parse_classifier_decision(
             coverage_id=coverage_id,
             pending_slot=PendingSlot(slot_raw) if slot_raw is not None else None,
         )
-        if decision.route is ClassifierRoute.SUPPORTED:
-            topic_id = decision.topic_id
-            coverage_id = decision.coverage_id
-            if topic_id is None or coverage_id is None:
-                raise ValueError
-            topic = catalog.find(topic_id)
-            if (
-                topic is None
-                or topic.record.category is not decision.intent
-                or topic.coverage.coverage_id != coverage_id
-            ):
-                raise ValueError
-        return decision
-    except (KeyError, TypeError, UnicodeDecodeError, ValueError, json.JSONDecodeError) as error:
-        raise ValueError("CLASSIFIER_DECISION_INVALID") from error
+    except (TypeError, ValueError):
+        return ClassifierDecisionParseResult(
+            decision=None,
+            stage=ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+        )
+
+    if decision.route is ClassifierRoute.SUPPORTED:
+        selected_topic_id = decision.topic_id
+        selected_coverage_id = decision.coverage_id
+        topic = catalog.find(selected_topic_id or "")
+        if (
+            selected_topic_id is None
+            or selected_coverage_id is None
+            or topic is None
+            or topic.record.category is not decision.intent
+            or topic.coverage.coverage_id != selected_coverage_id
+        ):
+            return ClassifierDecisionParseResult(
+                decision=None,
+                stage=ClassifierResponseStage.CATALOG_REJECTED,
+            )
+    return ClassifierDecisionParseResult(
+        decision=decision,
+        stage=ClassifierResponseStage.ACCEPTED,
+    )
+
+
+def parse_classifier_decision(
+    payload: bytes,
+    catalog: TopicCatalog,
+) -> ClassifierDecision:
+    """Parse a provider response without reflecting its content on failure."""
+
+    result = parse_classifier_decision_with_stage(payload, catalog)
+    if result.decision is None:
+        raise ValueError("CLASSIFIER_DECISION_INVALID")
+    return result.decision
 
 
 __all__ = [
     "ClassifierDecision",
+    "ClassifierDecisionParseResult",
     "ClassifierRoute",
     "PendingSlot",
     "parse_classifier_decision",
+    "parse_classifier_decision_with_stage",
 ]

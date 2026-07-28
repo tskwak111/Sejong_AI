@@ -1,0 +1,22 @@
+"""Value-free terminal stages for the optional Upstage classifier."""
+
+from enum import Enum
+
+
+class ClassifierResponseStage(str, Enum):  # noqa: UP042 - stable evidence values
+    HTTP_REJECTED = "HTTP_REJECTED"
+    ENVELOPE_REJECTED = "ENVELOPE_REJECTED"
+    USAGE_REJECTED = "USAGE_REJECTED"
+    CHOICE_REJECTED = "CHOICE_REJECTED"
+    FINISH_REASON_REJECTED = "FINISH_REASON_REJECTED"
+    MESSAGE_REJECTED = "MESSAGE_REJECTED"
+    CONTENT_REJECTED = "CONTENT_REJECTED"
+    JSON_REJECTED = "JSON_REJECTED"
+    KEY_SET_REJECTED = "KEY_SET_REJECTED"
+    FIELD_TYPE_REJECTED = "FIELD_TYPE_REJECTED"
+    ENUM_SHAPE_REJECTED = "ENUM_SHAPE_REJECTED"
+    CATALOG_REJECTED = "CATALOG_REJECTED"
+    ACCEPTED = "ACCEPTED"
+
+
+__all__ = ["ClassifierResponseStage"]

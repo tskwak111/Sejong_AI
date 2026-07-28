@@ -69,14 +69,14 @@ def parse_classifier_decision(payload: bytes, catalog: TopicCatalog) -> Classifi
     # failure remains ValueError("CLASSIFIER_DECISION_INVALID")
 ```
 
-- [ ] **Step 1: Write contract-stage RED tests**
+- [x] **Step 1: Write contract-stage RED tests**
 
 Add a literal table that expects `JSON_REJECTED`, `KEY_SET_REJECTED`, `FIELD_TYPE_REJECTED`,
 `ENUM_SHAPE_REJECTED`, `CATALOG_REJECTED` and `ACCEPTED` for controlled payloads. Verify the result
 contains no payload field and the existing public parser still raises only
 `CLASSIFIER_DECISION_INVALID`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 apps/api/.venv/Scripts/python.exe -m pytest `
@@ -85,13 +85,13 @@ apps/api/.venv/Scripts/python.exe -m pytest `
 
 Expected: import/function failure because the diagnostic types do not exist.
 
-- [ ] **Step 3: Implement minimal typed parser**
+- [x] **Step 3: Implement minimal typed parser**
 
 Decode JSON, exact keys, nullable string types, enum/route shape and current catalog membership in
 that order. Return a fixed enum at the first failed boundary. Wrap the result in the existing public
 parser without changing its exception message.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 ```powershell
 apps/api/.venv/Scripts/python.exe -m pytest `
@@ -125,7 +125,7 @@ QuestionClassifier(
 )
 ```
 
-- [ ] **Step 1: Write transport-stage RED tests**
+- [x] **Step 1: Write transport-stage RED tests**
 
 Use real `QuestionClassifier` plus `httpx.MockTransport`. Cover non-2xx, invalid envelope, usage,
 choice, finish reason, message, content, every contract stage and accepted. For each HTTP response:
@@ -138,7 +138,7 @@ assert decision is expected_decision_or_none
 Also assert timeout emits no response stage and an observer that raises does not change an accepted
 decision.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 apps/api/.venv/Scripts/python.exe -m pytest `
@@ -148,13 +148,13 @@ apps/api/.venv/Scripts/python.exe -m pytest `
 
 Expected: constructor keyword/stage imports fail before implementation.
 
-- [ ] **Step 3: Implement terminal parse result and observer isolation**
+- [x] **Step 3: Implement terminal parse result and observer isolation**
 
 Map HTTP/envelope/usage/choice/finish/message/content to fixed stages. Forward the contract parser
 stage. Emit at most once after a response exists. Catch observer exceptions without changing the
 decision. Transport/timeout continues to return `None` without a response stage.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 ```powershell
 apps/api/.venv/Scripts/python.exe -m pytest `
@@ -204,13 +204,13 @@ provider_stage_catalog_rejected_count
 provider_stage_accepted_count
 ```
 
-- [ ] **Step 1: Write runner/report RED tests**
+- [x] **Step 1: Write runner/report RED tests**
 
 Assert recorder fixed enum counts, report order, `stage_total == provider_response_count`, accepted
 PASS fixture stage count 9, transport response-stage count 0, and forbidden sentinels absent from
 stdout/report.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 apps/api/.venv/Scripts/python.exe -m pytest `
@@ -219,13 +219,13 @@ apps/api/.venv/Scripts/python.exe -m pytest `
 
 Expected: missing recorder/report fields and selector signature failures.
 
-- [ ] **Step 3: Implement aggregate recorder wiring**
+- [x] **Step 3: Implement aggregate recorder wiring**
 
 Store recorder on `_RunEvidence`, pass it through `_create_selector`, and build scalar report fields
 from the closed enum. Do not add per-fixture stage. Require stage total to equal response count and
 accepted stage count to equal expected provider cases for PASS.
 
-- [ ] **Step 4: Run GREEN and static checks**
+- [x] **Step 4: Run GREEN and static checks**
 
 ```powershell
 apps/api/.venv/Scripts/python.exe -m pytest `
@@ -271,7 +271,7 @@ documentation: 2.29.7
 prompt_set: 0.4.1-json-mode-instruction (unchanged)
 ```
 
-- [ ] **Step 1: Archive D-107 report**
+- [x] **Step 1: Archive D-107 report**
 
 Move the current report to:
 
@@ -280,7 +280,7 @@ docs/test-reports/archive/
 CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL-20260728-D107-2XX-DECISION-REJECT-FAIL.md
 ```
 
-- [ ] **Step 2: Update versions and implementation status**
+- [x] **Step 2: Update versions and implementation status**
 
 Record D-109 spec/plan approval, implemented enum-only observer, no API/DB/data/prompt/dependency
 change, and actual pending from a clean source.

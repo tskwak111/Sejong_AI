@@ -15,7 +15,9 @@ from sejong_ai_api.llm.classifier_contracts import (
     ClassifierDecision,
     ClassifierRoute,
     parse_classifier_decision,
+    parse_classifier_decision_with_stage,
 )
+from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 
 
 def _catalog() -> TopicCatalog:
@@ -252,3 +254,47 @@ def test_parser_never_reflects_provider_content_in_errors() -> None:
 
     assert str(error.value) == "CLASSIFIER_DECISION_INVALID"
     assert sensitive_marker not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_stage", "accepted"),
+    [
+        (b"not-json", ClassifierResponseStage.JSON_REJECTED, False),
+        (b"[]", ClassifierResponseStage.KEY_SET_REJECTED, False),
+        (
+            b'{"route":1,"intent":null,"topic_id":null,"coverage_id":null,"pending_slot":null}',
+            ClassifierResponseStage.FIELD_TYPE_REJECTED,
+            False,
+        ),
+        (
+            b'{"route":"UNBOUNDED","intent":null,"topic_id":null,'
+            b'"coverage_id":null,"pending_slot":null}',
+            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+            False,
+        ),
+        (
+            b'{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+            b'"topic_id":"KB-WASTE-UNKNOWN",'
+            b'"coverage_id":"GENERAL_BULKY_DISPOSAL","pending_slot":null}',
+            ClassifierResponseStage.CATALOG_REJECTED,
+            False,
+        ),
+        (
+            b'{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+            b'"topic_id":"KB-WASTE-01",'
+            b'"coverage_id":"GENERAL_BULKY_DISPOSAL","pending_slot":null}',
+            ClassifierResponseStage.ACCEPTED,
+            True,
+        ),
+    ],
+)
+def test_diagnostic_parser_returns_only_terminal_stage_and_closed_decision(
+    payload: bytes,
+    expected_stage: ClassifierResponseStage,
+    accepted: bool,
+) -> None:
+    result = parse_classifier_decision_with_stage(payload, _catalog())
+
+    assert result.stage is expected_stage
+    assert (result.decision is not None) is accepted
+    assert tuple(result.__dataclass_fields__) == ("decision", "stage")

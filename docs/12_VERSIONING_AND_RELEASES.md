@@ -55,7 +55,7 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.10
-application: 0.12.1-bounded-hybrid-rag
+application: 0.12.2-response-stage-diagnostics
 web: 0.8.0-guided-chat
 api: 4.0.0-draft
 shared_contracts: 1.0.0
@@ -63,8 +63,8 @@ database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.1-json-mode-instruction
-test_suite: 2.1.4-json-mode-regression
-documentation: 2.29.6
+test_suite: 2.1.5-response-stage-diagnostics
+documentation: 2.29.7
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -161,6 +161,16 @@ Approved로 전환하고 exact RED/GREEN 실행계획과 inline execution을 승
 contract-stage parser→production observer→aggregate runner→clean source→exact-one actual 순서를
 고정했다. application/test version은 구현 뒤에만 증가하며 이 checkpoint의 code/provider call은
 0이다.
+
+Application `0.12.2-response-stage-diagnostics`, test suite
+`2.1.5-response-stage-diagnostics`, documentation `2.29.7`은 A-071 offline implementation
+기준선이다. strict contract parser와 production Upstage response parser는 HTTP/envelope/usage/
+choice/finish/message/content/JSON/key/type/enum/catalog/accepted의 13개 terminal enum을 공유한다.
+optional observer는 HTTP response당 enum 하나만 받고 실패해도 기존 decision/fallback을 바꾸지
+않는다. actual runner는 per-fixture stage 없이 aggregate counts와 total invariant만 기록한다.
+142 focused tests, Ruff, format, Mypy가 통과했고 D-107 evidence는 archive했다. prompt set,
+API/shared contract/DB/official/mock data/dependency는 불변이며 actual provider call은 clean
+source commit 전 0이다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

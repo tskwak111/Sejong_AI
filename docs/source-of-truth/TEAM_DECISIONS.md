@@ -125,6 +125,10 @@
   written specification 확인 전 code/provider call은 0이다.
 - D-109: written specification과 exact RED/GREEN inline 실행계획을 승인했다. code/test/source
   commit 뒤 actual 1회만 실행하고 결과와 관계없이 재시도하지 않는다.
+- D-110: A-071의 contract parser, production optional observer와 aggregate-only runner를
+  TDD로 구현했다. 13개 terminal enum 외 값은 진단 경계를 통과하지 않고 observer 오류는
+  시민 decision/fallback을 바꾸지 않는다. 142 focused PASS와 Ruff/Mypy PASS 뒤 D-107 report를
+  archive했으며, clean source commit과 exact-one actual은 다음 gate다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
