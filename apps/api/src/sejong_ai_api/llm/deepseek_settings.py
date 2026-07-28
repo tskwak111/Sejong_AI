@@ -36,7 +36,29 @@ _EXACT_NON_SECRET_VALUES = {
     "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
     "UPSTAGE_CLASSIFIER_MODE": "false",
 }
-_SETTINGS_KEYS = frozenset((*_EXACT_NON_SECRET_VALUES, _KEY_NAME))
+_UPSTAGE_API_KEY_NAME = "LLM_API_KEY"
+_UPSTAGE_GROUNDED_CHAT_NON_SECRET_VALUES = {
+    "LLM_PROVIDER": "upstage",
+    "LLM_MODEL": "solar-pro3",
+    "LLM_BASE_URL": "https://api.upstage.ai/v1",
+    "LLM_TIMEOUT_SECONDS": "8",
+    "LLM_MAX_RETRIES": "0",
+    "LLM_MAX_CONCURRENCY": "1",
+    "LLM_MAX_INPUT_TOKENS": "4096",
+    "LLM_MAX_OUTPUT_TOKENS": "1024",
+    "LLM_RUN_ATTEMPT_CAP": "30",
+    "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
+    "UPSTAGE_CLASSIFIER_MODE": "false",
+    "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+}
+_SETTINGS_KEYS = frozenset(
+    (
+        *_EXACT_NON_SECRET_VALUES,
+        *_UPSTAGE_GROUNDED_CHAT_NON_SECRET_VALUES,
+        _KEY_NAME,
+        _UPSTAGE_API_KEY_NAME,
+    )
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +90,7 @@ class DeepSeekClassifierSettings:
 class _DotenvNonSecretProfile:
     values: Mapping[str, str]
     api_key_assignments: int
+    upstage_api_key_assignments: int
 
 
 def load_deepseek_classifier_settings(
@@ -112,6 +135,11 @@ def _load_profile_api_key(
         for key, expected in _EXACT_NON_SECRET_VALUES.items()
     ):
         return None
+    if not _has_valid_grounded_chat_non_secret_profile(
+        environ=environ,
+        dotenv_profile=dotenv_profile,
+    ):
+        return None
 
     api_key: str | None
     if _KEY_NAME in environ:
@@ -125,6 +153,31 @@ def _load_profile_api_key(
     return api_key
 
 
+def _has_valid_grounded_chat_non_secret_profile(
+    *,
+    environ: Mapping[str, str],
+    dotenv_profile: _DotenvNonSecretProfile,
+) -> bool:
+    grounded_mode = _merged_value(
+        "UPSTAGE_GROUNDED_CHAT_MODE",
+        environ,
+        dotenv_profile.values,
+    )
+    if grounded_mode == "false":
+        return True
+    if grounded_mode != "true":
+        return False
+
+    for key, expected in _UPSTAGE_GROUNDED_CHAT_NON_SECRET_VALUES.items():
+        value = _merged_value(key, environ, dotenv_profile.values)
+        if not _is_safe_value(value) or value != expected:
+            return False
+    return (
+        _UPSTAGE_API_KEY_NAME in environ
+        or dotenv_profile.upstage_api_key_assignments == 1
+    )
+
+
 def _merged_value(
     key: str,
     process_values: Mapping[str, str],
@@ -135,12 +188,17 @@ def _merged_value(
 
 def _scan_dotenv_non_secret(path: Path) -> _DotenvNonSecretProfile | None:
     if not path.is_file():
-        return _DotenvNonSecretProfile(values={}, api_key_assignments=0)
+        return _DotenvNonSecretProfile(
+            values={},
+            api_key_assignments=0,
+            upstage_api_key_assignments=0,
+        )
 
     try:
         with path.open("r", encoding="utf-8", newline=None) as stream:
             values: dict[str, str] = {}
             api_key_assignments = 0
+            upstage_api_key_assignments = 0
             while (assignment := _read_assignment_name(stream)) is not None:
                 key, has_separator = assignment
                 normalized_key = key.strip()
@@ -156,6 +214,10 @@ def _scan_dotenv_non_secret(path: Path) -> _DotenvNonSecretProfile | None:
                         return None
                     _discard_line(stream)
                     continue
+                if key == _UPSTAGE_API_KEY_NAME:
+                    upstage_api_key_assignments += 1
+                    _discard_line(stream)
+                    continue
                 value = _read_line_value(stream)
                 if key in values or not _is_safe_value(value):
                     return None
@@ -165,6 +227,7 @@ def _scan_dotenv_non_secret(path: Path) -> _DotenvNonSecretProfile | None:
     return _DotenvNonSecretProfile(
         values=values,
         api_key_assignments=api_key_assignments,
+        upstage_api_key_assignments=upstage_api_key_assignments,
     )
 
 

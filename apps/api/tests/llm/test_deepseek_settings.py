@@ -9,6 +9,7 @@ DEEPSEEK_VALID = {
     "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
     "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
     "UPSTAGE_CLASSIFIER_MODE": "false",
+    "UPSTAGE_GROUNDED_CHAT_MODE": "false",
 }
 
 
@@ -126,6 +127,26 @@ def test_deepseek_and_valid_upstage_generator_profiles_remain_independent() -> N
 
     assert deepseek is not None
     assert isinstance(upstage_chat, UpstageChatSettings)
+
+
+def test_incomplete_grounded_generator_fails_before_llm_api_key_access() -> None:
+    from sejong_ai_api.llm.deepseek_settings import load_deepseek_classifier_settings
+
+    incomplete_generator = _UpstageKeyReadFailsMapping(
+        {
+            **DEEPSEEK_VALID,
+            "UPSTAGE_GROUNDED_CHAT_MODE": "true",
+            "LLM_PROVIDER": "upstage",
+        }
+    )
+
+    assert (
+        load_deepseek_classifier_settings(
+            environ=incomplete_generator,
+            env_path=Path("missing"),
+        )
+        is None
+    )
 
 
 def test_deepseek_loader_reads_no_upstage_key_and_upstage_loader_reads_no_deepseek_key() -> None:
