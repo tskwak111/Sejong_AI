@@ -17,9 +17,9 @@ _CATALOG_COLUMNS = (
     "approved_examples",
 )
 _SYSTEM_MESSAGE = (
-    "route/I:intent/T:topic_id/C:coverage_id/P:pending_slot;n:null;"
+    "JSON만;route/I:intent/T:topic_id/C:coverage_id/P:pending_slot;n=∅;"
     "P:DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM;"
-    "SUPPORTED→row.I/T/C,n;NO_TOPIC_MATCH→I,n³;"
+    "SUPPORTED→rowI/T/C,n;NO_TOPIC_MATCH→I,n³;"
     "CIVIC_SCOPE_GAP|NON_CIVIC→n⁴;NEEDS_FOLLOWUP→P=DOMAIN?n:I,n²,P"
 )
 

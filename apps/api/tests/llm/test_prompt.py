@@ -176,6 +176,16 @@ def test_classifier_prompt_contains_only_masked_question_and_governed_catalog_fi
         assert forbidden not in serialized
 
 
+def test_classifier_prompt_explicitly_requires_json_output() -> None:
+    messages = build_classifier_messages(
+        _safe_question(),
+        _catalog(),
+        max_input_chars=1024,
+    )
+
+    assert any("json" in message["content"].casefold() for message in messages)
+
+
 def test_classifier_prompt_uses_at_most_two_approved_examples_without_sampling_topics() -> None:
     catalog = _catalog(
         2,

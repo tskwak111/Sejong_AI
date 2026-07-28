@@ -62,9 +62,9 @@ shared_contracts: 1.0.0
 database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.4.0-topic-coverage
-test_suite: 2.1.3-value-free-provider-diagnostics
-documentation: 2.29.3
+prompt_set: 0.4.1-json-mode-instruction
+test_suite: 2.1.4-json-mode-regression
+documentation: 2.29.4
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -138,6 +138,13 @@ mismatch만 집계하도록 보강했다. source `1f337ad`의 실행은 20 selec
 provider-free·9 outbound였고 9 response 모두 4xx class, 2xx/5xx/transport/usage/decision/match
 0으로 FAIL했다. application/API/contracts/DB/data/prompt/dependency는 바뀌지 않았고 provider
 본문·질문·status detail·key·DSN 보관은 0이다.
+
+Prompt set `0.4.1-json-mode-instruction`, test suite `2.1.4-json-mode-regression`,
+documentation `2.29.4`는 Q-LLM-013=A/D-107의 단일 변수 교정 기준선이다. closed selector
+system message에 명시적 `JSON만` 지시를 복원하면서 route·field·catalog·provider request
+계약은 유지했고, 20개 실제 governed catalog와 256자 질문의 보수적 4,096자 상한도 그대로
+통과한다. D-106의 4xx FAIL은 archive로 보존하며, 승인된 PII-free corrective actual은 이
+변경을 commit한 정확한 source에서 1회만 실행하고 실패해도 재시도하지 않는다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

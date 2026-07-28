@@ -1,4 +1,4 @@
-# CHAT-HYBRID-RAG-001 Upstage Actual Selector Evidence
+# CHAT-HYBRID-RAG-001 Upstage Actual Selector Evidence — archived D-106 FAIL
 
 - Provider content retention: `0`
 - Key presence only: `true` or `false`

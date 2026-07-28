@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed — explicit JSON-mode instruction for the Hybrid RAG selector
+
+- Restored an explicit `JSON만` instruction in the closed classifier system message without
+  changing its request schema, route vocabulary, catalog, provider model, timeout or retry policy.
+- Added a RED/GREEN regression test and kept the real 20-topic catalog plus a 256-character
+  question within the conservative 4,096-character prompt bound.
+- Archived the D-106 aggregate-only 4xx FAIL before the separately approved single corrective
+  actual. That run must use the committed source, PII-free fixed subset, retry 0 and USD 0.20 cap.
+- Advanced prompt set `0.4.0→0.4.1-json-mode-instruction`, tests
+  `2.1.3→2.1.4-json-mode-regression` and documentation `2.29.3→2.29.4`; application, API,
+  contracts, DB, data and dependencies are unchanged.
+
 ### Diagnosed — value-free Hybrid RAG provider rejection
 
 - Pushed the approved local `main` baseline `d973abc` to the private `origin/main`.
