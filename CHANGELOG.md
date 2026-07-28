@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Specified — value-free classifier response-stage diagnostics
+
+- Recorded the user-approved production-parser observer design for A-071. The observer can emit
+  only one closed stage enum per HTTP response; no question, provider content, exception text,
+  status detail, key or DSN may cross the diagnostic boundary.
+- Kept citizen behavior, public parser failure, prompt, provider profile, API, DB, official data
+  and dependencies unchanged. No provider call is part of this written-spec checkpoint.
+- Advanced documentation `2.29.4→2.29.5`; application and test versions advance only after the
+  written specification and TDD plan are confirmed and implemented.
+
 ### Fixed — explicit JSON-mode instruction for the Hybrid RAG selector
 
 - Restored an explicit `JSON만` instruction in the closed classifier system message without

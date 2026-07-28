@@ -147,6 +147,11 @@ source `4cb42ff`의 단 한 번 corrective actual은 동일 20 selected·11 prov
 해소했다. 그러나 strict closed decision accepted와 route/topic match는 0/9이므로 전체 결과는
 여전히 FAIL이고 재실행하지 않았다. 본문 비보관 경계 안에서 정확한 response-validation 단계는
 A-071로 남으며 local runtime은 fail-closed fallback을 유지한다.
+D-108은 A-071의 후속으로 production parser가 fixed terminal enum 하나만 optional observer에
+전달하고 runner가 aggregate count만 기록하는 value-free 진단 설계를 승인했다. body·status
+detail·exception·key·DSN과 per-fixture stage는 기록하지 않는다. public parser·시민 fallback·
+prompt·provider profile·API/DB/data/dependency는 불변이며 written spec 확인 전 구현과 provider
+call은 0이다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

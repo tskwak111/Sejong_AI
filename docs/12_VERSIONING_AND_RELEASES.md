@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.1-json-mode-instruction
 test_suite: 2.1.4-json-mode-regression
-documentation: 2.29.4
+documentation: 2.29.5
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -148,6 +148,13 @@ PII-free corrective actual은 20 selected·0 skip·11 provider-free·9 outbound�
 2xx와 accepted usage, 4xx/5xx/transport 0을 기록해 request rejection을 해소했다. strict closed
 decision accepted/match는 0이라 acceptance는 FAIL이고 retry는 0이다. observed/ledger 비용은
 VAT 포함 USD 0.002646303이며 질문·provider body·status detail·key·DSN 보관은 0이다.
+
+Documentation `2.29.5`는 사용자의 `ㅇㅋ 구현해`로 A-071 value-free response-stage 진단의
+추천 A안을 승인한 written specification checkpoint다. production parser의 optional typed
+observer가 HTTP/envelope/usage/choice/finish/message/content/JSON/key/type/enum/catalog/accepted
+중 terminal enum 하나만 전달하고 actual report는 aggregate count만 보관한다. 시민 응답,
+public parser의 generic failure, prompt, provider profile, API/DB/data/dependency는 아직
+변경하지 않았고 written specification 확인 전 제품 코드와 provider call은 0이다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
