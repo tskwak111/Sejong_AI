@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Specified — A-073 explicit classifier route matrix and refined diagnostics
+
+- Approved the design direction and published the integrated written specification for review.
+- Replaced the ambiguous prompt grammar in the target design with a complete five-field route
+  matrix, exact uppercase `NONE`, closed provider intent/pending vocabularies and same-catalog-row
+  topic/coverage selection.
+- Defined five value-free first-failure aggregate stages for route, intent, pending slot,
+  identifier shape and route shape while retaining historical `ENUM_SHAPE_REJECTED` evidence.
+- Advanced documentation `2.30.3→2.30.4`. Application, prompt, tests, API/contracts, Web, DB/data,
+  dependencies, provider calls and cost are unchanged; a future actual remains separately gated.
+
 ### Evaluated — A-072 strict classifier corrective actual
 
 - Executed the separately approved corrective actual exactly once from clean source `efc0b34`.

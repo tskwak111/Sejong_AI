@@ -162,6 +162,13 @@
   해소됐다. 그러나 9건 모두 `ENUM_SHAPE_REJECTED`, accepted/match 0이라 전체 acceptance는
   FAIL이며 재실행하지 않았다. retry 0, 비용은 VAT 포함 USD 0.002496648로 cap USD 0.20
   미만이다. 질문·provider body·status detail·key·DSN 보관 0, lock 0, local modes false/false다.
+- D-118: A-073의 explicit route matrix와 refined value-free diagnostics 설계를 승인했다.
+  provider schema와 public contract는 유지하고 prompt에 route별 exact five-field 조합,
+  provider intent/pending vocabulary, literal uppercase `NONE`과 same-row topic/coverage를
+  명시한다. 새 진단은 route·intent·pending-slot·identifier·route-shape first-failure count만
+  aggregate하며 질문·provider body·wrong value·fixture별 stage를 보관하지 않는다.
+  written specification과 plan 승인 전 code/provider call은 0이고, actual은 별도 exact 승인
+  전 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
