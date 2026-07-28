@@ -92,8 +92,8 @@ def _catalog(
 
 def _provider_response(
     content: str = (
-        '{"route":"CIVIC_SCOPE_GAP","intent":null,"topic_id":null,'
-        '"coverage_id":null,"pending_slot":null}'
+        '{"route":"CIVIC_SCOPE_GAP","intent":"NONE","topic_id":"NONE",'
+        '"coverage_id":"NONE","pending_slot":"NONE"}'
     ),
     *,
     finish_reason: str = "stop",
@@ -181,33 +181,14 @@ def test_prompt_defines_all_closed_pending_slots_and_route_shapes() -> None:
     ):
         assert output_key in system
 
-    supported_rule = system.split("SUPPORTED", maxsplit=1)[1].split(
-        "NO_TOPIC_MATCH",
-        maxsplit=1,
-    )[0]
-    no_topic_rule = system.split("NO_TOPIC_MATCH", maxsplit=1)[1].split(
-        "CIVIC_SCOPE_GAP",
-        maxsplit=1,
-    )[0]
-    civic_rule = system.split("CIVIC_SCOPE_GAP", maxsplit=1)[1].split(
-        "NEEDS_FOLLOWUP",
-        maxsplit=1,
-    )[0]
-    followup_rule = system.split("NEEDS_FOLLOWUP", maxsplit=1)[1]
-
-    assert "catalog row" in supported_rule
-    assert "intent" in supported_rule
-    assert "topic_id" in supported_rule
-    assert "coverage_id" in supported_rule
-    assert "pending_slot=NONE" in supported_rule
-    assert "intent" in no_topic_rule
-    assert "topic_id/coverage_id/pending_slot=NONE" in no_topic_rule
-    assert "NON_CIVIC" in civic_rule
-    assert "intent/topic_id/coverage_id/pending_slot=NONE" in civic_rule
-    assert "DOMAIN" in followup_rule
-    assert "topic_id/coverage_id=NONE" in followup_rule
-    assert "pending_slot" in followup_rule
-    assert "intent=NONE" in followup_rule
+    assert system.startswith("JSON route,intent,topic_id,coverage_id,pending_slot=5 strings;")
+    assert "NONE=없음" in system
+    assert "+X" in system
+    assert "SUPPORTED=row*3,NONE" in system
+    assert "NO_TOPIC_MATCH=지원,NONE*3" in system
+    assert "CIVIC_SCOPE_GAP/NON_CIVIC=NONE*4" in system
+    assert "NEEDS_FOLLOWUP=DOMAIN?NONE:지원,NONE*2" in system
+    assert system.endswith("DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM")
 
 
 @pytest.mark.asyncio
@@ -254,7 +235,31 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
         "stream": False,
         "temperature": 0,
         "max_tokens": 128,
-        "response_format": {"type": "json_object"},
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "sejong_classifier_decision",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "route": {"type": "string"},
+                        "intent": {"type": "string"},
+                        "topic_id": {"type": "string"},
+                        "coverage_id": {"type": "string"},
+                        "pending_slot": {"type": "string"},
+                    },
+                    "required": [
+                        "route",
+                        "intent",
+                        "topic_id",
+                        "coverage_id",
+                        "pending_slot",
+                    ],
+                    "additionalProperties": False,
+                },
+            },
+        },
     }
     serialized = request.content.decode("utf-8")
     for forbidden in (
@@ -269,6 +274,16 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
         "CAUTION-SENTINEL",
     ):
         assert forbidden not in serialized
+    response_schema = json.loads(request.content)["response_format"]["json_schema"]["schema"]
+    assert "enum" not in json.dumps(response_schema)
+    assert safe.text not in json.dumps(response_schema, ensure_ascii=False)
+    for forbidden_schema_value in (
+        "KB-WASTE-01",
+        "GENERAL_BULKY_DISPOSAL",
+        "SOURCE-SENTINEL",
+        "OFFICE-SENTINEL",
+    ):
+        assert forbidden_schema_value not in json.dumps(response_schema)
     assert ledger.actual_cost_usd == estimate_cost_usd(TokenUsage(20, 0, 10))
 
 
@@ -670,8 +685,8 @@ async def test_timeout_returns_none_without_retry_or_content_exception() -> None
         (
             _provider_response(
                 content=(
-                    '{"route":1,"intent":null,"topic_id":null,'
-                    '"coverage_id":null,"pending_slot":null}'
+                    '{"route":"NON_CIVIC","intent":null,"topic_id":"NONE",'
+                    '"coverage_id":"NONE","pending_slot":"NONE"}'
                 )
             ),
             ClassifierResponseStage.FIELD_TYPE_REJECTED,
@@ -680,8 +695,8 @@ async def test_timeout_returns_none_without_retry_or_content_exception() -> None
         (
             _provider_response(
                 content=(
-                    '{"route":"UNBOUNDED","intent":null,"topic_id":null,'
-                    '"coverage_id":null,"pending_slot":null}'
+                    '{"route":"UNBOUNDED","intent":"NONE","topic_id":"NONE",'
+                    '"coverage_id":"NONE","pending_slot":"NONE"}'
                 )
             ),
             ClassifierResponseStage.ENUM_SHAPE_REJECTED,
@@ -692,7 +707,7 @@ async def test_timeout_returns_none_without_retry_or_content_exception() -> None
                 content=(
                     '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
                     '"topic_id":"KB-WASTE-99","coverage_id":"GENERAL_BULKY_DISPOSAL",'
-                    '"pending_slot":null}'
+                    '"pending_slot":"NONE"}'
                 )
             ),
             ClassifierResponseStage.CATALOG_REJECTED,
@@ -758,7 +773,9 @@ async def test_response_stage_observer_failure_does_not_change_accepted_decision
         httpx.Response(200, content=b"not-json"),
         _provider_response(content="not-json"),
         _provider_response(
-            content=('{"route":"UNBOUNDED","intent":null,"topic_id":null,"pending_slot":null}')
+            content=(
+                '{"route":"UNBOUNDED","intent":"NONE","topic_id":"NONE","pending_slot":"NONE"}'
+            )
         ),
         _provider_response(finish_reason="length"),
     ],
@@ -799,7 +816,7 @@ async def test_attempt_cap_blocks_second_transport_and_has_no_retry() -> None:
         return _provider_response(
             content=(
                 '{"route":"NO_TOPIC_MATCH","intent":"LOCAL_TAX_GENERAL",'
-                '"topic_id":null,"coverage_id":null,"pending_slot":null}'
+                '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}'
             )
         )
 
@@ -919,7 +936,7 @@ async def test_provider_topic_and_coverage_must_match_request_catalog() -> None:
             content=(
                 '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
                 '"topic_id":"KB-WASTE-01","coverage_id":"WRONG_COVERAGE",'
-                '"pending_slot":null}'
+                '"pending_slot":"NONE"}'
             )
         )
 

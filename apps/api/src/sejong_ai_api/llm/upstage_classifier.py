@@ -12,7 +12,7 @@ from sejong_ai_api.chat.classification import SafeQuestion
 from sejong_ai_api.chat.topic_catalog import TopicCatalog
 from sejong_ai_api.llm.classifier_contracts import (
     ClassifierDecision,
-    parse_classifier_decision_with_stage,
+    parse_classifier_wire_decision_with_stage,
 )
 from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 from sejong_ai_api.llm.classifier_prompt import (
@@ -31,6 +31,13 @@ from sejong_ai_api.llm.settings import (
 )
 
 _CHAT_COMPLETIONS_PATH = "/chat/completions"
+_CLASSIFIER_FIELDS = (
+    "route",
+    "intent",
+    "topic_id",
+    "coverage_id",
+    "pending_slot",
+)
 ResponseStageObserver = Callable[[ClassifierResponseStage], None]
 
 
@@ -42,6 +49,22 @@ class _ClassifierResponseRejected(RuntimeError):
 class _ClassifierResponseResult:
     decision: ClassifierDecision | None
     stage: ClassifierResponseStage
+
+
+def _build_classifier_response_format() -> dict[str, object]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "sejong_classifier_decision",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {field: {"type": "string"} for field in _CLASSIFIER_FIELDS},
+                "required": list(_CLASSIFIER_FIELDS),
+                "additionalProperties": False,
+            },
+        },
+    }
 
 
 def create_upstage_classifier_client(
@@ -112,7 +135,7 @@ class QuestionClassifier:
                 "stream": False,
                 "temperature": 0,
                 "max_tokens": self._settings.max_output_tokens,
-                "response_format": {"type": "json_object"},
+                "response_format": _build_classifier_response_format(),
             }
             async with self._ledger.reserve_classifier() as reservation:
                 response = await self._client.post(
@@ -194,7 +217,7 @@ def _parse_response(
         payload = content.encode("utf-8")
     except UnicodeEncodeError:
         return _ClassifierResponseResult(None, ClassifierResponseStage.CONTENT_REJECTED)
-    parsed = parse_classifier_decision_with_stage(payload, catalog)
+    parsed = parse_classifier_wire_decision_with_stage(payload, catalog)
     return _ClassifierResponseResult(parsed.decision, parsed.stage)
 
 
