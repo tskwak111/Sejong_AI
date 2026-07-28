@@ -172,6 +172,10 @@ D-112/Q-LLM-014=A는 A-072의 provider-only wire를 strict Upstage `json_schema`
 정규화한다. public classifier/chat 계약, DB/data/dependency와 서버 소유 출처 결합은 바뀌지
 않는다. 상세 설계 승인 전 제품 코드와 provider call은 0이고 corrective actual은 구현·offline
 검증 후 별도 인간 gate다.
+D-113은 사용자의 `설계 1부 승인`으로 위 provider wire와 서버 권위 경계를 확정했다. nullable
+대상은 `intent`, `topic_id`, `coverage_id`, `pending_slot`이며 exact `NONE`만 내부 `None`으로
+바꾼다. 동적 catalog 값은 schema에 복제하지 않고 기존 server validation이 판정한다. 설계 2부와
+written specification 승인 전 code/provider call은 0이다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

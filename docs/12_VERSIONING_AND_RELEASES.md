@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.1-json-mode-instruction
 test_suite: 2.1.5-response-stage-diagnostics
-documentation: 2.29.9
+documentation: 2.29.10
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -185,6 +185,12 @@ provider-only 응답을 strict `json_schema`의 required string 5필드와 fixed
 고정하고 서버가 sentinel을 기존 내부 `None`으로 정규화하는 방향을 선택했다. application,
 prompt, tests, public API/contracts, DB/data/dependency는 불변이며 상세 설계 승인 전 제품 코드와
 provider call은 0이다. corrective actual은 구현·offline 검증 뒤 별도 인간 gate다.
+
+Documentation `2.29.10`은 D-113의 A-072 설계 1부 승인 checkpoint다. exact required string
+5-key schema, nullable 4필드의 exact `NONE` normalization, full field-name prompt,
+server-owned enum/catalog validation과 retry 0·fail-closed 경계를 승인했다. application,
+prompt, tests, API/contracts, DB/data/dependency는 그대로이고 설계 2부와 written specification
+승인 전 code/provider call은 0이다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Approved — A-072 wire design section 1
+
+- Approved strict five-key string schema, exact `NONE` normalization for the four nullable
+  fields, full canonical field names, server-owned enum/catalog validation and retry-zero
+  fail-closed behavior.
+- Kept dynamic catalog values out of the provider schema and kept public API, DB, data,
+  dependencies and server-bound sources unchanged.
+- Advanced documentation `2.29.9→2.29.10`; code and provider calls remain zero pending section 2
+  and the written specification.
+
 ### Decided — strict five-key classifier wire
 
 - Chose Q-LLM-014=A for A-072: the Upstage provider-only response will use strict `json_schema`

@@ -139,6 +139,10 @@
   string으로 제한한다. nullable 의미는 wire의 고정 `NONE` sentinel로 표현한 뒤 서버가 기존
   내부 `None`으로 정규화한다. public API/DB/data/dependency와 server-bound source는 불변이다.
   상세 설계 승인 전 code/provider call은 0이고 새 actual은 구현·offline 검증 뒤 별도 gate다.
+- D-113: A-072 설계 1부를 승인했다. exact 5-key string schema와 nullable 4필드의 `NONE`
+  normalization, full-name prompt, 기존 closed server validation, retry 0·fail-closed가 권위다.
+  provider schema는 동적 catalog enum을 복제하지 않는다. 설계 2부와 written specification
+  승인 전 code/provider call은 0이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
