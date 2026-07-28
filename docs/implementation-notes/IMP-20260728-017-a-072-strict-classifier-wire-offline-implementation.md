@@ -3,11 +3,12 @@
 - Date/Time (KST): 2026-07-28T23:13:12+09:00
 - Task ID: A-072-CLASSIFIER-EXACT-KEY-CORRECTION
 - Type: implementation-provider-offline
-- Status: Done — Tasks 1~4 offline implementation; Task 5/D-117 pending
+- Status: Done — Tasks 1~5 offline implementation and clean-source review; D-117 pending
 - Author/Agent: Codex main controller + task-scoped implementer/reviewer agents
 - Branch: `codex/a-072-strict-classifier-wire`
 - Base commit: `5c2d2be70215e528561825cd762bed9932a5c9fd`
 - Pre-documentation implementation head: `9c0abb4`
+- Task 5 verified implementation head: `fbb5fc174153991d36b32c2c32f9f4793f68fc2f`
 - Related plan/ADR/RFP:
   [approved specification](../superpowers/specs/2026-07-28-upstage-classifier-strict-five-key-wire-design.md),
   [approved plan](../superpowers/plans/2026-07-28-upstage-classifier-strict-five-key-wire.md),
@@ -37,12 +38,12 @@ Subagent-Driven 방식으로 시작하도록 승인했다. Task 6 실제 Upstage
 | 항목 | 기록 |
 |---|---|
 | Who — 누가 | 인간 결정자 사용자, Codex controller, Task 1~3 구현 agent, 독립 spec/quality reviewer |
-| When — 언제 | 2026-07-28 KST, D-116 승인 뒤 Tasks 1~4 offline 구현 |
+| When — 언제 | 2026-07-28 KST, D-116 승인 뒤 Tasks 1~5 offline 구현·root gate·clean-source review |
 | Where — 어디서 | 격리 worktree의 `apps/api` LLM parser/prompt/transport와 authority/version 문서 |
 | What — 무엇을 | exact five-key strict schema, provider-only `NONE` normalization, bounded canonical prompt, 회귀·버전·권위 통합 |
 | Why — 왜 | D-111 actual의 HTTP 2xx 9건이 `KEY_SET_REJECTED` 9/9로 끝난 exact wire mismatch를 단일 교정하기 위해 |
 | How — 어떻게 | TDD RED→GREEN, fresh worker→독립 review→bounded fix loop, controlled doubles와 value-free offline gates |
-| How much — 어느 정도 | production 3파일, test 4파일, authority/version/note 문서; area 333 + runner 24 PASS; provider call 0, USD 0 |
+| How much — 어느 정도 | production 3파일, test 4파일, authority/version/note 문서; area 333 + runner 24 + root 434 + API 2,401 + Web 68 + contract 96 PASS; provider call 0, USD 0 |
 
 ## 3. 시작 전 상태
 
@@ -138,15 +139,35 @@ observer 오류도 시민 decision/fallback을 바꾸지 않는다. rollback은 
 | `ruff format --check src tests` | PASS | 115 files | terminal evidence |
 | `ruff check src tests` | PASS | 115 files | terminal evidence |
 | `mypy src tests` | PASS | 115 source files | terminal evidence |
+| `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` | FAIL; rerun 금지 준수 | `PREFLIGHT-POWERSHELL/NODE/PNPM` PASS 뒤 `PREFLIGHT-UV reason=exception code=2`; worktree-local `.tools/uv/uv.exe`와 PATH `uv` 모두 부재 | Task 5 terminal evidence; wrapper 전체를 PASS로 승격하지 않음 |
+| `corepack.cmd pnpm install --frozen-lockfile --ignore-scripts` | PASS | 465 packages reused, download 0 | wrapper 중단 뒤 constituent |
+| `.tools/uv/uv.exe sync --project apps/api --frozen` | PASS | 33 packages checked | main의 pinned ignored toolchain을 worktree junction으로 연결한 뒤 constituent |
+| root unittest discovery — first environment attempt | FAIL | 434 run, 41 failures, 2 errors, 2 skips; worktree-local `apps/api/.venv` 부재 | 기능 판정에 사용하지 않음 |
+| root unittest discovery — second environment attempt | FAIL | 434 run, 2 failures, 2 skips; worktree-local pinned `.tools` runtime 부재 | 기능 판정에 사용하지 않음 |
+| root unittest discovery — final after ignored venv/tool junctions | PASS | 434 in 582.201s, skip 2 | worktree source와 동일 pinned local venv/toolchain |
+| DATA-001 staging validation | PASS | issues 0 | root constituent |
+| DATA-SEED focused unittest | PASS | 143 in 190.194s | root constituent |
+| immutable release `.1`/`.2` and local seed verify | PASS | `.1` issues 0, `.2` issues 0, local `.2` active 1 | root constituent |
+| Web lint/typecheck/test | PASS | 14 files, 68 tests | root constituent |
+| Web E2E install and production dependency boundary | PASS | Playwright dev tool installed; production Playwright packages 0 | root constituent |
+| sentinel Web build — first environment attempt | FAIL | `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`; Next build 시작 전 중단 | wrapper의 `PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false` 미적용을 확인 |
+| sentinel Web build + bundle scan — exact runner environment | PASS | Next 16.2.10 build exit 0; sentinel bundle scan exit 0 | secret 환경 복원 확인 |
+| full API format/lint/typecheck | PASS | 115 files | exact `uv run --directory apps/api --frozen` |
+| full API pytest | PASS | 2,401 pass, 8 local-DB skip, 1 known warning, 5 subtests | provider actual/network 0 |
+| contract generation/check/diff/test — first environment attempt | FAIL | 같은 non-TTY pnpm preflight에서 generator 시작 전 중단 | 기능 판정에 사용하지 않음 |
+| contract generation/check/diff/test — exact runner environment | PASS | generated diff 0, tests 96/96 | public contract 불변 |
 | `python -B scripts/check_repository_docs.py` | PASS | repository documentation check passed | terminal evidence |
 | `check_secret_patterns.ps1 -RepositoryRoot .` | PASS | findings 0, value output 0 | terminal evidence |
+| `python -B scripts/validate_codex_package.py` | PASS | required files 12, manifest valid | terminal evidence |
 | `git diff --check` | PASS | whitespace errors 0 | terminal evidence |
 
 ### 미실행 검증과 이유
 
 - `scripts/run_hybrid_rag_actual.py` 실제 runner 실행: D-117 별도 exact 승인 전 금지.
 - public/remote/DB reset/seed/deploy: A-072 범위 밖이며 변경도 없다.
-- Task 5 root `verify.ps1`: Task 4 commit 뒤 clean-source gate가 별도로 소유한다.
+- root wrapper는 worktree-local ignored `uv` 부재로 FAIL이며 재실행하지 않았다. 나머지
+  constituent는 같은 source와 main의 pinned local venv/toolchain junction에서 각각 검증했고,
+  최종 기능·정적·보안 gate는 위 표와 같이 PASS했다.
 
 ## 9. 보안·개인정보·접근성·성능 영향
 
@@ -167,8 +188,9 @@ observer 오류도 시민 decision/fallback을 바꾸지 않는다. rollback은 
 
 ## 11. 인간이 반드시 알아야 하거나 승인할 내용
 
-- Tasks 1~4는 offline GREEN이지만 실제 Upstage 품질 PASS 증거가 아니다.
-- Task 5 root/clean-source gate 완료 뒤에도 actual은 exact 문구
+- Tasks 1~5의 offline constituent와 clean-source review는 완료됐지만, root wrapper 자체는
+  `PREFLIGHT-UV` 환경 실패이므로 PASS가 아니다. 이 결과는 실제 Upstage 품질 PASS 증거도 아니다.
+- actual은 exact 문구
   `A-072 corrective actual 1회 실행 승인`을 받아 D-117로 기록해야 한다.
 - 새 dependency, 공개/remote, DB/data, push/merge 권한은 이 작업에 포함되지 않았다.
 
@@ -186,7 +208,9 @@ observer 오류도 시민 decision/fallback을 바꾸지 않는다. rollback은 
 1. branch `codex/a-072-strict-classifier-wire`, base `5c2d2be`에서 시작한다.
 2. `apps/api`에서 area pytest, Ruff format/lint, Mypy를 실행한다.
 3. repository root에서 controlled-double actual-runner pytest와 docs/secret/diff gate를 실행한다.
-4. provider mode/key를 활성화하거나 actual runner를 직접 실행하지 않는다.
+4. fresh worktree에는 tracked되지 않는 `.tools`와 `apps/api/.venv`가 없으므로 main의 pinned local
+   toolchain을 junction으로 연결하거나 동일 버전의 local toolchain을 준비한다.
+5. provider mode/key를 활성화하거나 actual runner를 직접 실행하지 않는다.
 
 ### 롤백
 
@@ -195,13 +219,17 @@ secret rotation과 dependency reinstall은 필요 없다. 실제 호출이 없�
 
 ### 다음 개발자 시작점
 
-Task 5는 committed clean source에서 root `scripts/verify.ps1`, secret/scope review와 full SHA
-기록만 수행한다. 성공하면 멈추고 D-117 exact-one actual 승인을 요청한다.
+Task 5는 verified implementation head
+`fbb5fc174153991d36b32c2c32f9f4793f68fc2f`에서 root wrapper를 정확히 한 번 실행했고,
+환경 실패 뒤 모든 나머지 constituent, secret/scope review와 full SHA 기록을 완료했다.
+다음 개발자는 wrapper를 PASS로 오인하거나 재실행하지 말고 D-117 exact-one actual 승인을
+요청한다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
 - strict schema가 actual `solar-pro3`에서 exact five-key를 9/9 반환하는지는 아직 검증되지 않았다.
-- Task 5 root wrapper 및 final whole-branch independent review가 남았다.
+- root wrapper는 `PREFLIGHT-UV` 환경 실패로 종료됐으며 constituent PASS가 wrapper PASS를
+  대체하지 않는다. final whole-branch independent review는 controller가 별도로 수행한다.
 - D-117 승인 후에도 actual은 정확히 1회만 실행하고 어떤 결과든 즉시 재시도하지 않는다.
 
 ## 15. 자체 리뷰
