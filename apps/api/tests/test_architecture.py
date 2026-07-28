@@ -243,6 +243,10 @@ class ApiArchitectureTest(unittest.TestCase):
             }} <= loaded, loaded
             forbidden = {{
                 "sejong_ai_api.llm.chat_prompt",
+                "sejong_ai_api.llm.classifier_provider",
+                "sejong_ai_api.llm.deepseek_classifier",
+                "sejong_ai_api.llm.deepseek_settings",
+                "sejong_ai_api.llm.deepseek_usage",
                 "sejong_ai_api.llm.limits",
                 "sejong_ai_api.llm.settings",
                 "sejong_ai_api.llm.upstage_chat",

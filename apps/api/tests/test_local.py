@@ -41,6 +41,7 @@ from sejong_ai_api.llm.chat_contracts import (
 )
 from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.cost import estimate_cost_usd
+from sejong_ai_api.llm.deepseek_usage import estimate_deepseek_cost_usd
 from sejong_ai_api.local import create_local_app, load_local_settings
 
 
@@ -343,6 +344,7 @@ def _config() -> dict[str, str]:
     return {
         "DATABASE_URL": _PROVISIONED_DATABASE_URL,
         "CONTEXT_TOKEN_SECRET": "x" * 32,
+        "CLASSIFIER_PROVIDER": "disabled",
     }
 
 
@@ -368,6 +370,7 @@ def _grounded_chat_config() -> dict[str, str]:
 def _classifier_config() -> dict[str, str]:
     return {
         **_config(),
+        "CLASSIFIER_PROVIDER": "upstage",
         "LLM_PROVIDER": "upstage",
         "LLM_MODEL": "solar-pro3",
         "LLM_API_KEY": "test-only-classifier-sentinel",
@@ -389,6 +392,7 @@ def _classifier_config() -> dict[str, str]:
 def _combined_provider_config() -> dict[str, str]:
     return {
         **_grounded_chat_config(),
+        "CLASSIFIER_PROVIDER": "upstage",
         "UPSTAGE_CLASSIFIER_MODE": "true",
         "LLM_CLASSIFIER_TIMEOUT_SECONDS": "3",
         "LLM_CLASSIFIER_MAX_RETRIES": "0",
@@ -398,6 +402,19 @@ def _combined_provider_config() -> dict[str, str]:
         "LLM_GENERATOR_ATTEMPT_CAP": "100",
         "LLM_COMBINED_ATTEMPT_CAP": "160",
         "LLM_SESSION_COST_CAP_USD": "0.20",
+    }
+
+
+def _deepseek_classifier_config(*, grounded_chat: bool = False) -> dict[str, str]:
+    return {
+        **(_grounded_chat_config() if grounded_chat else _config()),
+        "CLASSIFIER_PROVIDER": "deepseek",
+        "DEEPSEEK_API_KEY": "test-only-deepseek-sentinel",
+        "DEEPSEEK_MODEL": "deepseek-v4-flash",
+        "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
+        "UPSTAGE_SYNTHETIC_EVALUATION_MODE": "false",
+        "UPSTAGE_CLASSIFIER_MODE": "false",
+        "UPSTAGE_GROUNDED_CHAT_MODE": "true" if grounded_chat else "false",
     }
 
 
@@ -845,6 +862,272 @@ def test_exact_classifier_profile_routes_ambiguous_local_chat_through_one_provid
     assert pool.close_count == 1
 
 
+def test_disabled_selector_ignores_an_otherwise_valid_legacy_upstage_classifier_profile(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.upstage_classifier as classifier_module
+
+    client_factory_calls = 0
+
+    def client_factory(_settings: object) -> httpx.AsyncClient:
+        nonlocal client_factory_calls
+        client_factory_calls += 1
+        return httpx.AsyncClient(
+            base_url="https://api.upstage.ai/v1",
+            transport=httpx.MockTransport(lambda request: httpx.Response(500, request=request)),
+        )
+
+    monkeypatch.setattr(classifier_module, "create_upstage_classifier_client", client_factory)
+    app = create_local_app(
+        environ={**_classifier_config(), "CLASSIFIER_PROVIDER": "disabled"},
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: FakePool(),
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer_status"] == "FOLLOWUP"
+    assert client_factory_calls == 0
+
+
+def test_deepseek_selector_is_lazy_and_masks_one_safe_ambiguous_request(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.deepseek_classifier as classifier_module
+
+    raw_email = "citizen@example.com"
+    client_factory_calls = 0
+    outbound_calls = 0
+    clients: list[httpx.AsyncClient] = []
+    monkeypatch.setattr(
+        local_module,
+        "_TOPIC_COVERAGE_PATH",
+        _write_single_topic_coverage(tmp_path),
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal outbound_calls
+        outbound_calls += 1
+        assert raw_email.encode() not in request.content
+        return httpx.Response(
+            200,
+            request=request,
+            json={
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {
+                            "content": (
+                                '{"route":"CIVIC_SCOPE_GAP","intent":"NONE",'
+                                '"topic_id":"NONE","coverage_id":"NONE",'
+                                '"pending_slot":"NONE"}'
+                            )
+                        },
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 20,
+                    "completion_tokens": 10,
+                    "total_tokens": 30,
+                },
+            },
+        )
+
+    def client_factory(_settings: object) -> httpx.AsyncClient:
+        nonlocal client_factory_calls
+        client_factory_calls += 1
+        client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        clients.append(client)
+        return client
+
+    monkeypatch.setattr(classifier_module, "create_deepseek_classifier_client", client_factory)
+    app = create_local_app(
+        environ=_deepseek_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: FakePool(),
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    assert client_factory_calls == 0
+    with TestClient(app) as client:
+        assert client.get("/ready").status_code == 200
+        assert client_factory_calls == 0
+        response = client.post(
+            "/api/v1/chat",
+            json={"question": f"{raw_email} 이메일로 청년 월세 지원을 문의하고 싶어요."},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["fallback"]["reason"] == "CIVIC_SCOPE_GAP"
+    assert client_factory_calls == 1
+    assert outbound_calls == 1
+    assert len(clients) == 1
+    assert clients[0].is_closed
+
+
+@pytest.mark.parametrize(
+    ("question", "answer_status", "reason"),
+    [
+        ("김철수", "FALLBACK", "PRIVACY_UNRESOLVED"),
+        ("내 자동차세 체납액을 조회해줘.", "FALLBACK", "PERSONAL_LOOKUP"),
+        ("전입신고를 안 하면 법적으로 처벌받는지 판단해줘.", "FALLBACK", "LEGAL_JUDGMENT"),
+        ("오늘 세종시 날씨를 알려줘", "FALLBACK", "OUT_OF_SCOPE"),
+        ("이사했는데 전입신고는 어떻게 하나요?", "SUCCESS", None),
+    ],
+)
+def test_deepseek_profile_keeps_deterministic_routes_provider_free(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    question: str,
+    answer_status: str,
+    reason: str | None,
+) -> None:
+    import sejong_ai_api.llm.deepseek_classifier as classifier_module
+
+    client_factory_calls = 0
+
+    def unexpected_client_factory(_settings: object) -> httpx.AsyncClient:
+        nonlocal client_factory_calls
+        client_factory_calls += 1
+        raise AssertionError("PROVIDER_CLIENT_ON_DETERMINISTIC_ROUTE")
+
+    monkeypatch.setattr(
+        classifier_module,
+        "create_deepseek_classifier_client",
+        unexpected_client_factory,
+    )
+    app = create_local_app(
+        environ=_deepseek_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: FakePool(),
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/api/v1/chat", json={"question": question})
+
+    payload = response.json()
+    assert response.status_code == 200
+    assert payload["answer_status"] == answer_status
+    assert (payload["fallback"]["reason"] if payload["fallback"] is not None else None) == reason
+    assert client_factory_calls == 0
+
+
+def test_deepseek_failure_has_exact_deterministic_fallback_without_persistence_or_cascade(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.deepseek_classifier as deepseek_module
+    import sejong_ai_api.llm.upstage_classifier as upstage_module
+
+    outbound_calls = 0
+    repositories: list[FakeRepository] = []
+    scope_gap_writes: list[str] = []
+    monkeypatch.setattr(
+        local_module,
+        "_TOPIC_COVERAGE_PATH",
+        _write_single_topic_coverage(tmp_path),
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal outbound_calls
+        outbound_calls += 1
+        return httpx.Response(500, request=request)
+
+    def repository_factory(value: object) -> FakeRepository:
+        class TrackingRepository(FakeRepository):
+            async def record_civic_scope_gap(self, masked_question: str) -> None:
+                scope_gap_writes.append(masked_question)
+
+        repository = TrackingRepository(value)
+        repositories.append(repository)
+        return repository
+
+    monkeypatch.setattr(
+        deepseek_module,
+        "create_deepseek_classifier_client",
+        lambda _settings: httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    monkeypatch.setattr(
+        upstage_module,
+        "create_upstage_classifier_client",
+        lambda _settings: (_ for _ in ()).throw(AssertionError("UPSTAGE_CLASSIFIER_CASCADE")),
+    )
+    app = create_local_app(
+        environ=_deepseek_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: FakePool(),
+        repository_factory=repository_factory,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+
+    payload = response.json()
+    assert response.status_code == 200
+    assert payload["answer_status"] == "FOLLOWUP"
+    assert payload["intent"] == "UNKNOWN"
+    assert payload["fallback"] is None
+    assert payload["sources"] == []
+    assert payload["followup_options"] == [
+        "전입·주민등록",
+        "증명서 발급",
+        "대형폐기물",
+        "지방세 일반 안내",
+    ]
+    assert outbound_calls == 1
+    assert repositories[0].events == []
+    assert scope_gap_writes == []
+
+
+def test_invalid_deepseek_profile_fails_closed_without_provider_cascade(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.deepseek_classifier as deepseek_module
+    import sejong_ai_api.llm.upstage_classifier as upstage_module
+
+    provider_factory_calls = 0
+
+    def unexpected_factory(_settings: object) -> httpx.AsyncClient:
+        nonlocal provider_factory_calls
+        provider_factory_calls += 1
+        raise AssertionError("PROVIDER_FACTORY_ON_INVALID_PROFILE")
+
+    monkeypatch.setattr(deepseek_module, "create_deepseek_classifier_client", unexpected_factory)
+    monkeypatch.setattr(upstage_module, "create_upstage_classifier_client", unexpected_factory)
+    app = create_local_app(
+        environ={
+            **_deepseek_classifier_config(),
+            "DEEPSEEK_MODEL": "not-approved",
+        },
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: FakePool(),
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer_status"] == "FOLLOWUP"
+    assert provider_factory_calls == 0
+
+
 def test_classifier_provider_failure_returns_safe_followup_without_persistence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1010,6 +1293,159 @@ def test_combined_profile_shares_one_attempt_ledger_and_closes_both_clients(
     assert pool.close_count == 1
 
 
+def test_deepseek_classifier_and_upstage_generator_use_separate_clients_and_shared_ledger(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.deepseek_classifier as deepseek_module
+    import sejong_ai_api.llm.limits as limits_module
+    import sejong_ai_api.llm.upstage_chat as upstage_chat_module
+
+    original_ledger_factory = limits_module.ProviderAttemptLedger
+    captured_ledger_arguments: dict[str, object] = {}
+    captured_ledgers: list[object] = []
+    deepseek_clients: list[httpx.AsyncClient] = []
+    upstage_clients: list[httpx.AsyncClient] = []
+    deepseek_outbound = 0
+    upstage_outbound = 0
+
+    def capture_ledger(**kwargs: object) -> object:
+        captured_ledger_arguments.update(kwargs)
+        ledger = original_ledger_factory(**cast(Any, kwargs))
+        captured_ledgers.append(ledger)
+        return ledger
+
+    def deepseek_handler(request: httpx.Request) -> httpx.Response:
+        nonlocal deepseek_outbound
+        deepseek_outbound += 1
+        return httpx.Response(
+            200,
+            request=request,
+            json={
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {
+                            "content": (
+                                '{"route":"CIVIC_SCOPE_GAP","intent":"NONE",'
+                                '"topic_id":"NONE","coverage_id":"NONE",'
+                                '"pending_slot":"NONE"}'
+                            )
+                        },
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 20,
+                    "completion_tokens": 10,
+                    "total_tokens": 30,
+                },
+            },
+        )
+
+    def upstage_handler(request: httpx.Request) -> httpx.Response:
+        nonlocal upstage_outbound
+        upstage_outbound += 1
+        return httpx.Response(
+            200,
+            request=request,
+            json={
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "summary": "공식 안내입니다.",
+                                    "procedure_step_ids": ["STEP-01"],
+                                    "required_document_ids": [],
+                                    "processing_time_id": None,
+                                    "fee_id": None,
+                                    "department_id": "DEPT-01",
+                                },
+                                ensure_ascii=False,
+                            )
+                        },
+                    }
+                ],
+                "usage": {"prompt_tokens": 20, "completion_tokens": 10},
+            },
+        )
+
+    def deepseek_client_factory(_settings: object) -> httpx.AsyncClient:
+        client = httpx.AsyncClient(transport=httpx.MockTransport(deepseek_handler))
+        deepseek_clients.append(client)
+        return client
+
+    def upstage_client_factory(_settings: object) -> httpx.AsyncClient:
+        client = httpx.AsyncClient(
+            base_url="https://api.upstage.ai/v1",
+            transport=httpx.MockTransport(upstage_handler),
+        )
+        upstage_clients.append(client)
+        return client
+
+    original_build_runtime = upstage_chat_module.build_upstage_chat_runtime
+
+    def build_runtime(settings: object, *, ledger: object) -> object:
+        captured_ledgers.append(ledger)
+        return original_build_runtime(cast(Any, settings), ledger=cast(Any, ledger))
+
+    monkeypatch.setattr(limits_module, "ProviderAttemptLedger", capture_ledger)
+    monkeypatch.setattr(
+        deepseek_module,
+        "create_deepseek_classifier_client",
+        deepseek_client_factory,
+    )
+    monkeypatch.setattr(
+        upstage_chat_module,
+        "create_upstage_chat_client",
+        upstage_client_factory,
+    )
+    monkeypatch.setattr(upstage_chat_module, "build_upstage_chat_runtime", build_runtime)
+
+    app = create_local_app(
+        environ=_deepseek_classifier_config(grounded_chat=True),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: FakePool(),
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    assert deepseek_clients == []
+    assert len(upstage_clients) == 1
+    with TestClient(app) as client:
+        ambiguous = client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+        grounded = client.post(
+            "/api/v1/chat",
+            json={"question": "이사했는데 전입신고는 어떻게 하나요?"},
+        )
+
+    assert ambiguous.json()["fallback"]["reason"] == "CIVIC_SCOPE_GAP"
+    assert grounded.status_code == 200
+    assert grounded.json()["answer_status"] == "SUCCESS"
+    assert grounded.json()["answer_mode"] == "TEMPLATE"
+    assert deepseek_outbound == 1
+    assert upstage_outbound == 1
+    assert len(deepseek_clients) == 1
+    assert deepseek_clients[0] is not upstage_clients[0]
+    assert deepseek_clients[0].is_closed
+    assert upstage_clients[0].is_closed
+    assert len(captured_ledgers) == 2
+    assert captured_ledgers[0] is captured_ledgers[1]
+    assert captured_ledger_arguments == {
+        "classifier_cap": 80,
+        "generator_cap": 100,
+        "combined_cap": 160,
+        "cost_cap_usd": Decimal("0.20"),
+        "classifier_worst_case_usd": estimate_deepseek_cost_usd(TokenUsage(16384, 0, 128)),
+        "generator_worst_case_usd": estimate_cost_usd(TokenUsage(4096, 0, 1024)),
+        "classifier_cost_estimator": estimate_deepseek_cost_usd,
+        "generator_cost_estimator": estimate_cost_usd,
+    }
+
+
 def test_combined_profile_rejects_legacy_custom_grounded_factory_without_shared_ledger(
     tmp_path: Path,
 ) -> None:
@@ -1033,6 +1469,29 @@ def test_combined_profile_rejects_legacy_custom_grounded_factory_without_shared_
         assert client.get("/ready").status_code == 200
 
     assert pool.close_count == 1
+
+
+def test_deepseek_combined_profile_rejects_custom_grounded_factory_without_shared_ledger(
+    tmp_path: Path,
+) -> None:
+    factory_calls: list[object] = []
+
+    def legacy_factory(settings: object) -> FakeGroundedRuntime:
+        factory_calls.append(settings)
+        return FakeGroundedRuntime()
+
+    app = create_local_app(
+        environ=_deepseek_classifier_config(grounded_chat=True),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: FakePool(),
+        repository_factory=lambda value: FakeRepository(value),
+        grounded_chat_runtime_factory=cast(Any, legacy_factory),
+    )
+
+    with TestClient(app) as client:
+        assert client.get("/ready").status_code == 200
+
+    assert factory_calls == []
 
 
 def test_classifier_constructor_failure_closes_created_client(
@@ -1080,6 +1539,53 @@ def test_classifier_constructor_failure_closes_created_client(
     assert close_calls == 1
     assert client.is_closed
     assert pool.close_count == 1
+
+
+def test_deepseek_classifier_constructor_failure_closes_lazy_owned_client(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sejong_ai_api.llm.deepseek_classifier as classifier_module
+
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(500, request=request))
+    )
+    close_calls = 0
+    original_close = httpx.AsyncClient.aclose
+
+    def fail_classifier(**_kwargs: object) -> None:
+        raise RuntimeError("CLASSIFIER-CONSTRUCTION-FAILURE")
+
+    async def observe_close(value: httpx.AsyncClient) -> None:
+        nonlocal close_calls
+        close_calls += 1
+        await original_close(value)
+
+    monkeypatch.setattr(
+        classifier_module,
+        "create_deepseek_classifier_client",
+        lambda _settings: client,
+    )
+    monkeypatch.setattr(classifier_module, "DeepSeekQuestionClassifier", fail_classifier)
+    monkeypatch.setattr(httpx.AsyncClient, "aclose", observe_close)
+
+    app = create_local_app(
+        environ=_deepseek_classifier_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: FakePool(),
+        repository_factory=lambda value: FakeRepository(value),
+    )
+
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/api/v1/chat",
+            json={"question": "청년 월세 지원 어떻게 해요?"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer_status"] == "FOLLOWUP"
+    assert close_calls == 1
+    assert client.is_closed
 
 
 def test_classifier_client_is_not_created_when_later_app_composition_fails(

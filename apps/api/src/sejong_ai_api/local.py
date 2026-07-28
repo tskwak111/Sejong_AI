@@ -46,10 +46,12 @@ if TYPE_CHECKING:
     from sejong_ai_api.chat.topic_catalog import TopicCatalog
     from sejong_ai_api.llm.classifier_contracts import ClassifierDecision
     from sejong_ai_api.llm.limits import ProviderAttemptLedger
-    from sejong_ai_api.llm.settings import UpstageChatSettings, UpstageClassifierSettings
+    from sejong_ai_api.llm.settings import UpstageChatSettings
     from sejong_ai_api.llm.upstage_chat import GroundedChatRuntime
 
     type GroundedChatRuntimeFactory = Callable[[UpstageChatSettings], GroundedChatRuntime]
+    type ClassifierClientFactory = Callable[[], httpx.AsyncClient]
+    type ClassifierDelegateFactory = Callable[[httpx.AsyncClient], QuestionClassifierPort]
 
 _LOCAL_ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 _TOPIC_COVERAGE_PATH = (
@@ -82,21 +84,23 @@ class _LazyQuestionClassifier:
 
     __slots__ = (
         "_client",
+        "_client_factory",
         "_delegate",
+        "_delegate_factory",
         "_disabled",
         "_init_lock",
-        "_ledger",
-        "_settings",
     )
 
     def __init__(
         self,
         *,
-        settings: UpstageClassifierSettings,
-        ledger: ProviderAttemptLedger,
+        client_factory: ClassifierClientFactory,
+        delegate_factory: ClassifierDelegateFactory,
     ) -> None:
-        self._settings = settings
-        self._ledger = ledger
+        if not callable(client_factory) or not callable(delegate_factory):
+            raise ValueError("CLASSIFIER_FACTORY_INVALID")
+        self._client_factory = client_factory
+        self._delegate_factory = delegate_factory
         self._client: httpx.AsyncClient | None = None
         self._delegate: QuestionClassifierPort | None = None
         self._disabled = False
@@ -122,17 +126,8 @@ class _LazyQuestionClassifier:
                 return self._delegate
             client: httpx.AsyncClient | None = None
             try:
-                from sejong_ai_api.llm.upstage_classifier import (
-                    QuestionClassifier,
-                    create_upstage_classifier_client,
-                )
-
-                client = create_upstage_classifier_client(self._settings)
-                delegate = QuestionClassifier(
-                    settings=self._settings,
-                    client=client,
-                    ledger=self._ledger,
-                )
+                client = self._client_factory()
+                delegate = self._delegate_factory(client)
             except Exception:
                 self._disabled = True
                 if client is not None:
@@ -261,13 +256,17 @@ def create_local_app(
         pool = selected_pool_factory(settings.database_url)
         repository = selected_repository_factory(pool)
         probe = RepositoryReadinessProbe(repository)
-        classifier_runtime = _compose_optional_classifier_runtime(
+        upstage_chat_settings = _load_optional_upstage_chat_settings(
             environ=environ,
             env_path=env_path,
         )
-        grounded_chat_runtime = _compose_optional_grounded_chat_runtime(
+        classifier_runtime = _compose_optional_classifier_runtime(
             environ=environ,
             env_path=env_path,
+            upstage_chat_settings=upstage_chat_settings,
+        )
+        grounded_chat_runtime = _compose_optional_grounded_chat_runtime(
+            chat_settings=upstage_chat_settings,
             runtime_factory=grounded_chat_runtime_factory,
             ledger=(classifier_runtime.ledger if classifier_runtime is not None else None),
         )
@@ -351,17 +350,13 @@ def create_local_app(
 
 def _compose_optional_grounded_chat_runtime(
     *,
-    environ: Mapping[str, str] | None,
-    env_path: Path | None,
+    chat_settings: UpstageChatSettings | None,
     runtime_factory: GroundedChatRuntimeFactory | None,
     ledger: ProviderAttemptLedger | None,
 ) -> GroundedChatRuntime | None:
     """Lazily compose the exact local profile without making an outbound request."""
 
     try:
-        from sejong_ai_api.llm.settings import load_upstage_chat_settings
-
-        chat_settings = load_upstage_chat_settings(environ=environ, env_path=env_path)
         if chat_settings is None:
             return None
         if runtime_factory is not None:
@@ -375,39 +370,132 @@ def _compose_optional_grounded_chat_runtime(
         return None
 
 
+def _load_optional_upstage_chat_settings(
+    *,
+    environ: Mapping[str, str] | None,
+    env_path: Path | None,
+) -> UpstageChatSettings | None:
+    """Load the optional validated generator capability exactly once per app composition."""
+
+    try:
+        from sejong_ai_api.llm.settings import load_upstage_chat_settings
+
+        return load_upstage_chat_settings(environ=environ, env_path=env_path)
+    except Exception:
+        return None
+
+
 def _compose_optional_classifier_runtime(
     *,
     environ: Mapping[str, str] | None,
     env_path: Path | None,
+    upstage_chat_settings: UpstageChatSettings | None,
 ) -> _ClassifierRuntime | None:
     """Lazily compose the exact classifier profile without an eager request."""
 
     try:
+        from sejong_ai_api.llm.classifier_provider import (
+            ClassifierProvider,
+            load_classifier_provider,
+        )
         from sejong_ai_api.llm.contracts import TokenUsage
         from sejong_ai_api.llm.cost import estimate_cost_usd
         from sejong_ai_api.llm.limits import ProviderAttemptLedger
         from sejong_ai_api.llm.settings import (
             UPSTAGE_MAX_INPUT_TOKENS,
             UPSTAGE_MAX_OUTPUT_TOKENS,
-            load_upstage_classifier_settings,
         )
 
-        classifier_settings = load_upstage_classifier_settings(
+        provider = load_classifier_provider(
             environ=environ,
             env_path=env_path,
         )
-        if classifier_settings is None:
+        if provider is ClassifierProvider.DISABLED:
+            return None
+
+        if provider is ClassifierProvider.UPSTAGE:
+            from sejong_ai_api.llm.settings import load_upstage_classifier_settings
+            from sejong_ai_api.llm.upstage_classifier import (
+                QuestionClassifier,
+                create_upstage_classifier_client,
+            )
+
+            classifier_settings = load_upstage_classifier_settings(
+                environ=environ,
+                env_path=env_path,
+            )
+            if classifier_settings is None:
+                return None
+            ledger = ProviderAttemptLedger(
+                classifier_cap=classifier_settings.classifier_attempt_cap,
+                generator_cap=classifier_settings.generator_attempt_cap,
+                combined_cap=classifier_settings.combined_attempt_cap,
+                cost_cap_usd=classifier_settings.session_cost_cap_usd,
+                classifier_worst_case_usd=estimate_cost_usd(
+                    TokenUsage(
+                        input_tokens=UPSTAGE_MAX_INPUT_TOKENS,
+                        cached_input_tokens=0,
+                        output_tokens=classifier_settings.max_output_tokens,
+                    )
+                ),
+                generator_worst_case_usd=estimate_cost_usd(
+                    TokenUsage(
+                        input_tokens=UPSTAGE_MAX_INPUT_TOKENS,
+                        cached_input_tokens=0,
+                        output_tokens=UPSTAGE_MAX_OUTPUT_TOKENS,
+                    )
+                ),
+            )
+
+            def upstage_client_factory() -> httpx.AsyncClient:
+                return create_upstage_classifier_client(classifier_settings)
+
+            def upstage_delegate_factory(
+                client: httpx.AsyncClient,
+            ) -> QuestionClassifierPort:
+                return QuestionClassifier(
+                    settings=classifier_settings,
+                    client=client,
+                    ledger=ledger,
+                )
+
+            return _ClassifierRuntime(
+                classifier=_LazyQuestionClassifier(
+                    client_factory=upstage_client_factory,
+                    delegate_factory=upstage_delegate_factory,
+                ),
+                ledger=ledger,
+            )
+
+        if provider is not ClassifierProvider.DEEPSEEK:
+            return None
+
+        from sejong_ai_api.llm.deepseek_classifier import (
+            DeepSeekQuestionClassifier,
+            create_deepseek_classifier_client,
+        )
+        from sejong_ai_api.llm.deepseek_settings import (
+            load_deepseek_classifier_settings,
+        )
+        from sejong_ai_api.llm.deepseek_usage import estimate_deepseek_cost_usd
+
+        deepseek_settings = load_deepseek_classifier_settings(
+            environ=environ,
+            env_path=env_path,
+            upstage_chat_settings=upstage_chat_settings,
+        )
+        if deepseek_settings is None:
             return None
         ledger = ProviderAttemptLedger(
-            classifier_cap=classifier_settings.classifier_attempt_cap,
-            generator_cap=classifier_settings.generator_attempt_cap,
-            combined_cap=classifier_settings.combined_attempt_cap,
-            cost_cap_usd=classifier_settings.session_cost_cap_usd,
-            classifier_worst_case_usd=estimate_cost_usd(
+            classifier_cap=deepseek_settings.classifier_attempt_cap,
+            generator_cap=deepseek_settings.generator_attempt_cap,
+            combined_cap=deepseek_settings.combined_attempt_cap,
+            cost_cap_usd=deepseek_settings.session_cost_cap_usd,
+            classifier_worst_case_usd=estimate_deepseek_cost_usd(
                 TokenUsage(
-                    input_tokens=UPSTAGE_MAX_INPUT_TOKENS,
+                    input_tokens=deepseek_settings.max_input_usage_tokens,
                     cached_input_tokens=0,
-                    output_tokens=classifier_settings.max_output_tokens,
+                    output_tokens=deepseek_settings.max_output_tokens,
                 )
             ),
             generator_worst_case_usd=estimate_cost_usd(
@@ -417,11 +505,26 @@ def _compose_optional_classifier_runtime(
                     output_tokens=UPSTAGE_MAX_OUTPUT_TOKENS,
                 )
             ),
+            classifier_cost_estimator=estimate_deepseek_cost_usd,
+            generator_cost_estimator=estimate_cost_usd,
         )
+
+        def deepseek_client_factory() -> httpx.AsyncClient:
+            return create_deepseek_classifier_client(deepseek_settings)
+
+        def deepseek_delegate_factory(
+            client: httpx.AsyncClient,
+        ) -> QuestionClassifierPort:
+            return DeepSeekQuestionClassifier(
+                settings=deepseek_settings,
+                client=client,
+                ledger=ledger,
+            )
+
         return _ClassifierRuntime(
             classifier=_LazyQuestionClassifier(
-                settings=classifier_settings,
-                ledger=ledger,
+                client_factory=deepseek_client_factory,
+                delegate_factory=deepseek_delegate_factory,
             ),
             ledger=ledger,
         )
