@@ -125,7 +125,7 @@ observer 오류도 시민 decision/fallback을 바꾸지 않는다. rollback은 
 | Mock data | 0.0.0-not-populated | 0.0.0-not-populated | 불변 |
 | Prompt set | 0.4.1-json-mode-instruction | 0.4.2-exact-five-key-schema | canonical bounded five-key grammar |
 | Test suite | 2.1.5-response-stage-diagnostics | 2.1.6-structured-classifier-wire | strict wire/area regressions |
-| Documentation | 2.30.1 | 2.30.1 | 현재 요청은 승인된 세 runtime/test 축만 전진 |
+| Documentation | 2.30.1 | 2.30.2 | Tasks 1~5 implementation/evidence checkpoint |
 
 ## 8. 명령과 테스트 증거
 
@@ -229,7 +229,8 @@ Task 5는 verified implementation head
 
 - strict schema가 actual `solar-pro3`에서 exact five-key를 9/9 반환하는지는 아직 검증되지 않았다.
 - root wrapper는 `PREFLIGHT-UV` 환경 실패로 종료됐으며 constituent PASS가 wrapper PASS를
-  대체하지 않는다. final whole-branch independent review는 controller가 별도로 수행한다.
+  대체하지 않는다. final whole-branch independent review의 runtime concern은 없었고, 발견된
+  active 문서의 구현 상태·버전 불일치는 documentation `2.30.2`에서 교정했다.
 - D-117 승인 후에도 actual은 정확히 1회만 실행하고 어떤 결과든 즉시 재시도하지 않는다.
 
 ## 15. 자체 리뷰

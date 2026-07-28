@@ -1,7 +1,7 @@
 # Upstage Classifier Strict Five-Key Wire — Written Specification
 
 - Task ID: `A-072-CLASSIFIER-EXACT-KEY-CORRECTION`
-- Status: Approved — implementation plan Review; product code/provider actual unchanged
+- Status: Approved / implemented offline Tasks 1~5; provider actual pending D-117
 - Date: 2026-07-28 KST
 - Human authority: `Q-LLM-014=A`, `설계 1부 승인`, `설계 2부 승인`
 - Decision authority: D-111~D-114
@@ -324,6 +324,10 @@ offline implementation과 area/root gate가 통과하고 clean source commit이 
 
 documentation version은 written specification, plan, implementation/evidence checkpoint에서
 각각 추적한다.
+Documentation `2.30.2`는 Tasks 1~5 offline 구현·clean-source review evidence checkpoint다.
+root wrapper는 정확히 한 번 실행되어 환경 전용 `PREFLIGHT-UV`에서 FAIL했고 재실행하지
+않았으므로 PASS가 아니다. 나머지 constituent/security/scope 검사는 문서화된 skip을 제외하고
+PASS했으며 provider actual call/cost는 0/USD 0이다.
 
 ## 10. 인수 기준
 
@@ -333,7 +337,8 @@ documentation version은 written specification, plan, implementation/evidence ch
 4. exact `NONE` normalization과 모든 invalid sentinel/type/key regression이 통과한다.
 5. public API/DB/data/dependency/source binding이 바뀌지 않는다.
 6. 질문·provider body·status detail·key·DSN retention이 0이다.
-7. focused, area, root offline gate가 통과한다.
+7. focused/area와 root constituent gate가 문서화된 skip을 제외하고 통과한다. root wrapper의
+   환경 전용 preflight 실패는 별도 FAIL로 보존하며 constituent PASS로 대체하지 않는다.
 8. provider actual은 별도 승인 전 0이며 승인 후 정확히 한 번만 실행한다.
 
 ## 11. 롤백과 복구

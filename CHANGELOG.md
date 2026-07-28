@@ -22,6 +22,8 @@
   is not a PASS. Remaining constituents/security/scope checks passed with documented bounded skips;
   provider calls/cost remain `0`. The D-117 actual remains pending and requires the exact approval
   `A-072 corrective actual 1회 실행 승인`.
+- Advanced documentation `2.30.1→2.30.2` for the Tasks 1~5 implementation/evidence checkpoint;
+  all runtime axes remain unchanged.
 
 ### Planned — A-072 strict classifier wire
 
