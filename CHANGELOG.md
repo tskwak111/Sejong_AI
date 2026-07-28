@@ -8,8 +8,14 @@
   changing its request schema, route vocabulary, catalog, provider model, timeout or retry policy.
 - Added a RED/GREEN regression test and kept the real 20-topic catalog plus a 256-character
   question within the conservative 4,096-character prompt bound.
-- Archived the D-106 aggregate-only 4xx FAIL before the separately approved single corrective
-  actual. That run must use the committed source, PII-free fixed subset, retry 0 and USD 0.20 cap.
+- Archived the D-106 aggregate-only 4xx FAIL, then executed the separately approved corrective
+  actual exactly once from committed source `4cb42ff`: 20 selected, 0 skipped, 11 provider-free
+  and 9 outbound. All 9 responses were HTTP 2xx with accepted usage, proving the prior 4xx request
+  rejection was fixed; strict closed decisions and route/topic matches were still 0, so acceptance
+  remains FAIL and no retry occurred. Observed and ledger cost reconciled at USD 0.002646303
+  including VAT, below the USD 0.20 cap.
+- Retained no question, provider body, status detail, key or DSN; ignored local provider modes
+  remain false/false. Exact response-validation diagnosis is deferred to A-071.
 - Advanced prompt set `0.4.0→0.4.1-json-mode-instruction`, tests
   `2.1.3→2.1.4-json-mode-regression` and documentation `2.29.3→2.29.4`; application, API,
   contracts, DB, data and dependencies are unchanged.

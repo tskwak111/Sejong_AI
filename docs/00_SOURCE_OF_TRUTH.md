@@ -141,6 +141,12 @@ HTTP response를 받았지만 전부 4xx class였고 2xx·5xx·transport/timeout
 decision·route/topic match는 0이었다. 따라서 provider client-rejection 단계까지는 진단됐지만
 auth/access/request-shape/quota 중 정확한 원인은 보관하지 않은 body/status detail 없이
 단정하지 않는다. corrective 결과도 FAIL이며 추가 실제 호출은 새 승인 전 금지한다.
+Q-LLM-013=A/D-107은 closed selector prompt의 누락된 명시적 `JSON만` 지시만 TDD로 복원했다.
+source `4cb42ff`의 단 한 번 corrective actual은 동일 20 selected·11 provider-free·9 outbound에서
+9/9 HTTP 2xx와 accepted usage, 4xx/5xx/transport 0을 기록해 D-106의 request-validation 4xx를
+해소했다. 그러나 strict closed decision accepted와 route/topic match는 0/9이므로 전체 결과는
+여전히 FAIL이고 재실행하지 않았다. 본문 비보관 경계 안에서 정확한 response-validation 단계는
+A-071로 남으며 local runtime은 fail-closed fallback을 유지한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

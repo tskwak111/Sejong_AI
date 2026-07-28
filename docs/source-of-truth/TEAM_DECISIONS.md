@@ -116,6 +116,10 @@
   PII-free 20-case selector actual은 정확히 한 번 실행해 20 selected·skip 0·11
   provider-free·9 outbound였으나 strict accepted usage/provider match 0으로 FAIL했고
   재실행하지 않았다.
+- Q-LLM-013=A/D-107: 명시적 `JSON만` 지시만 복원한 source `4cb42ff`의 exact-one actual은
+  같은 9 outbound 모두 HTTP 2xx와 accepted usage를 반환해 D-106의 4xx를 해소했다. strict
+  closed decision accepted/match는 0이라 overall FAIL이며 재시도하지 않았다. response body를
+  보관하지 않아 다음 검증 단계는 A-071로 분리하고 현재 fail-closed fallback을 유지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

@@ -143,8 +143,11 @@ Prompt set `0.4.1-json-mode-instruction`, test suite `2.1.4-json-mode-regression
 documentation `2.29.4`는 Q-LLM-013=A/D-107의 단일 변수 교정 기준선이다. closed selector
 system message에 명시적 `JSON만` 지시를 복원하면서 route·field·catalog·provider request
 계약은 유지했고, 20개 실제 governed catalog와 256자 질문의 보수적 4,096자 상한도 그대로
-통과한다. D-106의 4xx FAIL은 archive로 보존하며, 승인된 PII-free corrective actual은 이
-변경을 commit한 정확한 source에서 1회만 실행하고 실패해도 재시도하지 않는다.
+통과한다. D-106의 4xx FAIL은 archive로 보존했다. source `4cb42ff`의 승인된 exact-one
+PII-free corrective actual은 20 selected·0 skip·11 provider-free·9 outbound에서 9/9 HTTP
+2xx와 accepted usage, 4xx/5xx/transport 0을 기록해 request rejection을 해소했다. strict closed
+decision accepted/match는 0이라 acceptance는 FAIL이고 retry는 0이다. observed/ledger 비용은
+VAT 포함 USD 0.002646303이며 질문·provider body·status detail·key·DSN 보관은 0이다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
