@@ -186,6 +186,28 @@ def test_classifier_prompt_explicitly_requires_json_output() -> None:
     assert any("json" in message["content"].casefold() for message in messages)
 
 
+def test_classifier_prompt_uses_canonical_wire_names_and_exact_none() -> None:
+    system = build_classifier_messages(
+        _safe_question(),
+        _catalog(),
+        max_input_chars=1024,
+    )[0]["content"]
+
+    for field in ("route", "intent", "topic_id", "coverage_id", "pending_slot"):
+        assert field in system
+    assert "NONE" in system
+    for forbidden in (
+        "route/I:",
+        "T:topic_id",
+        "C:coverage_id",
+        "P:pending_slot",
+        "∅",
+        "n³",
+        "n⁴",
+    ):
+        assert forbidden not in system
+
+
 def test_classifier_prompt_uses_at_most_two_approved_examples_without_sampling_topics() -> None:
     catalog = _catalog(
         2,

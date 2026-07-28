@@ -17,10 +17,14 @@ _CATALOG_COLUMNS = (
     "approved_examples",
 )
 _SYSTEM_MESSAGE = (
-    "JSON만;route/I:intent/T:topic_id/C:coverage_id/P:pending_slot;n=∅;"
-    "P:DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM;"
-    "SUPPORTED→rowI/T/C,n;NO_TOPIC_MATCH→I,n³;"
-    "CIVIC_SCOPE_GAP|NON_CIVIC→n⁴;NEEDS_FOLLOWUP→P=DOMAIN?n:I,n²,P"
+    "JSON만. 필드 route,intent,topic_id,coverage_id,pending_slot 5개; "
+    "모두 문자열. 없음=NONE, 추가 금지. "
+    "SUPPORTED: intent/topic_id/coverage_id는 catalog row, pending_slot=NONE. "
+    "NO_TOPIC_MATCH: intent는 지원 intent, topic_id/coverage_id/pending_slot=NONE. "
+    "CIVIC_SCOPE_GAP/NON_CIVIC: intent/topic_id/coverage_id/pending_slot=NONE. "
+    "NEEDS_FOLLOWUP: topic_id/coverage_id=NONE, pending_slot="
+    "DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM. "
+    "pending_slot=DOMAIN: intent=NONE, 그 외 intent=지원 intent."
 )
 
 

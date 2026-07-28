@@ -195,16 +195,19 @@ def test_prompt_defines_all_closed_pending_slots_and_route_shapes() -> None:
     )[0]
     followup_rule = system.split("NEEDS_FOLLOWUP", maxsplit=1)[1]
 
-    assert "row" in supported_rule
-    assert "n" in supported_rule
-    assert "intent" in no_topic_rule or "I" in no_topic_rule
-    assert "n³" in no_topic_rule or no_topic_rule.count("n") >= 3
+    assert "catalog row" in supported_rule
+    assert "intent" in supported_rule
+    assert "topic_id" in supported_rule
+    assert "coverage_id" in supported_rule
+    assert "pending_slot=NONE" in supported_rule
+    assert "intent" in no_topic_rule
+    assert "topic_id/coverage_id/pending_slot=NONE" in no_topic_rule
     assert "NON_CIVIC" in civic_rule
-    assert "n⁴" in civic_rule or civic_rule.count("n") >= 4
+    assert "intent/topic_id/coverage_id/pending_slot=NONE" in civic_rule
     assert "DOMAIN" in followup_rule
-    assert "intent" in followup_rule or "I" in followup_rule
-    assert "P" in followup_rule
-    assert "n²" in followup_rule or followup_rule.count("n") >= 3
+    assert "topic_id/coverage_id=NONE" in followup_rule
+    assert "pending_slot" in followup_rule
+    assert "intent=NONE" in followup_rule
 
 
 @pytest.mark.asyncio
