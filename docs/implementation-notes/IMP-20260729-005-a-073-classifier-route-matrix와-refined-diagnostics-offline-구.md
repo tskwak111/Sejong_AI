@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-29T03:01:55+09:00
 - Task ID: A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION
 - Type: implementation-provider-offline
-- Status: Done — Tasks 1~4 offline implementation/version integration; Task 5 root gate and actual pending
+- Status: Done — Tasks 1~4 offline implementation/version integration; Task 5 root/clean-source gate and Task 6 actual pending
 - Author/Agent: 사용자 결정자 + Codex controller + Task 1~4 구현 에이전트
 - Branch: `codex/a-072-strict-classifier-wire`
 - Base commit: `34cc45d1132a5316a1e5e31c2adb3c77d4338aef`
@@ -240,3 +240,24 @@ Task 5 owner는 Task 4 clean commit에서 offline root wrapper를 정확히 한 
 - [x] source-of-truth/계약/버전 동기화
 - [x] 개인정보 원문 노출 없음
 - [x] 구현 노트 INDEX 갱신
+
+## 16. Task 4 review correction round 1
+
+- Review base: `c04804c854997472b1fb107bf5b6c9044e4c1f3a`
+- Finding 1: `TEAM_DECISIONS.md`의 D-120 요약이 application/prompt/tests 축의 짧은 값만
+  기록하고 documentation `2.30.6`을 누락했다.
+- Correction: advanced axes를 manifest와 같은 full labels로 통일했다:
+  application `0.12.4-classifier-wire-diagnostics`, prompt_set
+  `0.4.3-explicit-route-matrix`, test_suite `2.1.7-classifier-wire-correction`,
+  documentation `2.30.6`. 다른 version axis는 수정하지 않았다.
+- Finding 2: specification과 이 노트 status가 pending actual의 task number를 생략했다.
+- Correction: 둘 다 `Task 5 root/clean-source gate and Task 6 actual pending`을 명시했다.
+- Scope: 위 세 문서만 변경했다. D-117, ADR-0027, provider reports, code/contracts/DB/data/
+  dependencies는 변경하지 않았고 provider/network/API server/manual chat은 실행하지 않았다.
+- Verification:
+  `python -B scripts/check_repository_docs.py` PASS,
+  `check_secret_patterns.ps1 -RepositoryRoot .` exit 0/findings 0,
+  `git diff --check` whitespace errors 0,
+  `git status --short`는 위 세 expected document만 modified로 표시했다.
+- Rollback: review correction commit 하나를 revert하면 되며 DB/data/secret/dependency rollback은
+  필요 없다.

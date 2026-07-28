@@ -1,7 +1,7 @@
 # Upstage Classifier Explicit Route Matrix and Refined Diagnostics — Written Specification
 
 - Task ID: `A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION`
-- Status: Approved — plan approved; Tasks 1~4 implemented offline; Task 5 root/clean-source gate and actual pending
+- Status: Approved — plan approved; Tasks 1~4 implemented offline; Task 5 root/clean-source gate and Task 6 actual pending
 - Date: 2026-07-29 KST
 - Human authority: 사용자의 `ㅇㅋ 진행해`, `명세 승인`, `계획 승인, 1번 Subagent-Driven으로 구현 시작`
 - Decision authority: D-117, D-118, D-119, D-120
