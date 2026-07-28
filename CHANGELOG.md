@@ -8,24 +8,29 @@
   identifier and route-shape first-failure stages while retaining the historical generic stage.
 - Replaced compact prompt ambiguity with the exact five-field route matrix, literal uppercase
   `NONE`, intent-grouped catalog and request-local same-row topic/coverage example. The governed
-  20-topic/256-character prompt is 4,064 characters; longer complete messages fail closed before
+  20-topic/256-character prompt is 4,067 characters with a 29-character guard margin; longer
+  complete messages fail closed before
   transport without truncation or sampling.
-- Offline evidence passed after preserving the initial REDs: classifier/Hybrid RAG area `386`,
+- Offline evidence passed after preserving the initial REDs and final scoped review: classifier/
+  Hybrid RAG area `397`,
   controlled-double regressions `38 passed, 1 failed → 39 passed`, API Ruff format/lint and Mypy
   over `115` source files, and direct runner Ruff. The RED was a baseline-stale mock JSON
   `pending_slot: null`; the approved test-only correction uses exact wire string `"NONE"`.
+- The final review additionally proved the contiguous four-intent provider vocabulary, all adjacent
+  first-failure precedence boundaries and selected-question/provider-body/invalid-value
+  non-retention. The scoped re-review found no remaining actionable finding.
 - Advanced application `0.12.3→0.12.4-classifier-wire-diagnostics`, prompt
   `0.4.2→0.4.3-explicit-route-matrix`, tests
-  `2.1.6→2.1.7-classifier-wire-correction` and documentation `2.30.5→2.30.6`. Public
+  `2.1.6→2.1.7-classifier-wire-correction` and documentation `2.30.5→2.30.7`. Public
   API/contracts, Web, DB schema/migration, official/mock data, dependencies, packages and
-  lockfiles are unchanged. Provider/network actual calls and cost are `0`; Task 6 still requires
-  the separate exact approval `A-073 corrective actual 1회 실행 승인`.
+  lockfiles are unchanged. A-073 provider/network actual calls and cost are `0`; the current
+  closure directive leaves Task 6 unexecuted and does not rerun the existing Upstage actual.
 - Consumed the Task 5 offline root wrapper exactly once. The shell harness returned timeout
   `124` after 14.056 seconds and did not preserve final stdout/exit, although the detached wrapper
   later exited after observed `TEST-ROOT`, `TEST-DATA-SEED` and `TEST-API` phases. The aggregate is
   therefore `NOT VERIFIED/FAIL`, not PASS, and was not rerun. Independent docs/secret/diff/status
-  checks pass, provider calls/cost remain `0`/USD `0`, and Task 6 is blocked pending root-gate
-  resolution plus its exact future approval.
+  checks pass, provider calls/cost remain `0`/USD `0`, root invocation/rerun remain exactly `1/0`,
+  and D-121 closes the scoped offline review without reclassifying this result.
 
 ### Planned — A-073 classifier enum-shape correction
 

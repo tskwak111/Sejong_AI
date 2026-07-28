@@ -215,14 +215,18 @@ provider call/cost는 불변이며 Task 6 actual은 별도 exact 인간 승인 �
 D-120은 사용자의 exact `계획 승인, 1번 Subagent-Driven으로 구현 시작`으로 A-073 Tasks 1~5
 offline plan을 승인했다. Tasks 1~4에서 shared typed builder·five refined value-free stage,
 explicit route matrix·literal `NONE`·intent-grouped catalog와 production-wire oracle을
-TDD로 구현했고 area 386·controlled-double 39·Ruff/Mypy 115가 PASS했다. baseline-stale
+TDD로 구현했다. D-121의 final review fix와 scoped re-review는 누락됐던 네 provider intent의
+contiguous vocabulary, adjacent first-failure precedence와 selected-question/provider-body/
+invalid-value 비보관 증거를 보강했고 area 397·controlled-double 39·Ruff/Mypy 115가 PASS했다.
+final governed prompt는 4,067자, guard margin은 29자다. baseline-stale
 controlled mock의 JSON null 1건은 RED 뒤 exact wire `"NONE"`으로만 교정했다. application
-`0.12.4`, prompt `0.4.3`, tests `2.1.7`, docs `2.30.6`만 전진하며 API/contracts/Web/DB/data/
+`0.12.4`, prompt `0.4.3`, tests `2.1.7`, docs `2.30.7`만 전진하며 API/contracts/Web/DB/data/
 dependency와 provider/network actual call/cost는 0이다. A-073은
-offline 구현 상태다. Task 5 root wrapper는 exact 1회 호출했지만 shell harness timeout 124로
+offline scoped review까지 닫혔다. Task 5 root wrapper는 exact 1회 호출했지만 shell harness timeout 124로
 final stdout/exit를 회수하지 못해 aggregate를 `NOT VERIFIED/FAIL`로 기록하고 재실행하지 않았다.
 독립 docs/secret/diff/status는 PASS, provider/network actual call/cost는 계속 0/USD 0이다.
-Task 6은 root-gate 해소와 exact `A-073 corrective actual 1회 실행 승인` 전 금지한다.
+현재 종료 지시에 따라 Task 6 A-073 corrective actual은 실행하지 않았고 기존 Upstage actual도
+재실행하지 않았다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

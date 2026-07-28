@@ -1,12 +1,11 @@
 # Upstage Classifier Explicit Route Matrix and Refined Diagnostics — Written Specification
 
 - Task ID: `A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION`
-- Status: Approved — Tasks 1~4 implemented offline; Task 5 exact-one root invocation consumed,
-  aggregate `NOT VERIFIED/FAIL`, rerun 0; final review fix wave 1 implemented and final review
-  pending; Task 6 blocked pending root-gate resolution plus exact human approval
+- Status: Closed offline — final review fix wave 1 and scoped re-review complete; Task 5 exact-one
+  root aggregate `NOT VERIFIED/FAIL`, invocation/rerun `1/0` preserved; Task 6 actual unexecuted
 - Date: 2026-07-29 KST
 - Human authority: 사용자의 `ㅇㅋ 진행해`, `명세 승인`, `계획 승인, 1번 Subagent-Driven으로 구현 시작`
-- Decision authority: D-117, D-118, D-119, D-120
+- Decision authority: D-117, D-118, D-119, D-120, D-121
 - Extends: ADR-0025, ADR-0027, A-071 response-stage diagnostics, A-072 strict five-key wire
 - Preserves: provider 전 PII 마스킹, ACTIVE/OFFICIAL-only, server-owned validation·facts·sources,
   질문·provider body·잘못된 field value·status detail·key·DSN 비보관, retry 0,
@@ -357,9 +356,11 @@ written specification 승인과 implementation plan Review publication은 docume
 DB/data/dependency/provider actual call/cost는 불변이다. Task 5 root wrapper exact-one
 invocation은 이미 소비됐고 harness timeout 124로 aggregate는 `NOT VERIFIED/FAIL`, rerun은
 0이다. final review fix wave 1은 누락된 contiguous provider-intent vocabulary, adjacent
-first-failure precedence와 runner non-retention 증거를 offline TDD로 교정했으며 final review는
-pending이다. Task 6은 root-gate 해소와 별도 exact human approval 전까지 blocked다. 이 review
-correction은 version axis를 전진시키지 않는다.
+first-failure precedence와 runner non-retention 증거를 offline TDD로 교정했다. D-121 scoped
+re-review는 actionable finding 0으로 clean하며 final prompt 4,067자·margin 29, area 397,
+controlled-double 39와 Ruff/Mypy 115를 확인했다. Task 6 A-073 actual은 실행하지 않고 기존
+Upstage actual도 재실행하지 않는다. closure documentation만 `2.30.6→2.30.7`로 전진하며 다른
+version axis는 불변이다.
 
 ## 10. 인수 기준
 

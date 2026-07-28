@@ -3,8 +3,8 @@
 - Date/Time (KST): 2026-07-29T03:01:55+09:00
 - Task ID: A-073-CLASSIFIER-ENUM-SHAPE-CORRECTION
 - Type: implementation-provider-offline
-- Status: Tasks 1~4 offline Done; Task 5 exact-one root aggregate `NOT VERIFIED/FAIL`,
-  rerun 0; final review fix wave 1 implemented, final review pending; Task 6 blocked
+- Status: Closed offline; Task 5 exact-one root aggregate `NOT VERIFIED/FAIL`, invocation/rerun
+  `1/0` preserved; final review fix wave 1 and scoped re-review complete; Task 6 actual unexecuted
 - Author/Agent: 사용자 결정자 + Codex controller + Task 1~5 구현 에이전트
 - Branch: `codex/a-072-strict-classifier-wire`
 - Base commit: `34cc45d1132a5316a1e5e31c2adb3c77d4338aef`
@@ -12,7 +12,8 @@
   `7e902584a0d7839baf22beb91ba391a4861d405a`,
   `fcd89d8bc54fb63f445639485915bdf1bac7d5dd`,
   `d6a494d2883e61582398dac805cb53d1a2e1f899`,
-  `34cc45d1132a5316a1e5e31c2adb3c77d4338aef`, Task 4 evidence is this note's commit
+  `34cc45d1132a5316a1e5e31c2adb3c77d4338aef`,
+  `a362c191aa57a968a9264a2926610b57ca7c9588`; Task 4 and closure evidence are recorded here
 - Related plan/ADR/RFP:
   [approved specification](../superpowers/specs/2026-07-29-upstage-classifier-explicit-route-matrix-and-refined-diagnostics-design.md),
   [approved plan](../superpowers/plans/2026-07-29-upstage-classifier-explicit-route-matrix-and-refined-diagnostics.md),
@@ -71,7 +72,7 @@ API server, manual chat, `.env`·key·DSN 접근은 금지하고 Task 6 actual�
 |---|---|---|---|---|
 | D-120 | 인간 승인 | Tasks 1~5 plan과 Subagent-Driven 구현 시작 | 승인됨 | offline code/test/docs 허용 |
 | T4-SCOPE-001 | 내부 범위 | controlled evaluation mock이 plan allowlist에 없었음 | controller가 test-only `null→"NONE"` 한 줄을 승인 | production/schema 동작 영향 0, cumulative scope에 test 파일 1개 추가 |
-| A-073-ACTUAL | 인간 승인 | Task 6 corrective actual exactly once | 미승인 | provider/network/API actual 0 유지 |
+| D-121 | 종료 증거 | final review fix와 scoped re-review | clean | A-073 actual 0, existing Upstage actual rerun 0 |
 | Internal-guard | 구현 가정 | governed 20 topic + 256-char prompt가 complete guard 안이어야 함 | final review correction 뒤 실제 4,067, margin 29 | 확장 시 재예산 필요 |
 
 ## 5. 설계 결정과 대안
@@ -122,6 +123,8 @@ invalid route, intent, pending slot, identifier, route combination은 precedence
 catalog와 4,096 초과 complete prompt는 transport/ledger 전에 fail closed한다. rollback은
 Task 4 evidence commit과 Tasks 3→1 commits를 역순 revert하고 manifest를
 `0.12.3/0.4.2/2.1.6/2.30.5`로 복원한다. DB/data rollback은 없다.
+closure 문서만 되돌릴 때는 D-121 closeout commit을 revert하고 documentation을 `2.30.6`으로
+복원하며 production code, root/actual evidence와 다른 version axis는 건드리지 않는다.
 
 ## 7. 버전 전후
 
@@ -138,7 +141,7 @@ Task 4 evidence commit과 Tasks 3→1 commits를 역순 revert하고 manifest를
 | Mock data | 0.0.0-not-populated | 0.0.0-not-populated | 불변 |
 | Prompt set | 0.4.2-exact-five-key-schema | 0.4.3-explicit-route-matrix | complete route/cross-field grammar |
 | Test suite | 2.1.6-structured-classifier-wire | 2.1.7-classifier-wire-correction | refined-stage/prompt/wire regressions |
-| Documentation | 2.30.5 | 2.30.6 | D-120와 offline evidence checkpoint |
+| Documentation | 2.30.5 | 2.30.7 | D-120 implementation과 D-121 scoped-review closeout |
 
 ## 8. 명령과 테스트 증거
 
@@ -165,8 +168,8 @@ Task 4 evidence commit과 Tasks 3→1 commits를 역순 revert하고 manifest를
 
 ### 미실행 검증과 이유
 
-- `scripts/run_hybrid_rag_actual.py`, provider/network/API server/manual chat: Task 6 exact-one
-  approval이 없고 Task 4 범위 밖이라 실행 0.
+- `scripts/run_hybrid_rag_actual.py`, provider/network/API server/manual chat: current closure
+  directive에 따라 A-073 corrective actual을 실행하지 않았고 기존 Upstage actual도 재실행 0.
 - `.env`, key, DSN, provider report: 접근·수정·생성 0.
 - DB reset/seed/migration, official/mock data, public/remote/deploy: 변경도 권한도 없어 미실행.
 - Task 5 `scripts/verify.ps1 -Offline` root wrapper: 별도 Task 5의 exact one-shot gate이므로
@@ -195,8 +198,8 @@ Task 4 evidence commit과 Tasks 3→1 commits를 역순 revert하고 manifest를
   아니다. Task 5 root wrapper는 정확히 한 번 호출했지만 실행 도구가 14.056초에 timeout 124를
   반환해 최종 stdout과 wrapper exit code를 회수하지 못했다. detached PID가 이후 종료된 것은
   확인했으나 aggregate는 `NOT VERIFIED/FAIL`이며 PASS로 승격하지 않는다.
-- Task 6은 현재 root aggregate가 green이 아니므로 blocked다. 이 차이를 별도 인간 결정으로
-  해결한 뒤에도 exact `A-073 corrective actual 1회 실행 승인` 없이는 provider call 0이어야 한다.
+- 현재 종료 지시는 root aggregate를 PASS로 재분류하지 않고 A-073 Task 6 actual을 실행하지
+  않은 채 offline scoped review에서 닫는다. root wrapper invocation/rerun은 `1/0`이다.
 - controlled-double 첫 RED는 production 결함이 아니라 baseline-stale provider-wire mock이었다.
   current exact string contract를 약화하지 않고 test fixture 한 줄만 교정했다.
 - 20-topic/256-character prompt의 final review correction 뒤 margin이 29자이므로 future
@@ -232,16 +235,15 @@ rollback은 필요 없다.
 ### 다음 개발자 시작점
 
 Task 5의 root wrapper one-shot은 이미 소비됐으므로 현재 plan 아래 재실행하지 않는다.
-final review fix wave 1은 구현됐지만 final review가 아직 pending이다. root aggregate capture
-gap은 인간이 별도로 결정한다. 사용자의 exact Task 6 승인과 root-gate 해소 전에는 D-117
-report archive/delete나 provider readiness/actual을 실행하지 않는다.
+final review fix wave 1과 scoped re-review는 완료됐다. root aggregate capture gap을 PASS로
+해석하지 않으며 A-073 corrective actual과 기존 Upstage actual을 실행·재실행하지 않는다.
+D-117 report를 archive/delete하지 않는다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
 - 실제 provider가 explicit matrix를 준수하는지는 아직 검증되지 않았다.
 - Task 5 root wrapper는 exact-one invocation을 소비했지만 timeout 124로 aggregate가
-  `NOT VERIFIED/FAIL`이다. rerun은 0이며 final review와 root-gate capture gap의 인간 결정이
-  남아 있다.
+  `NOT VERIFIED/FAIL`이다. rerun은 0이며 이 결과를 보존한 채 A-073을 offline close한다.
 - actual에서 rejection이 남으면 refined aggregate만 기록하며 provider body/value를 열람하거나
   자동 재실행하지 않는다.
 - current D-117 report와 ADR-0027은 변경하지 않았다.
@@ -293,9 +295,8 @@ report archive/delete나 provider readiness/actual을 실행하지 않는다.
   `git status --short` output 0 before evidence edits.
 - provider/network/API server/manual chat/actual runner invocation 0, cost USD 0. D-117 report와
   archives, ADR-0027, product code/tests/contracts/DB/data/dependencies/version axes는 불변이다.
-- final independent review는 pending이다. Task 6은 blocked이며, root gate가 별도 인간
-  결정으로 해소된 뒤에도 exact future approval
-  `A-073 corrective actual 1회 실행 승인`이 필요하다.
+- final scoped re-review는 clean이다. Task 6 A-073 actual은 실행하지 않았고 기존 Upstage
+  actual도 재실행하지 않았다.
 
 ## 18. Final review fix wave 1
 
@@ -336,8 +337,20 @@ semantics는 삭제하거나 절단·샘플링하지 않았다.
 - provider/network/API server/manual chat/actual runner 호출 0, 비용 USD 0이다.
 - D-117 report, ADR-0027, `.env`, key, DSN, public contracts, Web, DB/migration,
   official/mock data, dependency/package/lockfile와 모든 version axis는 불변이다.
-- final review fix 구현은 완료했지만 final independent review는 pending이다.
+- final review fix 구현과 final scoped re-review가 완료됐고 actionable finding은 0이다.
 - final area suite는 397 passed/skip 0(known Starlette warning 1), controlled-double suite는
   39 passed/skip 0이다. API `src tests` Ruff format/check와 Mypy 115, direct runner-test Ruff
   format/check가 PASS했다. 첫 Ruff format check가 changed test 2개를 식별한 뒤 해당 changed
   files만 format하고 final check를 재실행했다.
+
+## 19. D-121 final scoped re-review closure
+
+- review source: `a362c191aa57a968a9264a2926610b57ca7c9588`.
+- review verdict: actionable finding 0; A-073 offline scope clean.
+- final evidence: prompt 4,067/margin 29, area 397/skip 0, controlled-double 39/skip 0,
+  Ruff/Mypy 115, repository docs·secret·diff·status PASS.
+- historical Task 5 result is still `NOT VERIFIED/FAIL`; root invocation/rerun stays `1/0`.
+- A-073 corrective actual invocation 0, existing Upstage actual rerun 0, provider cost USD 0.
+- documentation advances `2.30.6→2.30.7`; application/prompt/tests/API/contracts/Web/DB/data/
+  dependency and provider runtime remain unchanged.
+- rollback is the D-121 closeout commit only; no database, data, secret or provider rollback exists.

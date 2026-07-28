@@ -1,6 +1,6 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-29T03:02:13+09:00",
+  "updated_at": "2026-07-29T04:49:21+09:00",
   "versions": {
     "product_spec": "2.6.0",
     "repo_guidance": "1.7.10",
@@ -13,7 +13,7 @@
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.4.3-explicit-route-matrix",
     "test_suite": "2.1.7-classifier-wire-correction",
-    "documentation": "2.30.6"
+    "documentation": "2.30.7"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }
