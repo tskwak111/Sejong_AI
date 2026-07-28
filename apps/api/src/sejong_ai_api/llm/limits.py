@@ -1,7 +1,7 @@
 """Atomic process-run attempt and concurrency limits."""
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -11,6 +11,7 @@ from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.cost import estimate_cost_usd
 
 LOCAL_INTERACTIVE_COST_CAP_USD = Decimal("0.20")
+CostEstimator = Callable[[TokenUsage], Decimal]
 
 
 class AttemptCapReached(RuntimeError):
@@ -57,10 +58,15 @@ class ProviderCostReservation:
 
     lane: ProviderLane
     worst_case_usd: Decimal
+    cost_estimator: CostEstimator = field(default=estimate_cost_usd, repr=False)
     _usage: TokenUsage | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
-        if type(self.lane) is not ProviderLane or not _valid_positive_decimal(self.worst_case_usd):
+        if (
+            type(self.lane) is not ProviderLane
+            or not _valid_positive_decimal(self.worst_case_usd)
+            or not callable(self.cost_estimator)
+        ):
             raise ValueError("PROVIDER_COST_RESERVATION_INVALID")
 
     def record_usage(self, usage: TokenUsage) -> None:
@@ -68,14 +74,23 @@ class ProviderCostReservation:
             raise ValueError("TOKEN_USAGE_INVALID")
         if self._usage is not None:
             raise ValueError("PROVIDER_USAGE_ALREADY_RECORDED")
-        if estimate_cost_usd(usage) > self.worst_case_usd:
+        if self._estimate_cost_usd(usage) > self.worst_case_usd:
             raise ValueError("PROVIDER_USAGE_EXCEEDS_RESERVATION")
         self._usage = usage
 
     def _final_cost_usd(self) -> Decimal:
         if self._usage is None:
             return self.worst_case_usd
-        return estimate_cost_usd(self._usage)
+        return self._estimate_cost_usd(self._usage)
+
+    def _estimate_cost_usd(self, usage: TokenUsage) -> Decimal:
+        try:
+            estimated_cost_usd = self.cost_estimator(usage)
+        except Exception:
+            raise ValueError("PROVIDER_COST_ESTIMATE_INVALID") from None
+        if not _valid_nonnegative_decimal(estimated_cost_usd):
+            raise ValueError("PROVIDER_COST_ESTIMATE_INVALID")
+        return estimated_cost_usd
 
 
 class ProviderAttemptLedger:
@@ -90,6 +105,8 @@ class ProviderAttemptLedger:
         cost_cap_usd: Decimal = LOCAL_INTERACTIVE_COST_CAP_USD,
         classifier_worst_case_usd: Decimal,
         generator_worst_case_usd: Decimal,
+        classifier_cost_estimator: CostEstimator = estimate_cost_usd,
+        generator_cost_estimator: CostEstimator = estimate_cost_usd,
     ) -> None:
         if (
             type(classifier_cap) is not int
@@ -102,6 +119,8 @@ class ProviderAttemptLedger:
             or not _valid_positive_decimal(cost_cap_usd)
             or not _valid_positive_decimal(classifier_worst_case_usd)
             or not _valid_positive_decimal(generator_worst_case_usd)
+            or not callable(classifier_cost_estimator)
+            or not callable(generator_cost_estimator)
         ):
             raise ValueError("PROVIDER_ATTEMPT_LEDGER_INVALID")
         self._classifier_cap = classifier_cap
@@ -110,6 +129,8 @@ class ProviderAttemptLedger:
         self._cost_cap_usd = cost_cap_usd
         self._classifier_worst_case_usd = classifier_worst_case_usd
         self._generator_worst_case_usd = generator_worst_case_usd
+        self._classifier_cost_estimator = classifier_cost_estimator
+        self._generator_cost_estimator = generator_cost_estimator
         self._classifier_attempts_used = 0
         self._generator_attempts_used = 0
         self._actual_cost_usd = Decimal("0")
@@ -154,6 +175,11 @@ class ProviderAttemptLedger:
                 if lane is ProviderLane.CLASSIFIER
                 else self._generator_worst_case_usd
             )
+            cost_estimator = (
+                self._classifier_cost_estimator
+                if lane is ProviderLane.CLASSIFIER
+                else self._generator_cost_estimator
+            )
             async with self._state_lock:
                 if self.combined_attempts_used >= self._combined_cap:
                     raise AttemptCapReached("ATTEMPT_CAP_REACHED")
@@ -170,6 +196,7 @@ class ProviderAttemptLedger:
                 reservation = ProviderCostReservation(
                     lane=lane,
                     worst_case_usd=worst_case_usd,
+                    cost_estimator=cost_estimator,
                 )
             try:
                 yield reservation
@@ -191,6 +218,10 @@ class ProviderAttemptLedger:
 
 def _valid_positive_decimal(value: object) -> bool:
     return type(value) is Decimal and value.is_finite() and value > Decimal("0")
+
+
+def _valid_nonnegative_decimal(value: object) -> bool:
+    return type(value) is Decimal and value.is_finite() and value >= Decimal("0")
 
 
 def parse_provider_token_usage(
