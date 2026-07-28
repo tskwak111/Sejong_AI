@@ -152,6 +152,9 @@ D-108은 A-071의 후속으로 production parser가 fixed terminal enum 하나�
 detail·exception·key·DSN과 per-fixture stage는 기록하지 않는다. public parser·시민 fallback·
 prompt·provider profile·API/DB/data/dependency는 불변이며 written spec 확인 전 구현과 provider
 call은 0이다.
+D-109는 위 written specification과 RED/GREEN inline plan을 승인했다. contract-stage parser,
+production enum-only observer, aggregate runner, clean source commit, fixed exact-one actual
+순으로 실행하며 actual 전까지 prompt/profile/API/DB/data/dependency는 고정한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

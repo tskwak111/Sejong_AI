@@ -1,9 +1,9 @@
 # Upstage Classifier Value-Free Response-Stage Diagnostics — Written Specification
 
 - Task ID: `A-071-RESPONSE-STAGE-DIAGNOSTICS`
-- Status: Review — design direction approved, written specification confirmation pending
+- Status: Approved — TDD implementation authorized
 - Date: 2026-07-28 KST
-- Human authority: 사용자 `ㅇㅋ 구현해`
+- Human authority: 사용자 `ㅇㅋ 구현해`, 후속 `명세 승인, 빠르게 구현 ㄱㄱ`
 - Decision authority: D-107 후속 D-108
 - Extends: ADR-0027, `CHAT-HYBRID-RAG-001`
 - Preserves: 질문·provider body·status detail·key·DSN 비보관, provider 전 PII 마스킹,

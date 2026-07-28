@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-28T20:08:29+09:00
 - Task ID: A-071-RESPONSE-STAGE-DIAGNOSTICS-DESIGN
 - Type: design-decision-gate
-- Status: Decision-only — written specification review pending
+- Status: Done — written specification approved by D-109
 - Author/Agent: 사용자 결정자 / Codex 설계·문서화
 - Branch: main
 - Base commit: 00a7b00
@@ -160,8 +160,8 @@ base `00a7b00`에서 written spec과 D-108/A-071/version diff를 읽고 docs che
 written spec 확인 뒤 `superpowers:writing-plans`로 exact RED/GREEN 계획을 작성한다.
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- written specification 사용자 확인.
-- 구현계획 승인 전 production code와 actual provider call 0.
+- D-109로 written specification과 inline 구현계획이 승인됐다.
+- 다음 단계는 plan Task 1의 RED부터 시작하며 actual은 clean source 뒤 1회다.
 
 ## 15. 자체 리뷰
 

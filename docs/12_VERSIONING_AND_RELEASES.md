@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.1-json-mode-instruction
 test_suite: 2.1.4-json-mode-regression
-documentation: 2.29.5
+documentation: 2.29.6
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -155,6 +155,12 @@ observer가 HTTP/envelope/usage/choice/finish/message/content/JSON/key/type/enum
 중 terminal enum 하나만 전달하고 actual report는 aggregate count만 보관한다. 시민 응답,
 public parser의 generic failure, prompt, provider profile, API/DB/data/dependency는 아직
 변경하지 않았고 written specification 확인 전 제품 코드와 provider call은 0이다.
+
+Documentation `2.29.6`은 사용자의 `명세 승인, 빠르게 구현 ㄱㄱ`로 위 written specification을
+Approved로 전환하고 exact RED/GREEN 실행계획과 inline execution을 승인한 checkpoint다.
+contract-stage parser→production observer→aggregate runner→clean source→exact-one actual 순서를
+고정했다. application/test version은 구현 뒤에만 증가하며 이 checkpoint의 code/provider call은
+0이다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
