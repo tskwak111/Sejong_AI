@@ -17,10 +17,10 @@ _CATALOG_COLUMNS = (
     "approved_examples",
 )
 _SYSTEM_MESSAGE = (
-    "JSON route,intent,topic_id,coverage_id,pending_slot=5 strings;NONE=없음;+X;"
-    "SUPPORTED=row*3,NONE;NO_TOPIC_MATCH=지원,NONE*3;"
-    "CIVIC_SCOPE_GAP/NON_CIVIC=NONE*4;"
-    "NEEDS_FOLLOWUP=DOMAIN?NONE:지원,NONE*2,"
+    "JSON:route,intent,topic_id,coverage_id,pending_slot;5문자열;NONE=없음;"
+    "extra=NO;default=NONE;SUPPORTED=cat[intent,topic_id,coverage_id];"
+    "NO_TOPIC_MATCH=지원;CIVIC_SCOPE_GAP/NON_CIVIC;"
+    "NEEDS_FOLLOWUP=DOMAIN?NONE:지원,,,"
     "DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM"
 )
 
@@ -45,9 +45,9 @@ def build_classifier_messages(
         raise ValueError("CLASSIFIER_PROMPT_INVALID")
     payload = {
         "ask": question.text,
-        "catalog": {
-            "cols": list(_CATALOG_COLUMNS),
-            "rows": [
+        "c": [
+            list(_CATALOG_COLUMNS),
+            [
                 [
                     topic.record.public_id,
                     topic.record.category.value,
@@ -58,7 +58,7 @@ def build_classifier_messages(
                 ]
                 for topic in catalog.topics
             ],
-        },
+        ],
     }
     return (
         {"role": "system", "content": _SYSTEM_MESSAGE},
