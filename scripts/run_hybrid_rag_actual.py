@@ -169,6 +169,16 @@ _REPORT_FIELDS = (
     "provider_route_topic_match_count",
     "policy_privacy_outbound_count",
     "outbound_attempt_count",
+    "provider_response_count",
+    "provider_http_2xx_count",
+    "provider_http_4xx_count",
+    "provider_http_5xx_count",
+    "provider_http_other_count",
+    "provider_transport_no_response_count",
+    "provider_usage_rejected_count",
+    "provider_decision_accepted_count",
+    "provider_decision_rejected_count",
+    "provider_contract_mismatch_count",
     "observed_usage_response_count",
     "conservative_charged_attempt_count",
     "input_tokens",
@@ -244,6 +254,7 @@ class _InputIdentities:
 class _CaseResult:
     fixture_id: str
     evidence_kind: str
+    provider_decision_accepted: bool | None
     provider_route_topic_match: bool | None
     outbound_count: int
 
@@ -714,6 +725,7 @@ async def _evaluate_selected(
             result = _CaseResult(
                 fixture_id=case.fixture_id,
                 evidence_kind="PRIOR_OFFLINE_PROVIDER_FREE",
+                provider_decision_accepted=None,
                 provider_route_topic_match=None,
                 outbound_count=0,
             )
@@ -743,6 +755,7 @@ async def _evaluate_selected(
         result = _CaseResult(
             fixture_id=case.fixture_id,
             evidence_kind="ACTUAL_PROVIDER_SELECTOR",
+            provider_decision_accepted=decision is not None,
             provider_route_topic_match=matched,
             outbound_count=outbound_count,
         )
@@ -772,12 +785,27 @@ class _UsageRecorder:
         self._usage = TokenUsage(0, 0, 0)
         self.complete_response_count = 0
         self.rejected_response_count = 0
+        self.response_count = 0
+        self.http_2xx_count = 0
+        self.http_4xx_count = 0
+        self.http_5xx_count = 0
+        self.http_other_count = 0
+        self.usage_rejected_count = 0
 
     @property
     def usage(self) -> TokenUsage:
         return self._usage
 
     async def capture(self, response: httpx.Response) -> None:
+        self.response_count += 1
+        if 200 <= response.status_code < 300:
+            self.http_2xx_count += 1
+        elif 400 <= response.status_code < 500:
+            self.http_4xx_count += 1
+        elif 500 <= response.status_code < 600:
+            self.http_5xx_count += 1
+        else:
+            self.http_other_count += 1
         try:
             await response.aread()
             if not 200 <= response.status_code < 300:
@@ -794,9 +822,12 @@ class _UsageRecorder:
             )
             if usage is None:
                 self.rejected_response_count += 1
+                self.usage_rejected_count += 1
                 return
         except Exception:
             self.rejected_response_count += 1
+            if 200 <= response.status_code < 300:
+                self.usage_rejected_count += 1
             return
         self._usage = TokenUsage(
             input_tokens=self._usage.input_tokens + usage.input_tokens,
@@ -889,6 +920,27 @@ def _build_evidence_report(
     usage_responses = (
         0 if evidence.recorder is None else evidence.recorder.complete_response_count
     )
+    response_count = 0 if evidence.recorder is None else evidence.recorder.response_count
+    http_2xx_count = 0 if evidence.recorder is None else evidence.recorder.http_2xx_count
+    http_4xx_count = 0 if evidence.recorder is None else evidence.recorder.http_4xx_count
+    http_5xx_count = 0 if evidence.recorder is None else evidence.recorder.http_5xx_count
+    http_other_count = (
+        0 if evidence.recorder is None else evidence.recorder.http_other_count
+    )
+    usage_rejected_count = (
+        0 if evidence.recorder is None else evidence.recorder.usage_rejected_count
+    )
+    decision_accepted_count = sum(
+        case.provider_decision_accepted is True for case in evidence.cases
+    )
+    decision_rejected_count = sum(
+        case.provider_decision_accepted is False for case in evidence.cases
+    )
+    contract_mismatch_count = sum(
+        case.provider_decision_accepted is True
+        and case.provider_route_topic_match is False
+        for case in evidence.cases
+    )
     return {
         "source_sha": evidence.source_sha,
         "fixture_sha256": (
@@ -922,6 +974,16 @@ def _build_evidence_report(
         "provider_route_topic_match_count": (evidence.provider_route_topic_match_count),
         "policy_privacy_outbound_count": evidence.policy_privacy_outbound_count,
         "outbound_attempt_count": attempts,
+        "provider_response_count": response_count,
+        "provider_http_2xx_count": http_2xx_count,
+        "provider_http_4xx_count": http_4xx_count,
+        "provider_http_5xx_count": http_5xx_count,
+        "provider_http_other_count": http_other_count,
+        "provider_transport_no_response_count": max(0, attempts - response_count),
+        "provider_usage_rejected_count": usage_rejected_count,
+        "provider_decision_accepted_count": decision_accepted_count,
+        "provider_decision_rejected_count": decision_rejected_count,
+        "provider_contract_mismatch_count": contract_mismatch_count,
         "observed_usage_response_count": usage_responses,
         "conservative_charged_attempt_count": conservative_attempts,
         "input_tokens": usage.input_tokens,
@@ -959,6 +1021,8 @@ def _build_report(
     recorder = _UsageRecorder()
     recorder._usage = usage
     recorder.complete_response_count = result.provider_case_count
+    recorder.response_count = result.provider_case_count
+    recorder.http_2xx_count = result.provider_case_count
     evidence.recorder = recorder
     acceptance = (
         "PASS"
@@ -994,8 +1058,8 @@ def _report_to_markdown(report: dict[str, object]) -> str:
     lines.extend(
         [
             "",
-            "| Fixture ID | Evidence kind | Actual provider route/topic match | Outbound |",
-            "|---|---|---:|---:|",
+            "| Fixture ID | Evidence kind | Provider decision accepted | Actual provider route/topic match | Outbound |",
+            "|---|---|---:|---:|---:|",
         ]
     )
     for case in cast(tuple[object, ...], report["cases"]):
@@ -1006,8 +1070,14 @@ def _report_to_markdown(report: dict[str, object]) -> str:
             if case.provider_route_topic_match is None
             else str(case.provider_route_topic_match).lower()
         )
+        decision_accepted = (
+            "not-applicable"
+            if case.provider_decision_accepted is None
+            else str(case.provider_decision_accepted).lower()
+        )
         lines.append(
-            f"| `{case.fixture_id}` | `{case.evidence_kind}` | `{match}` | "
+            f"| `{case.fixture_id}` | `{case.evidence_kind}` | "
+            f"`{decision_accepted}` | `{match}` | "
             f"`{case.outbound_count}` |"
         )
     lines.extend(
@@ -1118,7 +1188,18 @@ async def _execute_actual(
         and result.route_topic_match_count == _EXPECTED_PROVIDER_CASES
         and result.policy_privacy_outbound_count == 0
         and ledger.classifier_attempts_used == _EXPECTED_PROVIDER_CASES
+        and recorder.response_count == _EXPECTED_PROVIDER_CASES
+        and recorder.http_2xx_count == _EXPECTED_PROVIDER_CASES
+        and recorder.http_4xx_count == 0
+        and recorder.http_5xx_count == 0
+        and recorder.http_other_count == 0
+        and recorder.usage_rejected_count == 0
         and recorder.complete_response_count == _EXPECTED_PROVIDER_CASES
+        and all(
+            case.provider_decision_accepted is True
+            for case in result.cases
+            if case.evidence_kind == "ACTUAL_PROVIDER_SELECTOR"
+        )
         and conservative_attempts == 0
         and reconciled
         and observed_cost == ledger_cost

@@ -129,7 +129,10 @@ def test_injected_offline_selector_writes_only_case_id_aggregates() -> None:
     )
     assert report["acceptance"] == "PASS"
     assert "HR-001" in markdown
-    assert "`PRIOR_OFFLINE_PROVIDER_FREE` | `not-applicable` | `0`" in markdown
+    assert (
+        "`PRIOR_OFFLINE_PROVIDER_FREE` | `not-applicable` | "
+        "`not-applicable` | `0`"
+    ) in markdown
     for forbidden in (
         selected[0].question,
         "api_key",
@@ -224,7 +227,7 @@ def test_pinned_inputs_validate_release_and_active_official_projection() -> None
     assert len(catalog.topics) == 19
 
 
-def test_usage_recorder_reuses_strict_cached_usage_and_rejects_non_2xx() -> None:
+def test_usage_recorder_records_value_free_response_families_and_strict_usage() -> None:
     runner = _runner()
     recorder = runner._UsageRecorder()
     valid = httpx.Response(
@@ -238,17 +241,35 @@ def test_usage_recorder_reuses_strict_cached_usage_and_rejects_non_2xx() -> None
             }
         },
     )
-    rejected = httpx.Response(
+    invalid_usage = httpx.Response(
+        200,
+        json={"usage": {"prompt_tokens": "not-an-integer", "completion_tokens": 10}},
+    )
+    client_error = httpx.Response(
+        401,
+        json={"error": {"message": "must never be retained"}},
+    )
+    server_error = httpx.Response(
         503,
         json={"usage": {"prompt_tokens": 20, "completion_tokens": 10}},
     )
+    other_status = httpx.Response(302)
 
     asyncio.run(recorder.capture(valid))
-    asyncio.run(recorder.capture(rejected))
+    asyncio.run(recorder.capture(invalid_usage))
+    asyncio.run(recorder.capture(client_error))
+    asyncio.run(recorder.capture(server_error))
+    asyncio.run(recorder.capture(other_status))
 
     assert recorder.usage == TokenUsage(20, 5, 10)
     assert recorder.complete_response_count == 1
-    assert recorder.rejected_response_count == 1
+    assert recorder.rejected_response_count == 4
+    assert recorder.response_count == 5
+    assert recorder.http_2xx_count == 2
+    assert recorder.http_4xx_count == 1
+    assert recorder.http_5xx_count == 1
+    assert recorder.http_other_count == 1
+    assert recorder.usage_rejected_count == 1
 
 
 def test_cross_process_lease_blocks_concurrent_and_existing_evidence(
@@ -461,6 +482,10 @@ def test_main_partial_failure_records_bounded_attempt_and_cost_evidence(
     report = report_path.read_text(encoding="utf-8")
 
     assert "`outbound_attempt_count` | `2`" in report
+    assert "`provider_response_count` | `1`" in report
+    assert "`provider_http_2xx_count` | `1`" in report
+    assert "`provider_transport_no_response_count` | `1`" in report
+    assert "`provider_decision_accepted_count` | `1`" in report
     assert "`observed_usage_response_count` | `1`" in report
     assert "`conservative_charged_attempt_count` | `1`" in report
     assert "`acceptance` | `FAIL`" in report
@@ -630,6 +655,13 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
     assert os.environ == environment_before
     assert "`provider_route_topic_match_count` | `9`" in report
     assert "`prior_offline_deterministic_provider_free_count` | `11`" in report
+    assert "`provider_response_count` | `9`" in report
+    assert "`provider_http_2xx_count` | `9`" in report
+    assert "`provider_transport_no_response_count` | `0`" in report
+    assert "`provider_usage_rejected_count` | `0`" in report
+    assert "`provider_decision_accepted_count` | `9`" in report
+    assert "`provider_decision_rejected_count` | `0`" in report
+    assert "`provider_contract_mismatch_count` | `0`" in report
     assert "`cost_reconciled` | `True`" in report
     assert "`acceptance` | `PASS`" in report
     assert not list(tmp_path.glob(".*.tmp"))

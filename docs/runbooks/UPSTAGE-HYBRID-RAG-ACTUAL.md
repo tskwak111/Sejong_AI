@@ -60,6 +60,25 @@ a topic is required. The report records safe input identities, fixture ID,
 evidence kind, outbound count, strictly parsed aggregate token usage, observed
 VAT-inclusive cost, conservative ledger charge, and reconciliation status.
 
+The report also records value-free failure-stage counters. They contain no
+status detail, payload, question, or provider content:
+
+- `provider_http_4xx_count` identifies an authentication, access, request-shape,
+  quota, or other client-side provider rejection only as one shared class.
+- `provider_http_5xx_count` identifies a provider-side response class.
+- `provider_transport_no_response_count` identifies attempts without an HTTP
+  response, including transport and timeout outcomes.
+- `provider_usage_rejected_count` identifies a 2xx response whose usage
+  envelope failed the bounded parser.
+- `provider_decision_rejected_count` identifies a response that did not become
+  a closed classifier decision.
+- `provider_contract_mismatch_count` identifies a valid closed decision that
+  did not match the frozen expected route/topic.
+
+These counters locate the stage but deliberately cannot reveal the provider
+message or distinguish individual 4xx reasons. Do not infer a more specific
+cause than the aggregate evidence supports.
+
 If the process returns nonzero or the report says `FAIL`, stop. Every
 controlled failure after argument validation writes bounded FAIL evidence
 atomically. A crash or evidence-write failure intentionally leaves the lock.
@@ -70,6 +89,10 @@ An approved rerun is a separate governed action. The human must first review
 and archive the prior report, explicitly authorize reset, and then remove the
 canonical report and any stale `.run.lock`. The runner never performs this
 reset itself.
+
+Preserve an acknowledged prior report under `docs/test-reports/archive/` with
+its decision ID and result in the filename. Never delete failed evidence or
+replace it without an auditable archive.
 
 ## Restore and verify
 
