@@ -16,6 +16,7 @@ from sejong_ai_api.llm.classifier_contracts import (
     ClassifierRoute,
     parse_classifier_decision,
     parse_classifier_decision_with_stage,
+    parse_classifier_wire_decision_with_stage,
 )
 from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 
@@ -116,6 +117,132 @@ def test_parse_classifier_decision_accepts_every_closed_valid_shape(
         decision.coverage_id,
         decision.pending_slot.value if decision.pending_slot is not None else None,
     ) == expected
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (
+            b'{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+            b'"topic_id":"KB-WASTE-01","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+            b'"pending_slot":"NONE"}',
+            ("SUPPORTED", "BULKY_WASTE", "KB-WASTE-01", "GENERAL_BULKY_DISPOSAL", None),
+        ),
+        (
+            b'{"route":"NO_TOPIC_MATCH","intent":"BULKY_WASTE",'
+            b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}',
+            ("NO_TOPIC_MATCH", "BULKY_WASTE", None, None, None),
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ("NON_CIVIC", None, None, None, None),
+        ),
+        (
+            b'{"route":"NEEDS_FOLLOWUP","intent":"BULKY_WASTE",'
+            b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"WASTE_ITEM"}',
+            ("NEEDS_FOLLOWUP", "BULKY_WASTE", None, None, "WASTE_ITEM"),
+        ),
+    ],
+)
+def test_provider_wire_normalizes_exact_none_and_accepts_closed_shapes(
+    payload: bytes,
+    expected: tuple[str, str | None, str | None, str | None, str | None],
+) -> None:
+    result = parse_classifier_wire_decision_with_stage(payload, _catalog())
+
+    assert result.stage is ClassifierResponseStage.ACCEPTED
+    assert result.decision is not None
+    assert (
+        result.decision.route.value,
+        result.decision.intent.value if result.decision.intent else None,
+        result.decision.topic_id,
+        result.decision.coverage_id,
+        result.decision.pending_slot.value if result.decision.pending_slot else None,
+    ) == expected
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_stage"),
+    [
+        (
+            b'{"route":"NON_CIVIC","intent":null,"topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.FIELD_TYPE_REJECTED,
+        ),
+        (
+            b'{"route":1,"intent":"NONE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.FIELD_TYPE_REJECTED,
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE","coverage_id":"NONE"}',
+            ClassifierResponseStage.KEY_SET_REJECTED,
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE","extra":"value"}',
+            ClassifierResponseStage.KEY_SET_REJECTED,
+        ),
+        (
+            b'{"route":"NONE","intent":"NONE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"none","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE ",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+        ),
+        (
+            b'{"route":"NON_CIVIC","intent":"BULKY_WASTE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ENUM_SHAPE_REJECTED,
+        ),
+        (
+            b'{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+            b'"topic_id":"KB-WASTE-UNKNOWN","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+            b'"pending_slot":"NONE"}',
+            ClassifierResponseStage.CATALOG_REJECTED,
+        ),
+        (
+            b'{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+            b'"topic_id":"KB-WASTE-01","coverage_id":"WRONG_COVERAGE",'
+            b'"pending_slot":"NONE"}',
+            ClassifierResponseStage.CATALOG_REJECTED,
+        ),
+    ],
+)
+def test_provider_wire_rejects_invalid_type_key_sentinel_shape_or_catalog(
+    payload: bytes,
+    expected_stage: ClassifierResponseStage,
+) -> None:
+    result = parse_classifier_wire_decision_with_stage(payload, _catalog())
+
+    assert result.decision is None
+    assert result.stage is expected_stage
+
+
+def test_canonical_parser_keeps_json_null_and_rejects_provider_sentinel() -> None:
+    canonical = parse_classifier_decision(
+        b'{"route":"NON_CIVIC","intent":null,"topic_id":null,'
+        b'"coverage_id":null,"pending_slot":null}',
+        _catalog(),
+    )
+
+    assert canonical.route is ClassifierRoute.NON_CIVIC
+
+    with pytest.raises(ValueError, match="^CLASSIFIER_DECISION_INVALID$"):
+        parse_classifier_decision(
+            b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            _catalog(),
+        )
 
 
 @pytest.mark.parametrize(

@@ -13,6 +13,8 @@ from sejong_ai_api.db.models import Intent
 from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 
 _EXPECTED_KEYS = frozenset({"route", "intent", "topic_id", "coverage_id", "pending_slot"})
+_NONE_SENTINEL = "NONE"
+_NULLABLE_FIELDS = ("intent", "topic_id", "coverage_id", "pending_slot")
 _IDENTIFIER_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,63}$")
 _SUPPORTED_INTENTS = frozenset(
     {
@@ -133,11 +135,39 @@ class ClassifierDecisionParseResult:
     stage: ClassifierResponseStage
 
 
+def parse_classifier_wire_decision_with_stage(
+    payload: bytes,
+    catalog: TopicCatalog,
+) -> ClassifierDecisionParseResult:
+    """Parse the all-string provider wire without reflecting provider values."""
+
+    return _parse_classifier_payload_with_stage(
+        payload,
+        catalog,
+        wire_strings=True,
+    )
+
+
 def parse_classifier_decision_with_stage(
     payload: bytes,
     catalog: TopicCatalog,
 ) -> ClassifierDecisionParseResult:
-    """Parse a closed decision while returning no provider-controlled diagnostic value."""
+    """Parse a canonical JSON-null decision without reflecting provider values."""
+
+    return _parse_classifier_payload_with_stage(
+        payload,
+        catalog,
+        wire_strings=False,
+    )
+
+
+def _parse_classifier_payload_with_stage(
+    payload: bytes,
+    catalog: TopicCatalog,
+    *,
+    wire_strings: bool,
+) -> ClassifierDecisionParseResult:
+    """Validate one closed decision after optional provider-wire normalization."""
 
     if type(payload) is not bytes or type(catalog) is not TopicCatalog:
         return ClassifierDecisionParseResult(
@@ -156,6 +186,18 @@ def parse_classifier_decision_with_stage(
             decision=None,
             stage=ClassifierResponseStage.KEY_SET_REJECTED,
         )
+
+    if wire_strings:
+        if any(type(raw[field]) is not str for field in _EXPECTED_KEYS):
+            return ClassifierDecisionParseResult(
+                decision=None,
+                stage=ClassifierResponseStage.FIELD_TYPE_REJECTED,
+            )
+        normalized = dict(raw)
+        for field in _NULLABLE_FIELDS:
+            if normalized[field] == _NONE_SENTINEL:
+                normalized[field] = None
+        raw = normalized
 
     route_raw = raw["route"]
     intent_raw = raw["intent"]
@@ -228,4 +270,5 @@ __all__ = [
     "PendingSlot",
     "parse_classifier_decision",
     "parse_classifier_decision_with_stage",
+    "parse_classifier_wire_decision_with_stage",
 ]
