@@ -98,8 +98,10 @@ contract와 source/retention 권위는 바뀌지 않는다.
 
 `SafeQuestion → bounded canonical prompt + request-local ACTIVE/OFFICIAL catalog → fresh strict
 five-key schema → provider bytes → exact key/all-string check → NONE normalization → existing
-enum/shape/catalog validation → ClassifierDecision | None`이다. 질문·provider body는 process
-memory 밖으로 나가지 않고 시민 source/fact/office 결합은 계속 서버가 소유한다.
+enum/shape/catalog validation → ClassifierDecision | None`이다. raw 시민 질문은 Upstage에
+전달되지 않으며, 별도로 승인된 provider actual에서만 PII-masked `SafeQuestion`을 in-memory
+prompt로 전송한다. 질문·prompt·provider 응답 내용은 저장하거나 logging하지 않고 시민
+fact/source/office 결합은 계속 서버가 소유한다.
 
 ### 오류·빈 상태·롤백
 
