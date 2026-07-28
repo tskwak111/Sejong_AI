@@ -181,13 +181,14 @@ def test_prompt_defines_all_closed_pending_slots_and_route_shapes() -> None:
     ):
         assert output_key in system
 
-    assert system.startswith("JSON route,intent,topic_id,coverage_id,pending_slot=5 strings;")
+    assert system.startswith("JSON:route,intent,topic_id,coverage_id,pending_slot;5문자열;")
     assert "NONE=없음" in system
-    assert "+X" in system
-    assert "SUPPORTED=row*3,NONE" in system
-    assert "NO_TOPIC_MATCH=지원,NONE*3" in system
-    assert "CIVIC_SCOPE_GAP/NON_CIVIC=NONE*4" in system
-    assert "NEEDS_FOLLOWUP=DOMAIN?NONE:지원,NONE*2" in system
+    assert "extra=NO" in system
+    assert "default=NONE" in system
+    assert "SUPPORTED=cat[intent,topic_id,coverage_id]" in system
+    assert "NO_TOPIC_MATCH=지원" in system
+    assert "CIVIC_SCOPE_GAP/NON_CIVIC" in system
+    assert "NEEDS_FOLLOWUP=DOMAIN?NONE:지원,,," in system
     assert system.endswith("DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM")
 
 
