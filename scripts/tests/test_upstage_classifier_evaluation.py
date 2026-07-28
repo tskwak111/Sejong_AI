@@ -367,7 +367,7 @@ def test_actual_classifier_passes_current_catalog_through_real_adapter_offline()
                                     "intent": fixture.expected_intent,
                                     "topic_id": topic_id,
                                     "coverage_id": coverage_id,
-                                    "pending_slot": None,
+                                    "pending_slot": "NONE",
                                 }
                             )
                         },

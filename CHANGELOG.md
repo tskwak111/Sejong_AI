@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Implemented — A-073 classifier enum-shape correction offline
+
+- Implemented one shared typed decision builder with value-free route, intent, pending-slot,
+  identifier and route-shape first-failure stages while retaining the historical generic stage.
+- Replaced compact prompt ambiguity with the exact five-field route matrix, literal uppercase
+  `NONE`, intent-grouped catalog and request-local same-row topic/coverage example. The governed
+  20-topic/256-character prompt is 4,064 characters; longer complete messages fail closed before
+  transport without truncation or sampling.
+- Offline evidence passed after preserving the initial REDs: classifier/Hybrid RAG area `386`,
+  controlled-double regressions `38 passed, 1 failed → 39 passed`, API Ruff format/lint and Mypy
+  over `115` source files, and direct runner Ruff. The RED was a baseline-stale mock JSON
+  `pending_slot: null`; the approved test-only correction uses exact wire string `"NONE"`.
+- Advanced application `0.12.3→0.12.4-classifier-wire-diagnostics`, prompt
+  `0.4.2→0.4.3-explicit-route-matrix`, tests
+  `2.1.6→2.1.7-classifier-wire-correction` and documentation `2.30.5→2.30.6`. Public
+  API/contracts, Web, DB schema/migration, official/mock data, dependencies, packages and
+  lockfiles are unchanged. Provider/network actual calls and cost are `0`; Task 6 still requires
+  the separate exact approval `A-073 corrective actual 1회 실행 승인`.
+
 ### Planned — A-073 classifier enum-shape correction
 
 - Approved the A-073 written specification and published a bite-sized TDD implementation plan for

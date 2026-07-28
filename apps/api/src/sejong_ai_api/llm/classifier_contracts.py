@@ -176,12 +176,8 @@ def _build_classifier_decision_with_stage(
                 ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
             )
 
-    if (
-        (topic_id is not None and _IDENTIFIER_PATTERN.fullmatch(topic_id) is None)
-        or (
-            coverage_id is not None
-            and _IDENTIFIER_PATTERN.fullmatch(coverage_id) is None
-        )
+    if (topic_id is not None and _IDENTIFIER_PATTERN.fullmatch(topic_id) is None) or (
+        coverage_id is not None and _IDENTIFIER_PATTERN.fullmatch(coverage_id) is None
     ):
         return ClassifierDecisionParseResult(
             None,

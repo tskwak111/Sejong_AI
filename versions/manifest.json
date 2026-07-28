@@ -1,19 +1,19 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-29T01:57:52+09:00",
+  "updated_at": "2026-07-29T03:02:13+09:00",
   "versions": {
     "product_spec": "2.6.0",
     "repo_guidance": "1.7.10",
-    "application": "0.12.3-structured-classifier-wire",
+    "application": "0.12.4-classifier-wire-diagnostics",
     "web": "0.8.0-guided-chat",
     "api": "4.0.0-draft",
     "shared_contracts": "1.0.0",
     "database_schema": "0.5.0-local",
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
-    "prompt_set": "0.4.2-exact-five-key-schema",
-    "test_suite": "2.1.6-structured-classifier-wire",
-    "documentation": "2.30.5"
+    "prompt_set": "0.4.3-explicit-route-matrix",
+    "test_suite": "2.1.7-classifier-wire-correction",
+    "documentation": "2.30.6"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

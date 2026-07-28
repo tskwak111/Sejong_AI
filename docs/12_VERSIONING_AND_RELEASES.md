@@ -55,16 +55,16 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.10
-application: 0.12.3-structured-classifier-wire
+application: 0.12.4-classifier-wire-diagnostics
 web: 0.8.0-guided-chat
 api: 4.0.0-draft
 shared_contracts: 1.0.0
 database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.4.2-exact-five-key-schema
-test_suite: 2.1.6-structured-classifier-wire
-documentation: 2.30.5
+prompt_set: 0.4.3-explicit-route-matrix
+test_suite: 2.1.7-classifier-wire-correction
+documentation: 2.30.6
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -242,6 +242,17 @@ actual-eligible prompt를 절단 없이 guard 안에 둔다. implementation targ
 `2.1.7-classifier-wire-correction`이지만 현재 runtime에는 아직 적용하지 않았다.
 API/contracts/Web/DB/data/dependency/provider call/cost는 불변이며 Task 6 actual은 별도 exact
 인간 승인 전 금지한다.
+
+Documentation `2.30.6`, Application `0.12.4-classifier-wire-diagnostics`, prompt set
+`0.4.3-explicit-route-matrix`, test suite `2.1.7-classifier-wire-correction`은 D-120의
+A-073 plan 승인과 Tasks 1~4 offline 구현·영역/version 통합 checkpoint다. shared typed
+builder가 route→intent→pending-slot→identifier→route-shape first-failure를 값 없이 판정하고,
+prompt는 literal `NONE`, exact route matrix와 intent-grouped same-row catalog를 사용한다.
+area 386, controlled-double 39, Ruff/Mypy 115가 PASS했다. controlled-double의 첫 RED
+`38 passed, 1 failed`는 baseline-stale JSON null mock이며 exact wire `"NONE"` 한 줄 교정 뒤
+GREEN이었다. API/shared contracts, Web, DB schema/migration, official/mock data, dependencies,
+package와 lockfile은 불변이고 provider/network actual call/cost는 0/USD 0이다. Task 5
+root/clean-source gate와 Task 6 actual은 분리되며 exact 별도 인간 승인 전 actual은 금지한다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

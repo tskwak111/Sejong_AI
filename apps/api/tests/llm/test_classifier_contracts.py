@@ -20,7 +20,6 @@ from sejong_ai_api.llm.classifier_contracts import (
 )
 from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 
-
 EXPECTED_REFINED_STAGES = (
     ClassifierResponseStage.ROUTE_ENUM_REJECTED,
     ClassifierResponseStage.INTENT_ENUM_REJECTED,

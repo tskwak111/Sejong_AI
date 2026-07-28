@@ -212,6 +212,15 @@ complete-message 4,096 guard는 유지하고 actual-eligible 20-topic/256-charac
 guard 통과를 요구한다. 초과 complete message는 질문/catalog 절단 없이 provider 전에
 fail closed한다. 이 checkpoint에서 application/prompt/tests/API/contracts/DB/data/dependency와
 provider call/cost는 불변이며 Task 6 actual은 별도 exact 인간 승인 전 금지한다.
+D-120은 사용자의 exact `계획 승인, 1번 Subagent-Driven으로 구현 시작`으로 A-073 Tasks 1~5
+offline plan을 승인했다. Tasks 1~4에서 shared typed builder·five refined value-free stage,
+explicit route matrix·literal `NONE`·intent-grouped catalog와 production-wire oracle을
+TDD로 구현했고 area 386·controlled-double 39·Ruff/Mypy 115가 PASS했다. baseline-stale
+controlled mock의 JSON null 1건은 RED 뒤 exact wire `"NONE"`으로만 교정했다. application
+`0.12.4`, prompt `0.4.3`, tests `2.1.7`, docs `2.30.6`만 전진하며 API/contracts/Web/DB/data/
+dependency와 provider/network actual call/cost는 0이다. A-073은
+`Implemented offline / actual exact-one approval pending`이며 Task 5 root/clean-source gate와
+Task 6 actual은 분리된다. actual은 exact `A-073 corrective actual 1회 실행 승인` 전 금지한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

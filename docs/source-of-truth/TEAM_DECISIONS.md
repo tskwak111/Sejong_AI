@@ -176,6 +176,15 @@
   complete-message 4,096 guard는 유지하며 actual-eligible 20-topic/256-character prompt만
   guard 통과를 요구한다. 제품 코드·provider call·DB/data/API/dependency는 이 checkpoint에서
   0이고 Task 6 actual은 별도 exact 인간 승인 전 금지한다.
+- D-120: 사용자의 exact `계획 승인, 1번 Subagent-Driven으로 구현 시작`으로 A-073 Tasks 1~5
+  offline plan과 Subagent-Driven 실행을 승인했다. Tasks 1~4는 shared typed decision builder,
+  five refined value-free stages, explicit route matrix·literal `NONE`·intent-grouped catalog,
+  production-wire oracle와 version/authority 통합을 완료했다. area 386·controlled-double 39·
+  Ruff/Mypy 115가 PASS했고 provider/network actual call과 cost는 0이다. baseline-stale
+  controlled mock의 JSON null 1건은 RED 뒤 exact string `"NONE"`으로만 교정했다. application
+  `0.12.4`, prompt `0.4.3`, tests `2.1.7`만 전진하고 API/contracts/Web/DB/data/dependency는
+  불변이다. A-073은 offline implemented이며 Task 5 root/clean-source gate와 별도 exact-one
+  actual 승인은 아직 남아 있다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
