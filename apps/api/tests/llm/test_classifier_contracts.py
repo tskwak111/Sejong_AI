@@ -134,9 +134,34 @@ def test_parse_classifier_decision_accepts_every_closed_valid_shape(
             ("NO_TOPIC_MATCH", "BULKY_WASTE", None, None, None),
         ),
         (
+            b'{"route":"CIVIC_SCOPE_GAP","intent":"NONE","topic_id":"NONE",'
+            b'"coverage_id":"NONE","pending_slot":"NONE"}',
+            ("CIVIC_SCOPE_GAP", None, None, None, None),
+        ),
+        (
             b'{"route":"NON_CIVIC","intent":"NONE","topic_id":"NONE",'
             b'"coverage_id":"NONE","pending_slot":"NONE"}',
             ("NON_CIVIC", None, None, None, None),
+        ),
+        (
+            b'{"route":"NEEDS_FOLLOWUP","intent":"NONE",'
+            b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"DOMAIN"}',
+            ("NEEDS_FOLLOWUP", None, None, None, "DOMAIN"),
+        ),
+        (
+            b'{"route":"NEEDS_FOLLOWUP","intent":"LOCAL_TAX_GENERAL",'
+            b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"TOPIC_CHOICE"}',
+            ("NEEDS_FOLLOWUP", "LOCAL_TAX_GENERAL", None, None, "TOPIC_CHOICE"),
+        ),
+        (
+            b'{"route":"NEEDS_FOLLOWUP","intent":"CERTIFICATE_ISSUANCE",'
+            b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"CERTIFICATE_KIND"}',
+            ("NEEDS_FOLLOWUP", "CERTIFICATE_ISSUANCE", None, None, "CERTIFICATE_KIND"),
+        ),
+        (
+            b'{"route":"NEEDS_FOLLOWUP","intent":"MOVE_IN_RESIDENT_REGISTRATION",'
+            b'"topic_id":"NONE","coverage_id":"NONE","pending_slot":"REGION"}',
+            ("NEEDS_FOLLOWUP", "MOVE_IN_RESIDENT_REGISTRATION", None, None, "REGION"),
         ),
         (
             b'{"route":"NEEDS_FOLLOWUP","intent":"BULKY_WASTE",'
