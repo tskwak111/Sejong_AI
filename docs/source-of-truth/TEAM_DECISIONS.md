@@ -156,6 +156,12 @@
   115 PASS를 얻었다. application/prompt/tests만 `0.12.3/0.4.2/2.1.6`으로 전진하고 API/contracts/
   DB/data/dependency/provider actual call/cost는 0이다. Task 5 뒤 corrective actual은 D-117
   별도 exact 인간 승인 전 금지한다.
+- D-117: 사용자의 exact 승인 뒤 clean source `efc0b34`에서 A-072 corrective actual을 정확히
+  한 번 실행했다. 20 selected·0 skip·11 provider-free·9 outbound, privacy/policy outbound 0,
+  HTTP 2xx·strict usage·terminal stage total 9였고 D-111의 `KEY_SET_REJECTED`는 0으로
+  해소됐다. 그러나 9건 모두 `ENUM_SHAPE_REJECTED`, accepted/match 0이라 전체 acceptance는
+  FAIL이며 재실행하지 않았다. retry 0, 비용은 VAT 포함 USD 0.002496648로 cap USD 0.20
+  미만이다. 질문·provider body·status detail·key·DSN 보관 0, lock 0, local modes false/false다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

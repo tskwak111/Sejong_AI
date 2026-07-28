@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-28T23:13:12+09:00
 - Task ID: A-072-CLASSIFIER-EXACT-KEY-CORRECTION
 - Type: implementation-provider-offline
-- Status: Done — Tasks 1~5 offline implementation and clean-source review; D-117 pending
+- Status: Done — Tasks 1~5 offline implementation; D-117 actual completed with aggregate FAIL
 - Author/Agent: Codex main controller + task-scoped implementer/reviewer agents
 - Branch: `codex/a-072-strict-classifier-wire`
 - Base commit: `5c2d2be70215e528561825cd762bed9932a5c9fd`
@@ -62,7 +62,7 @@ Subagent-Driven 방식으로 시작하도록 승인했다. Task 6 실제 Upstage
 | ID | 구분 | 내용 | 결정/기본값 | 영향 |
 |---|---|---|---|---|
 | D-116 | 인간 승인 | Tasks 1~5 계획과 Subagent-Driven 구현 시작 | 승인됨 | offline code/test/docs 허용 |
-| D-117 | 인간 승인 | fixed 20 corrective actual exactly once | 아직 승인되지 않음 | provider/network 호출 0 유지 |
+| D-117 | 인간 승인 | fixed 20 corrective actual exactly once | 2026-07-29 승인·1회 실행 완료, 재실행 0 | aggregate FAIL 증거 보존 |
 | Internal-1 | 내부 정합 | plan의 미래 actual 결정 ID가 D-116으로 중복됨 | D-116은 plan 승인, future actual은 D-117로 clerical correction | 동작·계약 영향 0 |
 
 ## 5. 설계 결정과 대안
@@ -163,7 +163,8 @@ observer 오류도 시민 decision/fallback을 바꾸지 않는다. rollback은 
 
 ### 미실행 검증과 이유
 
-- `scripts/run_hybrid_rag_actual.py` 실제 runner 실행: D-117 별도 exact 승인 전 금지.
+- `scripts/run_hybrid_rag_actual.py` 실제 runner는 후속 D-117에서 정확히 한 번 실행했으며
+  같은 명령은 재실행하지 않았다. 결과는 아래 후속 기록과 IMP-20260729-001을 따른다.
 - public/remote/DB reset/seed/deploy: A-072 범위 밖이며 변경도 없다.
 - root wrapper는 worktree-local ignored `uv` 부재로 FAIL이며 재실행하지 않았다. 나머지
   constituent는 같은 source와 main의 pinned local venv/toolchain junction에서 각각 검증했고,
@@ -190,8 +191,8 @@ observer 오류도 시민 decision/fallback을 바꾸지 않는다. rollback은 
 
 - Tasks 1~5의 offline constituent와 clean-source review는 완료됐지만, root wrapper 자체는
   `PREFLIGHT-UV` 환경 실패이므로 PASS가 아니다. 이 결과는 실제 Upstage 품질 PASS 증거도 아니다.
-- actual은 exact 문구
-  `A-072 corrective actual 1회 실행 승인`을 받아 D-117로 기록해야 한다.
+- D-117 actual은 exact 승인 뒤 1회 실행됐고 `ENUM_SHAPE_REJECTED` 9/9로 FAIL했다.
+  다음 provider 호출은 새 인간 결정과 별도 승인 전 금지한다.
 - 새 dependency, 공개/remote, DB/data, push/merge 권한은 이 작업에 포함되지 않았다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
@@ -222,16 +223,33 @@ secret rotation과 dependency reinstall은 필요 없다. 실제 호출이 없�
 Task 5는 verified implementation head
 `fbb5fc174153991d36b32c2c32f9f4793f68fc2f`에서 root wrapper를 정확히 한 번 실행했고,
 환경 실패 뒤 모든 나머지 constituent, secret/scope review와 full SHA 기록을 완료했다.
-다음 개발자는 wrapper를 PASS로 오인하거나 재실행하지 말고 D-117 exact-one actual 승인을
-요청한다.
+다음 개발자는 wrapper를 PASS로 오인하지 말고, D-117 actual도 이미 1회 소비됐으므로
+재실행하지 않는다. 다음 설계 시작점은 A-073 enum/shape 거절 원인이다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- strict schema가 actual `solar-pro3`에서 exact five-key를 9/9 반환하는지는 아직 검증되지 않았다.
+- strict schema는 D-111의 key-set 거절을 9→0으로 해소했지만 actual 9건 모두
+  `ENUM_SHAPE_REJECTED`였으므로 전체 provider selector acceptance는 아직 0/9다.
 - root wrapper는 `PREFLIGHT-UV` 환경 실패로 종료됐으며 constituent PASS가 wrapper PASS를
   대체하지 않는다. final whole-branch independent review의 runtime concern은 없었고, 발견된
   active 문서의 구현 상태·버전 불일치는 documentation `2.30.2`에서 교정했다.
-- D-117 승인 후에도 actual은 정확히 1회만 실행하고 어떤 결과든 즉시 재시도하지 않는다.
+- D-117 actual은 정확히 1회 실행됐고 재시도하지 않았다. A-073 설계와 새 승인 전 추가 actual은
+  금지한다.
+
+## 16. D-117 actual 후속 기록
+
+- Human approval: `A-072 corrective actual 1회 실행 승인`
+- Source: `efc0b34da61678d7e6bb22c23685591f393ad647`
+- Execution count: 정확히 1회, rerun 0
+- Aggregate: 20 selected, 0 skip, 11 provider-free, 9 outbound, privacy/policy outbound 0,
+  HTTP 2xx·usage·terminal stage 9
+- Result: `KEY_SET_REJECTED` 0, `ENUM_SHAPE_REJECTED` 9, accepted/match 0, `FAIL`
+- Cost: VAT 포함 observed/ledger USD 0.002496648, cap USD 0.20, reconciled
+- Safety: 질문·provider body·status detail·key·DSN 보관 0, lock 0, local modes false/false
+- Evidence:
+  [current D-117 report](../test-reports/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL.md),
+  [archived D-111 report](../test-reports/archive/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL-20260728-D111-KEY-SET-REJECTED-FAIL.md),
+  [actual closeout note](IMP-20260729-001-a-072-corrective-actual-evidence-closeout.md)
 
 ## 15. 자체 리뷰
 

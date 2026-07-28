@@ -5,7 +5,7 @@
 
 | Metric | Value |
 |---|---:|
-| `source_sha` | `efc0b34da61678d7e6bb22c23685591f393ad647` |
+| `source_sha` | `0646db06627626f06701d30d628a04adc6264055` |
 | `fixture_sha256` | `4c6bf8cad6a00c94775f36b3731e7878a10722a2031e97e2a49fb8cb2141351d` |
 | `coverage_sha256` | `94b856bf87723893cbce9b29bf4c7125828a1624b79f6419c58d45b6bb5eb663` |
 | `official_records_sha256` | `1c4c303d8f0057d285023ba18a3d2829fcf856c1140baa270456aaf061c0fdaf` |
@@ -33,9 +33,9 @@
 | `provider_stage_message_rejected_count` | `0` |
 | `provider_stage_content_rejected_count` | `0` |
 | `provider_stage_json_rejected_count` | `0` |
-| `provider_stage_key_set_rejected_count` | `0` |
+| `provider_stage_key_set_rejected_count` | `9` |
 | `provider_stage_field_type_rejected_count` | `0` |
-| `provider_stage_enum_shape_rejected_count` | `9` |
+| `provider_stage_enum_shape_rejected_count` | `0` |
 | `provider_stage_catalog_rejected_count` | `0` |
 | `provider_stage_accepted_count` | `0` |
 | `provider_http_2xx_count` | `9` |
@@ -49,14 +49,14 @@
 | `provider_contract_mismatch_count` | `0` |
 | `observed_usage_response_count` | `9` |
 | `conservative_charged_attempt_count` | `0` |
-| `input_tokens` | `14448` |
-| `cached_input_tokens` | `1712` |
-| `output_tokens` | `556` |
-| `observed_usage_cost_usd_including_vat` | `0.002496648` |
-| `ledger_charged_cost_usd_including_vat` | `0.002496648` |
+| `input_tokens` | `13575` |
+| `cached_input_tokens` | `1232` |
+| `output_tokens` | `863` |
+| `observed_usage_cost_usd_including_vat` | `0.002626503` |
+| `ledger_charged_cost_usd_including_vat` | `0.002626503` |
 | `cost_reconciled` | `True` |
 | `cost_cap_usd_including_vat` | `0.2` |
-| `elapsed_ms` | `13727` |
+| `elapsed_ms` | `17331` |
 | `acceptance` | `FAIL` |
 
 | Fixture ID | Evidence kind | Provider decision accepted | Actual provider route/topic match | Outbound |

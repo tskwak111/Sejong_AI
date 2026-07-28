@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Evaluated — A-072 strict classifier corrective actual
+
+- Executed the separately approved corrective actual exactly once from clean source `efc0b34`.
+  The fixed 20-case subset produced 11 provider-free cases and 9 outbound responses with HTTP 2xx,
+  accepted usage and one terminal stage each; privacy/policy outbound remained 0.
+- The prior `KEY_SET_REJECTED` stage fell from 9 to 0, but all 9 provider responses terminated at
+  `ENUM_SHAPE_REJECTED`. Accepted decisions and provider route/topic matches remained 0, so the
+  aggregate acceptance is `FAIL`; the command was not rerun.
+- Observed and ledger cost reconciled at VAT-inclusive USD 0.002496648 below the USD 0.20 cap,
+  with retry 0. Question/provider content, status detail, key and DSN retention remained 0.
+- Archived the byte-preserved D-111 report and advanced documentation `2.30.2→2.30.3`.
+  Application, prompt, tests, API/contracts, DB/data, dependencies, package and lockfiles are
+  unchanged.
+
 ### Implemented — A-072 strict classifier wire offline
 
 - Added a provider-boundary parser that accepts exact string `NONE` only for the four nullable
@@ -20,8 +34,8 @@
   dependencies, package and lockfiles are unchanged. Task 5 clean-source review is complete, but
   the root wrapper's single invocation FAILed at environment-only `PREFLIGHT-UV`, was not rerun and
   is not a PASS. Remaining constituents/security/scope checks passed with documented bounded skips;
-  provider calls/cost remain `0`. The D-117 actual remains pending and requires the exact approval
-  `A-072 corrective actual 1회 실행 승인`.
+  provider calls/cost remained `0` at this Tasks 1~5 checkpoint. The exact approval was consumed
+  once in the later D-117 evaluation recorded above.
 - Advanced documentation `2.30.1→2.30.2` for the Tasks 1~5 implementation/evidence checkpoint;
   all runtime axes remain unchanged.
 

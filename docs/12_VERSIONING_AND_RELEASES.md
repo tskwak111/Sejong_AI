@@ -64,7 +64,7 @@ official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.2-exact-five-key-schema
 test_suite: 2.1.6-structured-classifier-wire
-documentation: 2.30.2
+documentation: 2.30.3
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -215,8 +215,17 @@ five-key string `json_schema`를 사용하며 prompt는 동일한 canonical fiel
 나머지 constituent/security/scope 검사는 문서화된 skip을 제외하고 PASS했다. root wrapper는
 정확히 한 번 실행되어 환경 전용 `PREFLIGHT-UV`에서 FAIL했고 재실행하지 않았으므로 PASS가
 아니다. provider actual call/cost는 0/USD 0이다. API/shared contracts, DB schema,
-official/mock data, dependency, package와 lockfile은 불변이다. D-117은 아직 승인되지 않았으며
-actual에는 정확한 승인 문구 `A-072 corrective actual 1회 실행 승인`이 필요하다.
+official/mock data, dependency, package와 lockfile은 불변이다. 이 `2.30.2` checkpoint 당시
+D-117은 아직 승인되지 않았고 exact 승인 문구가 필요했으며, 후속 `2.30.3`/D-117에서 그
+권한을 정확히 한 번 소비했다.
+
+Documentation `2.30.3`은 D-117의 A-072 corrective actual aggregate evidence
+checkpoint다. 승인된 clean source `efc0b34`에서 실제 명령은 정확히 한 번 실행했고
+20 selected·0 skip·11 provider-free·9 outbound, HTTP 2xx·strict usage·terminal stage 9를
+기록했다. D-111의 `KEY_SET_REJECTED`는 0으로 해소됐지만 9건 모두
+`ENUM_SHAPE_REJECTED`에서 종료해 accepted/match 0, 최종 acceptance `FAIL`이다. retry 0,
+비용은 VAT 포함 USD 0.002496648이며 재실행하지 않았다. application/prompt/tests/API/contracts,
+DB/data/dependency는 불변이고 current FAIL과 D-111 archive를 모두 보존한다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,

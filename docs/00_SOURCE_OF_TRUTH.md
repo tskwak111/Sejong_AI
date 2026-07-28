@@ -196,6 +196,14 @@ provider actual call/cost는 0이다. Task 5 clean-source review는 완료됐지
 않았으므로 PASS가 아니다. 나머지 constituent·security·scope 검사는 documented skip을 제외하고
 PASS했다. provider call/cost는 계속 0이며 실제 1회 호출은 D-117의 별도 exact 문구
 `A-072 corrective actual 1회 실행 승인` 전까지 금지한다.
+D-117은 위 exact 승인 뒤 clean source `efc0b34`에서 A-072 corrective actual을 정확히 한 번
+실행했다. 20 selected·0 skip·11 provider-free·9 outbound, privacy/policy outbound 0,
+HTTP 2xx·strict usage·terminal stage total 9를 기록했고 D-111의 `KEY_SET_REJECTED`는 0으로
+해소됐다. 그러나 9건 모두 `ENUM_SHAPE_REJECTED`, accepted/match 0이라 최종 acceptance는
+FAIL이다. retry 0, 비용은 VAT 포함 USD 0.002496648로 cap USD 0.20 미만이며 재실행하지
+않았다. 질문·provider body·status detail·key·DSN 보관 0, lock 0, local modes false/false다.
+따라서 시민 runtime은 계속 결정론적 fail-closed 경로가 권위이고, 다음 교정 actual은 새
+인간 결정·별도 승인 전 금지한다.
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는
