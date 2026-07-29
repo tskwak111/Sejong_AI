@@ -11,8 +11,9 @@ if str(_SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_ROOT))
 
 
-def _load_modules() -> tuple[Any, Any, Any, Any]:
+def _load_modules() -> tuple[Any, Any, Any, Any, Any]:
     for module_name in (
+        "run_deepseek_classifier_prelease_hardened_actual",
         "run_deepseek_classifier_split_timeout_actual",
         "run_deepseek_classifier_network_recovery_actual",
         "run_deepseek_classifier_corrective_actual",
@@ -23,35 +24,41 @@ def _load_modules() -> tuple[Any, Any, Any, Any]:
     a075 = importlib.import_module("run_deepseek_classifier_corrective_actual")
     a076 = importlib.import_module("run_deepseek_classifier_network_recovery_actual")
     a077 = importlib.import_module("run_deepseek_classifier_split_timeout_actual")
-    return core, a075, a076, a077
+    a078 = importlib.import_module("run_deepseek_classifier_prelease_hardened_actual")
+    return core, a075, a076, a077, a078
 
 
-def test_a077_identity_is_disjoint_and_owns_longer_aggregate_deadline() -> None:
-    core, a075, a076, a077 = _load_modules()
+def test_a078_identity_is_disjoint_and_owns_longer_aggregate_deadline() -> None:
+    core, a075, a076, a077, a078 = _load_modules()
 
-    profile = a077.A077_EVIDENCE_IDENTITY
+    profile = a078.A078_EVIDENCE_IDENTITY
     predecessors = (
         core.A074_EVIDENCE_IDENTITY,
         a075.A075_EVIDENCE_IDENTITY,
         a076.A076_EVIDENCE_IDENTITY,
+        a077.A077_EVIDENCE_IDENTITY,
     )
 
-    assert profile.report_path.name == "CHAT-HYBRID-RAG-001-DEEPSEEK-A077-ACTUAL.md"
-    assert profile.offline_gate == "A-077-OFFLINE"
+    assert profile.report_path.name == "CHAT-HYBRID-RAG-001-DEEPSEEK-A078-ACTUAL.md"
+    assert profile.offline_gate == "A-078-OFFLINE"
     assert profile.actual_run_deadline_seconds == 100
+    assert tuple(
+        predecessor.actual_run_deadline_seconds for predecessor in predecessors
+    ) == (32, 32, 32, 100)
     for predecessor in predecessors:
         assert profile.report_path != predecessor.report_path
         assert profile.offline_result_path != predecessor.offline_result_path
         assert profile.offline_lock_path != predecessor.offline_lock_path
         assert profile.offline_stdout_path != predecessor.offline_stdout_path
         assert profile.offline_stderr_path != predecessor.offline_stderr_path
+    assert profile.pre_actual_check is a078.require_probe_pass_for_current_source
 
 
-def test_a077_readiness_binds_deadline_and_restores_a074(
+def test_a078_readiness_binds_deadline_and_restores_a074(
     monkeypatch: Any,
     capsys: Any,
 ) -> None:
-    core, _, _, a077 = _load_modules()
+    core, _, _, _, a078 = _load_modules()
     observed_deadlines: list[float] = []
 
     def fake_readiness(_options: Any) -> object:
@@ -60,12 +67,12 @@ def test_a077_readiness_binds_deadline_and_restores_a074(
 
     monkeypatch.setattr(core, "_perform_readiness", fake_readiness)
 
-    result = a077.main(
+    result = a078.main(
         [
             "--fixture",
             str(core._FIXTURE_PATH),
             "--report",
-            str(a077.A077_EVIDENCE_IDENTITY.report_path),
+            str(a078.A078_EVIDENCE_IDENTITY.report_path),
             "--readiness-only",
         ]
     )
@@ -77,11 +84,11 @@ def test_a077_readiness_binds_deadline_and_restores_a074(
     assert core._current_evidence_identity() == core.A074_EVIDENCE_IDENTITY
 
 
-def test_a077_actual_is_blocked_until_same_source_probe_passes(
+def test_a078_actual_is_blocked_until_same_source_probe_passes(
     monkeypatch: Any,
     capsys: Any,
 ) -> None:
-    core, _, _, a077 = _load_modules()
+    core, _, _, _, a078 = _load_modules()
     core_calls = 0
 
     def core_forbidden(*_args: Any, **_kwargs: Any) -> int:
@@ -91,12 +98,12 @@ def test_a077_actual_is_blocked_until_same_source_probe_passes(
 
     monkeypatch.setattr(core, "main", core_forbidden)
     monkeypatch.setattr(
-        a077,
+        a078,
         "require_probe_pass_for_current_source",
         lambda _source_sha: False,
     )
-    monkeypatch.setattr(a077, "_source_sha", lambda: "a" * 40)
+    monkeypatch.setattr(a078, "_source_sha", lambda: "a" * 40)
 
-    assert a077.main([]) == 2
+    assert a078.main([]) == 2
     assert core_calls == 0
-    assert capsys.readouterr().err.strip() == "DEEPSEEK_A077_ACTUAL_PROBE_NOT_PASSED"
+    assert capsys.readouterr().err.strip() == "DEEPSEEK_A078_ACTUAL_PROBE_NOT_PASSED"

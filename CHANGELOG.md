@@ -2,16 +2,17 @@
 
 ## [Unreleased]
 
-### In progress — A-077 DeepSeek split-timeout correction
+### In progress — A-077/A-078 DeepSeek split-timeout correction
 
 - Approved and implemented a local/private timeout split: connect/write/pool remain 3 seconds,
   while response read and the complete exchange use 10 seconds. Retry remains 0.
-- Added a disjoint A-077 100-second aggregate evaluator deadline, one-call aggregate-only 2xx
-  probe, conditional actual gate and immutable offline wrapper. All A-074/A-075/A-076 evidence
-  remains unchanged.
-- Related DeepSeek/evidence tests currently pass 153/153. External offline/probe/actual evidence
-  has not yet been consumed. Product API/DB/data/Web/final-answer provider and dependencies are
-  unchanged.
+- Source `675eef4...` consumed A-077 offline PASS 1/0, but no provider probe/actual. Independent
+  review found Critical 0 / Important 3 / Minor 2 and blocked provider execution.
+- Added disjoint A-078 exact probe-lease/report/source binding and an identity-owned same-source
+  check after clean-source revalidation, a final source/input/settings revalidation immediately
+  before the actual lease, and post-probe source/evidence revalidation before PASS publication.
+  A-074~A-077 evidence remains immutable and D-128's call/cost authority is unchanged.
+- Product API/DB/data/Web/final-answer provider and dependencies remain unchanged.
 
 ### Actual FAIL — A-076 DeepSeek network-recovery evidence
 

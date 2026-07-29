@@ -7,6 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPTS_ROOT = _REPOSITORY_ROOT / "scripts"
 if str(_SCRIPTS_ROOT) not in sys.path:
@@ -14,8 +16,8 @@ if str(_SCRIPTS_ROOT) not in sys.path:
 
 
 def _probe() -> Any:
-    sys.modules.pop("run_deepseek_classifier_a077_probe", None)
-    return importlib.import_module("run_deepseek_classifier_a077_probe")
+    sys.modules.pop("run_deepseek_classifier_a078_probe", None)
+    return importlib.import_module("run_deepseek_classifier_a078_probe")
 
 
 def _passing_metrics(probe: Any) -> dict[str, object]:
@@ -57,10 +59,10 @@ def test_probe_identity_is_local_ignored_and_disjoint_from_actual() -> None:
     probe = _probe()
 
     assert ".superpowers" in probe._PROBE_REPORT_PATH.parts
-    assert probe._PROBE_REPORT_PATH.name == "a077-probe-result.json"
-    assert probe._PROBE_LEASE_PATH.name == "a077-probe-result.json.run.lock"
-    assert probe._PROBE_REPORT_PATH != probe.A077_EVIDENCE_IDENTITY.report_path
-    assert probe._PROBE_LEASE_TEXT == "A-077-DEEPSEEK-PROBE one-shot lease\n"
+    assert probe._PROBE_REPORT_PATH.name == "a078-probe-result.json"
+    assert probe._PROBE_LEASE_PATH.name == "a078-probe-result.json.run.lock"
+    assert probe._PROBE_REPORT_PATH != probe.A078_EVIDENCE_IDENTITY.report_path
+    assert probe._PROBE_LEASE_TEXT == "A-078-DEEPSEEK-PROBE one-shot lease\n"
 
 
 def test_probe_acceptance_requires_one_2xx_response_and_zero_retention() -> None:
@@ -117,7 +119,7 @@ def test_probe_main_readiness_does_not_consume_lease_or_call_provider(
     )
 
     assert probe.main(["--readiness-only"]) == 0
-    assert capsys.readouterr().out.strip() == "DEEPSEEK_A077_PROBE_READY"
+    assert capsys.readouterr().out.strip() == "DEEPSEEK_A078_PROBE_READY"
 
 
 def test_probe_main_writes_aggregate_pass_once_without_sensitive_values(
@@ -147,7 +149,7 @@ def test_probe_main_writes_aggregate_pass_once_without_sensitive_values(
 
     assert probe.main([]) == 0
     captured = capsys.readouterr()
-    assert captured.out.strip() == "DEEPSEEK_A077_PROBE_PASS"
+    assert captured.out.strip() == "DEEPSEEK_A078_PROBE_PASS"
     assert captured.err == ""
     document = json.loads(report_path.read_text(encoding="utf-8"))
     assert document == metrics
@@ -156,7 +158,7 @@ def test_probe_main_writes_aggregate_pass_once_without_sensitive_values(
     )
     assert all(marker not in exposed for marker in forbidden)
     assert probe.main([]) == 2
-    assert capsys.readouterr().err.strip() == "DEEPSEEK_A077_PROBE_RUN_ALREADY_RECORDED"
+    assert capsys.readouterr().err.strip() == "DEEPSEEK_A078_PROBE_RUN_ALREADY_RECORDED"
 
 
 def test_probe_pass_validator_rejects_wrong_source_or_non_2xx(
@@ -165,13 +167,17 @@ def test_probe_pass_validator_rejects_wrong_source_or_non_2xx(
 ) -> None:
     probe = _probe()
     report_path = tmp_path / "probe.json"
+    lease_path = tmp_path / "probe.json.run.lock"
     monkeypatch.setattr(probe, "_PROBE_REPORT_PATH", report_path)
+    monkeypatch.setattr(probe, "_PROBE_LEASE_PATH", lease_path)
     passing = _passing_metrics(probe)
     report_path.write_text(
         json.dumps(passing, ensure_ascii=True, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )
 
+    assert probe.require_probe_pass_for_current_source("a" * 40) is False
+    lease_path.write_bytes(probe._PROBE_LEASE_TEXT.encode("ascii"))
     assert probe.require_probe_pass_for_current_source("a" * 40) is True
     assert probe.require_probe_pass_for_current_source("b" * 40) is False
     report_path.write_text(
@@ -183,6 +189,37 @@ def test_probe_pass_validator_rejects_wrong_source_or_non_2xx(
         + "\n",
         encoding="utf-8",
     )
+    assert probe.require_probe_pass_for_current_source("a" * 40) is False
+
+
+@pytest.mark.parametrize(
+    "invalid_lease",
+    (
+        "wrong lease\n",
+        "x" * 1025,
+    ),
+)
+def test_probe_pass_validator_rejects_wrong_or_oversized_lease(
+    tmp_path: Path,
+    monkeypatch: Any,
+    invalid_lease: str,
+) -> None:
+    probe = _probe()
+    report_path = tmp_path / "probe.json"
+    lease_path = tmp_path / "probe.json.run.lock"
+    monkeypatch.setattr(probe, "_PROBE_REPORT_PATH", report_path)
+    monkeypatch.setattr(probe, "_PROBE_LEASE_PATH", lease_path)
+    report_path.write_text(
+        json.dumps(
+            _passing_metrics(probe),
+            ensure_ascii=True,
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    lease_path.write_text(invalid_lease, encoding="ascii")
+
     assert probe.require_probe_pass_for_current_source("a" * 40) is False
 
 
@@ -215,10 +252,50 @@ def test_probe_runtime_failure_after_lease_still_writes_immutable_fail_report(
 
     assert probe.main([]) == 3
     captured = capsys.readouterr()
-    assert captured.err.strip() == "DEEPSEEK_A077_PROBE_RUNTIME_FAILED"
+    assert captured.err.strip() == "DEEPSEEK_A078_PROBE_RUNTIME_FAILED"
     document = json.loads(report_path.read_text(encoding="utf-8"))
     assert document["acceptance"] == "FAIL"
     assert document["runtime_failure_count"] == 1
     assert document["invocation_count"] == 1
     assert document["rerun_count"] == 0
+    assert lease_path.exists()
+
+
+def test_probe_post_execution_source_drift_writes_fail_not_pass(
+    tmp_path: Path,
+    monkeypatch: Any,
+    capsys: Any,
+) -> None:
+    probe = _probe()
+    report_path = tmp_path / "probe.json"
+    lease_path = tmp_path / "probe.json.run.lock"
+    prepared = SimpleNamespace(source_sha="a" * 40)
+    revalidation_count = 0
+
+    def revalidate_then_drift(_prepared: object) -> None:
+        nonlocal revalidation_count
+        revalidation_count += 1
+        if revalidation_count == 2:
+            raise RuntimeError
+
+    monkeypatch.setattr(probe, "_PROBE_REPORT_PATH", report_path)
+    monkeypatch.setattr(probe, "_PROBE_LEASE_PATH", lease_path)
+    monkeypatch.setattr(probe, "_perform_readiness", lambda: prepared)
+    monkeypatch.setattr(probe, "_revalidate_prepared_run", revalidate_then_drift)
+    monkeypatch.setattr(
+        probe,
+        "_execute_probe_with_deadline",
+        lambda _prepared: _passing_metrics(probe),
+    )
+
+    assert probe.main([]) == 3
+    assert revalidation_count == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.strip() == "DEEPSEEK_A078_PROBE_RUNTIME_FAILED"
+    document = json.loads(report_path.read_text(encoding="utf-8"))
+    assert document["outbound_attempt_count"] == 1
+    assert document["http_2xx_count"] == 1
+    assert document["runtime_failure_count"] == 1
+    assert document["acceptance"] == "FAIL"
     assert lease_path.exists()

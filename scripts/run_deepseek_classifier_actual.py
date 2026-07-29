@@ -12,7 +12,7 @@ import re
 import subprocess
 import sys
 from collections import Counter
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date
@@ -111,6 +111,7 @@ _ACTUAL_INVOCATION_COUNT = 1
 _ACTUAL_RETRY_COUNT = 0
 _ACTUAL_RERUN_COUNT = 0
 _ACTUAL_RUN_DEADLINE_SECONDS: float = 32
+_PRE_ACTUAL_CHECK: Callable[[str], bool] | None = None
 _FIXTURE_MAX_BYTES = 1024 * 1024
 _COVERAGE_MAX_BYTES = 1024 * 1024
 _OFFICIAL_RECORDS_MAX_BYTES = 4 * 1024 * 1024
@@ -243,6 +244,7 @@ class EvidenceIdentity:
     offline_lease_text: str
     actual_lease_text: str
     actual_run_deadline_seconds: float = _ACTUAL_RUN_DEADLINE_SECONDS
+    pre_actual_check: Callable[[str], bool] | None = None
 
 
 A074_EVIDENCE_IDENTITY = EvidenceIdentity(
@@ -255,6 +257,7 @@ A074_EVIDENCE_IDENTITY = EvidenceIdentity(
     offline_lease_text=_OFFLINE_LEASE_TEXT,
     actual_lease_text=_ACTUAL_LEASE_TEXT,
     actual_run_deadline_seconds=_ACTUAL_RUN_DEADLINE_SECONDS,
+    pre_actual_check=_PRE_ACTUAL_CHECK,
 )
 
 
@@ -464,6 +467,7 @@ def _current_evidence_identity() -> EvidenceIdentity:
         offline_lease_text=_OFFLINE_LEASE_TEXT,
         actual_lease_text=_ACTUAL_LEASE_TEXT,
         actual_run_deadline_seconds=_ACTUAL_RUN_DEADLINE_SECONDS,
+        pre_actual_check=_PRE_ACTUAL_CHECK,
     )
 
 
@@ -495,6 +499,10 @@ def _validate_corrective_evidence_identity(identity: EvidenceIdentity) -> None:
         or len(identity.actual_lease_text) > 128
         or type(identity.actual_run_deadline_seconds) not in (int, float)
         or not 0 < identity.actual_run_deadline_seconds <= 3600
+        or (
+            identity.pre_actual_check is not None
+            and not callable(identity.pre_actual_check)
+        )
     ):
         raise _EvidenceIdentityInvalid
     try:
@@ -516,6 +524,7 @@ def _validate_corrective_evidence_identity(identity: EvidenceIdentity) -> None:
 def _set_evidence_identity(identity: EvidenceIdentity) -> None:
     global _ACTUAL_LEASE_TEXT
     global _ACTUAL_RUN_DEADLINE_SECONDS
+    global _PRE_ACTUAL_CHECK
     global _OFFLINE_GATE
     global _OFFLINE_LEASE_TEXT
     global _OFFLINE_LOCK_PATH
@@ -533,6 +542,7 @@ def _set_evidence_identity(identity: EvidenceIdentity) -> None:
     _OFFLINE_LEASE_TEXT = identity.offline_lease_text
     _ACTUAL_LEASE_TEXT = identity.actual_lease_text
     _ACTUAL_RUN_DEADLINE_SECONDS = identity.actual_run_deadline_seconds
+    _PRE_ACTUAL_CHECK = identity.pre_actual_check
 
 
 @contextmanager
@@ -1544,6 +1554,12 @@ def _run_current_evidence_identity(argv: Sequence[str] | None = None) -> int:
 
         try:
             evidence = _new_evidence(prepared)
+            _revalidate_prepared_run(prepared)
+            if (
+                _PRE_ACTUAL_CHECK is not None
+                and _PRE_ACTUAL_CHECK(prepared.source_sha) is not True
+            ):
+                raise _ConfigurationInvalid
             _revalidate_prepared_run(prepared)
         except Exception:
             print(

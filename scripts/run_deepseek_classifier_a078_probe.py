@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one immutable aggregate-only DeepSeek transport probe for A-077."""
+"""Run one immutable aggregate-only DeepSeek transport probe for A-078."""
 
 from __future__ import annotations
 
@@ -31,31 +31,28 @@ from sejong_ai_api.privacy.redaction import redact_question
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 _EVIDENCE_DIRECTORY = (
-    _REPOSITORY_ROOT
-    / ".superpowers"
-    / "sdd"
-    / "2026-07-29-deepseek-split-timeout-correction"
+    _REPOSITORY_ROOT / ".superpowers" / "sdd" / "2026-07-29-deepseek-prelease-hardening"
 )
-_PROBE_REPORT_PATH = _EVIDENCE_DIRECTORY / "a077-probe-result.json"
-_PROBE_LEASE_PATH = _EVIDENCE_DIRECTORY / "a077-probe-result.json.run.lock"
-_PROBE_LEASE_TEXT = "A-077-DEEPSEEK-PROBE one-shot lease\n"
+_PROBE_REPORT_PATH = _EVIDENCE_DIRECTORY / "a078-probe-result.json"
+_PROBE_LEASE_PATH = _EVIDENCE_DIRECTORY / "a078-probe-result.json.run.lock"
+_PROBE_LEASE_TEXT = "A-078-DEEPSEEK-PROBE one-shot lease\n"
 _PROBE_DEADLINE_SECONDS = 12.0
 _REPORT_MAX_BYTES = 64 * 1024
 
-A077_EVIDENCE_IDENTITY = _core.EvidenceIdentity(
+A078_EVIDENCE_IDENTITY = _core.EvidenceIdentity(
     report_path=(
         _REPOSITORY_ROOT
         / "docs"
         / "test-reports"
-        / "CHAT-HYBRID-RAG-001-DEEPSEEK-A077-ACTUAL.md"
+        / "CHAT-HYBRID-RAG-001-DEEPSEEK-A078-ACTUAL.md"
     ),
-    offline_result_path=_EVIDENCE_DIRECTORY / "a077-offline-gate-result.json",
-    offline_lock_path=_EVIDENCE_DIRECTORY / "a077-offline-gate-result.json.run.lock",
-    offline_stdout_path=_EVIDENCE_DIRECTORY / "a077-offline-gate.stdout.log",
-    offline_stderr_path=_EVIDENCE_DIRECTORY / "a077-offline-gate.stderr.log",
-    offline_gate="A-077-OFFLINE",
-    offline_lease_text="A-077-OFFLINE-GATE one-shot lease\n",
-    actual_lease_text="A-077-DEEPSEEK-CLASSIFIER one-shot lease\n",
+    offline_result_path=_EVIDENCE_DIRECTORY / "a078-offline-gate-result.json",
+    offline_lock_path=_EVIDENCE_DIRECTORY / "a078-offline-gate-result.json.run.lock",
+    offline_stdout_path=_EVIDENCE_DIRECTORY / "a078-offline-gate.stdout.log",
+    offline_stderr_path=_EVIDENCE_DIRECTORY / "a078-offline-gate.stderr.log",
+    offline_gate="A-078-OFFLINE",
+    offline_lease_text="A-078-OFFLINE-GATE one-shot lease\n",
+    actual_lease_text="A-078-DEEPSEEK-CLASSIFIER one-shot lease\n",
     actual_run_deadline_seconds=100,
 )
 
@@ -142,15 +139,15 @@ def _parse_args(argv: Sequence[str] | None) -> bool:
 def _perform_readiness() -> _core._PreparedRun:
     options = _core._RunnerOptions(
         fixture_path=_core._FIXTURE_PATH,
-        report_path=A077_EVIDENCE_IDENTITY.report_path,
+        report_path=A078_EVIDENCE_IDENTITY.report_path,
         readiness_only=False,
     )
-    with _core._bind_corrective_evidence_identity(A077_EVIDENCE_IDENTITY):
+    with _core._bind_corrective_evidence_identity(A078_EVIDENCE_IDENTITY):
         return _core._perform_readiness(options)
 
 
 def _revalidate_prepared_run(prepared: _core._PreparedRun) -> None:
-    with _core._bind_corrective_evidence_identity(A077_EVIDENCE_IDENTITY):
+    with _core._bind_corrective_evidence_identity(A078_EVIDENCE_IDENTITY):
         _core._revalidate_prepared_run(prepared)
 
 
@@ -270,7 +267,6 @@ async def _execute_probe(prepared: _core._PreparedRun) -> dict[str, object]:
 
     ledger = _core._build_ledger(prepared.settings)
     usage_recorder = _core._UsageRecorder()
-    stage_recorder = _core._ResponseStageRecorder()
     decision = None
     client = create_deepseek_classifier_client(prepared.settings)
     async with client:
@@ -278,7 +274,6 @@ async def _execute_probe(prepared: _core._PreparedRun) -> dict[str, object]:
             settings=prepared.settings,
             client=client,
             ledger=ledger,
-            response_stage_observer=stage_recorder.capture,
             response_observer=usage_recorder.capture,
         )
         decision = await classifier.classify(safe_question, prepared.catalog)
@@ -387,6 +382,16 @@ def _write_report_once(report: Mapping[str, object]) -> None:
     _write_new_file(_PROBE_REPORT_PATH, payload)
 
 
+def _read_bounded_file(path: Path, *, max_bytes: int) -> bytes:
+    if type(max_bytes) is not int or max_bytes <= 0:
+        raise ValueError
+    with path.open("rb") as stream:
+        payload = stream.read(max_bytes + 1)
+    if len(payload) > max_bytes:
+        raise ValueError
+    return payload
+
+
 def require_probe_pass_for_current_source(source_sha: str) -> bool:
     if (
         type(source_sha) is not str
@@ -395,9 +400,13 @@ def require_probe_pass_for_current_source(source_sha: str) -> bool:
     ):
         return False
     try:
-        payload = _PROBE_REPORT_PATH.read_bytes()
-        if len(payload) > _REPORT_MAX_BYTES:
+        lease_payload = _read_bounded_file(_PROBE_LEASE_PATH, max_bytes=1024)
+        if lease_payload != _PROBE_LEASE_TEXT.encode("ascii"):
             return False
+        payload = _read_bounded_file(
+            _PROBE_REPORT_PATH,
+            max_bytes=_REPORT_MAX_BYTES,
+        )
         document = load_strict_json_bytes(payload)
     except (OSError, UnicodeError, TypeError, ValueError):
         return False
@@ -412,29 +421,29 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         readiness_only = _parse_args(argv)
     except Exception:
-        print("DEEPSEEK_A077_PROBE_ARGUMENTS_INVALID", file=sys.stderr)
+        print("DEEPSEEK_A078_PROBE_ARGUMENTS_INVALID", file=sys.stderr)
         return 2
     try:
         _require_probe_absent()
         prepared = _perform_readiness()
     except _RunAlreadyExists:
-        print("DEEPSEEK_A077_PROBE_RUN_ALREADY_RECORDED", file=sys.stderr)
+        print("DEEPSEEK_A078_PROBE_RUN_ALREADY_RECORDED", file=sys.stderr)
         return 2
     except Exception:
-        print("DEEPSEEK_A077_PROBE_READINESS_INVALID", file=sys.stderr)
+        print("DEEPSEEK_A078_PROBE_READINESS_INVALID", file=sys.stderr)
         return 2
     if readiness_only:
-        print("DEEPSEEK_A077_PROBE_READY")
+        print("DEEPSEEK_A078_PROBE_READY")
         return 0
 
     try:
         _revalidate_prepared_run(prepared)
         _acquire_probe_lease()
     except _RunAlreadyExists:
-        print("DEEPSEEK_A077_PROBE_RUN_ALREADY_RECORDED", file=sys.stderr)
+        print("DEEPSEEK_A078_PROBE_RUN_ALREADY_RECORDED", file=sys.stderr)
         return 2
     except Exception:
-        print("DEEPSEEK_A077_PROBE_LEASE_FAILED", file=sys.stderr)
+        print("DEEPSEEK_A078_PROBE_LEASE_FAILED", file=sys.stderr)
         return 2
 
     execution_failed = False
@@ -445,20 +454,30 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             report = _runtime_failure_report(prepared)
         except Exception:
-            print("DEEPSEEK_A077_PROBE_EVIDENCE_WRITE_FAILED", file=sys.stderr)
+            print("DEEPSEEK_A078_PROBE_EVIDENCE_WRITE_FAILED", file=sys.stderr)
             return 3
+    if not execution_failed:
+        try:
+            _revalidate_prepared_run(prepared)
+        except Exception:
+            execution_failed = True
+            report = {
+                **report,
+                "runtime_failure_count": 1,
+                "acceptance": "FAIL",
+            }
     try:
         _write_report_once(report)
     except Exception:
-        print("DEEPSEEK_A077_PROBE_EVIDENCE_WRITE_FAILED", file=sys.stderr)
+        print("DEEPSEEK_A078_PROBE_EVIDENCE_WRITE_FAILED", file=sys.stderr)
         return 3
     if execution_failed:
-        print("DEEPSEEK_A077_PROBE_RUNTIME_FAILED", file=sys.stderr)
+        print("DEEPSEEK_A078_PROBE_RUNTIME_FAILED", file=sys.stderr)
         return 3
     if not _acceptance_passes(report):
-        print("DEEPSEEK_A077_PROBE_ACCEPTANCE_FAILED", file=sys.stderr)
+        print("DEEPSEEK_A078_PROBE_ACCEPTANCE_FAILED", file=sys.stderr)
         return 1
-    print("DEEPSEEK_A077_PROBE_PASS")
+    print("DEEPSEEK_A078_PROBE_PASS")
     return 0
 
 
