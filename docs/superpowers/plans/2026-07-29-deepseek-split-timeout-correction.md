@@ -146,6 +146,8 @@ all predecessor evidence.
 - [x] Observe Windows exact-lease RED and fix writers with binary-open flags.
 - [x] Create disjoint A-079 identities and pass focused runner/wrapper tests.
 - [x] Run related checks and independent scoped review Critical0/Important0/Minor0.
-- [ ] Commit clean A-079 source.
-- [ ] Consume A-079 offline once, readiness, probe once and conditional actual once.
-- [ ] Record aggregate evidence, commit, push and update Draft PR #22 without merging.
+- [x] Commit clean A-079 source `a2d617c...`.
+- [x] Consume A-079 offline/readiness/probe once and conditional actual once.
+- [x] Record probe PASS and actual transport/wire PASS, oracle quality FAIL 6/9.
+- [x] Run final closeout checks/review and prepare the closeout commit; push updates Draft PR
+  #22 without merging.

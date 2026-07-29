@@ -133,3 +133,7 @@ The user explicitly approved one retry. A-079 uses disjoint offline/probe/actual
 `network_retry_actual`, and report names ending in `A079`. It may send exactly one probe call and,
 only after HTTP 2xx, one actual run containing exactly nine provider calls. Every other acceptance,
 privacy, timeout, retry, cost and scope condition in this specification remains unchanged.
+
+A-079 source `a2d617c...` passed offline and the one-call probe. Its exact-one actual received
+HTTP 2xx and accepted strict wire decisions for all nine provider cases, but oracle match was 6/9,
+so overall acceptance is `FAIL` on quality. It is not rerun.

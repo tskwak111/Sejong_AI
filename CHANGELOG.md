@@ -14,7 +14,7 @@
   A-074~A-077 evidence remains immutable and D-128's call/cost authority is unchanged.
 - Product API/DB/data/Web/final-answer provider and dependencies remain unchanged.
 
-### In progress — A-079 DeepSeek network retry
+### Closed — A-079 DeepSeek network retry
 
 - A-078 source `844e53b...` passed offline once, but its exact-one probe closed FAIL with one
   transport-no-response and no HTTP response; the conditional actual did not run.
@@ -22,6 +22,9 @@
   mode. The A-078 evidence stays immutable.
 - The user's explicit retry authorizes a disjoint A-079 probe 1-call and, only after 2xx, one
   nine-provider-call actual run. Public/product/provider boundaries remain unchanged.
+- Source `a2d617c...` passed offline/probe. The actual received and strictly accepted all nine
+  responses, proving transport and wire compatibility, but matched the fixed oracle only 6/9 and
+  therefore closed FAIL without rerun. Retention and runtime failure were 0.
 
 ### Actual FAIL — A-076 DeepSeek network-recovery evidence
 

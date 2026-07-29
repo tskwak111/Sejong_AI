@@ -1,9 +1,9 @@
 # IMP-20260729-010 — A-079 DeepSeek network retry
 
-- Date/Time (KST): 2026-07-29T13:30:02+09:00
+- Date/Time (KST): 2026-07-29T13:55:00+09:00
 - Task ID: A-079-DEEPSEEK-NETWORK-RETRY
 - Type: implementation-provider-actual
-- Status: In Progress — offline/provider evidence pending
+- Status: Done — transport/wire PASS; quality acceptance FAIL 6/9
 - Author/Agent: Codex root agent
 - Branch: codex/a-075-deepseek-corrective-actual
 - Base commit: 844e53b
@@ -112,7 +112,7 @@ Probe가 2xx가 아니면 immutable FAIL로 actual을 차단한다. 실행된 le
 | Mock data | 0.0.0 | 동일 | 데이터 불변 |
 | Prompt set | 0.4.3 | 동일 | prompt 불변 |
 | Test suite | 2.2.7 | 2.2.8 | A-079/exact-byte tests |
-| Docs | 2.31.8 | 2.31.9 pre-execution | D-130/D-131/A-079 |
+| Docs | 2.31.8 | 2.32.0 closeout | D-130~D-132/A-079 |
 
 ## 8. 명령과 테스트 증거
 
@@ -126,18 +126,22 @@ Probe가 2xx가 아니면 immutable FAIL로 actual을 차단한다. 실행된 le
 | Mypy strict | PASS | 6 source files | terminal |
 | Docs/secret/diff | PASS | no secret output | terminal |
 | Final independent scoped review | READY | Critical0 / Important0 / Minor0 | read-only reviewer |
+| A-079 offline | PASS | source `a2d617c...`; invocation/rerun1/0 | ignored immutable evidence |
+| A-079 probe | PASS | outbound/response/2xx/strict1/1/1/1 | tracked probe report |
+| A-079 actual | FAIL | response/2xx/strict/accepted9/9/9/9; oracle6/9 | tracked actual report |
 
 ### 미실행 검증과 이유
 
-A-079 related-area/static/docs/secret review, clean commit, offline/readiness/provider calls은 아직
-실행 전이다.
+Provider actual은 exact-one 소비되어 재실행하지 않는다. 최종 closeout checks와 두 독립 검토는
+통과했으며, 이 노트를 포함한 closeout commit/push만 남았다.
 
 ## 9. 보안·개인정보·접근성·성능 영향
 
 - Privacy: raw/masked question과 provider body/invalid value/secret 보관0.
 - Security: A-078을 보존하고 exact binary lease와 disjoint A-079 identity를 사용한다.
 - Accessibility: UI 변경 없음.
-- Performance/cost: connect3/read+complete10, retry0, probe1+조건부9, cap USD0.20.
+- Performance/cost: connect3/read+complete10, retry0, probe1+actual9의 보수적 합계
+  USD0.003356892로 cap USD0.20 미만.
 
 ## 10. 데이터와 출처 영향
 
@@ -150,6 +154,7 @@ A-079 related-area/static/docs/secret review, clean commit, offline/readiness/pr
 
 - 사용자의 재시도 권한은 A-079 probe 1-call과 조건부 actual run 1회에 한정된다.
 - A-078은 FAIL 그대로이며 A-079 결과로 소급 변경하지 않는다.
+- A-079는 연결·wire9/9는 성공했지만 oracle6/9라 품질 기준은 FAIL이다.
 - 자동 merge/public/remote/free-input은 승인되지 않았다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
@@ -161,26 +166,30 @@ A-079 related-area/static/docs/secret review, clean commit, offline/readiness/pr
 
 ### 재현
 
-Clean source에서 A-079 offline wrapper→actual/probe readiness→probe 1회→2xx일 때 actual 1회.
+A-079 offline/probe/actual은 이미 exact-one 소비됐으므로 재실행하지 않는다. Aggregate report와
+D-132에서 결과를 확인한다.
 
 ### 롤백
 
-외부 실행 전 binary writer/A-079 commit을 revert한다. 실행 후 evidence는 보존하고 provider를
-disabled로 둔다.
+A-079 evidence와 source를 보존하고 runtime rollback은 `CLASSIFIER_PROVIDER=disabled`로 둔다.
+추가 품질 교정은 새 identity와 인간 승인이 필요하다.
 
 ### 다음 개발자 시작점
 
-D-130/D-131, ADR-0028 third amendment와 이 노트의 exact-one 상태를 먼저 확인한다.
+D-130~D-132, ADR-0028 third amendment와 이 노트의 exact-one 상태를 먼저 확인한다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- External latency가 10초를 넘으면 probe는 다시 transport FAIL할 수 있다.
-- A-079 결과와 final independent review가 남았다.
+- Provider transport와 exact wire는 확인됐지만 고정 oracle 3건이 불일치했다.
+- Aggregate-only 정책 때문에 어느 fixture가 틀렸는지는 이번 evidence에서 보관하지 않았다.
+- 품질 원인 진단/추가 actual은 새 인간 결정이 필요하다.
 
 ## 15. 자체 리뷰
 
-- [ ] 요청 충족
-- [ ] 테스트/검증
+- [x] 요청 충족
+- [x] 테스트/검증
 - [x] source-of-truth/계약/버전 동기화
 - [x] 개인정보 원문 노출 없음
 - [x] 구현 노트 INDEX 갱신
+- [x] 최종 독립 코드·증거 리뷰 Critical0 / Important0 / Minor0
+- [x] 최종 독립 문서 정합성 리뷰 Critical0 / Important0 / Minor0

@@ -309,6 +309,11 @@ D-130의 A-078 source `844e53b...`는 offline PASS 1/0 뒤 probe outbound1에서
 않는다. D-131은 사용자의 네트워크 재시도 지시로 별도 A-079 probe 1-call과, 2xx일 때만 actual
 run 1회(9 provider calls)를 승인했다. 나머지 안전·비용·제품 경계는 그대로다.
 
+D-132의 A-079 source `a2d617c...`는 offline/probe를 PASS했고 actual provider9 모두 HTTP
+2xx·strict parse·server accepted까지 성공했다. Oracle match가 6/9라 전체 acceptance는 FAIL이다.
+따라서 DeepSeek 연결과 exact wire는 동작하지만 고정 표본 품질 기준은 아직 미달이다.
+Retry/rerun/runtime failure/retention은 0이고 자동 재실행하지 않는다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는
