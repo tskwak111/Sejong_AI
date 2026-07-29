@@ -166,18 +166,24 @@ review의 post-actual exact-field correction으로 application/prompt/tests/docs
 | `pytest ... test_prompt.py -q` after test-only change | RED: `2 failed, 20 passed` | exact field missing | final review TDD |
 | `pytest ... test_prompt.py -q` after production fix | GREEN: `22 passed` | exact field present | final review TDD |
 | prompt+DeepSeek+Upstage focused suites | PASS: `133 passed` | provider-neutral shared messages | final review TDD |
+| final related-area suite after review fix | PASS: `587 passed`, dependency warning `1` | post-actual code/tests + one-shot controlled wrappers | controller final verification |
+| Ruff format/check | PASS: `123 files` / issues `0` | API src/tests | controller final verification |
+| Mypy | PASS: `123 source files`, issues `0` | API src/tests | controller final verification |
 | `apps/api/.venv/Scripts/python.exe -B scripts/check_repository_docs.py` | PASS | repository docs links/JSON | 이 노트 작성 후 실행 |
 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check_secret_patterns.ps1 -RepositoryRoot .` | PASS | secret pattern scan | 이 노트 작성 후 실행 |
-| `git diff --check -- docs/implementation-notes/IMP-20260729-014-a-080-deepseek-quality-actual.md` | PASS | whitespace error `0` | 이 노트 작성 후 실행 |
+| `git diff --check origin/main...HEAD` | PASS | branch whitespace error `0` | controller final verification |
+| independent final review round 1 | NOT READY: Critical `0`, Important `2`, Minor `0` | lineage + undefined field fixed | two independent reviewers |
+| security re-review after fixes | APPROVED: Critical `0`, Important `0`, Minor `0` | artifact/privacy/lineage clean | independent reviewer |
+| specification re-review after fixes | READY: Critical `0`, Important `0`, Minor `0` | contract/docs/final evidence clean | independent reviewer |
 
 ### 미실행 검증과 이유
 
 - A-080 offline과 actual은 다시 실행하지 않는다. 이미 각각 one-shot evidence를 소진했다.
 - Public/remote/real-citizen, remote DB와 final-answer provider 검증은 승인 범위가 아니므로
   실행하지 않았다.
-- DB/API/Web/data/dependency test는 해당 영역 변화가 없어 이 actual 하위 작업에서 새로 실행하지
-  않았다. 최종 scoped repository verification은 통합 소유자가 final review correction 뒤
-  수행한다.
+- DB/API/Web/data/dependency 전 영역 전체 gate는 해당 영역 변화가 없어 다시 실행하지 않았다.
+  변경된 classifier·provider boundary·one-shot runner의 related-area 587와 Ruff/Mypy123,
+  docs/secret/branch-diff는 final review correction 뒤 PASS했다.
 
 ## 9. 보안·개인정보·접근성·성능 영향
 
