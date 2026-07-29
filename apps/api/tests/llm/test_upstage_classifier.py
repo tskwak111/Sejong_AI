@@ -289,11 +289,19 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
         "last_verified_at",
         "department",
         "caution",
+        "대형폐기물 배출신청 절차",
         "candidate_eligible",
         "FACT-SENTINEL",
+        "PROCEDURE-SENTINEL",
+        "DOCUMENT-SENTINEL",
+        "PROCESSING-SENTINEL",
         "OFFICE-SENTINEL",
         "FEE-SENTINEL",
         "CAUTION-SENTINEL",
+        "SOURCE-SENTINEL",
+        "https://example.invalid/source-sentinel",
+        "2026-07-27",
+        "provider에 보내면 안 되는 세 번째 예시",
     ):
         assert forbidden not in serialized
     response_schema = json.loads(request.content)["response_format"]["json_schema"]["schema"]
