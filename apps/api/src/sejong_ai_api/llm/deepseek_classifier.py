@@ -77,10 +77,10 @@ def create_deepseek_classifier_client(
         raise ValueError("DEEPSEEK_CLASSIFIER_SETTINGS_INVALID")
     timeout = httpx.Timeout(
         settings.timeout_seconds,
-        connect=settings.timeout_seconds,
+        connect=settings.connect_timeout_seconds,
         read=settings.timeout_seconds,
-        write=settings.timeout_seconds,
-        pool=settings.timeout_seconds,
+        write=settings.connect_timeout_seconds,
+        pool=settings.connect_timeout_seconds,
     )
     return httpx.AsyncClient(
         base_url=settings.base_url,

@@ -37,7 +37,8 @@ untrusted.
    `route`, `intent`, `topic_id`, `coverage_id`, `pending_slot`; every value is a JSON string and
    every nullable value is exact uppercase `NONE`.
 7. DeepSeek uses `/chat/completions`, `json_object`, explicit thinking disabled, temperature 0,
-   timeout 3 seconds, retry 0, concurrency 1 and maximum output 128.
+   retry 0, concurrency 1 and maximum output 128. D-128 amends the original all-3-second timeout:
+   connect/write/pool remain 3 seconds while read and the complete exchange are 10 seconds.
 8. The existing server parser is the sole decision trust boundary. It checks exact keys and types,
    closed enums, identifier syntax, route shape and request-local catalog membership.
 9. Deterministic policy/privacy, obvious non-civic and obvious supported-question routing remains
@@ -66,7 +67,8 @@ untrusted.
 - policy/privacy outbound 0;
 - HTTP 2xx, exact parse, server acceptance and expected route/intent/topic match all 9;
 - retained question/body/invalid value/secret counts all 0;
-- timeout 3, retry 0, concurrency 1, output 128, deterministic sampling;
+- connect/write/pool timeout 3, read/complete-exchange timeout 10, retry 0, concurrency 1,
+  output 128, deterministic sampling;
 - conservative cost upper bound at or below USD 0.20.
 
 ## Scope boundary
@@ -115,3 +117,44 @@ reading or printing its value.
 A new human decision and ADR amendment are required before public/remote/free-input use, a final
 answer-provider change, provider fallback cascade, a new production dependency, altered public
 wire, or a changed retention policy.
+
+## 2026-07-29 amendment — D-128 / A-077
+
+A-075 and A-076 each produced nine pre-response failures in approximately nine times the
+three-second complete-exchange budget, while a value-free connectivity probe reached DeepSeek.
+Q-LLM-015=A therefore approves a local/private split-timeout diagnostic: 3-second
+connect/write/pool, 10-second read and complete exchange, retry 0. A separate one-call synthetic
+probe must receive HTTP 2xx before the new A-077 nine-provider-case actual may run. Both runs use
+new permanent evidence identities and keep every A-074/A-075/A-076 artifact immutable.
+
+## 2026-07-29 second amendment — D-129 / A-078
+
+The A-077 offline gate passed once on source `675eef4de38ecead70af6f74c2493c115bcad0c2`,
+but no provider probe or actual was consumed. Independent review found that the conditional actual
+accepted a probe report without proving the exact probe lease and did not repeat the same-source
+probe check after clean-source revalidation immediately before the actual lease.
+
+A-077 evidence therefore remains immutable historical evidence and provider execution moves to a
+disjoint A-078 successor under the unchanged D-128 authority. A-078 validates bounded strict probe
+JSON plus exact lease bytes and repeats that same-source acceptance check after source
+revalidation, performs one final source/input/settings revalidation before consuming the actual
+lease, and revalidates source/evidence after the probe response before publishing probe PASS. This
+correction adds no provider call, retry, cost, public scope, dependency or product behavior.
+
+## 2026-07-29 third amendment — D-130/D-131 / A-079
+
+A-078 source `844e53be97be3f70b398f20737a248d55271d551` passed offline once, but its
+one-call probe received no HTTP response and closed `FAIL`; the conditional actual did not run.
+The Windows probe lease also exposed a separate text-mode CRLF translation defect. It did not
+cause the transport failure, but would have made exact-LF validation fail closed.
+
+The lease/report writers now use binary-open flags. The user's explicit network-retry instruction
+authorizes one disjoint A-079 probe call and, only after HTTP 2xx, one actual run containing exactly
+nine provider calls. A-078 evidence remains immutable. Timeout, retry, cost, retention,
+local/private scope and every product/provider boundary remain unchanged.
+
+Source `a2d617cd10c729e7e415301ad48dcf19ec135ed2` then passed offline and the
+one-call probe received HTTP 2xx with strict parse and accepted usage. The conditional actual
+received nine HTTP 2xx responses and accepted all nine exact wire decisions. Oracle agreement was
+six of nine, so overall acceptance is `FAIL` on classification quality, not transport or contract
+shape. No automatic rerun is allowed; a quality-correction run requires a new human decision.

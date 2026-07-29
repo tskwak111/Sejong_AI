@@ -190,7 +190,7 @@ def _ledger(
 
 
 @pytest.mark.asyncio
-async def test_client_factory_uses_exact_base_authorization_and_three_second_timeout() -> None:
+async def test_client_factory_separates_connect_and_complete_response_budgets() -> None:
     settings = DeepSeekClassifierSettings(api_key=SECRET)
     client = create_deepseek_classifier_client(settings)
 
@@ -199,7 +199,7 @@ async def test_client_factory_uses_exact_base_authorization_and_three_second_tim
         assert client.headers["Authorization"] == f"Bearer {SECRET}"
         assert client.headers["Content-Type"] == "application/json"
         assert client.timeout.connect == 3.0
-        assert client.timeout.read == 3.0
+        assert client.timeout.read == 10.0
         assert client.timeout.write == 3.0
         assert client.timeout.pool == 3.0
     finally:

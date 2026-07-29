@@ -17,3 +17,9 @@
 - [DATA-SEED-001 actual disposable DB — blocked](DATA-SEED-001-LOCAL-VERIFICATION.md) — `.1`
   filesystem release/dispatcher는 verified, actual PostgreSQL은 seed write 전 grantor-option union 대
   immutable single-row guard 충돌로 Blocked; DATA-SEED-002의 불변 predecessor로 보존
+- [DeepSeek A-078 1-call probe — transport FAIL](CHAT-HYBRID-RAG-001-DEEPSEEK-A078-PROBE.md)
+  — offline PASS 뒤 response/2xx0·transport-no-response1, retry/rerun/retention0, actual 미실행
+- [DeepSeek A-079 retry probe — PASS](CHAT-HYBRID-RAG-001-DEEPSEEK-A079-PROBE.md) /
+  [actual — quality FAIL](CHAT-HYBRID-RAG-001-DEEPSEEK-A079-ACTUAL.md) — provider
+  response/2xx/strict/accepted9/9/9/9로 transport·wire는 확인했으나 oracle match6/9,
+  retry/rerun/retention0

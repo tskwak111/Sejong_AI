@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Closed — A-077/A-078 DeepSeek split-timeout correction
+
+- Approved and implemented a local/private timeout split: connect/write/pool remain 3 seconds,
+  while response read and the complete exchange use 10 seconds. Retry remains 0.
+- Source `675eef4...` consumed A-077 offline PASS 1/0, but no provider probe/actual. Independent
+  review found Critical 0 / Important 3 / Minor 2 and blocked provider execution.
+- Added disjoint A-078 exact probe-lease/report/source binding and an identity-owned same-source
+  check after clean-source revalidation, a final source/input/settings revalidation immediately
+  before the actual lease, and post-probe source/evidence revalidation before PASS publication.
+  A-074~A-077 evidence remains immutable and D-128's call/cost authority is unchanged.
+- Product API/DB/data/Web/final-answer provider and dependencies remain unchanged.
+
+### Closed — A-079 DeepSeek network retry
+
+- A-078 source `844e53b...` passed offline once, but its exact-one probe closed FAIL with one
+  transport-no-response and no HTTP response; the conditional actual did not run.
+- Fixed Windows text-mode CRLF translation in exclusive evidence writers by opening them in binary
+  mode. The A-078 evidence stays immutable.
+- The user's explicit retry authorizes a disjoint A-079 probe 1-call and, only after 2xx, one
+  nine-provider-call actual run. Public/product/provider boundaries remain unchanged.
+- Source `a2d617c...` passed offline/probe. The actual received and strictly accepted all nine
+  responses, proving transport and wire compatibility, but matched the fixed oracle only 6/9 and
+  therefore closed FAIL without rerun. Retention and runtime failure were 0.
+
 ### Actual FAIL — A-076 DeepSeek network-recovery evidence
 
 - Confirmed value-free DNS, TCP443 and TLS/HTTP connectivity, then created an A-076 identity that

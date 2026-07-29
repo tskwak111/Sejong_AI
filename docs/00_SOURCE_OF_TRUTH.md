@@ -289,6 +289,31 @@ TCP443·TLS/HTTP probe는 PASS했고 actual 28.6초가 9×3초 전체 timeout bu
 invalid value·secret retention과 retry/rerun은 0이고 report/lease를 보존한다. Timeout 정책
 변경과 추가 actual은 새 인간 결정 전 금지한다.
 
+2026-07-29 Q-LLM-015=A/D-128은 위 가설만 검증하는 A-077 local/private 교정을 승인했다.
+DeepSeek connect/write/pool timeout은 3초로 유지하고 read와 complete exchange는 10초로
+분리한다. Retry0·concurrency1·output128·USD0.20·무보관·exact five-string parser는 유지한다.
+새 clean source의 A-077 offline/readiness 뒤 합성 1-call aggregate probe가 HTTP 2xx를 받은
+경우에만 별도 9-call actual을 실행한다. A-074~076 증거, API/DB/data/Web/final-answer provider,
+public/remote/free-input과 dependency는 변경하지 않는다.
+
+D-129는 source `675eef4de38ecead70af6f74c2493c115bcad0c2`의 A-077 offline PASS
+1/0을 불변 보존한다. Provider probe/actual은 0회였고, independent review에서 probe exact lease
+미결합과 clean-source revalidation 이후 actual lease 직전 same-source 재검사 누락을 발견했다.
+따라서 D-128의 호출·비용 권한을 늘리지 않은 별도 A-078 successor가 bounded report+exact
+lease, callback 뒤 final source/input revalidation, probe 응답 뒤 revalidation을 모두 통과할
+때만 probe 1-call→조건부 actual run 1회(정확히 9 provider calls)를 실행한다.
+
+D-130의 A-078 source `844e53b...`는 offline PASS 1/0 뒤 probe outbound1에서 HTTP 응답 없이
+`transport_no_response=1`로 FAIL했다. Retry/rerun/retention은 0이고 actual은 실행하지 않았다.
+별도로 발견된 Windows CRLF lease writer는 binary-open으로 교정하지만 A-078을 수정·재실행하지
+않는다. D-131은 사용자의 네트워크 재시도 지시로 별도 A-079 probe 1-call과, 2xx일 때만 actual
+run 1회(9 provider calls)를 승인했다. 나머지 안전·비용·제품 경계는 그대로다.
+
+D-132의 A-079 source `a2d617c...`는 offline/probe를 PASS했고 actual provider9 모두 HTTP
+2xx·strict parse·server accepted까지 성공했다. Oracle match가 6/9라 전체 acceptance는 FAIL이다.
+따라서 DeepSeek 연결과 exact wire는 동작하지만 고정 표본 품질 기준은 아직 미달이다.
+Retry/rerun/runtime failure/retention은 0이고 자동 재실행하지 않는다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

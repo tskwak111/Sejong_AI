@@ -246,6 +246,23 @@
   일치하므로 3초 timeout 만료가 가장 강한 가설이지만 exception detail 비보관 정책상 확정하지
   않는다. Provider response/2xx/parse/accepted/match/token0, retention/retry/rerun0이며 A-074/
   A-075/A-076 report와 lease를 보존한다. Timeout 변경과 추가 actual은 새 인간 결정이 필요하다.
+- D-128/Q-LLM-015=A: DeepSeek classifier의 connect/write/pool은 3초, read와 complete
+  exchange는 10초로 분리한다. 새 A-077 offline/readiness 뒤 aggregate-only 합성 1-call이
+  HTTP 2xx일 때만 고정 9-call actual을 실행한다. Retry0·무보관·USD0.20와 A-074~076 불변,
+  public/remote/free-input·final-answer provider·dependency 불변을 유지한다.
+- D-129: A-077 source `675eef4...` offline PASS 1/0은 보존하지만 provider 호출은 0회다.
+  Independent review의 exact probe-lease 결합과 actual pre-lease same-source 재검사 누락을
+  교정한 별도 A-078 identity만 실행 후보로 사용한다. Callback 뒤 final source/input 재검증과
+  probe 응답 뒤 재검증도 PASS 전 강제한다. D-128의 probe 1-call·조건부 actual run 1회
+  (정확히 9 provider calls)·비용·local/private 범위는 늘리지 않고 A-074~077을 재실행하지 않는다.
+- D-130/D-131: A-078 source `844e53b...` offline은 PASS 1/0이지만 exact-one probe는
+  response/2xx0·transport-no-response1로 FAIL했고 actual은 0회다. Windows CRLF lease writer를
+  binary-open으로 교정한 별도 A-079에서 사용자가 승인한 probe 1-call을 다시 실행하고, 2xx일
+  때만 9 provider-call actual run 1회를 실행한다. A-078은 불변 보존한다.
+- D-132: A-079 probe는 HTTP2xx·strict parse PASS했고 actual도 provider9 전부
+  response/2xx/strict/server accepted를 통과했다. Oracle match6/9로 overall FAIL이며
+  transport·wire 문제가 아닌 분류 품질 차이다. Retry/rerun/retention0이고 추가 actual은
+  새 인간 결정 전 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
