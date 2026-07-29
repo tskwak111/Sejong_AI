@@ -15,6 +15,14 @@
   default, A-080 is not rerun, and API/DB/data/Web/dependency/public/remote boundaries are unchanged.
 - Advanced documentation only to `2.32.4-a080-quality-actual-fail`; application, prompt, tests and
   every public/runtime contract version remain unchanged.
+- Final review found two Important closeout defects. The publication branch now preserves executed
+  source `f2c3aec...` in its ancestry (its rebased checkpoint had identical tree
+  `9ad169344c8b115d5d943c6118af213683fdd940`) and replaces undefined prompt shorthand
+  `I=supported` with approved exact `intent=supported` under TDD. Because the prompt fix is
+  post-actual, no live quality improvement is claimed and the immutable `8/9 FAIL` remains.
+- Advanced application/prompt/tests/docs to `0.13.4-classifier-route-shape-fix`,
+  `0.4.5-explicit-intent-route-shape`, `2.2.10-a080-final-review-fix` and
+  `2.32.5-a080-final-review-fix`; API/DB/data/Web/dependency/default/public/remote remain unchanged.
 
 ### Implemented offline — A-080 classifier semantic route rubric
 

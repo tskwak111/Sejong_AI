@@ -327,6 +327,10 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   질문·provider body·invalid value·secret retention은 0이고 비용은 USD0.002961266<0.20이다.
   시민 runtime은 기존 deterministic fallback을 유지하며 A-080 재실행·default 승격·public/
   remote/free-input 확대는 하지 않는다.
+- D-137 final review는 actual source lineage와 `NO_TOPIC_MATCH` route-shape 축약을 교정한다.
+  원 실행 source `f2c3aec...`는 final branch ancestry에 보존하고, rebase checkpoint
+  `6a44201...`과의 identical tree를 기록한다. Prompt는 exact `intent=supported`로 바꿨지만
+  actual 이후 offline 교정이므로 live quality는 미검증이며 D-136의 `8/9 FAIL`을 변경하지 않는다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.

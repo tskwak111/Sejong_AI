@@ -213,3 +213,17 @@ provider is not promoted to the citizen runtime default. Deterministic fallback,
 ACTIVE/OFFICIAL grounding, local/private scope and every API/DB/data/Web/dependency/public boundary
 remain unchanged. A-080 is immutable and must not be rerun; any successor requires a new decision
 and evidence identity.
+
+## 2026-07-29 eighth amendment — D-137 / A-080 final review correction
+
+The immutable actual remains bound to original source `f2c3aec50c6b615cbbaf989a9d7bf5760d1436c4`.
+Before any post-actual source edit, rebased checkpoint `6a44201` had the identical Git tree
+`9ad169344c8b115d5d943c6118af213683fdd940`; the final publication branch preserves the original
+executed commit in its ancestry.
+
+Final review then found that the approved exact route shape named `intent=supported`, while runtime
+and tests used the undefined abbreviation `I=supported`. TDD changes this to the exact field name.
+This correction happened after the one-shot actual and therefore has no live quality claim. The
+A-080 report, lease and `8/9 FAIL` remain immutable and the provider is not rerun or promoted.
+Only application, prompt, tests and documentation versions advance; API, contracts, Web, DB,
+official/mock data, dependencies, server-owned grounding and local/private boundaries do not.

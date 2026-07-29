@@ -3,11 +3,11 @@
 - Date/Time (KST): 2026-07-29T16:50:39+09:00
 - Task ID: A-080-DEEPSEEK-CLASSIFIER-QUALITY
 - Type: implementation-provider-actual
-- Status: Done — Actual FAIL / fail-closed
+- Status: Done — Actual FAIL / fail-closed; post-actual exact-field correction offline
 - Author/Agent: Codex
 - Branch: `codex/a-080-deepseek-classifier-quality`
 - Source/Base commit: `f2c3aec50c6b615cbbaf989a9d7bf5760d1436c4`
-- Related plan/ADR/RFP: [A-080 specification](../superpowers/specs/2026-07-29-deepseek-classifier-semantic-route-rubric-design.md), [A-080 plan](../superpowers/plans/2026-07-29-deepseek-classifier-semantic-route-rubric.md), [ADR-0028](../adr/0028-selectable-deepseek-classifier-provider.md), SFR-002, D-133~D-136.
+- Related plan/ADR/RFP: [A-080 specification](../superpowers/specs/2026-07-29-deepseek-classifier-semantic-route-rubric-design.md), [A-080 plan](../superpowers/plans/2026-07-29-deepseek-classifier-semantic-route-rubric.md), [ADR-0028](../adr/0028-selectable-deepseek-classifier-provider.md), SFR-002, D-133~D-137.
 - Aggregate evidence: [A-080 actual report](../test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A080-ACTUAL.md)
 
 ## 1. 사용자 요청과 완료 기준
@@ -43,6 +43,12 @@ immutable A-080 offline evidence에 묶인 고정 20문항 local/private DeepSee
 | How — 어떻게 | one-shot offline gate → readiness-only → exact-one actual 순서로 실행하고, 기존 strict parser·catalog·server oracle이 provider 결과를 다시 검증했다. |
 | How much — 어느 정도 | selected `20`, skip `0`, provider-free/provider `11/9`, outbound/response/2xx/strict/accepted/oracle `9/9/9/9/9/8`, 비용 USD `0.002961266`, provider retry/rerun `0/0`이다. |
 
+Final review에서는 actual을 재실행하지 않고 source 계보와 prompt exact field만 provider-free로
+교정했다. Rebase 전 실행 commit `f2c3aec...`와 rebased checkpoint `6a44201...`의 tree는
+`9ad169344c8b115d5d943c6118af213683fdd940`로 동일했고, 게시 branch ancestry에 원 실행 commit을
+보존한다. 이후 undefined `I=supported`를 approved `intent=supported`로 TDD 교정했으므로 이
+post-actual source의 live 품질은 미검증이다.
+
 ## 3. 시작 전 상태
 
 - 관련 파일: A-080 specification/plan, ADR-0028, IMP-013, A-080 offline evidence와 actual runner.
@@ -61,6 +67,8 @@ immutable A-080 offline evidence에 묶인 고정 20문항 local/private DeepSee
 | A-080-ACTUAL | human authority | live provider 호출은 provider-free plan 승인에 포함되지 않았다. | 사용자의 exact 문구를 받은 뒤에만 1회 실행했다. | provider 호출·비용 |
 | A-080-QUALITY | evidence | Aggregate-only 정책으로 어느 개별 fixture가 oracle과 달랐는지는 보관하지 않는다. | `8/9`만 기록하고 개별 실패를 추론하거나 노출하지 않는다. | 진단 해상도 제한 |
 | A-080-PROMOTION | product boundary | transport·strict parse·server acceptance 성공만으로 quality 또는 public 준비를 선언할 수 없다. | oracle `9/9` 미달이므로 overall FAIL과 deterministic fallback을 유지한다. | 제품 기본 경로 |
+| A-080-LINEAGE | evidence reproducibility | rebase 뒤 원 실행 SHA가 branch ancestry에서 사라질 수 있었다. | 동일-tree checkpoint를 확인하고 원 실행 commit을 final branch merge ancestry에 보존한다. | 제3자 fetch/checkout |
+| A-080-ROUTE-SHAPE | final review | Approved plan은 exact `intent`지만 runtime/test가 undefined `I`를 사용했다. | post-actual TDD로 exact field를 교정하되 live quality PASS를 주장하지 않는다. | prompt clarity·version |
 
 ## 5. 설계 결정과 대안
 
@@ -84,6 +92,8 @@ acceptance를 충족하지 못한다.
 - 즉시 corrective rerun: actual은 PASS/FAIL과 무관하게 1회로 소진되므로 수행하지 않았다.
 - DeepSeek를 public/default classifier로 승격: local/private synthetic evidence 범위를 넘으므로
   수행하지 않았다.
+- Review 결함을 무시하거나 actual을 재실행: 전자는 approved exact contract를 위반하고 후자는
+  immutable one-shot 경계를 위반하므로 선택하지 않았다.
 
 ## 6. 구현·실행 상세
 
@@ -93,6 +103,9 @@ acceptance를 충족하지 못한다.
 | A-080 readiness-only | actual lease를 소비하기 전 `PASS`를 확인했다. | source·input·settings·evidence precondition 확인 |
 | A-080 actual runner | invocation `1`, retry `0`, rerun `0`, provider outbound `9`로 실행했다. | exact human approval 범위 준수 |
 | A-080 aggregate report | 허용된 count·usage·cost·retention 필드만 생성했다. | 재현성과 개인정보·비밀 비보관 동시 충족 |
+| `classifier_prompt.py` | `NO_TOPIC_MATCH:I=supported`를 exact `intent=supported`로 교정했다. | approved plan·wire field 이름 정합 |
+| prompt/provider tests | undefined abbreviation을 금지하고 exact field를 고정했다. | 회귀 방지 |
+| Git publication lineage | 원 실행 commit을 final branch의 merge parent로 보존한다. | immutable report source 재현 |
 | API/DB/Web/data/dependency | 변경 없음 | provider quality evidence가 공개 계약이나 제품 범위를 암묵적으로 바꾸지 않도록 보존 |
 
 ### 데이터 흐름·상태 변화
@@ -103,6 +116,8 @@ acceptance를 충족하지 못한다.
 - provider outbound/response/HTTP 2xx/strict parse/server decision accepted는 각각 `9`였다.
 - fixed oracle match는 `8`이므로 overall acceptance는 `FAIL`이다.
 - 질문·마스킹 질문·request/response body·invalid value·secret은 모두 보관 `0`이다.
+- Actual 뒤 prompt exact-field 교정은 provider 호출 없이 수행됐으며 A-080 report·lease·집계값을
+  바꾸지 않는다.
 - DB row, API contract, Web behavior, official/mock data, migration과 production dependency 변화는
   모두 `0`이다.
 
@@ -115,24 +130,24 @@ transport나 wire가 아니라 aggregate oracle mismatch `1`이지만, 비보관
 
 ## 7. 버전 전후
 
-이 하위 문서 작업자는 shared version manifest를 수정하지 않았다. 통합 소유자가 actual
-authority synchronization과 함께 documentation 축만
-`2.32.3-a080-quality-offline`에서 `2.32.4-a080-quality-actual-fail`로 전진시켰고, 다른 축은
-actual 실행 source와 동일하게 유지했다.
+Actual evidence 동기화 시 documentation 축을 먼저
+`2.32.3-a080-quality-offline`에서 `2.32.4-a080-quality-actual-fail`로 전진했다. 이후 final
+review의 post-actual exact-field correction으로 application/prompt/tests/docs를 아래 최종값으로
+전진했다. API/contracts/Web/DB/data/dependency 축은 그대로다.
 
 | 축 | Before | After | 변경 이유 |
 |---|---|---|---|
 | Product spec | `2.6.0` | unchanged | 제품 범위 변화 없음 |
-| Application | `0.13.3-classifier-semantic-rubric` | unchanged | actual evidence만 생성 |
+| Application | `0.13.3-classifier-semantic-rubric` | `0.13.4-classifier-route-shape-fix` | post-actual exact-field correction |
 | Web | `0.8.0-guided-chat` | unchanged | UI 변화 없음 |
 | API | `4.0.0-draft` | unchanged | 공개 계약 변화 없음 |
 | Shared contracts | `1.0.0` | unchanged | wire/parser 변화 없음 |
 | DB schema | `0.5.0-local` | unchanged | migration 없음 |
 | Official data | `0.1.0-initial.2` | unchanged | seed/data 변화 없음 |
 | Mock data | `0.0.0-not-populated` | unchanged | mock 생성 없음 |
-| Prompt set | `0.4.4-semantic-route-rubric` | unchanged | 실행은 approved prompt 그대로 사용 |
-| Test suite | `2.2.9-a080-quality` | unchanged | 하위 문서 작업은 manifest 비소유 |
-| Docs | `2.32.3-a080-quality-offline` | `2.32.4-a080-quality-actual-fail` | 통합 소유자의 actual FAIL authority synchronization |
+| Prompt set | `0.4.4-semantic-route-rubric` | `0.4.5-explicit-intent-route-shape` | undefined `I`를 exact `intent`로 교정 |
+| Test suite | `2.2.9-a080-quality` | `2.2.10-a080-final-review-fix` | RED/GREEN route-shape regression |
+| Docs | `2.32.3-a080-quality-offline` | `2.32.5-a080-final-review-fix` | actual FAIL + final review authority synchronization |
 
 ## 8. 명령과 테스트 증거
 
@@ -148,6 +163,9 @@ actual 실행 source와 동일하게 유지했다.
 | provider boundary | outbound/response/2xx/strict/accepted/oracle `9/9/9/9/9/8` | rejected/transport failure `0/0` | A-080 aggregate actual report |
 | privacy retention | question/masked question/request body/response body/invalid value/secret 모두 `0` | six counters | A-080 aggregate actual report |
 | cost check | USD `0.002961266 <= 0.20` including VAT | cap PASS | A-080 aggregate actual report |
+| `pytest ... test_prompt.py -q` after test-only change | RED: `2 failed, 20 passed` | exact field missing | final review TDD |
+| `pytest ... test_prompt.py -q` after production fix | GREEN: `22 passed` | exact field present | final review TDD |
+| prompt+DeepSeek+Upstage focused suites | PASS: `133 passed` | provider-neutral shared messages | final review TDD |
 | `apps/api/.venv/Scripts/python.exe -B scripts/check_repository_docs.py` | PASS | repository docs links/JSON | 이 노트 작성 후 실행 |
 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check_secret_patterns.ps1 -RepositoryRoot .` | PASS | secret pattern scan | 이 노트 작성 후 실행 |
 | `git diff --check -- docs/implementation-notes/IMP-20260729-014-a-080-deepseek-quality-actual.md` | PASS | whitespace error `0` | 이 노트 작성 후 실행 |
@@ -158,7 +176,8 @@ actual 실행 source와 동일하게 유지했다.
 - Public/remote/real-citizen, remote DB와 final-answer provider 검증은 승인 범위가 아니므로
   실행하지 않았다.
 - DB/API/Web/data/dependency test는 해당 영역 변화가 없어 이 actual 하위 작업에서 새로 실행하지
-  않았다. 최종 scoped repository verification은 통합 소유자가 shared 문서 동기화 뒤 수행한다.
+  않았다. 최종 scoped repository verification은 통합 소유자가 final review correction 뒤
+  수행한다.
 
 ## 9. 보안·개인정보·접근성·성능 영향
 
@@ -185,6 +204,8 @@ actual 실행 source와 동일하게 유지했다.
   fixed oracle가 `8/9`라 exact acceptance `9/9`를 충족하지 못했다.
 - 이 actual은 1회로 소진됐고 자동 재실행하지 않았다. 추가 corrective provider call에는 새 인간
   결정과 별도 exact 승인이 필요하다.
+- Final review의 exact `intent` correction은 actual 뒤 provider-free로 이뤄졌다. 따라서 현재
+  source가 `8/9`보다 좋아졌다고 주장할 근거는 없고, immutable actual FAIL은 그대로다.
 - DeepSeek는 local/private synthetic classifier evidence 범위만 유지한다. Public/remote,
   real-citizen free-input, default promotion, final citizen-answer provider 변경은 승인되지 않았다.
 - DB/API/Web/official data/dependency는 바뀌지 않았다. 제품 runtime은 결정론적 fail-closed
@@ -204,6 +225,9 @@ actual 실행 source와 동일하게 유지했다.
 
 1. ADR-0028의 A-080 amendments, approved specification/plan과 IMP-013을 읽는다.
 2. Source SHA가 `f2c3aec50c6b615cbbaf989a9d7bf5760d1436c4`인지 확인한다.
+   Final publication branch가 이 commit을 ancestor로 포함하는지도 확인한다. Rebase 직후
+   equivalent checkpoint `6a44201`은 동일 tree
+   `9ad169344c8b115d5d943c6118af213683fdd940`였지만 post-actual exact-field correction은 별도다.
 3. A-080 aggregate actual report에서 selected/skip `20/0`, provider-free/provider `11/9`,
    outbound/response/2xx/strict/accepted/oracle `9/9/9/9/9/8`, retention six counters `0`,
    invocation/retry/rerun `1/0/0`, cost USD `0.002961266`을 확인한다.
@@ -229,6 +253,7 @@ fixture 실패나 provider 응답을 추정해서는 안 된다.
 - 한 건의 oracle mismatch가 남아 있지만 aggregate-only 정책상 어느 질문·route/topic인지 알 수
   없다. 관찰성을 높이려면 raw content 없이 fixed value-free mismatch category 같은 별도 설계와
   인간 승인이 필요하다.
+- Post-actual `intent` correction은 offline tests만 통과했으며 live DeepSeek 품질은 미검증이다.
 - Offline semantic rubric 성공은 live model 품질 `9/9`을 보장하지 않았으며, 현재 증거는 fixed
   synthetic 20문항과 local/private 환경에만 한정된다.
 - 통합 소유자는 IMP-014 INDEX row, version/decision/ADR/RFP/task/changelog 정합성, final scoped

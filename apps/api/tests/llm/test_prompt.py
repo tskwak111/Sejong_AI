@@ -294,7 +294,7 @@ def test_classifier_prompt_encodes_every_complete_route_matrix_row() -> None:
     assert "keys=route,intent,topic_id,coverage_id,pending_slot" in system
     for route_shape in (
         "SUPPORTED:intent/topic_id/coverage_id=same row,pending_slot=NONE",
-        "NO_TOPIC_MATCH:I=supported,other3=NONE",
+        "NO_TOPIC_MATCH:intent=supported,other3=NONE",
         "CIVIC_SCOPE_GAP/NON_CIVIC:other4=NONE",
         "NEEDS_FOLLOWUP:topic_id/coverage_id=NONE",
         "pairs=NONE:DOMAIN|supported:TOPIC_CHOICE/REGION|"
@@ -355,6 +355,8 @@ def test_classifier_prompt_forbids_none_translations_null_and_explanatory_output
     assert "translation/null/empty forbidden" in system
     assert "cat[intent]=[topic_id,coverage_id,coverage_label,approved_examples]" in system
     assert "SUPPORTED:intent/topic_id/coverage_id=same row,pending_slot=NONE" in system
+    assert "NO_TOPIC_MATCH:intent=supported,other3=NONE" in system
+    assert "NO_TOPIC_MATCH:I=supported" not in system
     assert "NONE=없음" not in system
 
 

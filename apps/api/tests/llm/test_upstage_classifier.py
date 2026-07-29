@@ -184,7 +184,7 @@ def test_prompt_defines_all_closed_pending_slots_and_route_shapes() -> None:
 
     for row in (
         "SUPPORTED:intent/topic_id/coverage_id=same row,pending_slot=NONE",
-        "NO_TOPIC_MATCH:I=supported,other3=NONE",
+        "NO_TOPIC_MATCH:intent=supported,other3=NONE",
         "CIVIC_SCOPE_GAP/NON_CIVIC:other4=NONE",
         "NEEDS_FOLLOWUP:topic_id/coverage_id=NONE",
         "pairs=NONE:DOMAIN|supported:TOPIC_CHOICE/REGION|",

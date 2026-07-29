@@ -291,6 +291,14 @@
   DeepSeek를 시민 runtime 기본값으로 승격하지 않고 기존 결정론적 fallback과 local/private
   경계를 유지한다. A-080은 재실행하지 않으며 후속 품질 실험은 새 결정·새 evidence identity가
   필요하다.
+- D-137: A-080 final review Important 2건을 offline으로 교정한다. Rebase 전 actual source
+  `f2c3aec...`와 rebased checkpoint `6a44201...`은 동일 tree
+  `9ad169344c8b115d5d943c6118af213683fdd940`였고 final branch ancestry에 원 실행 commit을
+  merge parent로 보존한다. 또한 미정의 축약 `I=supported`를 approved exact field
+  `intent=supported`로 TDD 교정한다. 이 post-actual prompt는 provider로 재검증하지 않았으므로
+  A-080 actual `8/9 FAIL`을 그대로 보존하고 품질 개선을 주장하지 않는다. Application/prompt/
+  tests/docs만 `0.13.4/0.4.5/2.2.10/2.32.5`로 전진하며 API/shared contracts/Web/DB/data/
+  dependency/default/public/remote 경계는 불변이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
