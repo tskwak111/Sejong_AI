@@ -7,6 +7,7 @@ type CivicScopeGapReviewResponse = components["schemas"]["CivicScopeGapReviewRes
 type CivicScopeGapStatus = components["schemas"]["CivicScopeGapStatus"];
 type FailedQuestionDetailResponse = components["schemas"]["FailedQuestionDetailResponse"];
 type FailedQuestionListResponse = components["schemas"]["FailedQuestionListResponse"];
+type FeedbackSummaryResponse = components["schemas"]["FeedbackSummaryResponse"];
 type KBCandidateCreate = components["schemas"]["KBCandidateCreate"];
 type KBCandidateCreateResponse = components["schemas"]["KBCandidateCreateResponse"];
 type KBCandidateListResponse = components["schemas"]["KBCandidateListResponse"];
@@ -16,6 +17,20 @@ type ReasonConfirmationRequest = components["schemas"]["ReasonConfirmationReques
 type ReasonConfirmationResponse = components["schemas"]["ReasonConfirmationResponse"];
 
 type Fetcher = typeof fetch;
+export type AdminErrorCode =
+  | "ADMIN_ROUTE_DISABLED"
+  | "ADMIN_FORBIDDEN"
+  | "ADMIN_NOT_FOUND"
+  | "ADMIN_INVALID_STATE"
+  | "ADMIN_VALIDATION_FAILED";
+
+const ADMIN_ERROR_CODES = new Set<AdminErrorCode>([
+  "ADMIN_ROUTE_DISABLED",
+  "ADMIN_FORBIDDEN",
+  "ADMIN_NOT_FOUND",
+  "ADMIN_INVALID_STATE",
+  "ADMIN_VALIDATION_FAILED",
+]);
 
 export type AdminActor = Readonly<{
   role: "OPERATOR" | "APPROVER";
@@ -40,6 +55,7 @@ export interface AdminTransport {
     request: CivicScopeGapReviewRequest,
   ): Promise<CivicScopeGapReviewResponse>;
   listCandidates(actor: AdminActor): Promise<KBCandidateListResponse>;
+  getFeedbackSummary(actor: AdminActor): Promise<FeedbackSummaryResponse>;
   createCandidate(actor: AdminActor, request: KBCandidateCreate): Promise<KBCandidateCreateResponse>;
   submitCandidate(actor: AdminActor, id: string): Promise<KBCandidateSubmitResponse>;
   reviewCandidate(
@@ -52,12 +68,18 @@ export interface AdminTransport {
 export class AdminTransportError extends Error {
   readonly retryable: boolean;
   readonly status: number | null;
+  readonly code: AdminErrorCode | null;
 
-  constructor(status: number | null, retryable = true) {
+  constructor(
+    status: number | null,
+    retryable = true,
+    code: AdminErrorCode | null = null,
+  ) {
     super("운영 데이터를 불러오지 못했어요.");
     this.name = "AdminTransportError";
     this.retryable = retryable;
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -80,7 +102,29 @@ async function fetchJson<T>(fetcher: Fetcher, path: string, init: RequestInit): 
     throw new AdminTransportError(null);
   }
   if (!response.ok) {
-    throw new AdminTransportError(response.status, response.status >= 500);
+    let code: AdminErrorCode | null = null;
+    try {
+      const body: unknown = await response.json();
+      if (typeof body === "object" && body !== null) {
+        const error = (body as Record<string, unknown>).error;
+        if (typeof error === "object" && error !== null) {
+          const value = (error as Record<string, unknown>).code;
+          if (
+            typeof value === "string" &&
+            ADMIN_ERROR_CODES.has(value as AdminErrorCode)
+          ) {
+            code = value as AdminErrorCode;
+          }
+        }
+      }
+    } catch {
+      code = null;
+    }
+    throw new AdminTransportError(
+      response.status,
+      response.status >= 500,
+      code,
+    );
   }
   try {
     return (await response.json()) as T;
@@ -139,6 +183,13 @@ export function createAdminTransport(fetcher: Fetcher = fetch): AdminTransport {
       return fetchJson<KBCandidateListResponse>(
         fetcher,
         "/api/v1/admin/kb-candidates",
+        { method: "GET", headers: headersFor(actor) },
+      );
+    },
+    getFeedbackSummary(actor) {
+      return fetchJson<FeedbackSummaryResponse>(
+        fetcher,
+        "/api/v1/admin/feedback-summary",
         { method: "GET", headers: headersFor(actor) },
       );
     },

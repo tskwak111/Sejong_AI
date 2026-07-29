@@ -19,6 +19,9 @@
 11. 마스킹 성공은 저장 또는 provider 호출의 필요조건일 뿐 충분조건이 아니다. local/private에서는 지원 intent·ACTIVE/OFFICIAL·근거 gate까지 통과한 요청만 Upstage로 전송할 수 있고, public/remote/실제 기관 운영은 별도 승인 전 전송하지 않는다.
 12. 시민 입력의 “공식 대표번호” 표시는 신뢰 근거가 아니다. 입력 안의 모든 phone-shaped value를 마스킹하고, 공식 기관 연락처는 승인된 KB·기관 메타데이터를 서버가 결합한 카드에서만 제공한다.
 13. 안전한 마스킹 문자열을 만들 수 없는 요청은 `PRIVACY_UNRESOLVED`로 분리해 HTTP 200 안전 재질문을 제공한다. 이 outcome에는 질문 text, source/context/office, provider 호출, 실패 질문 row와 후보를 만들지 않고 질문 없는 interaction metadata만 허용한다.
+14. 시민 만족도는 답변 `request_id`, 만족/불만족, 선택형 분야·사유만 저장한다. `기타` 상세는
+    최대 300자로 받고 서버 마스킹을 통과한 문자열만 정확히 30일 보관한다. raw 상세, 질문·답변,
+    provider body는 피드백 테이블·로그·감사 이력에 저장하지 않는다.
 
 위 `PRIVACY_UNRESOLVED` 동작은 D-045와 Q-MVP-001 consumer 구현으로 local/private 활성 계약·route에
 적용됐다. 질문 text·source/context/office·provider·failed-question row·candidate·DB event는 모두 0이며,
@@ -173,6 +176,7 @@ Console/Studio API logging이 별도 동의에서
 | 마스킹 실패 질문 텍스트 | `masked_question`만 생성 후 30일; 만료 시 NULL 파기 |
 | 실패 질문 비텍스트 메타데이터·후보 연결 | 텍스트 파기 후에도 프로젝트 산출물 범위에서 유지 |
 | 지원 범위 밖 질문 텍스트 | 저장하지 않음 |
+| 시민 피드백 | 평점·선택형 코드는 프로젝트 산출물 범위에서 유지; `masked_detail`만 생성 후 정확히 30일, 만료 시 NULL 파기 |
 | 대화 transcript·context token | 서버에 저장하지 않음; 현재 탭 메모리에서만 15분 이내 사용 |
 | local chat idempotency | UUID key, HMAC request digest, correlation과 분리된 임시 claim token·5분 lease, 엄격한 서버 검증을 통과한 최종 안전 응답과 상태만 논리 TTL 24시간. `GENERATED` summary도 이 제한된 중복 방지 응답에는 포함될 수 있으나 원문·마스킹 질문·prompt·provider body·context token·correlation ID는 저장하지 않고 startup+60초 주기로 만료 행 purge |
 | KB 후보·승인 이력 | 프로젝트 산출물 범위에서 유지 |
@@ -180,6 +184,11 @@ Console/Studio API logging이 별도 동의에서
 | 감사 이력 | 질문·답변 전문 없이 상태 변경 정보만 유지 |
 
 만료 작업은 실패 행 DELETE가 아니라 `masked_question = NULL`, `text_purged_at = 처리 시각`으로 바꾸는 멱등 UPDATE다. 로그에는 대상 ID와 처리 건수만 남기고 텍스트를 남기지 않는다. KB 후보의 `representative_question`은 실패 질문 텍스트를 장기 보관하기 위한 복사본이 아니며, 운영자가 일반화해 작성하고 저장 전 PII 재검사를 통과해야 한다.
+
+피드백 만료 작업도 행 DELETE가 아니라 `masked_detail = NULL`, `detail_purged_at = 처리 시각`으로
+바꾸는 멱등 UPDATE다. 만족 의견에는 분야·사유·상세를 받지 않으며, 불만족 `OTHER` 사유에만
+상세가 필수다. 같은 `request_id`와 같은 payload 재전송은 멱등 처리하고 다른 payload는 충돌로
+거부한다.
 
 백업에서 복구한 경우 외부 요청을 받기 전에 만료된 텍스트 파기 작업을 다시 실행한다. 실제 기관 운영 전에는 백업 보관기간과 삭제 전파 기준을 법무·기록물 정책에 맞게 다시 승인한다.
 
@@ -198,3 +207,4 @@ Console/Studio API logging이 별도 동의에서
 - `masked_text=None` consumer가 HTTP 200 `PRIVACY_UNRESOLVED`와 안전 재질문을 반환하고 source/context/office/provider/failed-question text·row가 모두 0인지 확인
 - 텍스트 NULL 파기 job의 경계시각·멱등성·후보 FK 보존 테스트
 - 복구 후 서비스 개방 전 만료 텍스트 재파기 테스트
+- 피드백 raw 상세·질문·답변 컬럼 0, 마스킹 상세 30일 파기, 만족/불만족 shape와 멱등 충돌 테스트

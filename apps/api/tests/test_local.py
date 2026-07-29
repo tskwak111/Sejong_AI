@@ -22,9 +22,12 @@ from sejong_ai_api.contracts.admin import (
     FailedQuestion,
     KBCandidateSummary,
 )
+from sejong_ai_api.contracts.feedback import CitizenFeedbackSummaryItem
 from sejong_ai_api.db.models import (
     Actor,
     CandidateDraft,
+    CitizenFeedbackAggregate,
+    CitizenFeedbackWrite,
     FallbackReason,
     Intent,
     InteractionWrite,
@@ -170,6 +173,8 @@ class FakeRepository:
         self.failed_text_purge_count = 0
         self.idempotency_purge_count = 0
         self.scope_gap_purge_count = 0
+        self.feedback_purge_count = 0
+        self.feedback_writes: list[CitizenFeedbackWrite] = []
         self.office_read_count = 0
 
     async def list_active_kb(self, intent: Intent) -> Sequence[KnowledgeRecord]:
@@ -262,6 +267,28 @@ class FakeRepository:
 
     async def purge_expired_civic_scope_gap_text(self) -> PurgeResult:
         self.scope_gap_purge_count += 1
+        return PurgeResult(purged_count=0, purged_ids=())
+
+    async def record_citizen_feedback(self, write: CitizenFeedbackWrite) -> None:
+        self.feedback_writes.append(write)
+
+    async def list_citizen_feedback(self, *, limit: int) -> tuple[CitizenFeedbackSummaryItem, ...]:
+        del limit
+        return ()
+
+    async def summarize_citizen_feedback(self) -> CitizenFeedbackAggregate:
+        satisfied = sum(write.rating == "SATISFIED" for write in self.feedback_writes)
+        dissatisfied = len(self.feedback_writes) - satisfied
+        return CitizenFeedbackAggregate(
+            total=len(self.feedback_writes),
+            satisfied=satisfied,
+            dissatisfied=dissatisfied,
+            category_counts=(),
+            reason_counts=(),
+        )
+
+    async def purge_expired_citizen_feedback_detail(self) -> PurgeResult:
+        self.feedback_purge_count += 1
         return PurgeResult(purged_count=0, purged_ids=())
 
     async def claim_chat_idempotency(
@@ -782,6 +809,41 @@ def test_valid_configuration_creates_one_lazy_pool_and_opens_and_closes_it_once(
     assert len(repositories[0].events) == 1
     assert repositories[0].failed_text_purge_count == 2
     assert repositories[0].idempotency_purge_count == 1
+
+
+def test_valid_local_app_injects_feedback_and_runs_private_detail_purge(
+    tmp_path: Path,
+) -> None:
+    pool = FakePool()
+    repositories: list[FakeRepository] = []
+
+    def repository_factory(value: object) -> FakeRepository:
+        repository = FakeRepository(value)
+        repositories.append(repository)
+        return repository
+
+    app = create_local_app(
+        environ=_config(),
+        env_path=tmp_path / "missing",
+        pool_factory=lambda _value: pool,
+        repository_factory=repository_factory,
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/feedback",
+            json={
+                "request_id": "81000000-0000-4000-8000-000000000001",
+                "rating": "SATISFIED",
+                "category": None,
+                "reason_code": None,
+                "detail": None,
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "RECORDED"
+    assert len(repositories[0].feedback_writes) == 1
+    assert repositories[0].feedback_purge_count == 1
 
 
 def test_exact_grounded_profile_injects_generator_without_startup_or_probe_calls(

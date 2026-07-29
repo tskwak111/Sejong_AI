@@ -25,6 +25,7 @@ from sejong_ai_api.contracts.admin import (
     ReasonConfirmationRequest,
     ReasonConfirmationResponse,
 )
+from sejong_ai_api.contracts.feedback import FeedbackSummaryResponse
 from sejong_ai_api.db.models import Actor, AdminRole
 
 _ERROR_STATUS = {
@@ -290,6 +291,31 @@ async def list_kb_candidates(
     resolved_service, actor = context
     try:
         return await resolved_service.list_candidates(actor)
+    except AdminServiceError as error:
+        return _service_error(request, error)
+
+
+@router.get(
+    "/feedback-summary",
+    response_model=FeedbackSummaryResponse,
+    operation_id="getCitizenFeedbackSummary",
+    responses={403: {"model": AdminErrorEnvelope}},
+)
+async def get_citizen_feedback_summary(
+    request: Request,
+    enabled: AdminEnabled,
+    service: AdminServiceDependency,
+    actor_id: ActorIdHeader,
+    role: RoleHeader,
+) -> FeedbackSummaryResponse | JSONResponse:
+    context = _resolve_context(
+        request, enabled=enabled, service=service, actor_id=actor_id, role=role
+    )
+    if isinstance(context, JSONResponse):
+        return context
+    resolved_service, actor = context
+    try:
+        return await resolved_service.get_feedback_summary(actor)
     except AdminServiceError as error:
         return _service_error(request, error)
 

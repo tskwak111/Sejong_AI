@@ -101,6 +101,15 @@ PRIVILEGED_SEARCH_PATH_TEST_PATH = (
     / "database"
     / "011_privileged_function_search_path_test.sql"
 )
+CITIZEN_FEEDBACK_MIGRATION_PATH = (
+    ROOT / "supabase" / "migrations" / "20260729000710_citizen_feedback.sql"
+)
+CITIZEN_FEEDBACK_ROLLBACK_PATH = (
+    ROOT / "database" / "rollbacks" / "20260729000710_citizen_feedback.rollback.sql"
+)
+CITIZEN_FEEDBACK_TEST_PATH = (
+    ROOT / "supabase" / "tests" / "database" / "012_citizen_feedback_test.sql"
+)
 EXPECTED_PIN = {
     "version": "2.109.1",
     "release": "v2.109.1",
@@ -164,6 +173,9 @@ class MvpDatabaseAdditionStructureTests(unittest.TestCase):
             PRIVILEGED_SEARCH_PATH_MIGRATION_PATH,
             PRIVILEGED_SEARCH_PATH_ROLLBACK_PATH,
             PRIVILEGED_SEARCH_PATH_TEST_PATH,
+            CITIZEN_FEEDBACK_MIGRATION_PATH,
+            CITIZEN_FEEDBACK_ROLLBACK_PATH,
+            CITIZEN_FEEDBACK_TEST_PATH,
         ):
             source = path.read_text(encoding="utf-8")
             self.assertTrue(source.startswith("BEGIN;\n"), path.name)
@@ -297,6 +309,41 @@ class MvpDatabaseAdditionStructureTests(unittest.TestCase):
         self.assertIn("SELECT plan(22);", pgtap)
         self.assertIn("terminal scope-gap rows cannot be reviewed twice", pgtap)
         self.assertIn("purge nulls only expired masked text", pgtap)
+
+    def test_citizen_feedback_is_masked_bounded_and_backend_capability_only(self) -> None:
+        migration = CITIZEN_FEEDBACK_MIGRATION_PATH.read_text(encoding="utf-8")
+        rollback = CITIZEN_FEEDBACK_ROLLBACK_PATH.read_text(encoding="utf-8")
+        pgtap = CITIZEN_FEEDBACK_TEST_PATH.read_text(encoding="utf-8")
+        names = (
+            "record_citizen_feedback",
+            "list_citizen_feedback",
+            "summarize_citizen_feedback",
+            "purge_expired_citizen_feedback_detail",
+        )
+
+        self.assertIn("CREATE TABLE app_private.citizen_feedback", migration)
+        self.assertIn("interval '30 days'", migration)
+        self.assertIn("UNIQUE (response_request_id)", migration)
+        for forbidden in (
+            "raw_detail",
+            "raw_question",
+            "answer_snapshot",
+            "provider_body",
+            "context_token",
+        ):
+            self.assertNotIn(forbidden, migration)
+        for name in names:
+            self.assertIn(f"CREATE FUNCTION app_api.{name}", migration)
+            self.assertIn(f"DROP FUNCTION app_api.{name}", rollback)
+            self.assertIn(name, pgtap)
+        self.assertEqual(migration.count("CREATE FUNCTION app_api."), 4)
+        self.assertIn("SET search_path = pg_catalog, pg_temp", migration)
+        self.assertIn("FROM PUBLIC, anon, authenticated, sejong_backend", migration)
+        self.assertIn("TO sejong_backend", migration)
+        self.assertIn("DROP TABLE app_private.citizen_feedback", rollback)
+        self.assertIn("same request and payload is idempotent", pgtap)
+        self.assertIn("different payload for one request is rejected", pgtap)
+        self.assertIn("purge preserves closed metadata", pgtap)
 
 
 def powershell_executable() -> str:
@@ -2412,6 +2459,7 @@ class LocalDatabaseToolingContractTests(unittest.TestCase):
         self.assertEqual(
             rollback_paths,
             [
+                "20260729000710_citizen_feedback.rollback.sql",
                 "20260727000700_privileged_function_search_path.rollback.sql",
                 "20260727000680_civic_scope_gap_queue.rollback.sql",
                 "20260722000670_candidate_public_id_binding.rollback.sql",
@@ -2447,6 +2495,7 @@ class LocalDatabaseToolingContractTests(unittest.TestCase):
                 ["test", "db"],
                 [
                     "sql",
+                    "20260729000710_citizen_feedback.rollback.sql",
                     "20260727000700_privileged_function_search_path.rollback.sql",
                     "20260727000680_civic_scope_gap_queue.rollback.sql",
                     "20260722000670_candidate_public_id_binding.rollback.sql",

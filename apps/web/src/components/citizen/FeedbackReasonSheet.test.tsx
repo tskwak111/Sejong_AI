@@ -24,6 +24,30 @@ function SheetHarness({ onSubmit = vi.fn() }: { onSubmit?: () => void }) {
 }
 
 describe("FeedbackReasonSheet keyboard accessibility", () => {
+  it("offers 기타 and requires a short detail only for 기타 사유", () => {
+    const onSubmit = vi.fn();
+    render(<SheetHarness onSubmit={onSubmit} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "불만족 사유 열기" }));
+    fireEvent.click(screen.getByRole("radio", { name: "기타 민원" }));
+    fireEvent.click(screen.getByRole("radio", { name: "기타 사유" }));
+
+    const detail = screen.getByRole("textbox", { name: "불만족 상세 내용" });
+    expect(detail).toHaveAttribute("maxLength", "300");
+    expect(screen.getByRole("button", { name: "보내기" })).toBeDisabled();
+
+    fireEvent.change(detail, {
+      target: { value: "원하는 내용을 직접 입력하고 싶어요." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      "OTHER",
+      "OTHER",
+      "원하는 내용을 직접 입력하고 싶어요.",
+    );
+  });
+
   it("moves focus into the dialog when it opens", async () => {
     render(<SheetHarness />);
 

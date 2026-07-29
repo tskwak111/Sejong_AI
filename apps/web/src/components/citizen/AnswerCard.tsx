@@ -26,6 +26,7 @@ import SourceBadge from "@/components/citizen/SourceBadge";
 import FeedbackButtons from "@/components/citizen/FeedbackButtons";
 import RegionSelect from "@/components/citizen/RegionSelect";
 import type { ChatResponse } from "@/lib/chat-api";
+import type { FeedbackTransport } from "@/lib/feedback-api";
 
 type SuccessResponse = components["schemas"]["SuccessResponse"];
 type Office = components["schemas"]["Office"];
@@ -182,6 +183,7 @@ export default function AnswerCard({
   onRegionChange,
   onRelatedQuestion,
   relatedQuestionsDisabled = false,
+  feedbackTransport,
 }: {
   response: SuccessResponse;
   /** 이 답변을 만든 요청의 selected_region - 있으면 "동 변경" 인라인 노출 (SFR-004) */
@@ -190,6 +192,7 @@ export default function AnswerCard({
   /** KB-CERT-01에만 붙는 다음 탐색 질문 - 답변 사실이 아니다. */
   onRelatedQuestion?: (question: string) => void;
   relatedQuestionsDisabled?: boolean;
+  feedbackTransport?: FeedbackTransport;
 }) {
   const [showRegionSelect, setShowRegionSelect] = useState(false);
 
@@ -399,7 +402,11 @@ export default function AnswerCard({
           </a>
 
           {/* 6. 만족/불만족 - 엄지 아이콘 outline, 한 줄 우측 정렬 (개정 4) */}
-          <FeedbackButtons variant="inline" />
+          <FeedbackButtons
+            requestId={response.request_id}
+            transport={feedbackTransport}
+            variant="inline"
+          />
         </div>
       </div>
 

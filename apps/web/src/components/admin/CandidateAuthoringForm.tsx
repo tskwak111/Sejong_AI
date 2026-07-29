@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type InvalidEvent } from "react";
 import type { components } from "../../../../../packages/shared-contracts/src/generated/api";
 
 type FailedQuestion = components["schemas"]["FailedQuestion"];
@@ -22,6 +22,33 @@ function lines(value: string): string[] {
 
 const inputClass =
   "min-h-11 w-full rounded-btn-s border border-border bg-white px-3 text-admin-body text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+
+const APPROVED_SOURCE_HOSTS = [
+  "www.sejong.go.kr",
+  "plus.gov.kr",
+  "www.gov.kr",
+  "www.law.go.kr",
+  "www.wetax.go.kr",
+  "www.sjwaste.kr",
+] as const;
+
+function isApprovedSourceUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      APPROVED_SOURCE_HOSTS.includes(
+        url.hostname.toLowerCase() as (typeof APPROVED_SOURCE_HOSTS)[number],
+      ) &&
+      (url.port === "" || url.port === "443") &&
+      url.username === "" &&
+      url.password === "" &&
+      url.hash === ""
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default function CandidateAuthoringForm({
   failure,
@@ -47,8 +74,8 @@ export default function CandidateAuthoringForm({
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!sourceUrl.startsWith("https://")) {
-      setError("공식 출처 URL은 https://로 시작해야 합니다.");
+    if (!isApprovedSourceUrl(sourceUrl)) {
+      setError("허용된 공식 출처 주소를 사용해 주세요.");
       return;
     }
     setError(null);
@@ -83,7 +110,15 @@ export default function CandidateAuthoringForm({
           운영자가 공식 출처를 확인해 직접 작성합니다. 저장 후 별도 승인자가 검수합니다.
         </p>
       </div>
-      <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
+      <form
+        onSubmit={submit}
+        onInvalid={(event: InvalidEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          setError("필수 입력 항목을 모두 작성해 주세요.");
+          if (event.target instanceof HTMLElement) event.target.focus();
+        }}
+        className="grid gap-4 md:grid-cols-2"
+      >
         <label className="grid gap-1.5 text-note font-bold text-text">
           제목
           <input required maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
@@ -126,7 +161,10 @@ export default function CandidateAuthoringForm({
         </label>
         <label className="grid gap-1.5 text-note font-bold text-text md:col-span-2">
           공식 출처 URL
-          <input required type="url" placeholder="https://www.sejong.go.kr/…" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} className={inputClass} />
+          <input required aria-label="공식 출처 URL" type="url" placeholder="https://www.sejong.go.kr/…" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} className={inputClass} />
+          <span className="text-caption font-normal leading-5 text-text-sub">
+            허용 출처: {APPROVED_SOURCE_HOSTS.join(", ")}
+          </span>
         </label>
         <label className="grid gap-1.5 text-note font-bold text-text">
           출처 확인일

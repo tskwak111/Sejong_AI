@@ -144,8 +144,8 @@ SELECT is(
       AND relations.relkind = 'r'
       AND owners.rolname = 'sejong_schema_owner'
   ),
-  10,
-  'schema owner owns all ten approved local/private base tables'
+  11,
+  'schema owner owns all eleven approved local/private base tables'
 );
 
 SELECT is(
@@ -170,8 +170,8 @@ SELECT is(
       AND relations.relkind = 'r'
       AND relations.relrowsecurity
   ),
-  10,
-  'all ten approved local/private base tables have RLS enabled'
+  11,
+  'all eleven approved local/private base tables have RLS enabled'
 );
 
 SELECT is(
@@ -183,8 +183,8 @@ SELECT is(
       AND relations.relkind = 'r'
       AND relations.relforcerowsecurity
   ),
-  10,
-  'all ten approved local/private base tables force RLS'
+  11,
+  'all eleven approved local/private base tables force RLS'
 );
 
 SELECT is(
@@ -195,8 +195,8 @@ SELECT is(
     JOIN pg_catalog.pg_namespace AS namespaces ON namespaces.oid = relations.relnamespace
     WHERE namespaces.nspname = 'app_private'
   ),
-  10,
-  'app_private has exactly ten owner-only policies total'
+  11,
+  'app_private has exactly eleven owner-only policies total'
 );
 
 SELECT results_eq(
@@ -235,6 +235,8 @@ SELECT results_eq(
         ('audit_logs'::text, 'audit_logs_owner_all'::text,
          '*'::text, true, true, 'true'::text, 'true'::text),
         ('chat_idempotency'::text, 'chat_idempotency_owner_all'::text,
+         '*'::text, true, true, 'true'::text, 'true'::text),
+        ('citizen_feedback'::text, 'citizen_feedback_owner_all'::text,
          '*'::text, true, true, 'true'::text, 'true'::text),
         ('civic_scope_gaps'::text, 'civic_scope_gaps_owner_all'::text,
          '*'::text, true, true, 'true'::text, 'true'::text),
@@ -424,6 +426,18 @@ SELECT results_eq(
           )::oid,
           pg_catalog.to_regprocedure(
             'app_api.purge_expired_civic_scope_gap_text()'
+          )::oid,
+          pg_catalog.to_regprocedure(
+            'app_api.record_citizen_feedback(uuid,text,text,text,text,boolean)'
+          )::oid,
+          pg_catalog.to_regprocedure(
+            'app_api.list_citizen_feedback(integer)'
+          )::oid,
+          pg_catalog.to_regprocedure(
+            'app_api.summarize_citizen_feedback()'
+          )::oid,
+          pg_catalog.to_regprocedure(
+            'app_api.purge_expired_citizen_feedback_detail()'
           )::oid
         ]::oid[],
         NULL::oid
@@ -508,6 +522,18 @@ SELECT is(
             )::oid,
             pg_catalog.to_regprocedure(
               'app_api.purge_expired_civic_scope_gap_text()'
+            )::oid,
+            pg_catalog.to_regprocedure(
+              'app_api.record_citizen_feedback(uuid,text,text,text,text,boolean)'
+            )::oid,
+            pg_catalog.to_regprocedure(
+              'app_api.list_citizen_feedback(integer)'
+            )::oid,
+            pg_catalog.to_regprocedure(
+              'app_api.summarize_citizen_feedback()'
+            )::oid,
+            pg_catalog.to_regprocedure(
+              'app_api.purge_expired_citizen_feedback_detail()'
             )::oid
           ]::oid[],
           NULL::oid

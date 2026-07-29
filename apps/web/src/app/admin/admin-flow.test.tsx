@@ -154,9 +154,9 @@ describe("failures screen (fixture)", () => {
       screen.getByRole("link", { name: "KB 후보 승인으로 이동" }),
     ).toHaveAttribute("href", "/admin/kb-candidates");
     // 중복 생성 방지
-    expect(
-      screen.getAllByRole("button", { name: "초안 생성됨" }).length,
-    ).toBeGreaterThan(0);
+    await waitFor(() =>
+      expect(screen.getAllByText("승인 요청됨").length).toBeGreaterThan(0),
+    );
   });
 });
 

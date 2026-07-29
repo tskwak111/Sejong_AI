@@ -79,6 +79,7 @@ describe("contract fixture rendering", () => {
   it("renders valid-followup.json options as selectable chips", () => {
     render(
       <FollowupCard
+        requestId="11111111-1111-4111-8111-111111111111"
         intent="UNKNOWN"
         options={(validFollowup as { followup_options: string[] }).followup_options}
         onSelect={() => {}}
@@ -97,7 +98,12 @@ describe("contract fixture rendering", () => {
   it("renders valid-fallback-office.json with the office contact block", () => {
     const fallback = (validFallbackOffice as { fallback: unknown })
       .fallback as Fallback;
-    render(<FallbackCard fallback={fallback} />);
+    render(
+      <FallbackCard
+        fallback={fallback}
+        requestId="11111111-1111-4111-8111-111111111111"
+      />,
+    );
 
     expect(screen.getByText("시연용 샘플 기관 안내")).toBeInTheDocument();
     expect(
@@ -112,7 +118,12 @@ describe("contract fixture rendering", () => {
   it("renders valid-fallback-no-office.json with the default call-center contact", () => {
     const fallback = (validFallbackNoOffice as { fallback: unknown })
       .fallback as Fallback;
-    render(<FallbackCard fallback={fallback} />);
+    render(
+      <FallbackCard
+        fallback={fallback}
+        requestId="11111111-1111-4111-8111-111111111111"
+      />,
+    );
 
     expect(screen.getByText("시연용 샘플 폴백")).toBeInTheDocument();
     // OUT_OF_SCOPE - 지원 4개 분야 재안내 + 기본 민원콜센터 연결
@@ -123,7 +134,12 @@ describe("contract fixture rendering", () => {
   it("renders valid-privacy-unresolved.json with the fixed contract copy only", () => {
     const fallback = (validPrivacyUnresolved as { fallback: unknown })
       .fallback as Fallback;
-    render(<FallbackCard fallback={fallback} />);
+    render(
+      <FallbackCard
+        fallback={fallback}
+        requestId="11111111-1111-4111-8111-111111111111"
+      />,
+    );
 
     expect(
       screen.getByText("개인정보를 안전하게 처리하지 못했어요"),

@@ -31,6 +31,7 @@ from sejong_ai_api.contracts.admin import (
     ReasonConfirmationRequest,
     ReasonConfirmationResponse,
 )
+from sejong_ai_api.contracts.feedback import FeedbackSummaryResponse
 from sejong_ai_api.db.models import Actor, AdminRole
 
 REQUEST_ID = UUID("11111111-1111-4111-8111-111111111111")
@@ -147,6 +148,18 @@ class RouteService:
         del candidate_id
         self._record("review_candidate", actor)
         return KBCandidateReviewResponse(id=CANDIDATE_ID, status=payload.decision)
+
+    async def get_feedback_summary(self, actor: Actor) -> FeedbackSummaryResponse:
+        self._record("get_feedback_summary", actor)
+        return FeedbackSummaryResponse(
+            total=4,
+            satisfied=3,
+            dissatisfied=1,
+            satisfaction_rate=0.75,
+            category_counts=[{"code": "OTHER", "count": 1}],
+            reason_counts=[{"code": "OTHER", "count": 1}],
+            recent=[],
+        )
 
 
 def application(*, enabled: bool, service: RouteService | None = None) -> FastAPI:
@@ -363,3 +376,17 @@ def test_service_errors_map_to_exact_admin_envelopes_without_exception_text() ->
         "retryable": False,
     }
     assert "ADMIN_INVALID_STATE" not in response.text.replace('"code":"ADMIN_INVALID_STATE"', "")
+
+
+def test_feedback_summary_is_local_admin_gated_and_wired() -> None:
+    service = RouteService()
+
+    with TestClient(application(enabled=True, service=service)) as client:
+        response = client.get(
+            "/api/v1/admin/feedback-summary",
+            headers=headers(actor_id="PM-LOCAL-001", role="APPROVER"),
+        )
+
+    assert response.status_code == 200
+    assert response.json()["satisfaction_rate"] == 0.75
+    assert service.calls == [("get_feedback_summary", Actor("PM-LOCAL-001", AdminRole.APPROVER))]

@@ -50,6 +50,27 @@ class DataOrigin(str, Enum):  # noqa: UP042 - approved str/Enum contract
     MOCK = "MOCK"
 
 
+_FEEDBACK_RATINGS = frozenset({"SATISFIED", "DISSATISFIED"})
+_FEEDBACK_CATEGORIES = frozenset(
+    {
+        "MOVE_IN_RESIDENT_REGISTRATION",
+        "CERTIFICATE_ISSUANCE",
+        "BULKY_WASTE",
+        "LOCAL_TAX_GENERAL",
+        "OTHER",
+    }
+)
+_FEEDBACK_REASONS = frozenset(
+    {
+        "INACCURATE",
+        "NOT_RELEVANT",
+        "HARD_TO_UNDERSTAND",
+        "WRONG_CONTACT",
+        "OTHER",
+    }
+)
+
+
 _SUPPORTED_INTENTS = frozenset(
     {
         Intent.MOVE_IN_RESIDENT_REGISTRATION,
@@ -124,6 +145,76 @@ class Actor:
     def __post_init__(self) -> None:
         _require_text(self.actor_id, "ACTOR_ID_INVALID")
         _require_enum(self.role, AdminRole, "ACTOR_ROLE_INVALID")
+
+
+@dataclass(frozen=True, slots=True)
+class CitizenFeedbackWrite:
+    response_request_id: UUID
+    rating: str
+    category: str | None
+    reason_code: str | None
+    masked_detail: str | None
+    detail_was_masked: bool
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.response_request_id, "FEEDBACK_REQUEST_ID_INVALID")
+        if type(self.rating) is not str or self.rating not in _FEEDBACK_RATINGS:
+            raise ValueError("FEEDBACK_RATING_INVALID")
+        if self.rating == "SATISFIED":
+            dissatisfaction_values = (
+                self.category,
+                self.reason_code,
+                self.masked_detail,
+            )
+            if any(value is not None for value in dissatisfaction_values):
+                raise ValueError("FEEDBACK_SHAPE_INVALID")
+            if self.detail_was_masked is not False:
+                raise ValueError("FEEDBACK_SHAPE_INVALID")
+            return
+        if (
+            type(self.category) is not str
+            or self.category not in _FEEDBACK_CATEGORIES
+            or type(self.reason_code) is not str
+            or self.reason_code not in _FEEDBACK_REASONS
+        ):
+            raise ValueError("FEEDBACK_SHAPE_INVALID")
+        _require_optional_text(self.masked_detail, "FEEDBACK_DETAIL_INVALID")
+        if self.masked_detail is not None and len(self.masked_detail) > 300:
+            raise ValueError("FEEDBACK_DETAIL_INVALID")
+        if type(self.detail_was_masked) is not bool:
+            raise ValueError("FEEDBACK_SHAPE_INVALID")
+        if self.reason_code == "OTHER" and self.masked_detail is None:
+            raise ValueError("FEEDBACK_SHAPE_INVALID")
+
+
+@dataclass(frozen=True, slots=True)
+class CitizenFeedbackAggregate:
+    total: int
+    satisfied: int
+    dissatisfied: int
+    category_counts: tuple[tuple[str, int], ...]
+    reason_counts: tuple[tuple[str, int], ...]
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.total) is not int
+            or type(self.satisfied) is not int
+            or type(self.dissatisfied) is not int
+            or min(self.total, self.satisfied, self.dissatisfied) < 0
+            or self.satisfied + self.dissatisfied != self.total
+        ):
+            raise ValueError("FEEDBACK_AGGREGATE_INVALID")
+        for counts in (self.category_counts, self.reason_counts):
+            if type(counts) is not tuple or any(
+                type(item) is not tuple
+                or len(item) != 2
+                or type(item[0]) is not str
+                or not item[0]
+                or type(item[1]) is not int
+                or item[1] < 0
+                for item in counts
+            ):
+                raise ValueError("FEEDBACK_AGGREGATE_INVALID")
 
 
 @dataclass(frozen=True, slots=True)

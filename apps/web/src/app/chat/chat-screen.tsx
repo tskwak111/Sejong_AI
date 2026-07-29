@@ -28,6 +28,11 @@ import {
   createChatTransport,
 } from "@/lib/chat-api";
 import { createFixtureChatTransport } from "@/lib/demo-fixtures";
+import {
+  createFeedbackTransport,
+  createFixtureFeedbackTransport,
+  type FeedbackTransport,
+} from "@/lib/feedback-api";
 import { consumePendingQuestion } from "@/lib/pending-question";
 import { isRegion, type Region } from "@/lib/labels";
 import { ChatHeader, NoticeBanner } from "@/components/citizen/PageChrome";
@@ -70,10 +75,12 @@ export type ChatTransportMode = "fixture" | "actual";
 export default function ChatScreen({
   transportMode = "actual",
   transport: providedTransport,
+  feedbackTransport: providedFeedbackTransport,
   createIdempotencyKey = () => crypto.randomUUID(),
 }: {
   transportMode?: ChatTransportMode;
   transport?: ChatTransport;
+  feedbackTransport?: FeedbackTransport;
   createIdempotencyKey?: () => string;
 }) {
   const [transport] = useState<ChatTransport>(
@@ -82,6 +89,13 @@ export default function ChatScreen({
       (transportMode === "actual"
         ? createChatTransport()
         : createFixtureChatTransport()),
+  );
+  const [feedbackTransport] = useState<FeedbackTransport>(
+    () =>
+      providedFeedbackTransport ??
+      (transportMode === "actual"
+        ? createFeedbackTransport()
+        : createFixtureFeedbackTransport()),
   );
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -286,6 +300,7 @@ export default function ChatScreen({
             <BotResponse
               key={msg.id}
               message={msg}
+              feedbackTransport={feedbackTransport}
               disabled={loading || index !== messages.length - 1}
               onSelectFollowup={selectFollowup}
               onRegionChange={(message, dong) =>
@@ -408,12 +423,14 @@ function BotResponse({
   onSelectFollowup,
   onRegionChange,
   onRelatedQuestion,
+  feedbackTransport,
 }: {
   message: BotMessage;
   disabled: boolean;
   onSelectFollowup: (message: BotMessage, option: string) => void;
   onRegionChange: (message: BotMessage, dong: Region) => void;
   onRelatedQuestion: (message: BotMessage, question: string) => void;
+  feedbackTransport: FeedbackTransport;
 }) {
   const { response } = message;
 
@@ -428,6 +445,7 @@ function BotResponse({
           }
           onRelatedQuestion={(question) => onRelatedQuestion(message, question)}
           relatedQuestionsDisabled={disabled}
+          feedbackTransport={feedbackTransport}
         />
       );
     case "FOLLOWUP":
@@ -436,10 +454,18 @@ function BotResponse({
           intent={response.intent}
           options={response.followup_options}
           disabled={disabled}
+          requestId={response.request_id}
+          feedbackTransport={feedbackTransport}
           onSelect={(option) => onSelectFollowup(message, option)}
         />
       );
     case "FALLBACK":
-      return <FallbackCard fallback={response.fallback} />;
+      return (
+        <FallbackCard
+          fallback={response.fallback}
+          requestId={response.request_id}
+          feedbackTransport={feedbackTransport}
+        />
+      );
   }
 }

@@ -21,6 +21,7 @@ import {
   type FallbackReason,
 } from "@/lib/labels";
 import FeedbackButtons from "@/components/citizen/FeedbackButtons";
+import type { FeedbackTransport } from "@/lib/feedback-api";
 
 type Fallback = components["schemas"]["Fallback"];
 
@@ -39,7 +40,15 @@ const ctaFill =
 const ctaOutline =
   "flex min-h-14 w-full items-center justify-center rounded-btn border border-primary bg-white px-4 text-[18px] font-bold text-primary hover:bg-hover-tint active:bg-hover-tint";
 
-export default function FallbackCard({ fallback }: { fallback: Fallback }) {
+export default function FallbackCard({
+  fallback,
+  requestId,
+  feedbackTransport,
+}: {
+  fallback: Fallback;
+  requestId: string;
+  feedbackTransport?: FeedbackTransport;
+}) {
   const code = fallback.reason;
   const office = fallback.office ?? null;
   const contactName = office?.office_name ?? CALL_CENTER.name;
@@ -205,7 +214,7 @@ export default function FallbackCard({ fallback }: { fallback: Fallback }) {
       </div>
 
       {/* 만족/불만족 - 폴백 불만족은 "과잉 폴백" 판정 데이터 (§6-5) */}
-      <FeedbackButtons />
+      <FeedbackButtons requestId={requestId} transport={feedbackTransport} />
     </article>
   );
 }

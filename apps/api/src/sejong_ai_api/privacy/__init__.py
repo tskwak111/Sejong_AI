@@ -5,6 +5,7 @@ from sejong_ai_api.privacy.redaction import (
     RedactionFinding,
     RedactionResult,
     UnresolvedReason,
+    redact_feedback_detail,
     redact_question,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "RedactionFinding",
     "RedactionResult",
     "UnresolvedReason",
+    "redact_feedback_detail",
     "redact_question",
 ]

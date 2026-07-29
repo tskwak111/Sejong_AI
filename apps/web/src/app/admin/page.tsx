@@ -21,6 +21,7 @@ import KpiCard, { type KpiJudgement } from "@/components/admin/KpiCard";
 import PageHeader from "@/components/admin/PageHeader";
 
 type FailedQuestion = components["schemas"]["FailedQuestion"];
+type FeedbackSummaryResponse = components["schemas"]["FeedbackSummaryResponse"];
 
 const percent = (v: number) => `${Math.round(v * 100)}`;
 
@@ -93,6 +94,7 @@ function formatDateTime(iso: string): string {
 export default function AdminOverviewPage() {
   const { transport, actor, mode } = useAdmin();
   const [recent, setRecent] = useState<FailedQuestion[] | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackSummaryResponse | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   /** 지표 안내 앵커 이동 시 1회 하이라이트 대상 - n은 재탭 시 애니메이션 재시작용 */
@@ -115,19 +117,23 @@ export default function AdminOverviewPage() {
   // setState는 조회 완료 콜백에서만 - 이펙트 본문 동기 setState 금지 규칙 준수
   const fetchData = useCallback(
     () =>
-      transport
-        .listFailedQuestions(actor)
-        .then((failures) => {
+      Promise.all([
+        transport.listFailedQuestions(actor),
+        transport.getFeedbackSummary(actor),
+      ])
+        .then(([failures, feedbackSummary]) => {
           // 최신 5건 (실패 질문 화면과 동일 데이터 재사용)
           setRecent(
             [...failures.items]
               .sort((a, b) => b.created_at.localeCompare(a.created_at))
               .slice(0, 5),
           );
+          setFeedback(feedbackSummary);
           setLastUpdated(new Date());
         })
         .catch(() => {
           setRecent([]);
+          setFeedback(null);
         }),
     [actor, transport],
   );
@@ -153,7 +159,7 @@ export default function AdminOverviewPage() {
         subtitle={
           <>
             <span>모든 지표는 비식별 로그 기준</span>
-            <span>{mode === "fixture" ? "시연 데이터" : "실측 연동 준비 중"}</span>
+            <span>{mode === "fixture" ? "시연 데이터" : "실제 local DB"}</span>
           </>
         }
         meta={
@@ -231,6 +237,58 @@ export default function AdminOverviewPage() {
               />
             </div>
           )}
+
+          <section
+            aria-label="시민 의견 요약"
+            className="rounded-panel border border-border bg-white p-5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-[16px] font-extrabold text-text">
+                시민 의견
+              </h2>
+              <span className="text-caption text-text-sub">
+                상세 내용은 개인정보 마스킹 후 30일 보관
+              </span>
+            </div>
+            {feedback === null ? (
+              <p className="mt-3 text-admin-body text-text-sub">
+                의견 집계를 불러오지 못했습니다.
+              </p>
+            ) : feedback.total === 0 ? (
+              <p className="mt-3 text-admin-body text-text-sub">
+                아직 저장된 만족도 의견이 없습니다.
+              </p>
+            ) : (
+              <dl className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-btn bg-admin-soft p-3">
+                  <dt className="text-caption font-bold text-text-sub">전체</dt>
+                  <dd className="mt-1 text-[22px] font-extrabold text-text">
+                    {feedback.total}건
+                  </dd>
+                </div>
+                <div className="rounded-btn bg-admin-soft p-3">
+                  <dt className="text-caption font-bold text-text-sub">만족</dt>
+                  <dd className="mt-1 text-[22px] font-extrabold text-text">
+                    {feedback.satisfied}건
+                  </dd>
+                </div>
+                <div className="rounded-btn bg-admin-soft p-3">
+                  <dt className="text-caption font-bold text-text-sub">불만족</dt>
+                  <dd className="mt-1 text-[22px] font-extrabold text-text">
+                    {feedback.dissatisfied}건
+                  </dd>
+                </div>
+                <div className="rounded-btn bg-admin-soft p-3">
+                  <dt className="text-caption font-bold text-text-sub">만족률</dt>
+                  <dd className="mt-1 text-[22px] font-extrabold text-text">
+                    {feedback.satisfaction_rate === null
+                      ? "-"
+                      : `${Math.round(feedback.satisfaction_rate * 100)}%`}
+                  </dd>
+                </div>
+              </dl>
+            )}
+          </section>
 
           {/* 2. 최근 실패 질문 패널 (§9-1) - 실패 질문 화면과 동일 데이터 재사용 */}
           <section

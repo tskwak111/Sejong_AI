@@ -498,6 +498,21 @@
   constituent는 별도 PASS했다. public/remote, DB reset/seed, official `.2` 변경, 자동 merge는
   계속 미실행이다.
 
+## 2026-07-29 시민 피드백·후보 제출 복구 결정
+
+- Q-FEEDBACK-001=A/D-138/ADR-0029로 시민 답변 피드백을 local/private P1에 포함한다.
+- 공개 계약은 `POST /api/v1/feedback`과 관리자 `GET /api/v1/admin/feedback-summary`다.
+  시민은 만족 또는 불만족을 선택하며, 불만족에는 기존 4개 분야와 `OTHER`, 기존 4개 사유와
+  `OTHER`를 제공한다.
+- `OTHER` 사유 상세만 최대 300자로 받는다. 서버 마스킹 후 `masked_detail`만 정확히 30일
+  보관하고 raw 상세·질문·답변·provider body는 저장하지 않는다.
+- Web은 서버 저장 성공 뒤에만 감사 상태로 바뀌며 실패하면 버튼을 유지해 재시도한다.
+- 후보 생성과 승인 요청은 서로 다른 단계로 표시한다. create 성공·submit 실패로 남은
+  `DRAFTED` 후보는 실패 질문 화면에서 다시 승인 요청할 수 있다.
+- 마이그레이션 `20260729000710`은 owner-only RLS와 backend 전용 4개 capability를 사용하고,
+  forward/rollback·pgTAP·repository/API/Web을 함께 버전 관리한다.
+- 새 production dependency, LLM 호출, official/mock 데이터, public/remote 배포는 바뀌지 않는다.
+
 ## 제출 정보
 
 - 팀명: [직접 입력]
@@ -505,4 +520,4 @@
 - 대표 연락처: [직접 입력]
 - 제출일: [직접 입력]
 - 최종 확인란: `팀 대표 확인`
-- 문서 버전: v2.6.0
+- 문서 버전: v2.7.0

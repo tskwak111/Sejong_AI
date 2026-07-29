@@ -13,6 +13,8 @@ from sejong_ai_api.api.admin import get_admin_enabled, get_admin_service
 from sejong_ai_api.api.admin import router as admin_router
 from sejong_ai_api.api.chat import ChatResponder, get_chat_responder
 from sejong_ai_api.api.chat import router as chat_router
+from sejong_ai_api.api.feedback import FeedbackRecorder, get_feedback_recorder
+from sejong_ai_api.api.feedback import router as feedback_router
 from sejong_ai_api.api.health import ReadinessProbe, get_readiness_probe
 from sejong_ai_api.api.health import router as health_router
 from sejong_ai_api.api.offices import get_office_directory
@@ -32,6 +34,7 @@ def create_app(
     readiness_probe: ReadinessProbe | None = None,
     chat_responder: ChatResponder | None = None,
     office_directory: OfficeDirectory | None = None,
+    feedback_service: FeedbackRecorder | None = None,
     admin_enabled: bool = False,
     admin_service: AdminService | None = None,
     request_logger: logging.Logger | None = None,
@@ -39,10 +42,11 @@ def create_app(
 ) -> FastAPI:
     """Build an import-safe API application with an optional readiness seam."""
     configure_uvicorn_log_safety()
-    application = FastAPI(title="Sejong Civil AI API", version="4.0.0-draft")
+    application = FastAPI(title="Sejong Civil AI API", version="4.1.0-draft")
     application.include_router(health_router)
     application.include_router(chat_router)
     application.include_router(offices_router)
+    application.include_router(feedback_router)
     if admin_enabled and admin_service is not None:
         application.include_router(admin_router)
     application.add_middleware(
@@ -74,6 +78,14 @@ def create_app(
             return injected_directory
 
         application.dependency_overrides[get_office_directory] = provide_injected_office_directory
+
+    if feedback_service is not None:
+        injected_feedback_service = feedback_service
+
+        def provide_injected_feedback_recorder() -> FeedbackRecorder:
+            return injected_feedback_service
+
+        application.dependency_overrides[get_feedback_recorder] = provide_injected_feedback_recorder
 
     if admin_enabled and admin_service is not None:
         injected_admin_service = admin_service

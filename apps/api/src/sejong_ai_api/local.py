@@ -35,6 +35,7 @@ from sejong_ai_api.contracts.chat import ChatRequest
 from sejong_ai_api.db.models import PurgeResult
 from sejong_ai_api.db.pool import _ambient_libpq_environment_is_clear, create_pool
 from sejong_ai_api.db.repository import PsycopgSejongRepository
+from sejong_ai_api.feedback.service import FeedbackRepository, FeedbackService
 from sejong_ai_api.main import create_app
 from sejong_ai_api.office.service import GuardedOfficeDirectory, OfficeDirectoryService
 
@@ -159,6 +160,7 @@ class LocalRepository(
     ReadinessRepository,
     AdminRepository,
     ChatIdempotencyRepository,
+    FeedbackRepository,
     Protocol,
 ):
     async def purge_expired_chat_idempotency(self) -> PurgeResult: ...
@@ -307,6 +309,7 @@ def create_local_app(
         office_directory=office_directory,
         admin_enabled=True,
         admin_service=AdminService(repository),
+        feedback_service=FeedbackService(repository),
     )
 
     @asynccontextmanager
@@ -536,6 +539,7 @@ async def _purge_expired_private_records(repository: LocalRepository) -> None:
     await repository.purge_expired_failed_question_text()
     await repository.purge_expired_chat_idempotency()
     await repository.purge_expired_civic_scope_gap_text()
+    await repository.purge_expired_citizen_feedback_detail()
 
 
 async def _run_periodic_purge(

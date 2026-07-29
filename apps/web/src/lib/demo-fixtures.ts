@@ -604,6 +604,18 @@ function createAdminFixture(): AdminTransport {
       await delay(ADMIN_DELAY_MS);
       return { items: kbCandidates.map((c) => ({ ...c })), total: kbCandidates.length };
     },
+    async getFeedbackSummary() {
+      await delay(ADMIN_DELAY_MS);
+      return {
+        total: 0,
+        satisfied: 0,
+        dissatisfied: 0,
+        satisfaction_rate: null,
+        category_counts: [],
+        reason_counts: [],
+        recent: [],
+      };
+    },
     async createCandidate(actor, request) {
       requireOperator(actor);
       await delay(ADMIN_DELAY_MS);

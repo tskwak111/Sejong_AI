@@ -19,6 +19,7 @@ import FailureTable from "@/components/admin/FailureTable";
 import EmptyState from "@/components/admin/EmptyState";
 import PageHeader from "@/components/admin/PageHeader";
 import Toast from "@/components/common/Toast";
+import { AdminTransportError } from "@/lib/admin-api";
 
 type FailedQuestion = components["schemas"]["FailedQuestion"];
 type KBCandidateSummary = components["schemas"]["KBCandidateSummary"];
@@ -41,6 +42,31 @@ const FILTERS: { key: Filter; label: string }[] = [
  * 순간을 하이라이트로 보이게 하는 장치). 탭 리로드 시에만 초기화.
  */
 let knownFailureIds: Set<string> | null = null;
+
+function candidateErrorMessage(
+  error: unknown,
+  phase: "create" | "submit",
+): string {
+  if (!(error instanceof AdminTransportError)) {
+    return phase === "create"
+      ? "KB 후보를 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
+      : "승인 요청을 보내지 못했어요. 잠시 후 다시 시도해 주세요.";
+  }
+  if (error.code === "ADMIN_FORBIDDEN") {
+    return "작성 운영자 역할에서만 이 작업을 할 수 있어요.";
+  }
+  if (error.code === "ADMIN_VALIDATION_FAILED") {
+    return "입력값이나 공식 출처 주소를 확인해 주세요.";
+  }
+  if (error.code === "ADMIN_INVALID_STATE") {
+    return phase === "create"
+      ? "이미 후보가 있거나 현재 실패 질문 상태에서는 저장할 수 없어요."
+      : "이미 승인 요청됐거나 현재 후보 상태에서는 다시 요청할 수 없어요.";
+  }
+  return phase === "create"
+    ? "KB 후보를 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
+    : "승인 요청을 보내지 못했어요. 잠시 후 다시 시도해 주세요.";
+}
 
 export default function AdminFailuresPage() {
   const { transport, actor, role, notifyDataChanged } = useAdmin();
@@ -121,19 +147,45 @@ export default function AdminFailuresPage() {
     }
   };
 
-  /** 운영자 작성 → 저장 → 별도 승인 요청. 공식 필드는 폼 값만 사용한다. */
+  /** 운영자 작성 → 저장. 저장 실패와 승인 요청 실패를 구분한다. */
   const createDraft = async (draft: KBCandidateCreate) => {
     setBusyId(draft.failed_question_id);
+    let created: Awaited<ReturnType<typeof transport.createCandidate>>;
     try {
-      const created = await transport.createCandidate(actor, draft);
+      created = await transport.createCandidate(actor, draft);
+    } catch (error) {
+      setToast(candidateErrorMessage(error, "create"));
+      setBusyId(null);
+      return;
+    }
+    setEditingFailure(null);
+    try {
       await transport.submitCandidate(actor, created.id);
       setDraftBanner(draft.title);
-      setEditingFailure(null);
       setToast("운영자가 작성한 KB 후보가 승인 요청되었습니다");
+    } catch (error) {
+      setToast(
+        `KB 후보는 저장됐습니다. ${candidateErrorMessage(error, "submit")}`,
+      );
+    } finally {
       await load();
       notifyDataChanged();
-    } catch {
-      setToast("KB 후보를 생성하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      setBusyId(null);
+    }
+  };
+
+  const submitDraft = async (candidateId: string, title: string) => {
+    const candidate = candidates.find((item) => item.id === candidateId);
+    if (!candidate) return;
+    setBusyId(candidate.failed_question_id);
+    try {
+      await transport.submitCandidate(actor, candidateId);
+      setDraftBanner(title);
+      setToast("저장된 KB 후보를 승인 요청했습니다");
+      await load();
+      notifyDataChanged();
+    } catch (error) {
+      setToast(candidateErrorMessage(error, "submit"));
     } finally {
       setBusyId(null);
     }
@@ -164,8 +216,11 @@ export default function AdminFailuresPage() {
     }
   };
 
-  const draftedIds = useMemo(
-    () => new Set(candidates.map((c) => c.failed_question_id)),
+  const candidateByFailureId = useMemo(
+    () =>
+      new Map(
+        candidates.map((candidate) => [candidate.failed_question_id, candidate]),
+      ),
     [candidates],
   );
 
@@ -295,13 +350,16 @@ export default function AdminFailuresPage() {
           ) : (
             <FailureTable
               items={filtered}
-              draftedFailureIds={draftedIds}
+              candidateByFailureId={candidateByFailureId}
               busyId={busyId}
               highlightIds={highlightIds}
               canOperate={role === "OPERATOR"}
               onConfirmReason={(id) => void confirmReason(id)}
               onCreateDraft={(id) =>
                 setEditingFailure((items ?? []).find((item) => item.id === id) ?? null)
+              }
+              onSubmitDraft={(candidateId, title) =>
+                void submitDraft(candidateId, title)
               }
             />
           )}

@@ -24,6 +24,7 @@ from sejong_ai_api.db.models import (
     AdminRole,
     AnswerStatus,
     CandidateDraft,
+    CitizenFeedbackWrite,
     DataOrigin,
     FallbackReason,
     Intent,
@@ -54,6 +55,10 @@ RECORD_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.record_civic_scope_gap(%s)"
 LIST_CIVIC_SCOPE_GAPS_SQL = "SELECT * FROM app_api.list_civic_scope_gaps(%s)"
 REVIEW_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.review_civic_scope_gap(%s, %s, %s, %s, %s)"
 PURGE_CIVIC_SCOPE_GAP_SQL = "SELECT * FROM app_api.purge_expired_civic_scope_gap_text()"
+RECORD_CITIZEN_FEEDBACK_SQL = "SELECT app_api.record_citizen_feedback(%s, %s, %s, %s, %s, %s)"
+LIST_CITIZEN_FEEDBACK_SQL = "SELECT * FROM app_api.list_citizen_feedback(%s)"
+PURGE_CITIZEN_FEEDBACK_SQL = "SELECT * FROM app_api.purge_expired_citizen_feedback_detail()"
+SUMMARIZE_CITIZEN_FEEDBACK_SQL = "SELECT * FROM app_api.summarize_citizen_feedback()"
 LIST_ACTIVE_KB_MIGRATION = (
     Path(__file__).resolve().parents[4]
     / "supabase"
@@ -842,3 +847,111 @@ async def test_non_psycopg_programming_error_is_not_misclassified() -> None:
 
     with pytest.raises(RuntimeError, match="^synthetic-programming-error$"):
         await repository(pool).record_interaction(event())
+
+
+@pytest.mark.asyncio
+async def test_records_only_typed_masked_citizen_feedback_with_exact_capability() -> None:
+    feedback_id = UUID("83000000-0000-4000-8000-000000000001")
+    request_id = UUID("81000000-0000-4000-8000-000000000001")
+    pool = FakePool(rows=[{"record_citizen_feedback": feedback_id}])
+    write = CitizenFeedbackWrite(
+        response_request_id=request_id,
+        rating="DISSATISFIED",
+        category="OTHER",
+        reason_code="OTHER",
+        masked_detail="연락처 [전화번호]",
+        detail_was_masked=True,
+    )
+
+    await repository(pool).record_citizen_feedback(write)
+
+    assert pool.cursor.executions == [
+        (
+            RECORD_CITIZEN_FEEDBACK_SQL,
+            (
+                request_id,
+                "DISSATISFIED",
+                "OTHER",
+                "OTHER",
+                "연락처 [전화번호]",
+                True,
+            ),
+        )
+    ]
+    assert_one_transaction(pool, None)
+
+
+@pytest.mark.asyncio
+async def test_lists_feedback_as_strict_closed_rows() -> None:
+    feedback_id = UUID("83000000-0000-4000-8000-000000000001")
+    request_id = UUID("81000000-0000-4000-8000-000000000001")
+    now = datetime(2026, 7, 29, 10, 0, tzinfo=UTC)
+    pool = FakePool(
+        rows=[
+            {
+                "id": feedback_id,
+                "response_request_id": request_id,
+                "rating": "DISSATISFIED",
+                "category": "OTHER",
+                "reason_code": "OTHER",
+                "masked_detail": "연락처 [전화번호]",
+                "detail_was_masked": True,
+                "created_at": now,
+                "detail_expires_at": now + timedelta(days=30),
+                "detail_purged_at": None,
+            }
+        ]
+    )
+
+    rows = await repository(pool).list_citizen_feedback(limit=100)
+
+    assert len(rows) == 1
+    assert rows[0].response_request_id == request_id
+    assert rows[0].masked_detail == "연락처 [전화번호]"
+    assert pool.cursor.executions == [(LIST_CITIZEN_FEEDBACK_SQL, (100,))]
+
+
+@pytest.mark.asyncio
+async def test_feedback_list_rejects_unbounded_limit_before_pool_access() -> None:
+    pool = FakePool()
+
+    with pytest.raises(ValueError, match="^FEEDBACK_LIMIT_INVALID$"):
+        await repository(pool).list_citizen_feedback(limit=101)
+
+    assert pool.connection_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_purges_expired_feedback_detail_with_exact_capability() -> None:
+    feedback_id = UUID("83000000-0000-4000-8000-000000000001")
+    pool = FakePool(rows=[{"purged_count": 1, "purged_ids": [feedback_id]}])
+
+    result = await repository(pool).purge_expired_citizen_feedback_detail()
+
+    assert result.purged_count == 1
+    assert result.purged_ids == (feedback_id,)
+    assert pool.cursor.executions == [(PURGE_CITIZEN_FEEDBACK_SQL, ())]
+
+
+@pytest.mark.asyncio
+async def test_summarizes_all_feedback_without_loading_transcript_values() -> None:
+    pool = FakePool(
+        rows=[
+            {
+                "total_count": 4,
+                "satisfied_count": 3,
+                "dissatisfied_count": 1,
+                "category_counts": {"OTHER": 1},
+                "reason_counts": {"OTHER": 1},
+            }
+        ]
+    )
+
+    summary = await repository(pool).summarize_citizen_feedback()
+
+    assert summary.total == 4
+    assert summary.satisfied == 3
+    assert summary.dissatisfied == 1
+    assert summary.category_counts == (("OTHER", 1),)
+    assert summary.reason_counts == (("OTHER", 1),)
+    assert pool.cursor.executions == [(SUMMARIZE_CITIZEN_FEEDBACK_SQL, ())]
