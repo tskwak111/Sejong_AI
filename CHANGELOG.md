@@ -2,15 +2,29 @@
 
 ## [Unreleased]
 
+### Implemented offline — A-080 classifier semantic route rubric
+
+- Recorded D-135 after approved-plan provider-free Tasks 1~3: the shared five-route semantic
+  rubric and disjoint A-080 evidence identities are implemented. Prompt system length896, prompt22,
+  DeepSeek framing bound1, shared-provider133 and controlled-wrapper9 passed; PowerShell parser and
+  Ruff passed, and task-scoped reviews are clean.
+- Advanced only application `0.13.3-classifier-semantic-rubric`, prompt
+  `0.4.4-semantic-route-rubric`, tests `2.2.9-a080-quality` and documentation
+  `2.32.3-a080-quality-offline`. API/shared contracts, Web, DB, official/mock data and dependencies
+  are unchanged.
+- A-080 root offline gate, readiness and actual remain unexecuted (0); provider calls and cost are
+  0. A separate exact approval is still required for one live evaluation. A-079 remains
+  transport/wire verified with quality FAIL 6/9.
+
 ### Design — A-080 classifier semantic route rubric
 
 - Recorded D-133/Q-LLM-016-QUALITY=A after detecting that the user's literal Q-LLM-015 label
   collided with historical D-128; history is preserved rather than rewritten.
 - Approved the written specification for a compact shared five-route semantic rubric,
   narrowest-row selection and binding coverage exclusions.
-- Published the exact TDD execution plan: provider-free Tasks 1~6 may begin only after plan
-  approval; the live A-080 9-call evaluation remains behind a separate exact approval. Product code
-  and provider calls are still zero.
+- Published the exact TDD execution plan; D-135 subsequently approved it and completed
+  provider-free Tasks 1~3. The live A-080 9-call evaluation remains behind a separate exact
+  approval; provider calls are still zero.
 
 ### Closed — A-077/A-078 DeepSeek split-timeout correction
 

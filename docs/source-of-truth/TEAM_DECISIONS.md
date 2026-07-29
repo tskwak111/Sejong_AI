@@ -272,6 +272,15 @@
   prompt RED/GREEN→shared-provider 경계→새 A-080 one-shot harness→독립 review→provider-free
   offline gate 순서로 Review에 게시했다. 계획 승인 전 code0이며, 계획 승인 뒤에도 actual은
   exact `A-080 DeepSeek actual 1회 실행 승인` 전까지 0이다. A-079 evidence는 불변이다.
+- D-135: A-080의 승인된 실행계획에 따라 Tasks 1~3 provider-free 구현을 완료했다. 공용 semantic
+  route rubric은 prompt system 길이 896과 prompt 22 PASS, DeepSeek framing bound 1 PASS로
+  검증됐고, 두 provider 공용 경계 suite 133 PASS, disjoint A-080 controlled wrapper 9 PASS와
+  PowerShell parser/Ruff PASS를 기록했다. task-scoped review의 남은 actionable finding은 없다.
+  application/prompt/tests/docs만 `0.13.3/0.4.4/2.2.9/2.32.3`으로 전진하며 API/shared contracts/
+  Web/DB/official·mock data/dependency는 불변이다. A-080 actual, root offline gate와 readiness는
+  모두 미실행(각 0)이고 provider call·cost도 0이다. actual은 exact
+  `A-080 DeepSeek actual 1회 실행 승인`을 별도로 받아야 하며, A-079 transport/wire verified와
+  quality FAIL 6/9는 변경하지 않는다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
