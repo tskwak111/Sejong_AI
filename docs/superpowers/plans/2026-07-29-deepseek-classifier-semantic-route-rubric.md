@@ -57,7 +57,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 - Preserves: `_build_grouped_catalog(...)`, user payload keys `ask`, `cat`, `ex`, and all
   validation errors.
 
-- [ ] **Step 1: Add one behavior-named failing test**
+- [x] **Step 1: Add one behavior-named failing test**
 
   Add this test to `apps/api/tests/llm/test_prompt.py`:
 
@@ -81,7 +81,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
           assert rule in system
   ```
 
-- [ ] **Step 2: Run the new test and capture the expected RED**
+- [x] **Step 2: Run the new test and capture the expected RED**
 
   Run:
 
@@ -96,7 +96,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   Expected: one failure because the current prompt defines tuple shapes but not these semantic
   meanings or precedence.
 
-- [ ] **Step 3: Replace, rather than append to, the compact system instruction**
+- [x] **Step 3: Replace, rather than append to, the compact system instruction**
 
   Rewrite `_SYSTEM_MESSAGE` in `classifier_prompt.py` to include these compact behavior clauses.
   The compact clauses are the approved meanings, not aliases that may appear in provider output.
@@ -134,7 +134,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   prompt bound. Do not remove a route meaning, selection precedence, shape, intent or
   uppercase-`NONE` rule.
 
-- [ ] **Step 4: Update stale prose assertions without weakening invariants**
+- [x] **Step 4: Update stale prose assertions without weakening invariants**
 
   In `test_classifier_prompt_forbids_none_translations_null_and_explanatory_output`, assert the
   compact strict-JSON, five-string, forbidden-null/empty/translation and uppercase-ASCII clauses.
@@ -142,7 +142,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   removing any field, intent, route or allowed pending-slot pairing. Do not replace them with
   source-code introspection.
 
-- [ ] **Step 5: Run all prompt tests and confirm GREEN**
+- [x] **Step 5: Run all prompt tests and confirm GREEN**
 
   Run:
 
@@ -154,7 +154,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 
   Expected: every prompt test passes, including the real 19/20-topic preservation and 4096 bounds.
 
-- [ ] **Step 6: Commit the isolated prompt cycle**
+- [x] **Step 6: Commit the isolated prompt cycle**
 
   ```powershell
   git add apps/api/src/sejong_ai_api/llm/classifier_prompt.py `
