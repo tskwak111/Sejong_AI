@@ -281,6 +281,16 @@
   모두 미실행(각 0)이고 provider call·cost도 0이다. actual은 exact
   `A-080 DeepSeek actual 1회 실행 승인`을 별도로 받아야 하며, A-079 transport/wire verified와
   quality FAIL 6/9는 변경하지 않는다.
+- D-136: 사용자의 exact `A-080 DeepSeek actual 1회 실행 승인` 뒤 source
+  `f2c3aec50c6b615cbbaf989a9d7bf5760d1436c4`에서 A-080 offline gate는 exact-one
+  PASS(invocation/rerun 1/0), readiness PASS였고 actual도 exact-one 소비했다. Actual은
+  selected/skip20/0·provider-free/provider11/9·privacy/policy outbound0,
+  response/2xx/strict/server-accepted9/9/9/9였으나 oracle match8/9라 overall quality
+  acceptance는 FAIL이다. Retry/rerun/runtime failure와 retention 6종은 0이고 VAT 포함
+  보수 비용 USD0.002961266<0.20이다. Transport·wire·parser는 검증됐지만 strict 9/9에 미달하므로
+  DeepSeek를 시민 runtime 기본값으로 승격하지 않고 기존 결정론적 fallback과 local/private
+  경계를 유지한다. A-080은 재실행하지 않으며 후속 품질 실험은 새 결정·새 evidence identity가
+  필요하다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

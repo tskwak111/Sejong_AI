@@ -502,7 +502,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 - Produces: immutable `a080-offline-gate-result.json`, stdout/stderr hashes and exact one-shot lease.
 - Does not produce: network/provider calls or an actual report.
 
-- [ ] **Step 1: Commit all reviewed source and record the full SHA**
+- [x] **Step 1: Commit all reviewed source and record the full SHA**
 
   ```powershell
   git status --short
@@ -512,7 +512,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   `git status --short` must be empty before the gate. Record the full SHA in the implementation
   note.
 
-- [ ] **Step 2: Execute the A-080 offline wrapper once**
+- [x] **Step 2: Execute the A-080 offline wrapper once**
 
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_a080_offline_gate.ps1
@@ -520,29 +520,34 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 
   Expected: one `A080_OFFLINE_GATE_PASS`. Whether PASS or FAIL, do not rerun the wrapper.
 
-- [ ] **Step 3: Run readiness-only against the same source**
+- [x] **Step 3: Run readiness-only against the same source**
 
   ```powershell
   apps/api/.venv/Scripts/python.exe -B `
-    scripts/run_deepseek_classifier_quality_actual.py --readiness-only
+    scripts/run_deepseek_classifier_quality_actual.py `
+    --fixture apps/api/tests/chat/fixtures/hybrid-rag-uat.v1.json `
+    --report docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A080-ACTUAL.md `
+    --readiness-only
   ```
 
   Expected on offline PASS: `DEEPSEEK_CLASSIFIER_ACTUAL_READY`. This command does not acquire the
   actual lease or call DeepSeek.
 
-- [ ] **Step 4: Record aggregate-only evidence without changing the source SHA**
+- [x] **Step 4: Record aggregate-only evidence without changing the source SHA**
 
   Record gate, source SHA, outcome, exit code, timed-out flag, invocation/rerun `1/0`, log byte
   counts/hashes and provider call/cost `0/0` in this plan's gitignored SDD ledger. Do not copy
   stdout/stderr contents into tracked docs and do not modify any tracked file before the actual
   decision. This preserves the same committed source required by actual readiness.
 
-- [ ] **Step 5: Stop on offline failure**
+- [x] **Step 5: Stop on offline failure**
 
   If the immutable gate is FAIL or readiness fails, record the exact bounded stage/reason and open
   no actual approval request. In that failure branch, update tracked closeout documents only after
   the same-source actual path has been abandoned. A successor identity requires a new design
   decision; A-080 is not rerun.
+
+  Not triggered: the immutable A-080 offline gate and readiness both passed.
 
 ### Task 7: Human gate for one live A-080 quality evaluation
 
@@ -556,13 +561,13 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 - Does not infer authority from plan approval, a configured key, network recovery or a green
   offline gate.
 
-- [ ] **Step 1: Present the immutable preflight evidence**
+- [x] **Step 1: Present the immutable preflight evidence**
 
   Report the clean source SHA, A-080 offline PASS, readiness PASS, expected 20 selected/0 skipped,
   11 provider-free/9 provider, policy/privacy outbound `0`, retry/rerun `0/0`, concurrency `1`,
   output `128` and USD `0.20` cap.
 
-- [ ] **Step 2: Wait for the exact separate approval**
+- [x] **Step 2: Wait for the exact separate approval**
 
   If approval is absent, stop with actual status `Pending`; provider call/cost remain `0/0`.
 
@@ -582,32 +587,37 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   `0`, responses/2xx/strict/accepted/oracle `9/9/9/9/9`, retry/rerun `0/0`, all retention counters
   `0`, runtime failures `0`, cost at or below USD `0.20`.
 
-- [ ] **Step 1: Re-run readiness-only**
+- [x] **Step 1: Re-run readiness-only**
 
   ```powershell
   apps/api/.venv/Scripts/python.exe -B `
-    scripts/run_deepseek_classifier_quality_actual.py --readiness-only
+    scripts/run_deepseek_classifier_quality_actual.py `
+    --fixture apps/api/tests/chat/fixtures/hybrid-rag-uat.v1.json `
+    --report docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A080-ACTUAL.md `
+    --readiness-only
   ```
 
   Expected: ready on the exact clean source. Do not proceed on any mismatch.
 
-- [ ] **Step 2: Execute the one live run**
+- [x] **Step 2: Execute the one live run**
 
   ```powershell
   apps/api/.venv/Scripts/python.exe -B `
-    scripts/run_deepseek_classifier_quality_actual.py
+    scripts/run_deepseek_classifier_quality_actual.py `
+    --fixture apps/api/tests/chat/fixtures/hybrid-rag-uat.v1.json `
+    --report docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A080-ACTUAL.md
   ```
 
   Run exactly once. PASS or FAIL consumes A-080; never rerun it.
 
-- [ ] **Step 3: Record only aggregates**
+- [x] **Step 3: Record only aggregates**
 
   Preserve selected/skip, provider-free/provider, outbound/response/2xx/parse/accepted/oracle,
   response-stage counts, usage, conservative cost, retry/rerun/runtime and six retention counters.
   Do not record per-fixture outcomes, questions, request/response bodies, invalid values, key, DSN,
   status detail or exception text.
 
-- [ ] **Step 4: Keep runtime fail-closed unless every gate passes**
+- [x] **Step 4: Keep runtime fail-closed unless every gate passes**
 
   A result below oracle `9/9` is FAIL. Do not promote DeepSeek to a new production/public default;
   keep the current deterministic fallback and local/private boundary.

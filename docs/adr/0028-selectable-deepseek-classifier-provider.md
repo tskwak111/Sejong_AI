@@ -196,3 +196,20 @@ fail-closed/server-owned privacy, storage, ACTIVE/OFFICIAL grounding and source 
 also does not alter API, shared contracts, Web, DB, official/mock data, dependencies, public/remote
 scope or the final-answer provider. A-079 remains transport/wire verified and quality `FAIL 6/9`.
 The A-080 actual may run only after the separate exact approval `A-080 DeepSeek actual 1회 실행 승인`.
+
+## 2026-07-29 seventh amendment — D-136 / A-080 exact-one quality actual
+
+After the exact human approval, source
+`f2c3aec50c6b615cbbaf989a9d7bf5760d1436c4` passed the A-080 immutable offline gate once and
+readiness. The live actual consumed its permanent lease once: all nine provider cases received HTTP
+2xx responses, passed strict parsing and were accepted by the server. Oracle agreement was eight of
+nine, so the strict `9/9` acceptance target was not met and the overall result is `FAIL`.
+
+This result verifies DeepSeek transport, the exact five-string wire and the server parser, and
+improves the bounded oracle agreement from A-079's `6/9` to `8/9`; it does not prove full quality.
+Policy/privacy outbound and all six retention counters are zero, retry/rerun/runtime failure are
+zero, and conservative VAT-inclusive cost is USD `0.002961266`, below the USD `0.20` cap. The
+provider is not promoted to the citizen runtime default. Deterministic fallback, server-owned
+ACTIVE/OFFICIAL grounding, local/private scope and every API/DB/data/Web/dependency/public boundary
+remain unchanged. A-080 is immutable and must not be rerun; any successor requires a new decision
+and evidence identity.

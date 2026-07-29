@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Closed — A-080 DeepSeek classifier quality actual
+
+- On exact human approval, source `f2c3aec...` passed the immutable A-080 offline gate once and
+  readiness, then consumed the live actual lease once without retry or rerun.
+- The fixed 20-case run selected/skipped `20/0`, used `11` provider-free and `9` provider cases,
+  kept policy/privacy outbound at `0`, and received/parsed/server-accepted all nine provider
+  responses. Oracle agreement improved from A-079's `6/9` to `8/9` but missed the strict `9/9`
+  target, so overall acceptance is `FAIL`.
+- All six retention counters and runtime failures are `0`; conservative VAT-inclusive cost is
+  USD `0.002961266` below the USD `0.20` cap. DeepSeek is not promoted to the citizen runtime
+  default, A-080 is not rerun, and API/DB/data/Web/dependency/public/remote boundaries are unchanged.
+- Advanced documentation only to `2.32.4-a080-quality-actual-fail`; application, prompt, tests and
+  every public/runtime contract version remain unchanged.
+
 ### Implemented offline — A-080 classifier semantic route rubric
 
 - Recorded D-135 after approved-plan provider-free Tasks 1~3: the shared five-route semantic

@@ -321,6 +321,12 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   그러나 root offline gate·readiness·actual은 모두 0이며 provider call/cost도 0이다. A-080의
   one-shot actual은 separate exact human approval 전 실행하지 않고, SFR-002는 A-079의
   transport/wire verified·quality FAIL 6/9 상태를 유지한다.
+- D-136 A-080 exact-one offline/readiness는 PASS했고 live actual은 transport·wire·strict
+  parser·server acceptance9/9를 다시 확인했다. Provider-neutral semantic rubric으로 oracle
+  agreement가 A-079의6/9에서8/9로 개선됐지만 strict target9/9에는 1건 부족해 overall FAIL이다.
+  질문·provider body·invalid value·secret retention은 0이고 비용은 USD0.002961266<0.20이다.
+  시민 runtime은 기존 deterministic fallback을 유지하며 A-080 재실행·default 승격·public/
+  remote/free-input 확대는 하지 않는다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.
