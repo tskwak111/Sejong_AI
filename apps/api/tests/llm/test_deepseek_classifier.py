@@ -298,11 +298,18 @@ async def test_success_posts_one_exact_deepseek_json_object_request() -> None:
         "last_verified_at",
         "department",
         "caution",
+        "대형폐기물 배출신청 절차",
         "candidate_eligible",
         "FACT-SENTINEL",
+        "PROCEDURE-SENTINEL",
+        "DOCUMENT-SENTINEL",
+        "PROCESSING-SENTINEL",
         "OFFICE-SENTINEL",
         "FEE-SENTINEL",
         "CAUTION-SENTINEL",
+        "SOURCE-SENTINEL",
+        "https://example.invalid/source-sentinel",
+        "2026-07-27",
     ):
         assert forbidden not in serialized
     assert ledger.actual_cost_usd == estimate_deepseek_cost_usd(TokenUsage(20, 5, 10))
