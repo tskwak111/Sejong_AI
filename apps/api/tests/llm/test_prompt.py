@@ -196,13 +196,13 @@ def test_classifier_prompt_defines_route_semantics_and_selection_precedence() ->
     )[0]["content"]
 
     for rule in (
-        "SUPPORTED=covered catalog row",
-        "NO_TOPIC_MATCH=supported intent but no row covers the requested fact or procedure",
-        "CIVIC_SCOPE_GAP=government or administrative service outside supported intents",
-        "NON_CIVIC=not a government or administrative service",
-        "NEEDS_FOLLOWUP=missing or ambiguous detail blocks a safe choice",
-        "choose the narrowest covering row",
-        "coverage exclusions are binding",
+        "SUPPORTED=one cat row covers ask",
+        "NO_TOPIC_MATCH=supported intent/no row covers asked fact/procedure",
+        "CIVIC_SCOPE_GAP=government/admin service outside intents",
+        "NON_CIVIC=not government/admin service",
+        "NEEDS_FOLLOWUP=missing/ambiguous detail blocks safe choice",
+        "pick narrowest covered row",
+        "exclusions bind",
     ):
         assert rule in system
 
@@ -277,7 +277,7 @@ def test_classifier_prompt_declares_one_contiguous_exact_provider_intent_vocabul
         max_input_chars=1024,
     )[0]["content"]
     exact_vocabulary = (
-        "I=MOVE_IN_RESIDENT_REGISTRATION|CERTIFICATE_ISSUANCE|"
+        "intents=MOVE_IN_RESIDENT_REGISTRATION|CERTIFICATE_ISSUANCE|"
         "BULKY_WASTE|LOCAL_TAX_GENERAL|NONE;"
     )
 
@@ -293,11 +293,11 @@ def test_classifier_prompt_encodes_every_complete_route_matrix_row() -> None:
 
     assert "keys=route,intent,topic_id,coverage_id,pending_slot" in system
     for route_shape in (
-        "SUPPORTED:same row,slot=NONE",
+        "SUPPORTED:intent/topic_id/coverage_id=same row,pending_slot=NONE",
         "NO_TOPIC_MATCH:I=supported,other3=NONE",
         "CIVIC_SCOPE_GAP/NON_CIVIC:other4=NONE",
-        "NEEDS_FOLLOWUP:topic/coverage=NONE",
-        "pair=NONE:DOMAIN|supported:TOPIC_CHOICE/REGION|"
+        "NEEDS_FOLLOWUP:topic_id/coverage_id=NONE",
+        "pairs=NONE:DOMAIN|supported:TOPIC_CHOICE/REGION|"
         "CERTIFICATE_ISSUANCE:CERTIFICATE_KIND|BULKY_WASTE:WASTE_ITEM",
     ):
         assert route_shape in system
@@ -349,11 +349,12 @@ def test_classifier_prompt_forbids_none_translations_null_and_explanatory_output
     )[0]["content"]
 
     assert "JSON only" in system
-    assert "str" in system
-    assert "no extra/prose/MD/null/empty/translated NONE" in system
-    assert "NONE uppercase" in system
-    assert "cat[I]=[topic_id,coverage_id,coverage_label,approved_examples]" in system
-    assert "SUPPORTED:same row,slot=NONE" in system
+    assert "5 strings" in system
+    assert "no extra/prose/MD" in system
+    assert "NONE uppercase ASCII" in system
+    assert "translation/null/empty forbidden" in system
+    assert "cat[intent]=[topic_id,coverage_id,coverage_label,approved_examples]" in system
+    assert "SUPPORTED:intent/topic_id/coverage_id=same row,pending_slot=NONE" in system
     assert "NONE=없음" not in system
 
 
@@ -364,8 +365,8 @@ def test_classifier_prompt_separates_catalog_grammar_from_supported_rule() -> No
         max_input_chars=1024,
     )[0]["content"]
 
-    assert "cat[I]=[topic_id,coverage_id,coverage_label,approved_examples]" in system
-    assert "SUPPORTED:same row,slot=NONE" in system
+    assert "cat[intent]=[topic_id,coverage_id,coverage_label,approved_examples]" in system
+    assert "SUPPORTED:intent/topic_id/coverage_id=same row,pending_slot=NONE" in system
 
 
 def test_classifier_prompt_uses_at_most_two_approved_examples_without_sampling_topics() -> None:
