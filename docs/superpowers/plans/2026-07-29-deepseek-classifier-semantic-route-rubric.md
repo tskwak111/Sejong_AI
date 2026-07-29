@@ -178,7 +178,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   `UpstageQuestionClassifier.classify(...) -> ClassifierDecision | None`.
 - Produces: request-boundary evidence that neither adapter owns a prompt fork.
 
-- [ ] **Step 1: Strengthen the DeepSeek request-boundary test**
+- [x] **Step 1: Strengthen the DeepSeek request-boundary test**
 
   In `test_success_posts_one_exact_deepseek_json_object_request`, retain the complete equality
   against `build_classifier_messages(...)` and add:
@@ -193,7 +193,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   assert request_payload["max_tokens"] == 128
   ```
 
-- [ ] **Step 2: Strengthen the Upstage request-boundary test**
+- [x] **Step 2: Strengthen the Upstage request-boundary test**
 
   In the successful strict-schema request test, retain exact message equality and add:
 
@@ -205,14 +205,14 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   assert request_payload["max_tokens"] == 128
   ```
 
-- [ ] **Step 3: Prove prompt data minimization at the actual consumer boundary**
+- [x] **Step 3: Prove prompt data minimization at the actual consumer boundary**
 
   Assert that neither captured request contains `answer_summary`, `procedure_steps`,
   `required_documents`, `fee`, `source_title`, `source_url`, `last_verified_at`, `department`,
   `caution`, API key or DSN. Keep the existing `httpx.MockTransport`; do not introduce a new mock
   library.
 
-- [ ] **Step 4: Run both provider suites**
+- [x] **Step 4: Run both provider suites**
 
   ```powershell
   Push-Location apps/api
@@ -226,7 +226,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 
   Expected: prompt, request shape, parser stages, timeout/fallback and non-retention tests all pass.
 
-- [ ] **Step 5: Commit provider-neutral request proof**
+- [x] **Step 5: Commit provider-neutral request proof**
 
   ```powershell
   git add apps/api/tests/llm/test_deepseek_classifier.py `
