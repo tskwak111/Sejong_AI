@@ -70,13 +70,13 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
       )[0]["content"]
 
       for rule in (
-          "SUPPORTED=covered catalog row",
-          "NO_TOPIC_MATCH=supported intent but no row covers the requested fact or procedure",
-          "CIVIC_SCOPE_GAP=government or administrative service outside supported intents",
-          "NON_CIVIC=not a government or administrative service",
-          "NEEDS_FOLLOWUP=missing or ambiguous detail blocks a safe choice",
-          "choose the narrowest covering row",
-          "coverage exclusions are binding",
+          "SUPPORTED=one cat row covers ask",
+          "NO_TOPIC_MATCH=supported intent/no row covers asked fact/procedure",
+          "CIVIC_SCOPE_GAP=government/admin service outside intents",
+          "NON_CIVIC=not government/admin service",
+          "NEEDS_FOLLOWUP=missing/ambiguous detail blocks safe choice",
+          "pick narrowest covered row",
+          "exclusions bind",
       ):
           assert rule in system
   ```
@@ -98,50 +98,49 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 
 - [ ] **Step 3: Replace, rather than append to, the compact system instruction**
 
-  Rewrite `_SYSTEM_MESSAGE` in `classifier_prompt.py` to include these exact behavior clauses while
-  retaining the existing exact fields, vocabularies and tuple rows:
+  Rewrite `_SYSTEM_MESSAGE` in `classifier_prompt.py` to include these compact behavior clauses.
+  The compact clauses are the approved meanings, not aliases that may appear in provider output.
+  Retain the exact five field names, four intent values plus `NONE`, uppercase-ASCII `NONE`,
+  catalog row grammar, same-row rule and every legal route shape:
 
   ```python
   _SYSTEM_MESSAGE = (
       "JSON only;"
-      "keys: route,intent,topic_id,coverage_id,pending_slot;"
-      "all five values are strings;"
-      "no extra key, prose or Markdown;"
-      "NONE is exact uppercase ASCII; 없음/none/null/empty are forbidden;"
-      "provider intents: MOVE_IN_RESIDENT_REGISTRATION|CERTIFICATE_ISSUANCE|"
+      "keys=route,intent,topic_id,coverage_id,pending_slot;"
+      "5 strings;"
+      "no extra/prose/MD;"
+      "NONE uppercase ASCII;"
+      "translation/null/empty forbidden;"
+      "intents=MOVE_IN_RESIDENT_REGISTRATION|CERTIFICATE_ISSUANCE|"
       "BULKY_WASTE|LOCAL_TAX_GENERAL|NONE;"
-      "cat={intent:[[topic_id,coverage_id,coverage_label,approved_examples]]};"
-      "semantics:"
-      "SUPPORTED=covered catalog row;"
-      "NO_TOPIC_MATCH=supported intent but no row covers the requested fact or procedure;"
-      "CIVIC_SCOPE_GAP=government or administrative service outside supported intents;"
-      "NON_CIVIC=not a government or administrative service;"
-      "NEEDS_FOLLOWUP=missing or ambiguous detail blocks a safe choice;"
-      "choose the narrowest covering row;"
-      "coverage exclusions are binding;"
-      "SUPPORTED intent=cat group key; topic_id/coverage_id=same row;"
-      "valid tuples in key order:"
-      "SUPPORTED|catalog intent|same-row topic_id|same-row coverage_id|NONE;"
-      "NO_TOPIC_MATCH|supported intent|NONE|NONE|NONE;"
-      "CIVIC_SCOPE_GAP|NONE|NONE|NONE|NONE;"
-      "NON_CIVIC|NONE|NONE|NONE|NONE;"
-      "NEEDS_FOLLOWUP|NONE|NONE|NONE|DOMAIN;"
-      "NEEDS_FOLLOWUP|supported intent|NONE|NONE|TOPIC_CHOICE;"
-      "NEEDS_FOLLOWUP|CERTIFICATE_ISSUANCE|NONE|NONE|CERTIFICATE_KIND;"
-      "NEEDS_FOLLOWUP|supported intent|NONE|NONE|REGION;"
-      "NEEDS_FOLLOWUP|BULKY_WASTE|NONE|NONE|WASTE_ITEM"
+      "cat[intent]=[topic_id,coverage_id,coverage_label,approved_examples];"
+      "SUPPORTED=one cat row covers ask;"
+      "NO_TOPIC_MATCH=supported intent/no row covers asked fact/procedure;"
+      "CIVIC_SCOPE_GAP=government/admin service outside intents;"
+      "NON_CIVIC=not government/admin service;"
+      "NEEDS_FOLLOWUP=missing/ambiguous detail blocks safe choice;"
+      "pick narrowest covered row;"
+      "exclusions bind;"
+      "SUPPORTED:intent/topic_id/coverage_id=same row,pending_slot=NONE;"
+      "NO_TOPIC_MATCH:intent=supported,other3=NONE;"
+      "CIVIC_SCOPE_GAP/NON_CIVIC:other4=NONE;"
+      "NEEDS_FOLLOWUP:topic_id/coverage_id=NONE;"
+      "pairs=NONE:DOMAIN|supported:TOPIC_CHOICE/REGION|"
+      "CERTIFICATE_ISSUANCE:CERTIFICATE_KIND|BULKY_WASTE:WASTE_ITEM;"
   )
   ```
 
-  If the literal wording exceeds a bound, shorten grammar words only; do not remove a route
-  meaning, selection precedence, tuple row, intent or uppercase-`NONE` rule.
+  The measured system instruction is `899` characters. Do not expand it past the existing complete
+  prompt bound. Do not remove a route meaning, selection precedence, shape, intent or
+  uppercase-`NONE` rule.
 
 - [ ] **Step 4: Update stale prose assertions without weakening invariants**
 
-  In `test_classifier_prompt_forbids_none_translations_null_and_explanatory_output`, change the
-  strict-JSON assertion to the new literal `JSON only`. Keep the exact-key, string, forbidden-null,
-  catalog grammar, same-row and tuple-row assertions. Do not replace them with source-code
-  introspection.
+  In `test_classifier_prompt_forbids_none_translations_null_and_explanatory_output`, assert the
+  compact strict-JSON, five-string, forbidden-null/empty/translation and uppercase-ASCII clauses.
+  Update the catalog, same-row and route-shape assertions to their compact equivalents without
+  removing any field, intent, route or allowed pending-slot pairing. Do not replace them with
+  source-code introspection.
 
 - [ ] **Step 5: Run all prompt tests and confirm GREEN**
 
