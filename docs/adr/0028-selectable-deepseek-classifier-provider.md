@@ -170,3 +170,14 @@ the narrowest covered catalog row and treat coverage exclusions as binding. Exac
 PII, storage, ACTIVE/OFFICIAL grounding, provider limits, final-answer provider, public API, DB,
 data and deployment remain unchanged. This amendment approves the written design only. Product
 code and A-080 provider calls remain unapproved.
+
+## 2026-07-29 fifth amendment — D-134 / A-080 specification approval
+
+The user approved the integrated A-080 written specification. The published TDD plan keeps the
+semantic rubric provider-neutral, preserves the exact five-string parser and all server-owned
+privacy, storage and grounding boundaries, and creates only disjoint A-080 evidence identities.
+
+Plan approval may authorize provider-free Tasks 1 through 6. It does not authorize a DeepSeek
+provider call. A live A-080 evaluation requires the separate exact approval
+`A-080 DeepSeek actual 1회 실행 승인`, uses 20 selected/0 skipped and 11 provider-free/9 provider
+cases, and can run only once on a clean source after the immutable offline gate passes.
