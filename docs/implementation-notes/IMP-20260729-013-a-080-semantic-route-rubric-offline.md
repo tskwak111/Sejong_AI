@@ -87,7 +87,9 @@ authority until a separately approved A-080 actual completes.
 
 ### 데이터 흐름/상태 변화
 
-Runtime, provider wire/parser, input/output data flow는 변하지 않는다. Documentation status만
+Classifier runtime의 shared prompt behavior는 다섯 route 의미·narrowest-row·binding exclusions를
+명시하도록 변경됐다. Provider wire/parser, request-local catalog input, server-owned grounding과
+output data flow는 변하지 않는다. Documentation status는
 `specification Approved / plan Approved / implementation Offline Review`로 진전했다. A-080 root
 offline gate, readiness and actual are still unexecuted; no provider request was formed.
 
@@ -215,7 +217,9 @@ actual calls and cost are 0. No DB/data/provider/API runtime test was newly need
 - Security: preserves exact parser, server-owned grounding/source and fail-closed boundary; no secret
   or remote access used.
 - Accessibility: no Web/UI change.
-- Performance/cost: no runtime performance change and provider cost is 0.
+- Performance/cost: system instruction은 `896`자로 변경됐지만 governed complete-message
+  `4096`과 DeepSeek framing `16384` bound 안이다. Timeout·retry·call cap은 변하지 않았고
+  provider cost는 0이다.
 
 ## 10. 데이터와 출처 영향
 
