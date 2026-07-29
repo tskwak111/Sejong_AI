@@ -2,7 +2,7 @@
 
 ## 상태
 
-Approved / Closed offline — Task 7 immutable FAIL; Task 8 actual blocked/not run; publication pending
+Approved / Closed offline — Task 7 immutable FAIL; Task 8 actual blocked/not run; Draft PR #21 published
 
 The user's exact A-074 instruction approves this plan, Subagent-Driven TDD, one new offline gate,
 one DeepSeek actual and Draft PR publication. It does not approve automatic merge.
@@ -336,8 +336,9 @@ Still prohibited:
   The later integrated pre-gate review additionally found recursive JSON, response-boundary,
   total-deadline, exact-byte/pre-lease TOCTOU and post-child source/termination gaps. Two
   RED/GREEN waves closed all Critical/Important/Minor findings before any real gate execution.
-- 다음 단계: preserve Task 7 evidence, publish this fail-closeout through Task 9, and do not run
-  Task 8 or either wrapper again without a new task/identity and explicit human decision.
+- 2026-07-29: Task 9 completed with fail-closeout commit `be877c5`, branch push and Draft PR #21.
+- 다음 단계: preserve Task 7 evidence, review Draft PR #21 manually, and do not run Task 8 or
+  either wrapper again without a new task/identity and explicit human decision.
 
 ## Plan self-review
 

@@ -1,7 +1,7 @@
 # IMP-20260729-006 — A-074 DeepSeek classifier provider
 
 - Date/Time (KST): 2026-07-29T05:21:53+09:00
-- Last updated (KST): 2026-07-29T08:52:44+09:00
+- Last updated (KST): 2026-07-29T09:12:43+09:00
 - Task ID: A-074-DEEPSEEK-CLASSIFIER-PROVIDER
 - Type: implementation-provider-offline
 - Status: Closed offline — immutable A-074 gate FAIL; DeepSeek actual blocked
@@ -11,6 +11,8 @@
 - Task 1 reviewed checkpoint: 8d36e04
 - Original Task 6 checkpoint: 0b15572
 - Task 6b hardened/gate source: 9c7f818123533a4adc61d3953ed4d4630c793891
+- Fail-closeout commit: be877c59c4759c3e859accdcecf3e18302d70ed9
+- Draft PR: https://github.com/tskwak111/Sejong_AI/pull/21
 - Related plan/ADR/RFP: ADR-0028, D-122/D-123, A-074, SFR-002,
   `docs/superpowers/plans/2026-07-29-deepseek-classifier-provider.md`
 
@@ -253,6 +255,7 @@ git diff --check
   corrective PASS가 있어도 이를 PASS로 소급 변경하거나 wrapper를 다시 실행하지 않는다.
 - DeepSeek actual은 차단됐고 invocation/rerun 0/0이다. 새 시도는 현재 승인에 포함되지 않으며
   새 인간 결정과 새 task/identity가 필요하다.
+- Draft PR #21은 사람의 검토·merge 대상으로 게시했으며 Codex는 자동 merge하지 않는다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
 
@@ -289,6 +292,7 @@ git diff --check
 - Task 7 immutable FAIL과 standalone corrective PASS를 서로 다른 증거로 보존한다.
 - Task 8 actual은 blocked/not run이며, 새 인간 결정·task/identity 없이는 실행하지 않는다.
 - A-073 root wrapper와 Upstage actual은 어떤 이유로도 재실행하지 않는다.
+- Draft PR #21의 hosted checks와 사람의 리뷰 결과를 확인하고 merge 여부는 사용자가 결정한다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
@@ -308,4 +312,4 @@ git diff --check
 - [x] source-of-truth/계약/버전 동기화 — 공개 계약은 불변
 - [x] 개인정보 원문·provider body·invalid value·secret 노출 없음
 - [x] 구현 노트 INDEX 갱신
-- [ ] Fail-closeout final commit·push·Draft PR
+- [x] Fail-closeout final commit·push·Draft PR #21 — 자동 merge 없음
