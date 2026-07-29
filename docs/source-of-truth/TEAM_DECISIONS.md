@@ -268,6 +268,10 @@
   prompt에 다섯 route 의미·narrowest-row·binding coverage exclusions를 추가하는 설계다.
   Exact wire/parser/PII/storage/ACTIVE-OFFICIAL/provider limits/API/DB/data/public 경계는
   불변이며 written spec review 전 code0, 별도 승인 전 actual0이다.
+- D-134: 사용자의 `명세 승인`으로 A-080 written specification은 Approved다. 실행계획은
+  prompt RED/GREEN→shared-provider 경계→새 A-080 one-shot harness→독립 review→provider-free
+  offline gate 순서로 Review에 게시했다. 계획 승인 전 code0이며, 계획 승인 뒤에도 actual은
+  exact `A-080 DeepSeek actual 1회 실행 승인` 전까지 0이다. A-079 evidence는 불변이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

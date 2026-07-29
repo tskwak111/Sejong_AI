@@ -6,9 +6,11 @@
 
 - Recorded D-133/Q-LLM-016-QUALITY=A after detecting that the user's literal Q-LLM-015 label
   collided with historical D-128; history is preserved rather than rewritten.
-- Approved the design direction for a compact shared five-route semantic rubric, narrowest-row
-  selection and binding coverage exclusions. Product code and provider calls remain zero pending
-  written-spec and plan approval.
+- Approved the written specification for a compact shared five-route semantic rubric,
+  narrowest-row selection and binding coverage exclusions.
+- Published the exact TDD execution plan: provider-free Tasks 1~6 may begin only after plan
+  approval; the live A-080 9-call evaluation remains behind a separate exact approval. Product code
+  and provider calls are still zero.
 
 ### Closed — A-077/A-078 DeepSeek split-timeout correction
 

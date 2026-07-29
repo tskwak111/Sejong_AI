@@ -1,9 +1,9 @@
 # A-080 DeepSeek Classifier Semantic Route Rubric — Written Specification
 
 - Task ID: `A-080-DEEPSEEK-CLASSIFIER-QUALITY`
-- Status: Design direction approved; written specification awaiting human review
+- Status: Approved
 - Date: 2026-07-29 KST
-- Human authority: the user's `Q-LLM-015: A / 설계 승인`
+- Human authority: the user's `Q-LLM-015: A / 설계 승인` and `명세 승인`
 - Canonical decision: D-133
 - Predecessor: immutable A-079 actual evidence, transport/wire `9/9`, oracle `6/9`
 
@@ -111,7 +111,8 @@ The measured pre-change real 19-topic prompt range is `3718..3737` conservative 
 
 ## 7. TDD acceptance
 
-Implementation begins only after written-spec review and an approved plan.
+Implementation begins only after an approved execution plan. The user approved this written
+specification on 2026-07-29 KST.
 
 Required RED/GREEN coverage:
 
@@ -147,7 +148,7 @@ Any live A-080 provider evaluation requires a separate explicit human approval d
 Design checkpoint:
 
 - prompt set remains `0.4.3-explicit-route-matrix`;
-- documentation advances to `2.32.1-a080-quality-design`;
+- documentation advances to `2.32.2-a080-quality-plan`;
 - product/API/contracts/Web/DB/data/dependencies remain unchanged.
 
 Planned implementation, only after approval:
