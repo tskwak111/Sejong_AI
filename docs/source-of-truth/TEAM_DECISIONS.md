@@ -218,6 +218,34 @@
   이 corrective evidence는 immutable gate를 PASS로 바꾸지 않는다. DeepSeek actual은
   blocked/unexecuted invocation/rerun 0/0이고 report/lease, outbound, token, cost는 모두 0이다.
   A-073 root `NOT VERIFIED/FAIL` 1/0은 불변이다.
+- D-124: 사용자의 exact `변수명 수정 완료, A-075 DeepSeek actual 1회 실행 승인`으로
+  A-075 corrective evidence를 새 identity에서 실행한다. Remote main의 PR #21 merge
+  `67fe37c...`를 baseline으로 별도 branch를 만들었고, diverged local main은 변경하지 않았다.
+  A-074 wrapper/result/report/lease와 FAIL 1/0·actual 0/0은 불변이다. A-075는 전용 offline
+  result/log/lease와 actual report/lease를 사용하며 새 clean-source offline PASS와 network-free
+  readiness 뒤에만 고정 synthetic 9 outbound actual을 정확히 한 번 실행한다. 제품 코드,
+  exact five-string/`NONE`, ACTIVE/OFFICIAL source, 3초·retry0·concurrency1·USD0.20 및 비보관
+  경계는 유지하고 public/remote/free-input·새 dependency·자동 rerun/merge는 금지한다.
+- D-125: Source `982198faed073a6c4e04205f5b3dde3f95ebae20`의 A-075 offline gate는
+  exact-one `PASS`, exit0·timed_out false·invocation/rerun1/0·stdout/stderr2006/0이며
+  network-free readiness도 PASS했다. 이어 actual lease를 한 번 소비했으나 fixed
+  20/0·11/9·policy/privacy outbound0과 별개로 outbound9 모두 HTTP 응답 전
+  `transport_no_response`여서 provider response/2xx/parse/accepted/match/token 0,
+  acceptance `FAIL`이다. Retention/retry/rerun은 모두 0이고 report/lease를 보존한다.
+  Conservative worst-case USD0.02306304<0.20은 실제 청구액 주장이 아니며 transport 하위
+  원인은 단정하지 않는다. A-074 evidence는 불변이고 추가 actual은 새 인간 결정 전 금지한다.
+- D-126: 사용자의 DeepSeek network-recovery 재실행 지시로 A-075를 덮어쓰지 않는 A-076
+  actual 1회를 승인한다. 비밀 없는 DNS·TCP443·TLS/HTTP 사전 진단은 모두 성공했고 무인증
+  HTTP 4xx를 받아 응답 경로 복구를 확인했다. A-076은 별도 offline/result/report/lease
+  identity에서 기존 20/0·11/9·3초·retry0·concurrency1·output128·USD0.20·무보관 경계를
+  그대로 사용한다. clean source offline PASS와 readiness 뒤 정확히 한 번만 actual을 실행하며
+  결과와 무관하게 A-074/A-075 증거를 변경하거나 자동 재실행·merge하지 않는다.
+- D-127: Source `c9fc1be452db81ea6270211da666e7c854298fe0`의 A-076 offline/readiness는
+  PASS했지만 exact-one actual은 다시 `transport_no_response` 9/9로 `FAIL`했다. DNS·TCP443·
+  TLS/HTTP value-free probe는 PASS했고 actual 28.6초가 9×3초 전체 timeout budget과 거의
+  일치하므로 3초 timeout 만료가 가장 강한 가설이지만 exception detail 비보관 정책상 확정하지
+  않는다. Provider response/2xx/parse/accepted/match/token0, retention/retry/rerun0이며 A-074/
+  A-075/A-076 report와 lease를 보존한다. Timeout 변경과 추가 actual은 새 인간 결정이 필요하다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

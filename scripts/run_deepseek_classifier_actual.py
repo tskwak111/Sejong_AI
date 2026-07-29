@@ -117,6 +117,7 @@ _OFFICIAL_RECORDS_MAX_BYTES = 4 * 1024 * 1024
 _RELEASE_MANIFEST_MAX_BYTES = 256 * 1024
 _OFFLINE_RESULT_MAX_BYTES = 64 * 1024
 _OFFLINE_LOG_MAX_BYTES = 64 * 1024 * 1024
+_OFFLINE_GATE = "A-074-OFFLINE"
 _OFFLINE_LEASE_TEXT = "A-074-OFFLINE-GATE one-shot lease\n"
 _ACTUAL_LEASE_TEXT = "A-074-DEEPSEEK-CLASSIFIER one-shot lease\n"
 _UPSTAGE_MODE_KEYS = (
@@ -222,6 +223,36 @@ class _EvidenceWriteFailed(RuntimeError):
 
 class _RunAlreadyExists(RuntimeError):
     """A permanent lease or immutable report already exists."""
+
+
+class _EvidenceIdentityInvalid(RuntimeError):
+    """A corrective evidence profile is invalid or the core identity drifted."""
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceIdentity:
+    """All filesystem and sentinel values that define one immutable evidence run."""
+
+    report_path: Path
+    offline_result_path: Path
+    offline_lock_path: Path
+    offline_stdout_path: Path
+    offline_stderr_path: Path
+    offline_gate: str
+    offline_lease_text: str
+    actual_lease_text: str
+
+
+A074_EVIDENCE_IDENTITY = EvidenceIdentity(
+    report_path=_REPORT_PATH,
+    offline_result_path=_OFFLINE_RESULT_PATH,
+    offline_lock_path=_OFFLINE_LOCK_PATH,
+    offline_stdout_path=_OFFLINE_STDOUT_PATH,
+    offline_stderr_path=_OFFLINE_STDERR_PATH,
+    offline_gate=_OFFLINE_GATE,
+    offline_lease_text=_OFFLINE_LEASE_TEXT,
+    actual_lease_text=_ACTUAL_LEASE_TEXT,
+)
 
 
 class _Classifier(Protocol):
@@ -417,6 +448,97 @@ class _ResponseStageRecorder:
         if type(stage) is not ClassifierResponseStage:
             raise ValueError("CLASSIFIER_RESPONSE_STAGE_INVALID")
         self.counts[stage] += 1
+
+
+def _current_evidence_identity() -> EvidenceIdentity:
+    return EvidenceIdentity(
+        report_path=_REPORT_PATH,
+        offline_result_path=_OFFLINE_RESULT_PATH,
+        offline_lock_path=_OFFLINE_LOCK_PATH,
+        offline_stdout_path=_OFFLINE_STDOUT_PATH,
+        offline_stderr_path=_OFFLINE_STDERR_PATH,
+        offline_gate=_OFFLINE_GATE,
+        offline_lease_text=_OFFLINE_LEASE_TEXT,
+        actual_lease_text=_ACTUAL_LEASE_TEXT,
+    )
+
+
+def _validate_corrective_evidence_identity(identity: EvidenceIdentity) -> None:
+    if type(identity) is not EvidenceIdentity or identity == A074_EVIDENCE_IDENTITY:
+        raise _EvidenceIdentityInvalid
+    paths = (
+        identity.report_path,
+        identity.offline_result_path,
+        identity.offline_lock_path,
+        identity.offline_stdout_path,
+        identity.offline_stderr_path,
+    )
+    if (
+        any(not isinstance(path, Path) or not path.is_absolute() for path in paths)
+        or len(frozenset(path.resolve() for path in paths)) != len(paths)
+        or identity.report_path.resolve().parent
+        != (_REPOSITORY_ROOT / "docs" / "test-reports").resolve()
+        or any(
+            path.resolve().parent != identity.offline_result_path.resolve().parent
+            for path in paths[1:]
+        )
+        or _REPOSITORY_ROOT.resolve()
+        not in identity.offline_result_path.resolve().parents
+        or re.fullmatch(r"A-\d{3}-OFFLINE", identity.offline_gate) is None
+        or not identity.offline_lease_text.endswith("\n")
+        or not identity.actual_lease_text.endswith("\n")
+        or len(identity.offline_lease_text) > 128
+        or len(identity.actual_lease_text) > 128
+    ):
+        raise _EvidenceIdentityInvalid
+    try:
+        identity.offline_lease_text.encode("ascii")
+        identity.actual_lease_text.encode("ascii")
+    except UnicodeError:
+        raise _EvidenceIdentityInvalid from None
+    a074_paths = {
+        A074_EVIDENCE_IDENTITY.report_path.resolve(),
+        A074_EVIDENCE_IDENTITY.offline_result_path.resolve(),
+        A074_EVIDENCE_IDENTITY.offline_lock_path.resolve(),
+        A074_EVIDENCE_IDENTITY.offline_stdout_path.resolve(),
+        A074_EVIDENCE_IDENTITY.offline_stderr_path.resolve(),
+    }
+    if any(path.resolve() in a074_paths for path in paths):
+        raise _EvidenceIdentityInvalid
+
+
+def _set_evidence_identity(identity: EvidenceIdentity) -> None:
+    global _ACTUAL_LEASE_TEXT
+    global _OFFLINE_GATE
+    global _OFFLINE_LEASE_TEXT
+    global _OFFLINE_LOCK_PATH
+    global _OFFLINE_RESULT_PATH
+    global _OFFLINE_STDERR_PATH
+    global _OFFLINE_STDOUT_PATH
+    global _REPORT_PATH
+
+    _REPORT_PATH = identity.report_path
+    _OFFLINE_RESULT_PATH = identity.offline_result_path
+    _OFFLINE_LOCK_PATH = identity.offline_lock_path
+    _OFFLINE_STDOUT_PATH = identity.offline_stdout_path
+    _OFFLINE_STDERR_PATH = identity.offline_stderr_path
+    _OFFLINE_GATE = identity.offline_gate
+    _OFFLINE_LEASE_TEXT = identity.offline_lease_text
+    _ACTUAL_LEASE_TEXT = identity.actual_lease_text
+
+
+@contextmanager
+def _bind_corrective_evidence_identity(
+    identity: EvidenceIdentity,
+) -> Iterator[None]:
+    if _current_evidence_identity() != A074_EVIDENCE_IDENTITY:
+        raise _EvidenceIdentityInvalid
+    _validate_corrective_evidence_identity(identity)
+    _set_evidence_identity(identity)
+    try:
+        yield
+    finally:
+        _set_evidence_identity(A074_EVIDENCE_IDENTITY)
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> _RunnerOptions:
@@ -800,7 +922,7 @@ def _require_offline_gate(source_sha: str) -> str:
         type(document) is not dict
         or frozenset(document) != _OFFLINE_RESULT_FIELDS
         or document["schema_version"] != 1
-        or document["gate"] != "A-074-OFFLINE"
+        or document["gate"] != _OFFLINE_GATE
         or document["source_sha"] != source_sha
         or document["outcome"] != "PASS"
         or document["exit_code"] != 0
@@ -1384,7 +1506,7 @@ def _write_report_once(path: Path, report: Mapping[str, object]) -> None:
                 pass
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def _run_current_evidence_identity(argv: Sequence[str] | None = None) -> int:
     try:
         options = _parse_args(argv)
     except Exception:
@@ -1467,6 +1589,24 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1
         print(_safe_console_report(report))
         return 0
+
+
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    evidence_identity: EvidenceIdentity | None = None,
+) -> int:
+    if evidence_identity is None:
+        return _run_current_evidence_identity(argv)
+    try:
+        with _bind_corrective_evidence_identity(evidence_identity):
+            return _run_current_evidence_identity(argv)
+    except _EvidenceIdentityInvalid:
+        print(
+            "DEEPSEEK_CLASSIFIER_EVIDENCE_IDENTITY_INVALID",
+            file=sys.stderr,
+        )
+        return 2
 
 
 if __name__ == "__main__":

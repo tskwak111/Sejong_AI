@@ -260,6 +260,35 @@ C0/I0/M0를 확인했다. 이 교정은 gate FAIL을 소급 변경하지 않는�
 blocked/unexecuted invocation/rerun 0/0이고 report/lease·outbound·token·cost는 모두 0이다.
 A-073 root `NOT VERIFIED/FAIL`, invocation/rerun 1/0도 그대로다.
 
+2026-07-29 D-124/D-125의 A-075 corrective evidence는 A-074를 덮어쓰지 않는 새
+identity다. Source `982198faed073a6c4e04205f5b3dde3f95ebae20`의 A-075 offline gate는
+exact-one `PASS`, exit0·timed_out false·invocation/rerun1/0이다. Network-free readiness도
+PASS한 뒤 DeepSeek actual lease를 정확히 한 번 소비했으나 acceptance는 `FAIL`이다. Fixed
+20/0과 deterministic/provider 11/9, policy/privacy outbound0은 맞았지만 outbound9 모두
+HTTP 응답 전 `transport_no_response`였고 provider response·2xx·parse·accepted·oracle match와
+observed token은 모두 0이다. 보수적 worst-case 비용은 USD0.02306304<0.20이며 실제 청구액으로
+간주하지 않는다. 질문·masked question·request/response body·invalid value·secret 보관은
+모두 0, retry/rerun0, permanent report/lease 존재 상태로 종료한다. 원인은 transport 단계로만
+한정하며 DNS/TLS/proxy/timeout 중 무엇인지 추측하지 않는다. 실제 classifier 활성화 성공이나
+ public/remote/free-input 승격 근거로 사용하지 않는다.
+
+2026-07-29 D-126은 사용자의 DeepSeek 재실행 지시를 A-075 overwrite가 아닌 별도 A-076
+network-recovery actual 1회 승인으로 확정한다. 비밀 없는 사전 진단에서 DNS, TCP443,
+TLS/HTTP 응답이 모두 성공했고 무인증 요청은 예상된 4xx class를 받았다. A-074/A-075
+report·lease·invocation/rerun은 불변이며 새 A-076 offline/result/report/lease identity에서
+동일 20/0·11/9·3초·retry0·concurrency1·output128·USD0.20·무보관 경계를 사용한다.
+clean source offline PASS와 readiness 뒤 actual을 정확히 한 번만 실행하며 자동 rerun/merge와
+public/remote/free-input은 금지한다.
+
+D-127의 A-076 source `c9fc1be452db81ea6270211da666e7c854298fe0` offline gate와
+network-free readiness는 PASS했다. 이어 actual lease를 정확히 한 번 소비했지만 20/0·11/9의
+outbound9 모두 다시 HTTP 응답 전 `transport_no_response`였고 provider response·2xx·parse·
+accepted·oracle match·observed token은 0이라 acceptance는 `FAIL`이다. Value-free DNS·
+TCP443·TLS/HTTP probe는 PASS했고 actual 28.6초가 9×3초 전체 timeout budget과 거의 일치해
+3초 만료가 가장 강한 가설이지만 exception detail 비보관 경계상 확정하지 않는다. 질문·body·
+invalid value·secret retention과 retry/rerun은 0이고 report/lease를 보존한다. Timeout 정책
+변경과 추가 actual은 새 인간 결정 전 금지한다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는
