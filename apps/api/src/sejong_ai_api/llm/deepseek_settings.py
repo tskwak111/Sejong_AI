@@ -20,7 +20,8 @@ from sejong_ai_api.llm.settings import (
 DEEPSEEK_PROVIDER = "deepseek"
 DEEPSEEK_MODEL = "deepseek-v4-flash"
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-DEEPSEEK_TIMEOUT_SECONDS = 3.0
+DEEPSEEK_CONNECT_TIMEOUT_SECONDS = 3.0
+DEEPSEEK_TIMEOUT_SECONDS = 10.0
 DEEPSEEK_MAX_RETRIES = 0
 DEEPSEEK_MAX_CONCURRENCY = 1
 DEEPSEEK_MAX_INPUT_CHARS = 1024
@@ -52,6 +53,10 @@ class DeepSeekClassifierSettings:
     provider: str = field(default=DEEPSEEK_PROVIDER, init=False)
     model: str = field(default=DEEPSEEK_MODEL, init=False)
     base_url: str = field(default=DEEPSEEK_BASE_URL, init=False)
+    connect_timeout_seconds: float = field(
+        default=DEEPSEEK_CONNECT_TIMEOUT_SECONDS,
+        init=False,
+    )
     timeout_seconds: float = field(default=DEEPSEEK_TIMEOUT_SECONDS, init=False)
     max_retries: int = field(default=DEEPSEEK_MAX_RETRIES, init=False)
     max_concurrency: int = field(default=DEEPSEEK_MAX_CONCURRENCY, init=False)

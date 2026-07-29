@@ -568,6 +568,39 @@ def test_aggregate_actual_deadline_bounds_slow_run(
     assert elapsed < 0.04
 
 
+def test_corrective_identity_binds_its_own_actual_deadline_and_restores_a074() -> None:
+    runner = _runner()
+    offline_directory = (
+        _REPOSITORY_ROOT
+        / ".superpowers"
+        / "sdd"
+        / "synthetic-corrective-deadline-test"
+    )
+    identity = runner.EvidenceIdentity(
+        report_path=(
+            _REPOSITORY_ROOT
+            / "docs"
+            / "test-reports"
+            / "SYNTHETIC-CORRECTIVE-DEADLINE-TEST.md"
+        ),
+        offline_result_path=offline_directory / "result.json",
+        offline_lock_path=offline_directory / "result.json.run.lock",
+        offline_stdout_path=offline_directory / "stdout.log",
+        offline_stderr_path=offline_directory / "stderr.log",
+        offline_gate="A-999-OFFLINE",
+        offline_lease_text="A-999-OFFLINE-GATE one-shot lease\n",
+        actual_lease_text="A-999-DEEPSEEK-CLASSIFIER one-shot lease\n",
+        actual_run_deadline_seconds=100,
+    )
+
+    assert runner.A074_EVIDENCE_IDENTITY.actual_run_deadline_seconds == 32
+    with runner._bind_corrective_evidence_identity(identity):
+        assert runner._ACTUAL_RUN_DEADLINE_SECONDS == 100
+        assert runner._current_evidence_identity() == identity
+    assert runner._ACTUAL_RUN_DEADLINE_SECONDS == 32
+    assert runner._current_evidence_identity() == runner.A074_EVIDENCE_IDENTITY
+
+
 def test_readiness_rejects_nine_worst_case_costs_over_cap_before_lease_or_network(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

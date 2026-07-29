@@ -289,6 +289,13 @@ TCP443·TLS/HTTP probe는 PASS했고 actual 28.6초가 9×3초 전체 timeout bu
 invalid value·secret retention과 retry/rerun은 0이고 report/lease를 보존한다. Timeout 정책
 변경과 추가 actual은 새 인간 결정 전 금지한다.
 
+2026-07-29 Q-LLM-015=A/D-128은 위 가설만 검증하는 A-077 local/private 교정을 승인했다.
+DeepSeek connect/write/pool timeout은 3초로 유지하고 read와 complete exchange는 10초로
+분리한다. Retry0·concurrency1·output128·USD0.20·무보관·exact five-string parser는 유지한다.
+새 clean source의 A-077 offline/readiness 뒤 합성 1-call aggregate probe가 HTTP 2xx를 받은
+경우에만 별도 9-call actual을 실행한다. A-074~076 증거, API/DB/data/Web/final-answer provider,
+public/remote/free-input과 dependency는 변경하지 않는다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

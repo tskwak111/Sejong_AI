@@ -300,6 +300,10 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   9×3초 complete-exchange timeout과 거의 일치하므로 timeout 만료가 가장 강한 가설이지만
   exception detail 비보관 경계상 확정하지 않는다. Timeout 변경과 추가 actual은 새 승인 전
   금지하고 A-074/A-075/A-076 증거를 모두 보존한다.
+- D-128의 A-077은 이 timeout 가설만 최소 변경으로 검증한다. connect/write/pool3초와
+  read/complete10초를 분리하고, clean source offline/readiness 뒤 one-call HTTP 2xx probe가
+  PASS한 경우에만 별도 9-call actual을 실행한다. Retry0·무보관·USD0.20·exact parser와
+  이전 evidence 불변을 유지하며 public/API/DB/data/Web/final-answer provider는 바꾸지 않는다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.
