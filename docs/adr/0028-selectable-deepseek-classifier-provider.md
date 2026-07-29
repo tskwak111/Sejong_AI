@@ -181,3 +181,18 @@ Plan approval may authorize provider-free Tasks 1 through 6. It does not authori
 provider call. A live A-080 evaluation requires the separate exact approval
 `A-080 DeepSeek actual 1회 실행 승인`, uses 20 selected/0 skipped and 11 provider-free/9 provider
 cases, and can run only once on a clean source after the immutable offline gate passes.
+
+## 2026-07-29 sixth amendment — D-135 / A-080 provider-free implementation
+
+The A-080 specification and plan are Approved implementation authority. Provider-free Tasks 1~3
+implemented the shared semantic route rubric and disjoint evidence identities: the prompt system
+length is 896, prompt tests are 22 PASS, the DeepSeek framing bound is 1 PASS, provider suites are
+133 PASS, and controlled-wrapper tests are 9 PASS with a clean PowerShell parser and Ruff. Scoped
+task reviews are clean.
+
+This checkpoint does not consume the A-080 offline gate, readiness, or actual lease: all are 0;
+provider calls and cost are 0. It changes neither the exact five-string wire/parser nor
+fail-closed/server-owned privacy, storage, ACTIVE/OFFICIAL grounding and source boundaries. It
+also does not alter API, shared contracts, Web, DB, official/mock data, dependencies, public/remote
+scope or the final-answer provider. A-079 remains transport/wire verified and quality `FAIL 6/9`.
+The A-080 actual may run only after the separate exact approval `A-080 DeepSeek actual 1회 실행 승인`.
