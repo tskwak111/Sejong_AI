@@ -251,7 +251,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   point.
 - Does not produce: a provider call, lease or permanent report during this task.
 
-- [ ] **Step 1: Add failing identity tests**
+- [x] **Step 1: Add failing identity tests**
 
   Require exactly:
 
@@ -268,7 +268,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   Also compare the A-080 report/result/lock/stdout/stderr paths against A-074~A-079 and assert every
   path differs.
 
-- [ ] **Step 2: Run the identity tests and observe RED**
+- [x] **Step 2: Run the identity tests and observe RED**
 
   ```powershell
   apps/api/.venv/Scripts/python.exe -m pytest `
@@ -279,7 +279,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 
   Expected: import/file-not-found failure because the A-080 wrappers do not exist.
 
-- [ ] **Step 3: Implement the thin A-080 actual wrapper**
+- [x] **Step 3: Implement the thin A-080 actual wrapper**
 
   Define `_OFFLINE_DIRECTORY` as
   `.superpowers/sdd/2026-07-29-deepseek-classifier-quality` and create:
@@ -310,7 +310,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   read or print the API key. No probe is added: A-079 already proved transport/wire and A-080 is a
   quality-only successor.
 
-- [ ] **Step 4: Mechanically clone the hardened offline wrapper under A-080 identity**
+- [x] **Step 4: Mechanically clone the hardened offline wrapper under A-080 identity**
 
   Preserve the A-079 implementation and change only:
 
@@ -325,7 +325,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   The result JSON gate must be `A-080-OFFLINE`, and console terminals must be
   `A080_OFFLINE_GATE_PASS`, `A080_OFFLINE_GATE_FAIL` and the corresponding bounded error names.
 
-- [ ] **Step 5: Test exact-LF, one-shot and failure behavior**
+- [x] **Step 5: Test exact-LF, one-shot and failure behavior**
 
   The controlled repository tests must prove:
 
@@ -335,7 +335,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   - no provider endpoint or secret is used;
   - actual readiness rejects absent/wrong offline evidence and an existing actual report.
 
-- [ ] **Step 6: Run controlled wrapper tests and parser check**
+- [x] **Step 6: Run controlled wrapper tests and parser check**
 
   ```powershell
   apps/api/.venv/Scripts/python.exe -m pytest `
@@ -348,7 +348,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   Expected: all tests pass and the PowerShell parser raises no exception. This step does not run the
   real A-080 offline gate or provider.
 
-- [ ] **Step 7: Commit the evidence harness**
+- [x] **Step 7: Commit the evidence harness**
 
   ```powershell
   git add scripts/run_deepseek_classifier_quality_actual.py `
