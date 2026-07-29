@@ -89,5 +89,5 @@ paths, gate name, lease payloads and report.
 - [x] If and only if readiness PASS, run A-075 actual exactly once.
 - [x] Record aggregate result, source SHA, invocation/rerun and cost without provider content.
 - [x] Synchronize decisions, task, versions, report links, implementation note and INDEX.
-- [ ] Run final documentation/secret/diff checks, commit, push and create a Draft PR.
+- [x] Run final documentation/secret/diff checks, commit, push and create a Draft PR.
 - [x] Do not auto merge.

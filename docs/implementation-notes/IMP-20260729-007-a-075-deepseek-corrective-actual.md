@@ -7,6 +7,9 @@
 - Author/Agent: Codex root agent
 - Branch: codex/a-075-deepseek-corrective-actual
 - Base commit: 67fe37c
+- Source checkpoint: 982198f
+- Closeout commit: 9632c42
+- Draft PR: https://github.com/tskwak111/Sejong_AI/pull/22
 - Related plan/ADR/RFP: D-124, ADR-0028, A-075 discovery/specification/plan
 
 ## 1. 사용자 요청과 완료 기준
