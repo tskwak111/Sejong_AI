@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Design — A-080 classifier semantic route rubric
+
+- Recorded D-133/Q-LLM-016-QUALITY=A after detecting that the user's literal Q-LLM-015 label
+  collided with historical D-128; history is preserved rather than rewritten.
+- Approved the design direction for a compact shared five-route semantic rubric, narrowest-row
+  selection and binding coverage exclusions. Product code and provider calls remain zero pending
+  written-spec and plan approval.
+
 ### Closed — A-077/A-078 DeepSeek split-timeout correction
 
 - Approved and implemented a local/private timeout split: connect/write/pool remain 3 seconds,

@@ -263,6 +263,11 @@
   response/2xx/strict/server accepted를 통과했다. Oracle match6/9로 overall FAIL이며
   transport·wire 문제가 아닌 분류 품질 차이다. Retry/rerun/retention0이고 추가 actual은
   새 인간 결정 전 금지한다.
+- D-133/Q-LLM-016-QUALITY=A: 사용자의 literal `Q-LLM-015: A`는 기존 D-128 ID와
+  충돌하므로 history를 보존하고 canonical alias로 분리한다. A-080은 shared classifier
+  prompt에 다섯 route 의미·narrowest-row·binding coverage exclusions를 추가하는 설계다.
+  Exact wire/parser/PII/storage/ACTIVE-OFFICIAL/provider limits/API/DB/data/public 경계는
+  불변이며 written spec review 전 code0, 별도 승인 전 actual0이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
