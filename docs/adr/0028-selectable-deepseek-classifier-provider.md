@@ -158,3 +158,15 @@ one-call probe received HTTP 2xx with strict parse and accepted usage. The condi
 received nine HTTP 2xx responses and accepted all nine exact wire decisions. Oracle agreement was
 six of nine, so overall acceptance is `FAIL` on classification quality, not transport or contract
 shape. No automatic rerun is allowed; a quality-correction run requires a new human decision.
+
+## 2026-07-29 fourth amendment — D-133 / A-080 quality design
+
+The user approved option A for the `6/9` quality follow-up. Because the literal
+`Q-LLM-015` label was already used by D-128, D-133 preserves history and assigns the canonical
+alias `Q-LLM-016-QUALITY`.
+
+A-080 will keep one provider-neutral prompt and add compact semantics for all five routes, require
+the narrowest covered catalog row and treat coverage exclusions as binding. Exact wire, parser,
+PII, storage, ACTIVE/OFFICIAL grounding, provider limits, final-answer provider, public API, DB,
+data and deployment remain unchanged. This amendment approves the written design only. Product
+code and A-080 provider calls remain unapproved.
