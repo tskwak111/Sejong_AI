@@ -116,6 +116,108 @@
   PII-free 20-case selector actual은 정확히 한 번 실행해 20 selected·skip 0·11
   provider-free·9 outbound였으나 strict accepted usage/provider match 0으로 FAIL했고
   재실행하지 않았다.
+- Q-LLM-013=A/D-107: 명시적 `JSON만` 지시만 복원한 source `4cb42ff`의 exact-one actual은
+  같은 9 outbound 모두 HTTP 2xx와 accepted usage를 반환해 D-106의 4xx를 해소했다. strict
+  closed decision accepted/match는 0이라 overall FAIL이며 재시도하지 않았다. response body를
+  보관하지 않아 다음 검증 단계는 A-071로 분리하고 현재 fail-closed fallback을 유지한다.
+- D-108: A-071은 production parser의 enum-only optional observer와 aggregate-only report로
+  진단한다. same fixed 20·9 outbound·retry 0·USD0.20 exact-one actual 방향은 승인됐지만
+  written specification 확인 전 code/provider call은 0이다.
+- D-109: written specification과 exact RED/GREEN inline 실행계획을 승인했다. code/test/source
+  commit 뒤 actual 1회만 실행하고 결과와 관계없이 재시도하지 않는다.
+- D-110: A-071의 contract parser, production optional observer와 aggregate-only runner를
+  TDD로 구현했다. 13개 terminal enum 외 값은 진단 경계를 통과하지 않고 observer 오류는
+  시민 decision/fallback을 바꾸지 않는다. 142 focused PASS와 Ruff/Mypy PASS 뒤 D-107 report를
+  archive했으며, clean source commit과 exact-one actual은 다음 gate다.
+- D-111: clean source `0646db0`의 approved exact-one actual은 20 selected·0 skip·11
+  provider-free·9 outbound, 9/9 HTTP 2xx·strict usage·stage total을 기록했고 모든 response가
+  `KEY_SET_REJECTED`에서 종료했다. accepted/match 0이라 FAIL이며 retry 0, 비용은 VAT 포함
+  USD0.002626503이다. body/status detail/key/DSN/question 보관 0과 local modes false/false를
+  유지한다. A-071은 resolved, exact-key corrective와 새 actual은 A-072 human gate다.
+- D-112/Q-LLM-014=A: A-072 provider wire는 Upstage strict `json_schema`를 사용하고
+  `route`, `intent`, `topic_id`, `coverage_id`, `pending_slot` 다섯 필드를 모두 required
+  string으로 제한한다. nullable 의미는 wire의 고정 `NONE` sentinel로 표현한 뒤 서버가 기존
+  내부 `None`으로 정규화한다. public API/DB/data/dependency와 server-bound source는 불변이다.
+  상세 설계 승인 전 code/provider call은 0이고 새 actual은 구현·offline 검증 뒤 별도 gate다.
+- D-113: A-072 설계 1부를 승인했다. exact 5-key string schema와 nullable 4필드의 `NONE`
+  normalization, full-name prompt, 기존 closed server validation, retry 0·fail-closed가 권위다.
+  provider schema는 동적 catalog enum을 복제하지 않는다. 설계 2부와 written specification
+  승인 전 code/provider call은 0이다.
+- D-114: A-072 설계 2부를 승인하고 strict wire integrated written specification을 Review로
+  게시했다. provider-only parser는 exact `NONE`만 canonical `None`으로 바꾸며 기존 validator와
+  fixed terminal stage를 공유한다. target application/prompt/tests는 `0.12.3/0.4.2/2.1.6`이고
+  API/DB/data/dependency는 불변이다. actual은 offline/root gate와 clean source 뒤 별도 승인 전 0이다.
+- D-115: A-072 written specification을 Approved로 전환하고 exact RED/GREEN Tasks 1~5 plan을
+  Review로 게시했다. Task 6 actual은 이 plan 승인과 분리하며 Tasks 1~5 PASS·clean source 뒤
+  exact 별도 승인이 필요하다. code/provider call/dependency/API/DB/data/push/merge는 아직 0이다.
+- D-116: 사용자의 `계획 승인, 1번으로 구현 시작`으로 A-072 Tasks 1~5와 Subagent-Driven
+  실행을 승인했다. exact `NONE` provider parser, bounded canonical prompt, fresh strict schema와
+  offline area/version integration을 구현해 area 333·controlled-double runner 24·Ruff/Mypy
+  115 PASS를 얻었다. application/prompt/tests만 `0.12.3/0.4.2/2.1.6`으로 전진하고 API/contracts/
+  DB/data/dependency/provider actual call/cost는 0이다. Task 5 뒤 corrective actual은 D-117
+  별도 exact 인간 승인 전 금지한다.
+- D-117: 사용자의 exact 승인 뒤 clean source `efc0b34`에서 A-072 corrective actual을 정확히
+  한 번 실행했다. 20 selected·0 skip·11 provider-free·9 outbound, privacy/policy outbound 0,
+  HTTP 2xx·strict usage·terminal stage total 9였고 D-111의 `KEY_SET_REJECTED`는 0으로
+  해소됐다. 그러나 9건 모두 `ENUM_SHAPE_REJECTED`, accepted/match 0이라 전체 acceptance는
+  FAIL이며 재실행하지 않았다. retry 0, 비용은 VAT 포함 USD 0.002496648로 cap USD 0.20
+  미만이다. 질문·provider body·status detail·key·DSN 보관 0, lock 0, local modes false/false다.
+- D-118: A-073의 explicit route matrix와 refined value-free diagnostics 설계를 승인했다.
+  provider schema와 public contract는 유지하고 prompt에 route별 exact five-field 조합,
+  provider intent/pending vocabulary, literal uppercase `NONE`과 same-row topic/coverage를
+  명시한다. 새 진단은 route·intent·pending-slot·identifier·route-shape first-failure count만
+  aggregate하며 질문·provider body·wrong value·fixture별 stage를 보관하지 않는다.
+  written specification과 plan 승인 전 code/provider call은 0이고, actual은 별도 exact 승인
+  전 금지한다.
+- D-119: 사용자의 `명세 승인`으로 A-073 written specification을 Approved로 확정하고 TDD
+  implementation plan을 Review로 게시했다. Tasks 1~5는 offline TDD·영역 검증·clean-source
+  gate까지만 포함한다. provider-only catalog는 intent별 compact row로 직렬화하되 exact
+  topic/coverage/label과 approved example 최대 2개를 보존한다. configured question 1,024와
+  complete-message 4,096 guard는 유지하며 actual-eligible 20-topic/256-character prompt만
+  guard 통과를 요구한다. 제품 코드·provider call·DB/data/API/dependency는 이 checkpoint에서
+  0이고 Task 6 actual은 별도 exact 인간 승인 전 금지한다.
+- D-120: 사용자의 exact `계획 승인, 1번 Subagent-Driven으로 구현 시작`으로 A-073 Tasks 1~5
+  offline plan과 Subagent-Driven 실행을 승인했다. Tasks 1~4는 shared typed decision builder,
+  five refined value-free stages, explicit route matrix·literal `NONE`·intent-grouped catalog,
+  production-wire oracle와 version/authority 통합을 완료했다. baseline-stale
+  controlled mock의 JSON null 1건은 RED 뒤 exact string `"NONE"`으로만 교정했다. application
+  `0.12.4-classifier-wire-diagnostics`, prompt_set `0.4.3-explicit-route-matrix`, test_suite
+  `2.1.7-classifier-wire-correction`만 전진하고 API/contracts/Web/DB/
+  data/dependency는 불변이다. Task 5 root wrapper는 exact 1회 호출했지만 harness timeout
+  `124`로 final stdout/exit를 회수하지 못해 aggregate를 `NOT VERIFIED/FAIL`로 기록하고
+  재실행하지 않았다. 독립 docs/secret/diff/status는 PASS이며 provider/network actual
+  call/cost는 계속 0/USD 0이다. Task 6은 root-gate 해소와 exact-one actual 승인 전 blocked다.
+- D-121: A-073 final review fix wave와 scoped re-review를 완료했다. production prompt에 네
+  provider intent의 contiguous vocabulary를 복원하고 adjacent first-failure precedence와
+  selected-question/provider-body/invalid-value 비보관을 mutation/focused test로 강화했다.
+  final prompt는 4,067자·guard margin 29, area 397·controlled-double 39·Ruff/Mypy 115이며
+  scoped re-review는 actionable finding 0이다. documentation만 `2.30.6→2.30.7`로 전진하고
+  다른 version axis와 API/contracts/Web/DB/data/dependency는 불변이다. Task 5 root aggregate
+  `NOT VERIFIED/FAIL`, invocation/rerun `1/0`을 그대로 보존한다. A-073 corrective actual은
+  실행 0이며 기존 Upstage actual도 재실행하지 않고 offline review 상태로 종료한다.
+- D-122/Q-LLM-PROVIDER-001=A: DeepSeek exact `deepseek-v4-flash`를 local/private
+  질문 분류의 명시적 선택 공급자로 추가한다. exact five-string/`NONE`, server parser,
+  deterministic PII/policy/obvious route, ACTIVE/OFFICIAL grounding과 server-owned source를
+  유지하고 기존 Upstage classifier·grounded final generator를 보존한다. DeepSeek는 local
+  `create_local_app`/loopback에만 구성하며 public main·remote DB·실제 시민 운영에는 연결하지
+  않는다. 새 A-074 offline gate 1회와 clean-source review 뒤 고정 synthetic 20 actual을
+  1회만 실행하고 실패도 aggregate evidence로 닫아 rerun0을 유지한다. 새 production
+  dependency, final answer 공급자 변경과 자동 merge는 금지한다. Offline Tasks 1~6b는
+  selector/settings, strict transport, provider별 비용·usage, local composition과 controlled
+  one-shot runner/wrapper를 구현하고 pre-gate review의 Important 5+1을 두 fix wave로 닫았다.
+  최종 fresh review는 Critical 0 / Important 0 / Minor 0 `READY`이며, recursive duplicate
+  key·bounded identity/raw response·total deadline·exact-byte/pre-lease identity·post-child
+  source/tree 경계를 포함한다. 이 checkpoint의 A-074 gate와 DeepSeek actual은 invocation/
+  rerun 각각 0/0이고 artifact·token·비용·PASS/FAIL은 아직 없다.
+- D-123: hardened source `9c7f818123533a4adc61d3953ed4d4630c793891`의 A-074 offline
+  wrapper exact-one outcome은 immutable `FAIL`이다. Exit 1, timed_out false, invocation/rerun
+  1/0, stdout/stderr 475/0 bytes, first failing governed stage `TEST-ROOT`를 aggregate로
+  보존하고 재실행하지 않는다. Standalone 434-test 진단은 expected environment map이 이미
+  안전하게 tracked된 classifier 네 값을 누락한 repository-truth mismatch 1건을 찾았고
+  test-only +4 교정 뒤 exact PASS와 full `434 OK / skipped 2`, review C0/I0/M0를 확인했다.
+  이 corrective evidence는 immutable gate를 PASS로 바꾸지 않는다. DeepSeek actual은
+  blocked/unexecuted invocation/rerun 0/0이고 report/lease, outbound, token, cost는 모두 0이다.
+  A-073 root `NOT VERIFIED/FAIL` 1/0은 불변이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
@@ -128,7 +230,9 @@
 - Backend: FastAPI + Python
 - 개발 기준: Node 24.x+pnpm, Python 3.12+uv
 - DB/Search: Supabase PostgreSQL + Supabase CLI 버전 SQL migration + 키워드·메타데이터 검색; MVP embedding off
-- LLM: Upstage direct API, exact `solar-pro3`. 합성 evaluator는 기존 max output 1024,
+- LLM: 최종 시민 답변 생성은 Upstage direct API exact `solar-pro3`를 유지한다. 질문
+  classifier는 explicit selector로 disabled/Upstage/DeepSeek `deepseek-v4-flash` 중 하나를
+  local/private에서 선택할 수 있다. 합성 evaluator는 기존 max output 1024,
   concurrency 1, retry 최대 1, run outbound attempt 30 경계를 유지한다. 후속 LLM-003 시민
   경로는 local/private에서 supported+masked+ACTIVE/OFFICIAL+grounded일 때만 8초·1 attempt·
   hidden retry 0·concurrency 1·process cap 30으로 호출하고, server-issued fact ID와

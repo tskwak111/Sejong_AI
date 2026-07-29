@@ -141,6 +141,125 @@ HTTP response를 받았지만 전부 4xx class였고 2xx·5xx·transport/timeout
 decision·route/topic match는 0이었다. 따라서 provider client-rejection 단계까지는 진단됐지만
 auth/access/request-shape/quota 중 정확한 원인은 보관하지 않은 body/status detail 없이
 단정하지 않는다. corrective 결과도 FAIL이며 추가 실제 호출은 새 승인 전 금지한다.
+Q-LLM-013=A/D-107은 closed selector prompt의 누락된 명시적 `JSON만` 지시만 TDD로 복원했다.
+source `4cb42ff`의 단 한 번 corrective actual은 동일 20 selected·11 provider-free·9 outbound에서
+9/9 HTTP 2xx와 accepted usage, 4xx/5xx/transport 0을 기록해 D-106의 request-validation 4xx를
+해소했다. 그러나 strict closed decision accepted와 route/topic match는 0/9이므로 전체 결과는
+여전히 FAIL이고 재실행하지 않았다. 본문 비보관 경계 안에서 정확한 response-validation 단계는
+A-071로 남으며 local runtime은 fail-closed fallback을 유지한다.
+D-108은 A-071의 후속으로 production parser가 fixed terminal enum 하나만 optional observer에
+전달하고 runner가 aggregate count만 기록하는 value-free 진단 설계를 승인했다. body·status
+detail·exception·key·DSN과 per-fixture stage는 기록하지 않는다. public parser·시민 fallback·
+prompt·provider profile·API/DB/data/dependency는 불변이며 written spec 확인 전 구현과 provider
+call은 0이다.
+D-109는 위 written specification과 RED/GREEN inline plan을 승인했다. contract-stage parser,
+production enum-only observer, aggregate runner, clean source commit, fixed exact-one actual
+순으로 실행하며 actual 전까지 prompt/profile/API/DB/data/dependency는 고정한다.
+D-110은 A-071의 code/test/runner 구현을 완료했다. production parser는 HTTP response마다
+13개 fixed terminal enum 중 하나만 optional observer에 전달하고, observer 오류는 시민
+decision/fallback을 바꾸지 않는다. runner는 전체 aggregate count만 기록하며 per-fixture stage,
+질문·provider body·status detail·exception·key·DSN은 기록하지 않는다. 142개 집중 테스트와
+Ruff/Mypy가 통과했고, clean source commit 뒤 exact-one actual만 남았다.
+D-111은 clean source `0646db0`에서 승인된 exact-one actual을 실행했다. 20 selected·0 skip·
+11 provider-free·9 outbound, HTTP 2xx/strict usage/stage total은 모두 9였고 9건 전부
+`KEY_SET_REJECTED`에서 종료했다. accepted decision/match 0이라 전체 acceptance는 FAIL이며
+재실행하지 않았다. 비용은 VAT 포함 USD 0.002626503이고 local ignored modes false/false,
+lock 0, 질문·provider body·status detail·key·DSN 보관 0이다. A-071은 원인 단계 진단으로
+해결됐고 exact five-key 교정과 새 actual gate는 A-072다.
+D-112/Q-LLM-014=A는 A-072의 provider-only wire를 strict Upstage `json_schema`로 확정한다.
+응답은 `route`, `intent`, `topic_id`, `coverage_id`, `pending_slot` 다섯 required string만
+허용하고 nullable 의미는 고정 `NONE` sentinel로 표현한 뒤 서버가 기존 내부 `None`으로
+정규화한다. public classifier/chat 계약, DB/data/dependency와 서버 소유 출처 결합은 바뀌지
+않는다. 상세 설계 승인 전 제품 코드와 provider call은 0이고 corrective actual은 구현·offline
+검증 후 별도 인간 gate다.
+D-113은 사용자의 `설계 1부 승인`으로 위 provider wire와 서버 권위 경계를 확정했다. nullable
+대상은 `intent`, `topic_id`, `coverage_id`, `pending_slot`이며 exact `NONE`만 내부 `None`으로
+바꾼다. 동적 catalog 값은 schema에 복제하지 않고 기존 server validation이 판정한다. 설계 2부와
+written specification 승인 전 code/provider call은 0이다.
+D-114는 사용자의 `설계 2부 승인`으로 provider-only normalization, fixed-stage 오류 처리,
+TDD·version·actual gate를 승인하고 A-072 integrated written specification을 Review로 게시했다.
+정확한 문제는 provider HTTP·JSON은 성공하지만 exact canonical key set이 9/9 불일치해 기존
+strict server가 모두 폐기한다는 것이다. 이번 교정은 schema/prompt/wire adapter만 바꾸고
+public API/DB/data/dependency는 보존한다. 실제 호출은 offline/root gate와 clean source 뒤
+별도 승인 전 0이다.
+D-115는 사용자의 `명세 승인`으로 A-072 written specification을 Approved로 전환하고
+provider wire parser→canonical prompt→strict schema transport→area/version integration→
+root/clean-source gate의 exact TDD Tasks 1~5 plan을 Review로 게시했다. Task 6 actual은 plan
+승인에 포함되지 않으며 Tasks 1~5 PASS 뒤 별도 exact 승인이 필요하다. code/provider call,
+API/DB/data/dependency, push/merge는 아직 0이다.
+D-116은 사용자의 `계획 승인, 1번으로 구현 시작`으로 Tasks 1~5와 Subagent-Driven 실행을
+승인했다. provider-only exact `NONE` parser, bounded canonical prompt와 fresh strict schema를
+TDD로 구현했고 area 333·controlled-double runner 24·Ruff/Mypy 115 PASS를 확인했다. application
+`0.12.3`, prompt `0.4.2`, tests `2.1.6`으로 전진했지만 API/contracts/DB/data/dependency와
+provider actual call/cost는 0이다. Task 5 clean-source review는 완료됐지만 root wrapper는 단
+1회 실행 중 environment-only `PREFLIGHT-UV reason=exception code=2`에서 FAIL했고 재실행하지
+않았으므로 PASS가 아니다. 나머지 constituent·security·scope 검사는 documented skip을 제외하고
+PASS했다. provider call/cost는 계속 0이며 실제 1회 호출은 D-117의 별도 exact 문구
+`A-072 corrective actual 1회 실행 승인` 전까지 금지한다.
+D-117은 위 exact 승인 뒤 clean source `efc0b34`에서 A-072 corrective actual을 정확히 한 번
+실행했다. 20 selected·0 skip·11 provider-free·9 outbound, privacy/policy outbound 0,
+HTTP 2xx·strict usage·terminal stage total 9를 기록했고 D-111의 `KEY_SET_REJECTED`는 0으로
+해소됐다. 그러나 9건 모두 `ENUM_SHAPE_REJECTED`, accepted/match 0이라 최종 acceptance는
+FAIL이다. retry 0, 비용은 VAT 포함 USD 0.002496648로 cap USD 0.20 미만이며 재실행하지
+않았다. 질문·provider body·status detail·key·DSN 보관 0, lock 0, local modes false/false다.
+따라서 시민 runtime은 계속 결정론적 fail-closed 경로가 권위이고, 다음 교정 actual은 새
+인간 결정·별도 승인 전 금지한다.
+D-118은 A-073의 다음 최소 교정으로 explicit route matrix, exact uppercase `NONE`,
+same-row topic/coverage와 route·intent·pending-slot·identifier·route-shape의 value-free
+first-failure aggregate를 승인했다. D-119의 `명세 승인`으로 written specification은
+Approved이며 Tasks 1~5 TDD plan은 Review다. configured safe-question max 1,024와
+complete-message 4,096 guard는 유지하고 actual-eligible 20-topic/256-character prompt만
+guard 통과를 요구한다. 초과 complete message는 질문/catalog 절단 없이 provider 전에
+fail closed한다. 이 checkpoint에서 application/prompt/tests/API/contracts/DB/data/dependency와
+provider call/cost는 불변이며 Task 6 actual은 별도 exact 인간 승인 전 금지한다.
+D-120은 사용자의 exact `계획 승인, 1번 Subagent-Driven으로 구현 시작`으로 A-073 Tasks 1~5
+offline plan을 승인했다. Tasks 1~4에서 shared typed builder·five refined value-free stage,
+explicit route matrix·literal `NONE`·intent-grouped catalog와 production-wire oracle을
+TDD로 구현했다. D-121의 final review fix와 scoped re-review는 누락됐던 네 provider intent의
+contiguous vocabulary, adjacent first-failure precedence와 selected-question/provider-body/
+invalid-value 비보관 증거를 보강했고 area 397·controlled-double 39·Ruff/Mypy 115가 PASS했다.
+final governed prompt는 4,067자, guard margin은 29자다. baseline-stale
+controlled mock의 JSON null 1건은 RED 뒤 exact wire `"NONE"`으로만 교정했다. application
+`0.12.4`, prompt `0.4.3`, tests `2.1.7`, docs `2.30.7`만 전진하며 API/contracts/Web/DB/data/
+dependency와 provider/network actual call/cost는 0이다. A-073은
+offline scoped review까지 닫혔다. Task 5 root wrapper는 exact 1회 호출했지만 shell harness timeout 124로
+final stdout/exit를 회수하지 못해 aggregate를 `NOT VERIFIED/FAIL`로 기록하고 재실행하지 않았다.
+독립 docs/secret/diff/status는 PASS, provider/network actual call/cost는 계속 0/USD 0이다.
+현재 종료 지시에 따라 Task 6 A-073 corrective actual은 실행하지 않았고 기존 Upstage actual도
+재실행하지 않았다.
+
+2026-07-29 Q-LLM-PROVIDER-001=A/D-122/ADR-0028은 질문 분류 공급자 역할만 좁게 보완한다.
+`CLASSIFIER_PROVIDER`로 `disabled|upstage|deepseek`를 명시 선택하며 DeepSeek exact
+`deepseek-v4-flash`는 `sejong_ai_api.local.create_local_app`의 loopback local/private
+classifier에만 사용한다. public `sejong_ai_api.main`, remote DB와 실제 시민 운영에는
+연결하지 않는다. 기존 Upstage classifier와 ADR-0023의 grounded final answer generator는
+삭제·교체하지 않는다. exact five-string/uppercase `NONE`, deterministic PII/policy/obvious
+route, shared parser·ACTIVE/OFFICIAL grounding·server-owned source와 무보관 경계는 불변이다.
+DeepSeek `json_object`는 신뢰 경계가 아니며 3초·retry0·concurrency1·output128,
+temperature0/thinking disabled와 보수적 USD0.20 cap을 적용한다. 새 A-074 offline wrapper
+1회와 clean-source review 뒤 고정 synthetic 20 actual lease 1회만 승인됐고, PASS/FAIL과
+무관하게 자동 재실행하지 않는다. A-073 root/Upstage actual은 이 작업에서 재사용·재실행하지
+않는다.
+
+2026-07-29 A-074 offline Tasks 1~6b로 selector/settings, DeepSeek strict transport,
+provider별 보수 비용·usage, local composition과 one-shot runner/wrapper를 구현했다. Initial
+integrated pre-gate review의 Critical 0 / Important 5 `NOT READY`와 후속 compressed-decoding
+Important 1을 두 RED/GREEN wave로 닫았고, 최종 fresh review는 Critical 0 / Important 0 /
+Minor 0 `READY`였다. Recursive duplicate-key 거부, identity/raw `<64 KiB` bounded
+streaming, complete exchange 3초·aggregate 32초 deadline, exact-byte/pre-lease TOCTOU
+재검증, nonzero `taskkill`·post-child source drift fail-closed가 현재 경계다.
+public main·API/contracts/Web/DB/data/dependency는 변경하지 않았다.
+
+D-123에서 hardened source `9c7f818123533a4adc61d3953ed4d4630c793891`의 A-074 offline
+wrapper를 exact-one 소비했고 immutable outcome은 `FAIL`이다. Exit 1, timed_out false,
+invocation/rerun 1/0, stdout/stderr 475/0 bytes, first failing governed stage `TEST-ROOT`를
+aggregate evidence로 보존하며 wrapper는 재실행하지 않는다. Standalone 434-test 진단은
+expected environment map과 기존 안전 tracked classifier 설정 사이 repository-truth mismatch
+1건을 찾았고 test-only +4 교정 뒤 exact PASS와 full `434 OK / skipped 2`, corrective review
+C0/I0/M0를 확인했다. 이 교정은 gate FAIL을 소급 변경하지 않는다. 따라서 DeepSeek actual은
+blocked/unexecuted invocation/rerun 0/0이고 report/lease·outbound·token·cost는 모두 0이다.
+A-073 root `NOT VERIFIED/FAIL`, invocation/rerun 1/0도 그대로다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

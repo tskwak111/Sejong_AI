@@ -120,6 +120,9 @@ from sejong_ai_api.llm.classifier_contracts import (  # noqa: E402
     ClassifierDecision,
     ClassifierRoute,
 )
+from sejong_ai_api.llm.classifier_diagnostics import (  # noqa: E402
+    ClassifierResponseStage,
+)
 from sejong_ai_api.llm.contracts import TokenUsage  # noqa: E402
 from sejong_ai_api.llm.cost import estimate_cost_usd  # noqa: E402
 from sejong_ai_api.llm.limits import (  # noqa: E402
@@ -170,6 +173,11 @@ _REPORT_FIELDS = (
     "policy_privacy_outbound_count",
     "outbound_attempt_count",
     "provider_response_count",
+    "provider_response_stage_total",
+    *(
+        f"provider_stage_{stage.value.casefold()}_count"
+        for stage in ClassifierResponseStage
+    ),
     "provider_http_2xx_count",
     "provider_http_4xx_count",
     "provider_http_5xx_count",
@@ -283,6 +291,7 @@ class _RunEvidence:
     policy_privacy_outbound_count: int = 0
     cases: list[_CaseResult] = field(default_factory=list)
     recorder: _UsageRecorder | None = None
+    response_stages: _ResponseStageRecorder | None = None
     ledger: ProviderAttemptLedger | None = None
     elapsed_ms: int = 0
 
@@ -839,6 +848,27 @@ class _UsageRecorder:
         self.complete_response_count += 1
 
 
+class _ResponseStageRecorder:
+    """Count only closed terminal enums, never provider-controlled values."""
+
+    def __init__(self) -> None:
+        self._counts: Counter[ClassifierResponseStage] = Counter()
+
+    def capture(self, stage: ClassifierResponseStage) -> None:
+        if type(stage) is not ClassifierResponseStage:
+            raise ValueError("CLASSIFIER_RESPONSE_STAGE_INVALID")
+        self._counts[stage] += 1
+
+    @property
+    def total(self) -> int:
+        return sum(self._counts.values())
+
+    def count(self, stage: ClassifierResponseStage) -> int:
+        if type(stage) is not ClassifierResponseStage:
+            raise ValueError("CLASSIFIER_RESPONSE_STAGE_INVALID")
+        return self._counts[stage]
+
+
 def _build_ledger(settings: UpstageClassifierSettings) -> ProviderAttemptLedger:
     return ProviderAttemptLedger(
         classifier_cap=settings.classifier_attempt_cap,
@@ -862,12 +892,18 @@ def _create_selector(
     ledger: ProviderAttemptLedger,
     catalog: TopicCatalog,
     recorder: _UsageRecorder,
+    response_stages: _ResponseStageRecorder,
 ) -> _Selector:
     del recorder
     if not isinstance(client, httpx.AsyncClient):
         raise _ConfigurationInvalid
     return _ActualSelector(
-        QuestionClassifier(settings=settings, client=client, ledger=ledger),
+        QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=ledger,
+            response_stage_observer=response_stages.capture,
+        ),
         catalog,
     )
 
@@ -923,6 +959,9 @@ def _build_evidence_report(
     response_count = (
         0 if evidence.recorder is None else evidence.recorder.response_count
     )
+    response_stage_total = (
+        0 if evidence.response_stages is None else evidence.response_stages.total
+    )
     http_2xx_count = (
         0 if evidence.recorder is None else evidence.recorder.http_2xx_count
     )
@@ -949,7 +988,7 @@ def _build_evidence_report(
         and case.provider_route_topic_match is False
         for case in evidence.cases
     )
-    return {
+    report: dict[str, object] = {
         "source_sha": evidence.source_sha,
         "fixture_sha256": (
             "NOT_VERIFIED" if identities is None else identities.fixture_sha256
@@ -983,6 +1022,7 @@ def _build_evidence_report(
         "policy_privacy_outbound_count": evidence.policy_privacy_outbound_count,
         "outbound_attempt_count": attempts,
         "provider_response_count": response_count,
+        "provider_response_stage_total": response_stage_total,
         "provider_http_2xx_count": http_2xx_count,
         "provider_http_4xx_count": http_4xx_count,
         "provider_http_5xx_count": http_5xx_count,
@@ -1005,6 +1045,13 @@ def _build_evidence_report(
         "acceptance": acceptance,
         "cases": tuple(evidence.cases),
     }
+    for stage in ClassifierResponseStage:
+        report[f"provider_stage_{stage.value.casefold()}_count"] = (
+            0
+            if evidence.response_stages is None
+            else evidence.response_stages.count(stage)
+        )
+    return report
 
 
 def _build_report(
@@ -1032,6 +1079,10 @@ def _build_report(
     recorder.response_count = result.provider_case_count
     recorder.http_2xx_count = result.provider_case_count
     evidence.recorder = recorder
+    response_stages = _ResponseStageRecorder()
+    for _ in range(result.provider_case_count):
+        response_stages.capture(ClassifierResponseStage.ACCEPTED)
+    evidence.response_stages = response_stages
     acceptance = (
         "PASS"
         if (
@@ -1041,6 +1092,9 @@ def _build_report(
             and result.route_topic_match_count == _EXPECTED_PROVIDER_CASES
             and result.policy_privacy_outbound_count == 0
             and result.outbound_attempt_count == _EXPECTED_PROVIDER_CASES
+            and response_stages.total == result.provider_case_count
+            and response_stages.count(ClassifierResponseStage.ACCEPTED)
+            == _EXPECTED_PROVIDER_CASES
             and estimate_cost_usd(usage) <= LOCAL_INTERACTIVE_COST_CAP_USD
         )
         else "FAIL"
@@ -1156,8 +1210,10 @@ async def _execute_actual(
     state.identities = identities
     state.source_sha = _source_sha()
     recorder = _UsageRecorder()
+    response_stages = _ResponseStageRecorder()
     ledger = _build_ledger(settings)
     state.recorder = recorder
+    state.response_stages = response_stages
     state.ledger = ledger
 
     client = create_upstage_classifier_client(settings)
@@ -1171,6 +1227,7 @@ async def _execute_actual(
                 ledger,
                 catalog,
                 recorder,
+                response_stages,
             )
             result = await _evaluate_selected(
                 selected,
@@ -1197,6 +1254,9 @@ async def _execute_actual(
         and result.policy_privacy_outbound_count == 0
         and ledger.classifier_attempts_used == _EXPECTED_PROVIDER_CASES
         and recorder.response_count == _EXPECTED_PROVIDER_CASES
+        and response_stages.total == recorder.response_count
+        and response_stages.count(ClassifierResponseStage.ACCEPTED)
+        == _EXPECTED_PROVIDER_CASES
         and recorder.http_2xx_count == _EXPECTED_PROVIDER_CASES
         and recorder.http_4xx_count == 0
         and recorder.http_5xx_count == 0

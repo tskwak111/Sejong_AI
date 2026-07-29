@@ -35,6 +35,7 @@ UPSTAGE_LOCAL_INTERACTIVE_GENERATOR_ATTEMPT_CAP = 100
 UPSTAGE_LOCAL_INTERACTIVE_COMBINED_ATTEMPT_CAP = 160
 
 _KEY_NAME = "LLM_API_KEY"
+_UPSTAGE_CHAT_CAPABILITY = object()
 _SETTINGS_KEYS = (
     "LLM_PROVIDER",
     "LLM_MODEL",
@@ -144,6 +145,12 @@ class UpstageChatSettings:
     max_input_tokens: int = UPSTAGE_MAX_INPUT_TOKENS
     max_output_tokens: int = UPSTAGE_MAX_OUTPUT_TOKENS
     run_attempt_cap: int = UPSTAGE_RUN_ATTEMPT_CAP
+    _validation_capability: object | None = field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -199,8 +206,23 @@ def load_upstage_chat_settings(
             env_path=env_path,
         )
         if api_key is not None:
-            return UpstageChatSettings(api_key=api_key)
+            return _validated_upstage_chat_settings(api_key=api_key)
     return None
+
+
+def is_validated_upstage_chat_settings(value: object) -> bool:
+    """Return whether the exact chat loader created this capability."""
+
+    return (
+        type(value) is UpstageChatSettings
+        and value._validation_capability is _UPSTAGE_CHAT_CAPABILITY
+    )
+
+
+def _validated_upstage_chat_settings(*, api_key: str) -> UpstageChatSettings:
+    settings = UpstageChatSettings(api_key=api_key)
+    object.__setattr__(settings, "_validation_capability", _UPSTAGE_CHAT_CAPABILITY)
+    return settings
 
 
 def load_upstage_classifier_settings(

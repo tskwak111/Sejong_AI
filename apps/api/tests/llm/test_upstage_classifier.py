@@ -16,6 +16,7 @@ from sejong_ai_api.llm.classifier_contracts import (
     ClassifierDecision,
     ClassifierRoute,
 )
+from sejong_ai_api.llm.classifier_diagnostics import ClassifierResponseStage
 from sejong_ai_api.llm.classifier_prompt import build_classifier_messages
 from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.cost import estimate_cost_usd
@@ -91,8 +92,8 @@ def _catalog(
 
 def _provider_response(
     content: str = (
-        '{"route":"CIVIC_SCOPE_GAP","intent":null,"topic_id":null,'
-        '"coverage_id":null,"pending_slot":null}'
+        '{"route":"CIVIC_SCOPE_GAP","intent":"NONE","topic_id":"NONE",'
+        '"coverage_id":"NONE","pending_slot":"NONE"}'
     ),
     *,
     finish_reason: str = "stop",
@@ -115,6 +116,10 @@ def _provider_response(
         200,
         json=envelope,
     )
+
+
+def _provider_envelope_response(envelope: object) -> httpx.Response:
+    return httpx.Response(200, json=envelope)
 
 
 def _ledger(
@@ -141,12 +146,12 @@ def test_prompt_defines_supported_boundary_and_closed_route_meanings() -> None:
     system = messages[0]["content"]
 
     for required in (
-        "CIVIC_SCOPE_GAP",
-        "NON_CIVIC",
-        "NEEDS_FOLLOWUP",
-        "NO_TOPIC_MATCH",
-        "topic_id",
-        "coverage_id",
+        "keys: route,intent,topic_id,coverage_id,pending_slot",
+        "all five values are strings",
+        "no extra key, prose or Markdown",
+        "NONE is exact uppercase ASCII; 없음/none/null/empty are forbidden",
+        "cat={intent:[[topic_id,coverage_id,coverage_label,approved_examples]]}",
+        "SUPPORTED intent=cat group key; topic_id/coverage_id=same row",
     ):
         assert required in system
 
@@ -176,30 +181,25 @@ def test_prompt_defines_all_closed_pending_slots_and_route_shapes() -> None:
     ):
         assert output_key in system
 
-    supported_rule = system.split("SUPPORTED", maxsplit=1)[1].split(
-        "NO_TOPIC_MATCH",
-        maxsplit=1,
-    )[0]
-    no_topic_rule = system.split("NO_TOPIC_MATCH", maxsplit=1)[1].split(
-        "CIVIC_SCOPE_GAP",
-        maxsplit=1,
-    )[0]
-    civic_rule = system.split("CIVIC_SCOPE_GAP", maxsplit=1)[1].split(
-        "NEEDS_FOLLOWUP",
-        maxsplit=1,
-    )[0]
-    followup_rule = system.split("NEEDS_FOLLOWUP", maxsplit=1)[1]
-
-    assert "row" in supported_rule
-    assert "n" in supported_rule
-    assert "intent" in no_topic_rule or "I" in no_topic_rule
-    assert "n³" in no_topic_rule or no_topic_rule.count("n") >= 3
-    assert "NON_CIVIC" in civic_rule
-    assert "n⁴" in civic_rule or civic_rule.count("n") >= 4
-    assert "DOMAIN" in followup_rule
-    assert "intent" in followup_rule or "I" in followup_rule
-    assert "P" in followup_rule
-    assert "n²" in followup_rule or followup_rule.count("n") >= 3
+    for row in (
+        "SUPPORTED|catalog intent|same-row topic_id|same-row coverage_id|NONE",
+        "NO_TOPIC_MATCH|supported intent|NONE|NONE|NONE",
+        "CIVIC_SCOPE_GAP|NONE|NONE|NONE|NONE",
+        "NON_CIVIC|NONE|NONE|NONE|NONE",
+        "NEEDS_FOLLOWUP|NONE|NONE|NONE|DOMAIN",
+        "NEEDS_FOLLOWUP|supported intent|NONE|NONE|TOPIC_CHOICE",
+        "NEEDS_FOLLOWUP|CERTIFICATE_ISSUANCE|NONE|NONE|CERTIFICATE_KIND",
+        "NEEDS_FOLLOWUP|supported intent|NONE|NONE|REGION",
+        "NEEDS_FOLLOWUP|BULKY_WASTE|NONE|NONE|WASTE_ITEM",
+    ):
+        assert row in system
+    for obsolete in (
+        "NONE=없음",
+        "default=NONE",
+        "NO_TOPIC_MATCH=지원",
+        "DOMAIN?NONE:지원,,,",
+    ):
+        assert obsolete not in system
 
 
 @pytest.mark.asyncio
@@ -246,7 +246,31 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
         "stream": False,
         "temperature": 0,
         "max_tokens": 128,
-        "response_format": {"type": "json_object"},
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "sejong_classifier_decision",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "route": {"type": "string"},
+                        "intent": {"type": "string"},
+                        "topic_id": {"type": "string"},
+                        "coverage_id": {"type": "string"},
+                        "pending_slot": {"type": "string"},
+                    },
+                    "required": [
+                        "route",
+                        "intent",
+                        "topic_id",
+                        "coverage_id",
+                        "pending_slot",
+                    ],
+                    "additionalProperties": False,
+                },
+            },
+        },
     }
     serialized = request.content.decode("utf-8")
     for forbidden in (
@@ -261,6 +285,27 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
         "CAUTION-SENTINEL",
     ):
         assert forbidden not in serialized
+    response_schema = json.loads(request.content)["response_format"]["json_schema"]["schema"]
+    assert tuple(response_schema["properties"]) == (
+        "route",
+        "intent",
+        "topic_id",
+        "coverage_id",
+        "pending_slot",
+    )
+    assert all(
+        property_schema == {"type": "string"}
+        for property_schema in response_schema["properties"].values()
+    )
+    assert "enum" not in json.dumps(response_schema)
+    assert safe.text not in json.dumps(response_schema, ensure_ascii=False)
+    for forbidden_schema_value in (
+        "KB-WASTE-01",
+        "GENERAL_BULKY_DISPOSAL",
+        "SOURCE-SENTINEL",
+        "OFFICE-SENTINEL",
+    ):
+        assert forbidden_schema_value not in json.dumps(response_schema)
     assert ledger.actual_cost_usd == estimate_cost_usd(TokenUsage(20, 0, 10))
 
 
@@ -575,6 +620,7 @@ async def test_http_failures_return_none_without_retry(
 async def test_timeout_returns_none_without_retry_or_content_exception() -> None:
     settings = UpstageClassifierSettings(api_key=SECRET)
     calls = 0
+    observed: list[ClassifierResponseStage] = []
     sensitive_question = "장학금 신청 어떻게 해요?"
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -590,10 +636,257 @@ async def test_timeout_returns_none_without_retry_or_content_exception() -> None
             settings=settings,
             client=client,
             ledger=_ledger(),
+            response_stage_observer=observed.append,
         ).classify(_question(sensitive_question), _catalog())
 
     assert decision is None
     assert calls == 1
+    assert observed == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response", "expected_stage", "decision_expected"),
+    [
+        (httpx.Response(429), ClassifierResponseStage.HTTP_REJECTED, False),
+        (
+            httpx.Response(200, content=b"not-json"),
+            ClassifierResponseStage.ENVELOPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_envelope_response([]),
+            ClassifierResponseStage.ENVELOPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(include_usage=False),
+            ClassifierResponseStage.USAGE_REJECTED,
+            False,
+        ),
+        (
+            _provider_envelope_response(
+                {
+                    "usage": {"prompt_tokens": 20, "completion_tokens": 10},
+                    "choices": [],
+                }
+            ),
+            ClassifierResponseStage.CHOICE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(finish_reason="length"),
+            ClassifierResponseStage.FINISH_REASON_REJECTED,
+            False,
+        ),
+        (
+            _provider_envelope_response(
+                {
+                    "usage": {"prompt_tokens": 20, "completion_tokens": 10},
+                    "choices": [{"finish_reason": "stop", "message": []}],
+                }
+            ),
+            ClassifierResponseStage.MESSAGE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(content=" "),
+            ClassifierResponseStage.CONTENT_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(content="not-json"),
+            ClassifierResponseStage.JSON_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(content="[]"),
+            ClassifierResponseStage.KEY_SET_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"NON_CIVIC","intent":null,"topic_id":"NONE",'
+                    '"coverage_id":"NONE","pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.FIELD_TYPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"UNBOUNDED","intent":"NONE","topic_id":"NONE",'
+                    '"coverage_id":"NONE","pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"NO_TOPIC_MATCH","intent":"UNBOUNDED",'
+                    '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"NEEDS_FOLLOWUP","intent":"NONE",'
+                    '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"UNBOUNDED"}'
+                )
+            ),
+            ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+                    '"topic_id":"INVALID VALUE","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+                    '"pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"CIVIC_SCOPE_GAP","intent":"LOCAL_TAX_GENERAL",'
+                    '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(
+                content=(
+                    '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+                    '"topic_id":"KB-WASTE-99","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+                    '"pending_slot":"NONE"}'
+                )
+            ),
+            ClassifierResponseStage.CATALOG_REJECTED,
+            False,
+        ),
+        (
+            _provider_response(),
+            ClassifierResponseStage.ACCEPTED,
+            True,
+        ),
+    ],
+)
+async def test_http_response_emits_one_value_free_terminal_stage(
+    response: httpx.Response,
+    expected_stage: ClassifierResponseStage,
+    decision_expected: bool,
+) -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    observed: list[ClassifierResponseStage] = []
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(lambda _request: response),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=_ledger(),
+            response_stage_observer=observed.append,
+        ).classify(_question(), _catalog())
+
+    assert (decision is not None) is decision_expected
+    assert observed == [expected_stage]
+    assert all(type(stage) is ClassifierResponseStage for stage in observed)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("content", "expected_stage"),
+    [
+        pytest.param(
+            '{"route":"BAD_ROUTE","intent":"BAD_INTENT","topic_id":"NONE",'
+            '"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.ROUTE_ENUM_REJECTED,
+            id="route-before-intent",
+        ),
+        pytest.param(
+            '{"route":"NEEDS_FOLLOWUP","intent":"BAD_INTENT",'
+            '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"BAD_SLOT"}',
+            ClassifierResponseStage.INTENT_ENUM_REJECTED,
+            id="intent-before-pending-slot",
+        ),
+        pytest.param(
+            '{"route":"SUPPORTED","intent":"BULKY_WASTE","topic_id":"bad topic",'
+            '"coverage_id":"GENERAL_BULKY_DISPOSAL","pending_slot":"BAD_SLOT"}',
+            ClassifierResponseStage.PENDING_SLOT_ENUM_REJECTED,
+            id="pending-slot-before-identifier",
+        ),
+        pytest.param(
+            '{"route":"NON_CIVIC","intent":"BULKY_WASTE","topic_id":"bad topic",'
+            '"coverage_id":"NONE","pending_slot":"NONE"}',
+            ClassifierResponseStage.IDENTIFIER_SHAPE_REJECTED,
+            id="identifier-before-route-shape",
+        ),
+        pytest.param(
+            '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
+            '"topic_id":"KB-WASTE-UNKNOWN","coverage_id":"GENERAL_BULKY_DISPOSAL",'
+            '"pending_slot":"REGION"}',
+            ClassifierResponseStage.ROUTE_SHAPE_REJECTED,
+            id="route-shape-before-catalog",
+        ),
+    ],
+)
+async def test_compound_errors_emit_one_adjacent_precedence_stage_through_classifier(
+    content: str,
+    expected_stage: ClassifierResponseStage,
+) -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+    observed: list[ClassifierResponseStage] = []
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(lambda _request: _provider_response(content=content)),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=_ledger(),
+            response_stage_observer=observed.append,
+        ).classify(_question(), _catalog())
+
+    assert decision is None
+    assert observed == [expected_stage]
+    assert all(type(stage) is ClassifierResponseStage for stage in observed)
+
+
+@pytest.mark.asyncio
+async def test_response_stage_observer_failure_does_not_change_accepted_decision() -> None:
+    settings = UpstageClassifierSettings(api_key=SECRET)
+
+    def failing_observer(_stage: ClassifierResponseStage) -> None:
+        raise RuntimeError("OBSERVER_FAILURE_SENTINEL")
+
+    async with httpx.AsyncClient(
+        base_url=settings.base_url,
+        transport=httpx.MockTransport(lambda _request: _provider_response()),
+    ) as client:
+        decision = await QuestionClassifier(
+            settings=settings,
+            client=client,
+            ledger=_ledger(),
+            response_stage_observer=failing_observer,
+        ).classify(_question(), _catalog())
+
+    assert decision is not None
+    assert decision.route is ClassifierRoute.CIVIC_SCOPE_GAP
 
 
 @pytest.mark.asyncio
@@ -603,7 +896,9 @@ async def test_timeout_returns_none_without_retry_or_content_exception() -> None
         httpx.Response(200, content=b"not-json"),
         _provider_response(content="not-json"),
         _provider_response(
-            content=('{"route":"UNBOUNDED","intent":null,"topic_id":null,"pending_slot":null}')
+            content=(
+                '{"route":"UNBOUNDED","intent":"NONE","topic_id":"NONE","pending_slot":"NONE"}'
+            )
         ),
         _provider_response(finish_reason="length"),
     ],
@@ -644,7 +939,7 @@ async def test_attempt_cap_blocks_second_transport_and_has_no_retry() -> None:
         return _provider_response(
             content=(
                 '{"route":"NO_TOPIC_MATCH","intent":"LOCAL_TAX_GENERAL",'
-                '"topic_id":null,"coverage_id":null,"pending_slot":null}'
+                '"topic_id":"NONE","coverage_id":"NONE","pending_slot":"NONE"}'
             )
         )
 
@@ -764,7 +1059,7 @@ async def test_provider_topic_and_coverage_must_match_request_catalog() -> None:
             content=(
                 '{"route":"SUPPORTED","intent":"BULKY_WASTE",'
                 '"topic_id":"KB-WASTE-01","coverage_id":"WRONG_COVERAGE",'
-                '"pending_slot":null}'
+                '"pending_slot":"NONE"}'
             )
         )
 

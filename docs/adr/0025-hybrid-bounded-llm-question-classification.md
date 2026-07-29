@@ -1,5 +1,8 @@
 # ADR-0025: deterministic safety gate와 bounded LLM의 hybrid 질문 분류
 
+> Amended by ADR-0028 for selectable local/private classifier-provider ownership. The
+> deterministic safety, validation, storage and fallback boundaries in this ADR remain active.
+
 - Status: Accepted / integrated / local runtime composition corrected
 - Date: 2026-07-27
 - Amends: ADR-0023의 provider 전 deterministic supported-intent gate

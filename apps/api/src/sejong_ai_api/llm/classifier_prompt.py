@@ -6,22 +6,54 @@ import json
 
 from sejong_ai_api.chat.classification import SafeQuestion
 from sejong_ai_api.chat.topic_catalog import TopicCatalog
+from sejong_ai_api.db.models import Intent
 
 _MAX_QUESTION_CHARS = 1024
-_CATALOG_COLUMNS = (
-    "topic_id",
-    "intent",
-    "service_name",
-    "coverage_id",
-    "coverage_label",
-    "approved_examples",
+_PROVIDER_INTENT_ORDER = (
+    Intent.MOVE_IN_RESIDENT_REGISTRATION,
+    Intent.CERTIFICATE_ISSUANCE,
+    Intent.BULKY_WASTE,
+    Intent.LOCAL_TAX_GENERAL,
 )
 _SYSTEM_MESSAGE = (
-    "route/I:intent/T:topic_id/C:coverage_id/P:pending_slot;n:null;"
-    "P:DOMAIN|TOPIC_CHOICE|CERTIFICATE_KIND|REGION|WASTE_ITEM;"
-    "SUPPORTED→row.I/T/C,n;NO_TOPIC_MATCH→I,n³;"
-    "CIVIC_SCOPE_GAP|NON_CIVIC→n⁴;NEEDS_FOLLOWUP→P=DOMAIN?n:I,n²,P"
+    "JSON;"
+    "keys: route,intent,topic_id,coverage_id,pending_slot;"
+    "all five values are strings;"
+    "no extra key, prose or Markdown;"
+    "NONE is exact uppercase ASCII; 없음/none/null/empty are forbidden;"
+    "provider intents: MOVE_IN_RESIDENT_REGISTRATION|CERTIFICATE_ISSUANCE|"
+    "BULKY_WASTE|LOCAL_TAX_GENERAL|NONE;"
+    "cat={intent:[[topic_id,coverage_id,coverage_label,approved_examples]]};"
+    "SUPPORTED intent=cat group key; topic_id/coverage_id=same row;"
+    "valid tuples in key order:"
+    "SUPPORTED|catalog intent|same-row topic_id|same-row coverage_id|NONE;"
+    "NO_TOPIC_MATCH|supported intent|NONE|NONE|NONE;"
+    "CIVIC_SCOPE_GAP|NONE|NONE|NONE|NONE;"
+    "NON_CIVIC|NONE|NONE|NONE|NONE;"
+    "NEEDS_FOLLOWUP|NONE|NONE|NONE|DOMAIN;"
+    "NEEDS_FOLLOWUP|supported intent|NONE|NONE|TOPIC_CHOICE;"
+    "NEEDS_FOLLOWUP|CERTIFICATE_ISSUANCE|NONE|NONE|CERTIFICATE_KIND;"
+    "NEEDS_FOLLOWUP|supported intent|NONE|NONE|REGION;"
+    "NEEDS_FOLLOWUP|BULKY_WASTE|NONE|NONE|WASTE_ITEM"
 )
+
+
+def _build_grouped_catalog(catalog: TopicCatalog) -> dict[str, list[list[object]]]:
+    grouped: dict[str, list[list[object]]] = {}
+    for intent in _PROVIDER_INTENT_ORDER:
+        rows: list[list[object]] = [
+            [
+                topic.record.public_id,
+                topic.coverage.coverage_id,
+                topic.coverage.coverage_label,
+                list(topic.record.question_examples[:2]),
+            ]
+            for topic in catalog.topics
+            if topic.record.category is intent
+        ]
+        if rows:
+            grouped[intent.value] = rows
+    return grouped
 
 
 def build_classifier_messages(
@@ -42,22 +74,20 @@ def build_classifier_messages(
         or len(question.text) > max_input_chars
     ):
         raise ValueError("CLASSIFIER_PROMPT_INVALID")
+    first = catalog.topics[0]
     payload = {
-        "masked_question": question.text,
-        "topic_catalog": {
-            "columns": list(_CATALOG_COLUMNS),
-            "rows": [
-                [
-                    topic.record.public_id,
-                    topic.record.category.value,
-                    topic.record.service_name,
-                    topic.coverage.coverage_id,
-                    topic.coverage.coverage_label,
-                    list(topic.record.question_examples[:2]),
-                ]
-                for topic in catalog.topics
+        "ask": question.text,
+        "cat": _build_grouped_catalog(catalog),
+        "ex": [
+            [
+                "SUPPORTED",
+                first.record.category.value,
+                first.record.public_id,
+                first.coverage.coverage_id,
+                "NONE",
             ],
-        },
+            ["CIVIC_SCOPE_GAP", "NONE", "NONE", "NONE", "NONE"],
+        ],
     }
     return (
         {"role": "system", "content": _SYSTEM_MESSAGE},

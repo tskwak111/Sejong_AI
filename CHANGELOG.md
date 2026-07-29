@@ -2,6 +2,273 @@
 
 ## [Unreleased]
 
+### Closed offline — A-074 immutable gate FAIL
+
+- Consumed the approved A-074 offline wrapper exactly once from source
+  `9c7f818123533a4adc61d3953ed4d4630c793891`. The immutable outcome is `FAIL`, exit 1,
+  timed_out false, invocation/rerun 1/0, stdout/stderr 475/0 bytes and first failing governed
+  stage `TEST-ROOT`. Result, lock and aggregate hash evidence are preserved; the wrapper is not
+  rerun.
+- A value-free standalone diagnostic ran 434 tests and found exactly one repository-boundary
+  expected-map mismatch with two skips. A test-only +4 map correction for the existing safe
+  tracked classifier profile passed the exact test and full standalone root `434 OK / skipped 2`.
+  Corrective review returned Critical 0 / Important 0 / Minor 0.
+- The corrective result does not retroactively turn the immutable gate into PASS. DeepSeek actual
+  is blocked/unexecuted at invocation/rerun 0/0; report/lease, outbound, token and cost remain
+  0. A-073 remains `NOT VERIFIED/FAIL`, invocation/rerun 1/0.
+- Application remains `0.13.1-selectable-classifier-provider-hardening`. Advanced tests
+  `2.2.1→2.2.2-a074-offline-gate-correction` and documentation
+  `2.31.1→2.31.2-a074-offline-gate-fail-closeout`; every other version axis is unchanged.
+
+### Hardened offline — A-074 pre-gate review fix wave
+
+- The initial integrated pre-gate review returned Critical 0 / Important 5 and `NOT READY`.
+  TDD preserved 19 Python REDs and three controlled fake-wrapper REDs before wave 1 passed
+  focused 195 and area 655+5.
+- A second independent review returned Critical 0 / Important 1 and kept `NOT READY` because
+  compressed decoding could cross the raw response boundary. Wave 2 passed focused 196 and
+  area 656+5. The final fresh review returned Critical 0 / Important 0 / Minor 0 `READY`, and its
+  reviewer-focused suite passed 257.
+- Added recursive duplicate-key rejection, identity/raw `<64 KiB` bounded streaming, a complete
+  exchange three-second timeout and 32-second actual aggregate deadline, exact-byte plus immediate
+  pre-lease TOCTOU revalidation, and fail-closed nonzero `taskkill`/post-child source checks.
+- Final static and repository evidence passed: Ruff 126 files, API Mypy 123 files, runner strict
+  Mypy 3 files, PowerShell parser 1,523 tokens, docs, secret and diff checks.
+- Advanced application `0.13.0→0.13.1-selectable-classifier-provider-hardening`, tests
+  `2.2.0→2.2.1-deepseek-classifier-provider-hardening` and documentation
+  `2.31.0→2.31.1-deepseek-classifier-provider-hardening`. All other version axes are unchanged.
+  At this pre-gate checkpoint, the A-074 gate and DeepSeek actual were unexecuted at
+  invocation/rerun `0/0` with artifacts absent. The immutable outcome is recorded above.
+  A-073 remains `NOT VERIFIED/FAIL`, invocation/rerun `1/0`.
+
+### Implemented offline — A-074 selectable DeepSeek classifier provider
+
+- Added the explicit local/private classifier selector, strict DeepSeek settings and
+  `deepseek-v4-flash` transport while preserving the Upstage classifier and grounded final-answer
+  generator. The public `sejong_ai_api.main` composition remains provider-free.
+- Reused the existing exact five-string/uppercase `NONE` parser and request-local
+  ACTIVE/OFFICIAL catalog. DeepSeek `json_object` output is revalidated and every configuration,
+  timeout, HTTP, empty, JSON, wire, catalog, usage or cost failure returns to the deterministic
+  fail-closed path without retry or provider cascade.
+- Added provider-specific conservative usage/cost accounting and a local one-shot runner,
+  immutable lease, aggregate-only report contract, Windows PowerShell 5.1 offline wrapper and
+  controlled race/termination tests. No new production dependency was added.
+- The original Task 5 checkpoint finished with 348 tests plus 5 subtests and the original Task 6
+  area suite passed 1,012 tests plus 5 subtests. Ruff, Mypy, PowerShell parser, secret, docs and
+  diff checks passed and Task 5 review found Critical 0 / Important 0. The later integrated
+  pre-gate review and its superseding Task 6b hardening evidence are recorded above.
+- At this original implementation checkpoint, the A-074 offline wrapper and DeepSeek actual had
+  invocation/rerun 0/0 and no observed token/cost metric. The later immutable gate outcome is
+  recorded above. A-073 remains `NOT VERIFIED/FAIL` with invocation/rerun `1/0`; no A-073 root
+  wrapper or Upstage actual was rerun.
+- Promoted application `0.12.4→0.13.0-selectable-classifier-provider`, tests
+  `2.1.7→2.2.0-deepseek-classifier-provider` and documentation
+  `2.30.8→2.31.0-deepseek-classifier-provider`. Prompt `0.4.3`, public API/contracts, Web, DB,
+  official/mock data and dependency axes are unchanged. The pre-gate hardening patch above
+  supersedes these three current version values without changing the original promotion history.
+
+### Approved — A-074 selectable DeepSeek classifier provider
+
+- Recorded Q-LLM-PROVIDER-001=A/D-122 and ADR-0028: DeepSeek exact
+  `deepseek-v4-flash` becomes a selectable local/private classifier-only provider while the
+  existing Upstage classifier and ADR-0023 final answer generator remain available.
+- Preserved the exact five-string/uppercase `NONE` wire, untrusted provider-output boundary,
+  deterministic PII/policy/obvious routing, ACTIVE/OFFICIAL server validation, source binding and
+  no-retention policy. The public `sejong_ai_api.main` composition remains provider-free; only the
+  loopback local app may compose DeepSeek.
+- Froze the official rates checked at `2026-07-29T05:14:21+09:00`: hit input USD0.0028/M,
+  miss input USD0.14/M and output USD0.28/M. Acceptance charges all prompt as cache miss plus a
+  10% VAT safety multiplier; nine 16,384-input/128-output reservations are USD0.02306304, below
+  the USD0.20 cap.
+- Approved Subagent-Driven offline TDD, one new output-preserved A-074 gate and one fixed,
+  synthetic, PII-free DeepSeek actual after clean-source review. Failure is immutable aggregate
+  evidence and is not rerun. A-073 root `NOT VERIFIED/FAIL` invocation/rerun 1/0 and all existing
+  Upstage actual evidence remain untouched.
+- Advanced documentation `2.30.7→2.30.8` for the approved discovery/ADR/spec/plan checkpoint.
+  Application, prompt, tests, public API/contracts, Web, DB, official/mock data and dependencies
+  are unchanged until offline implementation evidence.
+
+### Implemented — A-073 classifier enum-shape correction offline
+
+- Implemented one shared typed decision builder with value-free route, intent, pending-slot,
+  identifier and route-shape first-failure stages while retaining the historical generic stage.
+- Replaced compact prompt ambiguity with the exact five-field route matrix, literal uppercase
+  `NONE`, intent-grouped catalog and request-local same-row topic/coverage example. The governed
+  20-topic/256-character prompt is 4,067 characters with a 29-character guard margin; longer
+  complete messages fail closed before
+  transport without truncation or sampling.
+- Offline evidence passed after preserving the initial REDs and final scoped review: classifier/
+  Hybrid RAG area `397`,
+  controlled-double regressions `38 passed, 1 failed → 39 passed`, API Ruff format/lint and Mypy
+  over `115` source files, and direct runner Ruff. The RED was a baseline-stale mock JSON
+  `pending_slot: null`; the approved test-only correction uses exact wire string `"NONE"`.
+- The final review additionally proved the contiguous four-intent provider vocabulary, all adjacent
+  first-failure precedence boundaries and selected-question/provider-body/invalid-value
+  non-retention. The scoped re-review found no remaining actionable finding.
+- Advanced application `0.12.3→0.12.4-classifier-wire-diagnostics`, prompt
+  `0.4.2→0.4.3-explicit-route-matrix`, tests
+  `2.1.6→2.1.7-classifier-wire-correction` and documentation `2.30.5→2.30.7`. Public
+  API/contracts, Web, DB schema/migration, official/mock data, dependencies, packages and
+  lockfiles are unchanged. A-073 provider/network actual calls and cost are `0`; the current
+  closure directive leaves Task 6 unexecuted and does not rerun the existing Upstage actual.
+- Consumed the Task 5 offline root wrapper exactly once. The shell harness returned timeout
+  `124` after 14.056 seconds and did not preserve final stdout/exit, although the detached wrapper
+  later exited after observed `TEST-ROOT`, `TEST-DATA-SEED` and `TEST-API` phases. The aggregate is
+  therefore `NOT VERIFIED/FAIL`, not PASS, and was not rerun. Independent docs/secret/diff/status
+  checks pass, provider calls/cost remain `0`/USD `0`, root invocation/rerun remain exactly `1/0`,
+  and D-121 closes the scoped offline review without reclassifying this result.
+
+### Planned — A-073 classifier enum-shape correction
+
+- Approved the A-073 written specification and published a bite-sized TDD implementation plan for
+  the shared typed decision builder, five refined value-free stages, explicit route matrix,
+  intent-grouped provider catalog, production-wire oracle and offline clean-source gate.
+- Preserved configured masked-question max 1,024 and the complete-message 4,096 fail-closed guard.
+  The governed 20-topic/256-character actual-eligible prompt must fit without truncation or
+  sampling; longer complete messages remain provider-free fallback.
+- Advanced documentation `2.30.4→2.30.5`. Runtime, prompt, tests, API/contracts, Web, DB/data,
+  dependencies, provider calls and cost remain unchanged. The corrective actual is excluded and
+  still needs separate exact human approval.
+
+### Specified — A-073 explicit classifier route matrix and refined diagnostics
+
+- Approved the design direction and published the integrated written specification for review.
+- Replaced the ambiguous prompt grammar in the target design with a complete five-field route
+  matrix, exact uppercase `NONE`, closed provider intent/pending vocabularies and same-catalog-row
+  topic/coverage selection.
+- Defined five value-free first-failure aggregate stages for route, intent, pending slot,
+  identifier shape and route shape while retaining historical `ENUM_SHAPE_REJECTED` evidence.
+- Advanced documentation `2.30.3→2.30.4`. Application, prompt, tests, API/contracts, Web, DB/data,
+  dependencies, provider calls and cost are unchanged; a future actual remains separately gated.
+
+### Evaluated — A-072 strict classifier corrective actual
+
+- Executed the separately approved corrective actual exactly once from clean source `efc0b34`.
+  The fixed 20-case subset produced 11 provider-free cases and 9 outbound responses with HTTP 2xx,
+  accepted usage and one terminal stage each; privacy/policy outbound remained 0.
+- The prior `KEY_SET_REJECTED` stage fell from 9 to 0, but all 9 provider responses terminated at
+  `ENUM_SHAPE_REJECTED`. Accepted decisions and provider route/topic matches remained 0, so the
+  aggregate acceptance is `FAIL`; the command was not rerun.
+- Observed and ledger cost reconciled at VAT-inclusive USD 0.002496648 below the USD 0.20 cap,
+  with retry 0. Question/provider content, status detail, key and DSN retention remained 0.
+- Archived the byte-preserved D-111 report and advanced documentation `2.30.2→2.30.3`.
+  Application, prompt, tests, API/contracts, DB/data, dependencies, package and lockfiles are
+  unchanged.
+
+### Implemented — A-072 strict classifier wire offline
+
+- Added a provider-boundary parser that accepts exact string `NONE` only for the four nullable
+  fields, converts it to the existing internal `None`, and reuses the canonical closed
+  enum/shape/current-catalog validator. Canonical JSON-null parsing and the public generic failure
+  remain unchanged.
+- Replaced the Upstage classifier request's loose `json_object` mode with a fresh strict
+  `json_schema`: exactly five required string keys and no additional properties. The bounded
+  prompt now uses the same canonical field names and exact sentinel without weakening the
+  4,096-character guard.
+- Offline evidence passed: classifier/Hybrid RAG area `333`, controlled-double actual-runner `24`,
+  Ruff format/lint and Mypy over `115` files. Provider/network calls and cost remained `0`.
+- Advanced application `0.12.2→0.12.3-structured-classifier-wire`, prompt
+  `0.4.1→0.4.2-exact-five-key-schema` and tests
+  `2.1.5→2.1.6-structured-classifier-wire`. API/shared contracts, DB schema, official/mock data,
+  dependencies, package and lockfiles are unchanged. Task 5 clean-source review is complete, but
+  the root wrapper's single invocation FAILed at environment-only `PREFLIGHT-UV`, was not rerun and
+  is not a PASS. Remaining constituents/security/scope checks passed with documented bounded skips;
+  provider calls/cost remained `0` at this Tasks 1~5 checkpoint. The exact approval was consumed
+  once in the later D-117 evaluation recorded above.
+- Advanced documentation `2.30.1→2.30.2` for the Tasks 1~5 implementation/evidence checkpoint;
+  all runtime axes remain unchanged.
+
+### Planned — A-072 strict classifier wire
+
+- Approved the written specification and published an exact RED/GREEN implementation plan for
+  provider-wire parsing, canonical prompt fields, strict transport schema, area/version integration
+  and the root/clean-source gate.
+- Kept the one-shot corrective actual outside plan approval; it requires a new exact approval after
+  Tasks 1~5 pass.
+- Advanced documentation `2.30.0→2.30.1`; runtime, API, DB, data, dependencies, provider calls,
+  push and merge remain unchanged.
+
+### Specified — A-072 strict five-key classifier wire
+
+- Approved design section 2 and published the integrated written specification for review.
+- Isolated exact `NONE` normalization to the provider wire while preserving canonical JSON-null
+  parsing, server-owned enum/shape/catalog validation and fixed-stage fail-closed diagnostics.
+- Defined focused/area/root TDD, target application `0.12.3`, prompt `0.4.2`, tests `2.1.6` and a
+  separately approved corrective actual after clean-source offline verification.
+- Advanced documentation `2.29.10→2.30.0`; runtime, API, DB, data, dependencies and provider calls
+  remain unchanged.
+
+### Approved — A-072 wire design section 1
+
+- Approved strict five-key string schema, exact `NONE` normalization for the four nullable
+  fields, full canonical field names, server-owned enum/catalog validation and retry-zero
+  fail-closed behavior.
+- Kept dynamic catalog values out of the provider schema and kept public API, DB, data,
+  dependencies and server-bound sources unchanged.
+- Advanced documentation `2.29.9→2.29.10`; code and provider calls remain zero pending section 2
+  and the written specification.
+
+### Decided — strict five-key classifier wire
+
+- Chose Q-LLM-014=A for A-072: the Upstage provider-only response will use strict `json_schema`
+  with exactly five required string fields and a fixed `NONE` sentinel for nullable meaning.
+- The server will normalize `NONE` to the existing internal `None` before the unchanged closed
+  enum/catalog validation. Public API, DB, data, dependencies and server-bound sources stay
+  unchanged.
+- Advanced documentation `2.29.8→2.29.9`. Product code and provider calls remain zero until the
+  detailed design is approved; a corrective actual remains a separate human gate.
+
+### Implemented — value-free classifier response-stage diagnostics
+
+- Added a closed 13-value terminal-stage enum across the production Upstage response parser and
+  strict classifier contract parser. The optional observer receives exactly one enum for each HTTP
+  response and receives no question, response body, status detail, exception, key or DSN.
+- Preserved the public `ClassifierDecision | None` behavior, generic
+  `CLASSIFIER_DECISION_INVALID` failure and fail-closed citizen fallback; observer errors cannot
+  change an accepted decision.
+- Added aggregate-only stage counters and acceptance invariants to the exact-one actual runner.
+  Per-fixture stage disclosure, API/DB/data/prompt/dependency changes and provider calls remain zero
+  at this clean-source checkpoint.
+- Archived D-107 evidence and advanced application
+  `0.12.1→0.12.2-response-stage-diagnostics`, tests
+  `2.1.4→2.1.5-response-stage-diagnostics` and documentation `2.29.6→2.29.7`.
+- Executed the separately approved exact-one actual from clean source `0646db0`: 20 selected,
+  0 skipped, 11 provider-free and 9 outbound. All 9 responses were HTTP 2xx with strict usage,
+  all 9 terminated at `KEY_SET_REJECTED`, and accepted decisions/matches remained 0, so acceptance
+  is FAIL and no retry occurred. Observed/ledger cost reconciled at USD 0.002626503 including VAT.
+- Preserved local ignored modes false/false, lock 0 and question/provider body/status detail/key/DSN
+  retention 0. Advanced documentation `2.29.7→2.29.8`; a new corrective actual is not authorized.
+
+### Specified — value-free classifier response-stage diagnostics
+
+- Approved the written specification and exact RED/GREEN inline implementation plan. Product code
+  and provider calls remain zero at this planning checkpoint.
+- Recorded the user-approved production-parser observer design for A-071. The observer can emit
+  only one closed stage enum per HTTP response; no question, provider content, exception text,
+  status detail, key or DSN may cross the diagnostic boundary.
+- Kept citizen behavior, public parser failure, prompt, provider profile, API, DB, official data
+  and dependencies unchanged. No provider call is part of this written-spec checkpoint.
+- Advanced documentation `2.29.4→2.29.6`; application and test versions advance only after the
+  written specification and TDD plan are confirmed and implemented.
+
+### Fixed — explicit JSON-mode instruction for the Hybrid RAG selector
+
+- Restored an explicit `JSON만` instruction in the closed classifier system message without
+  changing its request schema, route vocabulary, catalog, provider model, timeout or retry policy.
+- Added a RED/GREEN regression test and kept the real 20-topic catalog plus a 256-character
+  question within the conservative 4,096-character prompt bound.
+- Archived the D-106 aggregate-only 4xx FAIL, then executed the separately approved corrective
+  actual exactly once from committed source `4cb42ff`: 20 selected, 0 skipped, 11 provider-free
+  and 9 outbound. All 9 responses were HTTP 2xx with accepted usage, proving the prior 4xx request
+  rejection was fixed; strict closed decisions and route/topic matches were still 0, so acceptance
+  remains FAIL and no retry occurred. Observed and ledger cost reconciled at USD 0.002646303
+  including VAT, below the USD 0.20 cap.
+- Retained no question, provider body, status detail, key or DSN; ignored local provider modes
+  remain false/false. Exact response-validation diagnosis is deferred to A-071.
+- Advanced prompt set `0.4.0→0.4.1-json-mode-instruction`, tests
+  `2.1.3→2.1.4-json-mode-regression` and documentation `2.29.3→2.29.4`; application, API,
+  contracts, DB, data and dependencies are unchanged.
+
 ### Diagnosed — value-free Hybrid RAG provider rejection
 
 - Pushed the approved local `main` baseline `d973abc` to the private `origin/main`.

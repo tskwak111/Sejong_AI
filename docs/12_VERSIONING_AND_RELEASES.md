@@ -55,16 +55,16 @@ supported DATA-SEED-002 actual cycle이 현재 기준선을 갱신했다.
 ```text
 product_spec: 2.6.0
 repo_guidance: 1.7.10
-application: 0.12.1-bounded-hybrid-rag
+application: 0.13.1-selectable-classifier-provider-hardening
 web: 0.8.0-guided-chat
 api: 4.0.0-draft
 shared_contracts: 1.0.0
 database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
-prompt_set: 0.4.0-topic-coverage
-test_suite: 2.1.3-value-free-provider-diagnostics
-documentation: 2.29.3
+prompt_set: 0.4.3-explicit-route-matrix
+test_suite: 2.2.2-a074-offline-gate-correction
+documentation: 2.31.2-a074-offline-gate-fail-closeout
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -138,6 +138,129 @@ mismatch만 집계하도록 보강했다. source `1f337ad`의 실행은 20 selec
 provider-free·9 outbound였고 9 response 모두 4xx class, 2xx/5xx/transport/usage/decision/match
 0으로 FAIL했다. application/API/contracts/DB/data/prompt/dependency는 바뀌지 않았고 provider
 본문·질문·status detail·key·DSN 보관은 0이다.
+
+Prompt set `0.4.1-json-mode-instruction`, test suite `2.1.4-json-mode-regression`,
+documentation `2.29.4`는 Q-LLM-013=A/D-107의 단일 변수 교정 기준선이다. closed selector
+system message에 명시적 `JSON만` 지시를 복원하면서 route·field·catalog·provider request
+계약은 유지했고, 20개 실제 governed catalog와 256자 질문의 보수적 4,096자 상한도 그대로
+통과한다. D-106의 4xx FAIL은 archive로 보존했다. source `4cb42ff`의 승인된 exact-one
+PII-free corrective actual은 20 selected·0 skip·11 provider-free·9 outbound에서 9/9 HTTP
+2xx와 accepted usage, 4xx/5xx/transport 0을 기록해 request rejection을 해소했다. strict closed
+decision accepted/match는 0이라 acceptance는 FAIL이고 retry는 0이다. observed/ledger 비용은
+VAT 포함 USD 0.002646303이며 질문·provider body·status detail·key·DSN 보관은 0이다.
+
+Documentation `2.29.5`는 사용자의 `ㅇㅋ 구현해`로 A-071 value-free response-stage 진단의
+추천 A안을 승인한 written specification checkpoint다. production parser의 optional typed
+observer가 HTTP/envelope/usage/choice/finish/message/content/JSON/key/type/enum/catalog/accepted
+중 terminal enum 하나만 전달하고 actual report는 aggregate count만 보관한다. 시민 응답,
+public parser의 generic failure, prompt, provider profile, API/DB/data/dependency는 아직
+변경하지 않았고 written specification 확인 전 제품 코드와 provider call은 0이다.
+
+Documentation `2.29.6`은 사용자의 `명세 승인, 빠르게 구현 ㄱㄱ`로 위 written specification을
+Approved로 전환하고 exact RED/GREEN 실행계획과 inline execution을 승인한 checkpoint다.
+contract-stage parser→production observer→aggregate runner→clean source→exact-one actual 순서를
+고정했다. application/test version은 구현 뒤에만 증가하며 이 checkpoint의 code/provider call은
+0이다.
+
+Application `0.12.2-response-stage-diagnostics`, test suite
+`2.1.5-response-stage-diagnostics`, documentation `2.29.7`은 A-071 offline implementation
+기준선이다. strict contract parser와 production Upstage response parser는 HTTP/envelope/usage/
+choice/finish/message/content/JSON/key/type/enum/catalog/accepted의 13개 terminal enum을 공유한다.
+optional observer는 HTTP response당 enum 하나만 받고 실패해도 기존 decision/fallback을 바꾸지
+않는다. actual runner는 per-fixture stage 없이 aggregate counts와 total invariant만 기록한다.
+142 focused tests, Ruff, format, Mypy가 통과했고 D-107 evidence는 archive했다. prompt set,
+API/shared contract/DB/official/mock data/dependency는 불변이며 actual provider call은 clean
+source commit 전 0이다.
+
+Documentation `2.29.8`은 source `0646db0`의 A-071 exact-one actual evidence patch다.
+fixed 20 중 11건은 provider-free, 9건은 outbound였고 skip 0, HTTP 2xx·strict usage·terminal
+stage total은 각각 9다. 9건 모두 `KEY_SET_REJECTED`, accepted decision/match는 0이므로
+acceptance는 FAIL이고 retry하지 않았다. observed/ledger cost는 VAT 포함 USD 0.002626503으로
+USD 0.20 cap 아래에서 일치한다. 질문·provider body·status detail·key·DSN 보관 0,
+ignored local modes false/false, lock 0이다. application/test/prompt/API/contracts/DB/data/
+dependency는 `2.29.7` 기준과 같고 다음 exact-key 교정·actual은 A-072 인간 gate다.
+
+Documentation `2.29.9`는 Q-LLM-014=A/D-112의 A-072 wire 결정 checkpoint다. Upstage
+provider-only 응답을 strict `json_schema`의 required string 5필드와 fixed `NONE` sentinel로
+고정하고 서버가 sentinel을 기존 내부 `None`으로 정규화하는 방향을 선택했다. application,
+prompt, tests, public API/contracts, DB/data/dependency는 불변이며 상세 설계 승인 전 제품 코드와
+provider call은 0이다. corrective actual은 구현·offline 검증 뒤 별도 인간 gate다.
+
+Documentation `2.29.10`은 D-113의 A-072 설계 1부 승인 checkpoint다. exact required string
+5-key schema, nullable 4필드의 exact `NONE` normalization, full field-name prompt,
+server-owned enum/catalog validation과 retry 0·fail-closed 경계를 승인했다. application,
+prompt, tests, API/contracts, DB/data/dependency는 그대로이고 설계 2부와 written specification
+승인 전 code/provider call은 0이다.
+
+Documentation `2.30.0`은 D-114의 설계 2부 승인과 A-072 integrated written specification
+Review publication이다. provider-only exact `NONE` normalization, 기존 canonical parser와
+validator authority 보존, fixed-stage fail-closed, exact TDD/root/actual gate를 통합했다.
+구현 목표는 application `0.12.3-structured-classifier-wire`, prompt
+`0.4.2-exact-five-key-schema`, tests `2.1.6-structured-classifier-wire`이며 현재 runtime
+축은 아직 변하지 않았다. API/contracts/DB/data/dependency와 provider call은 불변이다.
+
+Documentation `2.30.1`은 D-115의 A-072 written specification 승인과 exact TDD
+implementation plan Review publication이다. Tasks 1~5는 wire parser, full-name prompt,
+strict schema transport, area/version integration, root/clean-source gate를 구현한다. Task 6
+actual은 plan 승인 범위 밖이며 Tasks 1~5 PASS 뒤 exact 별도 승인이 필요하다. application,
+prompt, tests runtime 축과 API/contracts/DB/data/dependency/provider call은 아직 변하지 않았다.
+
+Documentation `2.30.2`와 Application `0.12.3-structured-classifier-wire`, prompt set
+`0.4.2-exact-five-key-schema`, test suite `2.1.6-structured-classifier-wire`는 D-116의 A-072
+Tasks 1~5 offline 구현·clean-source review 기준선이다. provider boundary에서 exact string
+`NONE`만 nullable domain `None`으로 정규화하고 canonical JSON-null parser와 server-owned
+enum/shape/current catalog validation을 공유한다. Upstage request는 매 호출 fresh strict
+five-key string `json_schema`를 사용하며 prompt는 동일한 canonical field names와 sentinel을
+4,096 guard 안에서 표현한다. area 333, controlled-double actual-runner 24, Ruff/Mypy 115와
+나머지 constituent/security/scope 검사는 문서화된 skip을 제외하고 PASS했다. root wrapper는
+정확히 한 번 실행되어 환경 전용 `PREFLIGHT-UV`에서 FAIL했고 재실행하지 않았으므로 PASS가
+아니다. provider actual call/cost는 0/USD 0이다. API/shared contracts, DB schema,
+official/mock data, dependency, package와 lockfile은 불변이다. 이 `2.30.2` checkpoint 당시
+D-117은 아직 승인되지 않았고 exact 승인 문구가 필요했으며, 후속 `2.30.3`/D-117에서 그
+권한을 정확히 한 번 소비했다.
+
+Documentation `2.30.3`은 D-117의 A-072 corrective actual aggregate evidence
+checkpoint다. 승인된 clean source `efc0b34`에서 실제 명령은 정확히 한 번 실행했고
+20 selected·0 skip·11 provider-free·9 outbound, HTTP 2xx·strict usage·terminal stage 9를
+기록했다. D-111의 `KEY_SET_REJECTED`는 0으로 해소됐지만 9건 모두
+`ENUM_SHAPE_REJECTED`에서 종료해 accepted/match 0, 최종 acceptance `FAIL`이다. retry 0,
+비용은 VAT 포함 USD 0.002496648이며 재실행하지 않았다. application/prompt/tests/API/contracts,
+DB/data/dependency는 불변이고 current FAIL과 D-111 archive를 모두 보존한다.
+
+Documentation `2.30.4`는 D-118의 A-073 explicit route matrix와 refined value-free
+diagnostics written specification Review checkpoint다. exact uppercase `NONE`, route별
+five-field matrix, same-row topic/coverage와 route·intent·pending-slot·identifier·route-shape
+first-failure aggregate를 설계했다. application/prompt/tests/API/contracts/DB/data/dependency와
+provider call/cost는 불변이다.
+
+Documentation `2.30.5`는 D-119의 A-073 written specification 승인과 TDD implementation
+plan Review checkpoint다. Tasks 1~5는 shared builder→bounded prompt→production-wire
+oracle→area/version integration→offline root/clean-source gate 순서다. configured safe-question
+max 1,024와 complete-message 4,096 guard는 유지하며 governed 20-topic/256-character
+actual-eligible prompt를 절단 없이 guard 안에 둔다. implementation target은 application
+`0.12.4-classifier-wire-diagnostics`, prompt `0.4.3-explicit-route-matrix`, tests
+`2.1.7-classifier-wire-correction`이지만 현재 runtime에는 아직 적용하지 않았다.
+API/contracts/Web/DB/data/dependency/provider call/cost는 불변이며 Task 6 actual은 별도 exact
+인간 승인 전 금지한다.
+
+Documentation `2.30.6`, Application `0.12.4-classifier-wire-diagnostics`, prompt set
+`0.4.3-explicit-route-matrix`, test suite `2.1.7-classifier-wire-correction`은 D-120의
+A-073 plan 승인과 Tasks 1~4 offline 구현·영역/version 통합 checkpoint다. shared typed
+builder가 route→intent→pending-slot→identifier→route-shape first-failure를 값 없이 판정하고,
+prompt는 literal `NONE`, exact route matrix와 intent-grouped same-row catalog를 사용한다.
+초기 area 386, controlled-double 39, Ruff/Mypy 115가 PASS했다. controlled-double의 첫 RED
+`38 passed, 1 failed`는 baseline-stale JSON null mock이며 exact wire `"NONE"` 한 줄 교정 뒤
+GREEN이었다. API/shared contracts, Web, DB schema/migration, official/mock data, dependencies,
+package와 lockfile은 불변이고 provider/network actual call/cost는 0/USD 0이다. Task 5
+root/clean-source gate와 Task 6 actual은 분리되며 exact 별도 인간 승인 전 actual은 금지한다.
+
+Documentation `2.30.7`은 D-121 A-073 final scoped-review closeout patch다. 네 provider intent의
+contiguous vocabulary, adjacent first-failure precedence와 selected-question/provider-body/
+invalid-value 비보관을 보강한 뒤 prompt 4,067자·margin 29, area 397·controlled-double 39,
+Ruff/Mypy 115와 docs/secret/diff/status PASS, scoped review finding 0을 기록했다. Task 5 root
+aggregate는 `NOT VERIFIED/FAIL`, invocation/rerun `1/0` 그대로이며 A-073 corrective actual
+실행 0, 기존 Upstage actual 재실행 0이다. Application/prompt/tests/API/contracts/Web/DB/data/
+dependency/provider runtime은 `2.30.6` checkpoint와 동일하다.
 
 Q-LLM-006~012/D-072의 local/private 근거 제한형 시민 chat 설계는 product specification
 `2.5.0`, D-073의 written specification과 plan publication은 documentation `2.19.1`,
@@ -335,6 +458,75 @@ provider 연결은 0이다. 이후 버전 승격은 위 manifest와 `CHANGELOG.m
 - tests/report
 - data lineage
 - implementation notes/handoff
+
+## A-074 selectable classifier design checkpoint
+
+2026-07-29 Q-LLM-PROVIDER-001=A/D-122/ADR-0028의 discovery, Accepted ADR, Approved written
+specification과 executable plan을 게시해 documentation을 `2.30.7→2.30.8`로 올렸다.
+Application `0.12.4`, prompt `0.4.3`, tests `2.1.7`과 product/API/contracts/Web/DB/data/
+dependency 축은 아직 불변이다. Offline 구현을 완료하면 application
+`0.13.0-selectable-classifier-provider`, tests `2.2.0-deepseek-classifier-provider`,
+documentation `2.31.0-deepseek-classifier-provider`로 전진한다. A-073 failed wrapper와
+기존 Upstage actual evidence는 버전 승격 근거로 재실행하지 않는다.
+
+## A-074 selectable classifier offline implementation promotion
+
+2026-07-29 provider별 settings·비용/usage, strict DeepSeek transport, local selector
+composition과 one-shot runner/wrapper의 TDD·독립 review 완료로 application을
+`0.12.4→0.13.0-selectable-classifier-provider`, tests를
+`2.1.7→2.2.0-deepseek-classifier-provider`, documentation을
+`2.30.8→2.31.0-deepseek-classifier-provider`로 승격했다. Prompt
+`0.4.3-explicit-route-matrix`와 product/repository guidance/API/contracts/Web/DB/
+official/mock data/dependency 축은 불변이다. 이 checkpoint에서 A-074 offline wrapper와
+DeepSeek actual invocation은 각각 0이며 결과·token·비용·PASS/FAIL은 기록하지 않는다.
+A-073 root `NOT VERIFIED/FAIL`, invocation/rerun `1/0`과 기존 Upstage actual을 재실행하지
+않았다.
+
+## A-074 pre-gate hardening patch
+
+2026-07-29 initial integrated pre-gate review는 Critical 0 / Important 5로 `NOT READY`였다.
+Task 6b의 첫 RED는 Python 19건과 controlled fake-wrapper 3건이었고, 첫 GREEN은 focused
+195·area 655+5였다. 두 번째 독립 review가 compressed decoding 1건을 Important로 남겨
+`NOT READY`를 유지했으며, wave 2는 focused 196·area 656+5로 이를 닫았다. 최종 fresh
+review는 Critical 0 / Important 0 / Minor 0으로 `READY`였고 reviewer focused 257도
+PASS했다. Ruff 126 files, API Mypy 123 files, runner strict Mypy 3 files, PowerShell parser
+1,523 tokens, docs·secret·diff 검사가 모두 PASS했다.
+
+이 patch는 recursive duplicate-key rejection, identity/raw response의 `<64 KiB` bounded
+streaming, complete exchange 3초·actual aggregate 32초 deadline, exact-byte/pre-lease
+TOCTOU 재검증, nonzero `taskkill`과 post-child source drift의 fail-closed 처리를 추가한다.
+따라서 application은 `0.13.0→0.13.1-selectable-classifier-provider-hardening`, tests는
+`2.2.0→2.2.1-deepseek-classifier-provider-hardening`, documentation은
+`2.31.0→2.31.1-deepseek-classifier-provider-hardening`으로 patch 승격했다. Prompt
+`0.4.3-explicit-route-matrix`와 product/repository guidance/API/contracts/Web/DB/
+official/mock data/dependency 축은 불변이다. 이 pre-gate hardening checkpoint에서 A-074
+offline gate와 DeepSeek actual은 invocation/rerun `0/0`이고 artifact도 없었다. 이후
+immutable outcome은 다음 절에 기록한다. A-073 root는
+`NOT VERIFIED/FAIL`, invocation/rerun `1/0`을 그대로 보존한다.
+
+## A-074 immutable offline gate FAIL closeout
+
+2026-07-29 hardened source `9c7f818123533a4adc61d3953ed4d4630c793891`에서 A-074 offline
+wrapper를 승인된 정확히 한 번 실행했다. Immutable outcome은 `FAIL`, exit 1,
+`timed_out=false`, invocation/rerun `1/0`, stdout/stderr `475/0` bytes이며 first failing
+governed stage는 `TEST-ROOT`다. 결과·lock·aggregate hash evidence는 보존하고 wrapper를
+재실행하지 않는다.
+
+Value-free standalone 진단은 434 tests 중 정확히 1 failure와 2 skips를 기록했다.
+`EnvironmentBoundaryTest`의 expected map이 이미 안전하게 tracked된 네 classifier 환경
+경계를 누락한 repository-truth mismatch였다. Test-only corrective patch는
+`CLASSIFIER_PROVIDER=disabled`, blank `DEEPSEEK_API_KEY`, exact model/base URL 네 값을 map에
+추가했고 exact test PASS와 standalone root corrective `434 OK / skipped 2`를 확인했다.
+Corrective patch review는 Critical 0 / Important 0 / Minor 0이다. 이 후속 증거는 immutable
+gate를 PASS로 소급 변경하지 않는다.
+
+Application은 `0.13.1-selectable-classifier-provider-hardening` 그대로다. Test-only
+repository-boundary 교정으로 tests를 `2.2.1→2.2.2-a074-offline-gate-correction`,
+immutable FAIL closeout 문서화로 documentation을
+`2.31.1→2.31.2-a074-offline-gate-fail-closeout`으로 patch 승격했다. 다른 version axis는
+불변이다. DeepSeek actual은 blocked/unexecuted, invocation/rerun `0/0`, report/lease 부재,
+outbound/token/cost `0/0/USD 0`이다. A-073은 `NOT VERIFIED/FAIL`, invocation/rerun `1/0`을
+유지한다.
 
 ## CHAT-NATURAL-001 grouped implementation promotion
 

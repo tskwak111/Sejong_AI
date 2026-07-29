@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import json
 import os
 import sys
 from decimal import Decimal
@@ -22,6 +23,10 @@ from sejong_ai_api.db.models import Intent  # noqa: E402
 from sejong_ai_api.llm.classifier_contracts import (  # noqa: E402
     ClassifierDecision,
     ClassifierRoute,
+    parse_classifier_wire_decision_with_stage,
+)
+from sejong_ai_api.llm.classifier_diagnostics import (  # noqa: E402
+    ClassifierResponseStage,
 )
 from sejong_ai_api.llm.contracts import TokenUsage  # noqa: E402
 from sejong_ai_api.llm.cost import estimate_cost_usd  # noqa: E402
@@ -29,6 +34,31 @@ from sejong_ai_api.llm.settings import UpstageClassifierSettings  # noqa: E402
 
 _RUNNER_MODULE_NAME = "_sejong_hybrid_rag_actual_runner_test"
 _RUNNER_PATH = _REPOSITORY_ROOT / "scripts" / "run_hybrid_rag_actual.py"
+_APPROVED_CASE_TABLE_COLUMNS = (
+    "Fixture ID",
+    "Evidence kind",
+    "Provider decision accepted",
+    "Actual provider route/topic match",
+    "Outbound",
+)
+_FORBIDDEN_PRIVACY_MARKERS = (
+    "provider payload",
+    "provider body",
+    "response body",
+    "invalid value",
+    "status detail",
+    "exception",
+    "question",
+    "api_key",
+    "authorization",
+    "bearer ",
+    "database_url",
+    "dsn",
+    "postgresql://",
+    "offline-test-key",
+    "secret",
+    "| Fixture ID | Provider response stage |",
+)
 
 
 def _runner() -> ModuleType:
@@ -44,6 +74,60 @@ def _runner() -> ModuleType:
     sys.modules[_RUNNER_MODULE_NAME] = module
     spec.loader.exec_module(module)
     return module
+
+
+def _oracle_wire_payload(decision: ClassifierDecision) -> bytes:
+    def nullable(value: object | None) -> str:
+        if value is None:
+            return "NONE"
+        return value.value if hasattr(value, "value") else str(value)
+
+    return json.dumps(
+        {
+            "route": decision.route.value,
+            "intent": nullable(decision.intent),
+            "topic_id": nullable(decision.topic_id),
+            "coverage_id": nullable(decision.coverage_id),
+            "pending_slot": nullable(decision.pending_slot),
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _markdown_columns(line: str) -> tuple[str, ...]:
+    return tuple(cell.strip() for cell in line.strip().strip("|").split("|"))
+
+
+def _assert_aggregate_case_table_and_non_retention(
+    markdown: str,
+    *,
+    selected_questions: tuple[str, ...],
+    console: str = "",
+) -> None:
+    lines = markdown.splitlines()
+    case_headers = tuple(
+        (index, line)
+        for index, line in enumerate(lines)
+        if _markdown_columns(line)[:1] == ("Fixture ID",)
+    )
+
+    assert len(case_headers) == 1
+    header_index, header = case_headers[0]
+    assert _markdown_columns(header) == _APPROVED_CASE_TABLE_COLUMNS
+    assert len(_markdown_columns(lines[header_index + 1])) == len(
+        _APPROVED_CASE_TABLE_COLUMNS
+    )
+    for row in lines[header_index + 2 :]:
+        if not row.startswith("|"):
+            break
+        assert len(_markdown_columns(row)) == len(_APPROVED_CASE_TABLE_COLUMNS)
+
+    evidence = (console + markdown).casefold()
+    for question in selected_questions:
+        assert question.casefold() not in evidence
+    for marker in _FORBIDDEN_PRIVACY_MARKERS:
+        assert marker.casefold() not in evidence
 
 
 def test_actual_subset_is_the_exact_pii_free_allowlist() -> None:
@@ -81,6 +165,62 @@ def test_actual_subset_is_the_exact_pii_free_allowlist() -> None:
     assert (
         sum(case.expected_provider_use for case in fixtures if case.actual_subset) == 9
     )
+
+
+def test_actual_provider_subset_oracles_round_trip_through_production_wire_parser() -> (
+    None
+):
+    runner = _runner()
+    fixtures = runner._load_fixtures(runner._FIXTURE_PATH)
+    _, catalog = runner._load_pinned_inputs()
+    provider_cases = tuple(
+        case
+        for case in fixtures
+        if case.actual_subset and case.expected_provider_use == 1
+    )
+
+    assert tuple(case.fixture_id for case in provider_cases) == (
+        "HR-001",
+        "HR-002",
+        "HR-003",
+        "HR-004",
+        "HR-007",
+        "HR-008",
+        "HR-037",
+        "HR-039",
+        "HR-040",
+    )
+    for case in provider_cases:
+        oracle = _oracle_decision(runner, case.fixture_id)
+        parsed = parse_classifier_wire_decision_with_stage(
+            _oracle_wire_payload(oracle),
+            catalog,
+        )
+
+        assert parsed.stage is ClassifierResponseStage.ACCEPTED
+        assert parsed.decision == oracle
+
+
+def test_scope_gap_out_of_scope_fixture_uses_civic_scope_gap_all_none_provider_wire() -> (
+    None
+):
+    runner = _runner()
+    fixtures = {
+        case.fixture_id: case for case in runner._load_fixtures(runner._FIXTURE_PATH)
+    }
+
+    for fixture_id in ("HR-037", "HR-039", "HR-040"):
+        fixture = fixtures[fixture_id]
+        provider_wire = _oracle_wire_payload(_oracle_decision(runner, fixture_id))
+
+        assert json.loads(provider_wire.decode("utf-8")) == {
+            "route": "CIVIC_SCOPE_GAP",
+            "intent": "NONE",
+            "topic_id": "NONE",
+            "coverage_id": "NONE",
+            "pending_slot": "NONE",
+        }
+        assert fixture.expected_intent == "OUT_OF_SCOPE"
 
 
 def test_injected_offline_selector_writes_only_case_id_aggregates() -> None:
@@ -132,14 +272,10 @@ def test_injected_offline_selector_writes_only_case_id_aggregates() -> None:
     assert (
         "`PRIOR_OFFLINE_PROVIDER_FREE` | `not-applicable` | `not-applicable` | `0`"
     ) in markdown
-    for forbidden in (
-        selected[0].question,
-        "api_key",
-        "postgresql://",
-        "payload",
-        "response body",
-    ):
-        assert forbidden.casefold() not in markdown.casefold()
+    _assert_aggregate_case_table_and_non_retention(
+        markdown,
+        selected_questions=tuple(case.question for case in selected),
+    )
 
 
 def test_cost_gate_stops_before_injected_selector_call() -> None:
@@ -269,6 +405,37 @@ def test_usage_recorder_records_value_free_response_families_and_strict_usage() 
     assert recorder.http_5xx_count == 1
     assert recorder.http_other_count == 1
     assert recorder.usage_rejected_count == 1
+
+
+def test_response_stage_recorder_accepts_only_closed_enum_and_counts_aggregates() -> (
+    None
+):
+    runner = _runner()
+    recorder = runner._ResponseStageRecorder()
+
+    recorder.capture(ClassifierResponseStage.ACCEPTED)
+    recorder.capture(ClassifierResponseStage.ACCEPTED)
+    recorder.capture(ClassifierResponseStage.JSON_REJECTED)
+
+    assert recorder.total == 3
+    assert recorder.count(ClassifierResponseStage.ACCEPTED) == 2
+    assert recorder.count(ClassifierResponseStage.JSON_REJECTED) == 1
+    with pytest.raises(ValueError, match="CLASSIFIER_RESPONSE_STAGE_INVALID"):
+        recorder.capture("ACCEPTED")
+
+
+def test_report_has_all_response_stage_aggregate_fields_in_fixed_order() -> None:
+    runner = _runner()
+    stage_fields = tuple(
+        field for field in runner._REPORT_FIELDS if field.startswith("provider_stage_")
+    )
+
+    assert stage_fields == tuple(
+        f"provider_stage_{stage.value.casefold()}_count"
+        for stage in ClassifierResponseStage
+    )
+    assert "provider_response_stage_total" in runner._REPORT_FIELDS
+    assert "provider_stage_enum_shape_rejected_count" in stage_fields
 
 
 def test_cross_process_lease_blocks_concurrent_and_existing_evidence(
@@ -444,6 +611,7 @@ def test_main_partial_failure_records_bounded_attempt_and_cost_evidence(
         ledger: Any,
         catalog: Any,
         recorder: Any,
+        response_stages: Any,
     ) -> Any:
         del catalog
 
@@ -467,6 +635,9 @@ def test_main_partial_failure_records_bounded_attempt_and_cost_evidence(
                                 },
                             )
                         )
+                        response_stages.capture(
+                            ClassifierResponseStage.ROUTE_ENUM_REJECTED
+                        )
                         return _oracle_decision(runner, "HR-001")
                     raise RuntimeError(
                         f"private question payload key postgresql:// {question.text}"
@@ -485,11 +656,38 @@ def test_main_partial_failure_records_bounded_attempt_and_cost_evidence(
     assert "`provider_http_2xx_count` | `1`" in report
     assert "`provider_transport_no_response_count` | `1`" in report
     assert "`provider_decision_accepted_count` | `1`" in report
+    assert "`provider_response_stage_total` | `1`" in report
+    assert "`provider_stage_route_enum_rejected_count` | `1`" in report
+    assert "`provider_stage_enum_shape_rejected_count` | `0`" in report
     assert "`observed_usage_response_count` | `1`" in report
     assert "`conservative_charged_attempt_count` | `1`" in report
     assert "`acceptance` | `FAIL`" in report
-    for forbidden in ("private", "payload", "postgresql://", "question"):
-        assert forbidden not in (captured.out + captured.err + report).casefold()
+    stage_fields = tuple(
+        f"provider_stage_{stage.value.casefold()}_count"
+        for stage in ClassifierResponseStage
+    )
+    stage_lines = tuple(
+        line for line in report.splitlines() if line.startswith("| `provider_stage_")
+    )
+    assert stage_lines == tuple(
+        f"| `{field}` | `{1 if field == 'provider_stage_route_enum_rejected_count' else 0}` |"
+        for field in stage_fields
+    )
+    for forbidden in (
+        "private",
+        "payload",
+        "postgresql://",
+        "question",
+        "invalid value",
+        "status detail",
+        "exception",
+        "offline-test-key",
+        "| Fixture ID | Provider response stage |",
+    ):
+        assert (
+            forbidden.casefold()
+            not in (captured.out + captured.err + report).casefold()
+        )
 
 
 @pytest.mark.parametrize(
@@ -618,6 +816,7 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
         ledger: Any,
         _catalog: Any,
         recorder: Any,
+        response_stages: Any,
     ) -> Any:
         class PassingSelector:
             async def classify(self, safe: SafeQuestion) -> ClassifierDecision:
@@ -637,6 +836,7 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
                             },
                         )
                     )
+                    response_stages.capture(ClassifierResponseStage.ACCEPTED)
                 return _oracle_decision(
                     runner,
                     fixture_id_by_question[safe.text],
@@ -649,6 +849,7 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
     assert runner.main([]) == 0
     first_console = capsys.readouterr()
     report = report_path.read_text(encoding="utf-8")
+    console_report = json.loads(first_console.out)
 
     assert client_calls == 1
     assert os.environ == environment_before
@@ -661,10 +862,39 @@ def test_main_pass_is_atomic_aggregate_only_and_blocks_implicit_rerun(
     assert "`provider_decision_accepted_count` | `9`" in report
     assert "`provider_decision_rejected_count` | `0`" in report
     assert "`provider_contract_mismatch_count` | `0`" in report
+    assert "`provider_response_stage_total` | `9`" in report
+    assert "`provider_stage_accepted_count` | `9`" in report
+    for stage in ClassifierResponseStage:
+        expected = 9 if stage is ClassifierResponseStage.ACCEPTED else 0
+        assert (
+            f"`provider_stage_{stage.value.casefold()}_count` | `{expected}`" in report
+        )
+    stage_fields = tuple(
+        f"provider_stage_{stage.value.casefold()}_count"
+        for stage in ClassifierResponseStage
+    )
+    assert (
+        tuple(field for field in console_report if field.startswith("provider_stage_"))
+        == stage_fields
+    )
+    assert tuple(
+        line for line in report.splitlines() if line.startswith("| `provider_stage_")
+    ) == tuple(
+        f"| `{field}` | `{9 if field == 'provider_stage_accepted_count' else 0}` |"
+        for field in stage_fields
+    )
+    assert report.count("provider_stage_enum_shape_rejected_count") == 1
+    assert console_report["provider_stage_enum_shape_rejected_count"] == 0
     assert "`cost_reconciled` | `True`" in report
     assert "`acceptance` | `PASS`" in report
     assert not list(tmp_path.glob(".*.tmp"))
-    assert "postgresql://" not in (first_console.out + first_console.err + report)
+    _assert_aggregate_case_table_and_non_retention(
+        report,
+        selected_questions=tuple(
+            case.question for case in fixtures if case.actual_subset
+        ),
+        console=first_console.out + first_console.err,
+    )
 
     report_before_rerun = report_path.read_bytes()
     assert runner.main([]) == 2

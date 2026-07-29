@@ -189,7 +189,7 @@ owner PR 과제다. owner Draft PR review/merge와 manual demo는 인간 Pending
 | Backend | FastAPI + Python 3.12+uv | 초기 로컬 실행·백업; Render는 공개 배포 승인 후 |
 | DB | Supabase PostgreSQL + Supabase CLI 버전 SQL migration | Docker local stack 우선; 원격 push·파괴 변경은 별도 승인 |
 | 검색 | 키워드+메타데이터 기본, 임베딩 보조 | KB 20건에서 예측 가능성 우선 |
-| LLM | Upstage direct API + provider adapter | exact `solar-pro3`; 합성 evaluator의 max 1024/concurrency 1/retry 1/cap 30과 별도로, 승인된 local/private 시민 경로는 supported+masked+ACTIVE/OFFICIAL+grounded, 8초·1 attempt·server-issued fact ID·전체 template fallback |
+| LLM | selectable classifier adapter + Upstage grounded generator | classifier는 local/private에서 disabled/Upstage/DeepSeek exact `deepseek-v4-flash`를 명시 선택하고, 최종 시민 답변 생성은 Upstage exact `solar-pro3`를 유지한다. 합성 evaluator의 max 1024/concurrency 1/retry 1/cap 30과 별도로, 승인된 local/private 시민 경로는 supported+masked+ACTIVE/OFFICIAL+grounded, 8초·1 attempt·server-issued fact ID·전체 template fallback |
 | 차트 | Recharts | 기본 KPI만 |
 | 테스트 | Pytest, Playwright, k6/Locust, 수동 표본 평가 | 품질·UI·성능 분리 |
 
@@ -272,8 +272,22 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
 - 외부 LLM 호출 전 백엔드에서 개인정보를 마스킹한다.
 - local/private 시민 경로는 마스킹된 현재 질문과 실제 답변에 필요한 최소 ACTIVE/OFFICIAL
   KB, server-issued fact ID와 strict schema만 전달한다.
-- 공급자는 Upstage direct API의 exact `solar-pro3`를 사용한다. 키는 ignored backend local
-  환경변수에만 두며 새 충전·자동 충전·잔액 조회를 하지 않는다.
+- 최종 시민 답변 생성 공급자는 Upstage direct API의 exact `solar-pro3`를 유지한다. 질문
+  분류 공급자는 Q-LLM-PROVIDER-001=A/D-122/ADR-0028에 따라 local/private에서
+  disabled/Upstage/DeepSeek exact `deepseek-v4-flash`를 명시 선택한다. 각 키는 서로 다른
+  ignored backend local 환경변수에만 두며 새 충전·자동 충전·잔액 조회를 하지 않는다.
+- A-074 offline Tasks 1~6b는 selector/settings, strict DeepSeek transport, provider별
+  보수 비용·usage, local composition과 one-shot runner/wrapper를 TDD로 완료했다. Integrated
+  pre-gate review의 Important 5와 compressed-decoding Important 1을 두 fix wave로 닫았고
+  최종 fresh review는 Critical 0 / Important 0 / Minor 0 `READY`다. Recursive duplicate-key
+  rejection, identity/raw `<64 KiB` streaming, complete exchange 3초·aggregate 32초 deadline,
+  exact-byte/pre-lease TOCTOU와 post-child source/tree fail-closed가 포함된다. public main과
+  final answer provider는 불변이다. D-123의 source
+  `9c7f818123533a4adc61d3953ed4d4630c793891` A-074 offline exact-one은 exit 1,
+  timed_out false, invocation/rerun 1/0과 `TEST-ROOT` first failure로 immutable `FAIL`이다.
+  Standalone 434-test repository-boundary mismatch는 test-only +4 교정 뒤 `434 OK / skipped 2`
+  와 corrective review C0/I0/M0로 해소했지만 gate를 소급 변경하지 않는다. DeepSeek actual은
+  blocked/unexecuted 0/0이며 report/lease·outbound·token·cost는 0이다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.
@@ -289,6 +303,10 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   구조화 KB template를 반환한다. 근거가 없으면 provider call 0의 안전 폴백이다.
 - provider는 기본 disabled이고 합성 mode와 시민 chat mode를 분리한다. public/remote/실제 기관
   운영은 별도 개인정보·보안·비용·배포 승인 전까지 provider 호출을 금지한다.
+- DeepSeek는 `sejong_ai_api.local.create_local_app`와 `127.0.0.1` local runner에만 구성한다.
+  exact five-string/uppercase `NONE`을 shared server parser가 재검증하며 `json_object`를
+  schema 신뢰 경계로 보지 않는다. DeepSeek actual은 fixed synthetic 20, 3초·retry0·
+  concurrency1·max output128·temperature0/thinking disabled·USD0.20 cap의 one-shot이다.
 
 ### 마스킹·대화·오류 경계
 
@@ -304,6 +322,9 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   완료됐고 current local interactive 상한은 D-099/D-104의 classifier 80, generator 100,
   combined 160, VAT 포함 USD 0.20이다. Task 10의 새 PII-free 20-case selector actual은
   정확히 한 번 실행했으나 strict accepted usage/provider match 0으로 FAIL해 재실행 금지 상태다.
+  Q-LLM-013=A/D-107의 명시적 JSON 지시 교정 actual은 9/9 HTTP 2xx와 usage accepted로 4xx를
+  해소했지만 strict closed decision accepted/match 0이라 overall FAIL이다. 재시도는 0이고
+  current runtime은 provider 응답 거부 시 안전한 결정론 fallback을 유지한다.
 - 화면상 대화 기록과 15분 서명형 `context_token`은 현재 브라우저 탭 메모리에만 둔다. 서버 세션·raw 대화문·token을 DB/로그에 저장하지 않고 새로고침·탭 종료 시 화면 기록을 없앤다.
 - token에는 서버 정의 enum/ID와 발급·만료 시각만 허용하며 질문·답변·PII·URL·공식 사실을 넣지 않는다. 만료·위변조 token은 문맥 없는 새 요청으로 처리하고 인증·권한·ACTIVE KB·근거 판단에 사용하지 않는다.
 - 정책 폴백은 HTTP 200이다. provider/DB 장애라도 ACTIVE KB·검증 snapshot으로 안전 응답이 가능하면 200이고, 안전 대체가 없을 때만 HTTP 503 `SERVICE_UNAVAILABLE`을 반환한다.

@@ -10,7 +10,7 @@
 - Runner commits: `0288607`, `5130b1e`
 - Related: [plan](../superpowers/plans/2026-07-27-bounded-hybrid-rag-conversation.md),
   [ADR-0027](../adr/0027-active-topic-catalog-and-coverage-grounding.md),
-  [actual evidence](../test-reports/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL.md), D-105
+  [D-105 actual evidence](../test-reports/archive/CHAT-HYBRID-RAG-001-UPSTAGE-ACTUAL-20260728-D105-FAIL.md), D-105
 
 ## 1. 사용자 요청과 완료 기준
 

@@ -6,6 +6,7 @@ import pytest
 import sejong_ai_api.llm.limits as limits_module
 from sejong_ai_api.llm.contracts import TokenUsage
 from sejong_ai_api.llm.cost import estimate_cost_usd
+from sejong_ai_api.llm.deepseek_usage import estimate_deepseek_cost_usd
 from sejong_ai_api.llm.limits import (
     AttemptBudget,
     AttemptCapReached,
@@ -201,6 +202,67 @@ async def test_provider_ledger_charges_valid_actual_usage_exactly_once() -> None
         reservation.record_usage(usage)
         with pytest.raises(ValueError, match="^PROVIDER_USAGE_ALREADY_RECORDED$"):
             reservation.record_usage(usage)
+
+    assert ledger.actual_cost_usd == estimate_cost_usd(usage)
+
+
+@pytest.mark.asyncio
+async def test_provider_ledger_uses_injected_deepseek_estimator_and_blocks_cost_cap() -> None:
+    deepseek_worst_case_usd = estimate_deepseek_cost_usd(TokenUsage(1024, 0, 128))
+    ledger = ProviderAttemptLedger(
+        classifier_cap=2,
+        generator_cap=1,
+        combined_cap=2,
+        cost_cap_usd=deepseek_worst_case_usd,
+        classifier_worst_case_usd=deepseek_worst_case_usd,
+        generator_worst_case_usd=GENERATOR_WORST_CASE_USD,
+        classifier_cost_estimator=estimate_deepseek_cost_usd,
+    )
+
+    async with ledger.reserve_classifier() as reservation:
+        reservation.record_usage(TokenUsage(1024, 512, 128))
+
+    assert ledger.actual_cost_usd == deepseek_worst_case_usd
+    with pytest.raises(AttemptCapReached, match="^ATTEMPT_CAP_REACHED$"):
+        async with ledger.reserve_classifier():
+            raise AssertionError("a second DeepSeek reservation must exceed the cost cap")
+
+
+@pytest.mark.asyncio
+async def test_provider_reservation_reuses_validated_actual_cost_without_reestimating() -> None:
+    estimator_calls = 0
+
+    def one_shot_estimator(_usage: TokenUsage) -> Decimal:
+        nonlocal estimator_calls
+        estimator_calls += 1
+        if estimator_calls > 1:
+            raise RuntimeError("ESTIMATOR_MUST_NOT_RUN_DURING_FINALIZE")
+        return Decimal("0.001")
+
+    ledger = ProviderAttemptLedger(
+        classifier_cap=1,
+        generator_cap=1,
+        combined_cap=1,
+        cost_cap_usd=Decimal("0.01"),
+        classifier_worst_case_usd=Decimal("0.01"),
+        generator_worst_case_usd=GENERATOR_WORST_CASE_USD,
+        classifier_cost_estimator=one_shot_estimator,
+    )
+
+    async with ledger.reserve_classifier() as reservation:
+        reservation.record_usage(TokenUsage(20, 0, 10))
+
+    assert estimator_calls == 1
+    assert ledger.actual_cost_usd == Decimal("0.001")
+
+
+@pytest.mark.asyncio
+async def test_provider_ledger_keeps_upstage_estimator_as_default_for_cached_usage() -> None:
+    usage = TokenUsage(20, 10, 10)
+    ledger = _provider_ledger(cost_cap_usd=CLASSIFIER_WORST_CASE_USD)
+
+    async with ledger.reserve_classifier() as reservation:
+        reservation.record_usage(usage)
 
     assert ledger.actual_cost_usd == estimate_cost_usd(usage)
 

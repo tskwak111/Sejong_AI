@@ -1,0 +1,350 @@
+# PLAN-20260729-A074 — Selectable DeepSeek Classifier Provider
+
+## 상태
+
+Approved / Closed offline — Task 7 immutable FAIL; Task 8 actual blocked/not run; Draft PR #21 published
+
+The user's exact A-074 instruction approves this plan, Subagent-Driven TDD, one new offline gate,
+one DeepSeek actual and Draft PR publication. It does not approve automatic merge.
+
+## 목표와 비목표
+
+- 목표: add DeepSeek `deepseek-v4-flash` as a classifier-only, local/private, explicitly selected
+  provider behind the existing exact parser and deterministic safety boundary.
+- 목표: preserve the Upstage classifier and separate grounded-answer generator.
+- 목표: obtain truthful one-shot aggregate evidence without rerunning A-073.
+- 비목표: public/remote/free-input, API/DB/data/Web change, generated facts/sources, new production
+  dependency, provider cascade or automatic merge.
+
+## 사용자 가치와 인수 기준
+
+- 사용자 가치: compare a current alternative classifier without weakening grounded citizen
+  answers or the no-retention policy.
+- Acceptance Criteria:
+  - exact five-string wire and uppercase `NONE` unchanged;
+  - deterministic 11/provider outbound 9 on fixed 20;
+  - privacy/policy outbound and storage 0;
+  - HTTP/parse/accept/oracle match 9;
+  - timeout 3/retry 0/concurrency 1/output 128;
+  - conservative actual cost at most USD 0.20;
+  - DeepSeek failure uses deterministic fallback;
+  - one new offline wrapper invocation and one actual invocation, rerun 0;
+  - all focused/area/full gates and independent review recorded;
+  - commit, push and Draft PR; no merge.
+
+## 권위 근거
+
+- RFP ID: local/private Hybrid RAG and approved official-KB answer path
+- source-of-truth: `docs/00_SOURCE_OF_TRUTH.md`
+- ADR: ADR-0023, ADR-0025, ADR-0027, ADR-0028
+- discovery: `docs/discovery/A_074_DEEPSEEK_CLASSIFIER_PROVIDER_AUDIT.md`
+- specification:
+  `docs/superpowers/specs/2026-07-29-deepseek-classifier-provider-design.md`
+- related note: A-073 IMP-005; create one A-074 implementation note during integration
+
+## 현재 상태와 조사 결과
+
+- 활성 코드: provider-neutral classifier port, masked safe question, exact parser, Upstage
+  adapter, shared budget ledger, local runtime composition.
+- legacy 참고: none used as authority.
+- 확인한 명령: Git branch/status/log/diff; focused A-073 tests and reviews already recorded.
+- 발견한 충돌: shared cost estimator is Upstage-specific; active docs say classifier is
+  Upstage-only; old actual runner/report cannot be reused.
+- preserved evidence: A-073 root `NOT VERIFIED/FAIL`, invocation 1, rerun 0; no A-073 or Upstage
+  actual rerun.
+
+## 미지의 영역과 인터뷰
+
+| ID | 영향 | 질문 | 상태 | 결정 |
+|---|---|---|---|---|
+| Q-LLM-PROVIDER-001 | Architecture/security/cost | DeepSeek classifier provider | Resolved | A |
+| DeepSeek pricing drift | Cost | Which rates govern actual | Defaulted | Official rates checked 2026-07-29, conservative miss+VAT upper bound |
+| Local key presence | Actual only | Is ignored secret configured | Not evaluated — Task 7 FAIL blocked readiness | No secret read/output |
+
+No implementation blocker remains. Actual validation is blocked by the immutable Task 7 FAIL,
+so local key presence was not evaluated.
+
+## 제안 설계
+
+- 데이터 흐름: deterministic safety → masking → `SafeQuestion` → selected provider → exact parser
+  → current catalog validation → existing grounding/fallback.
+- 컴포넌트 경계: provider-neutral settings/factory and budget estimator; separate provider
+  request adapters; shared parser.
+- API/DB 변경: none.
+- 보안/개인정보: no raw/body/value/secret/exception retention; fixed synthetic actual only.
+- 실패/장애 처리: retry 0 and existing deterministic fail-closed fallback; no provider cascade.
+- local/private enforcement: only `sejong_ai_api.local.create_local_app` may compose DeepSeek;
+  `sejong_ai_api.main` remains provider-free and the supported runner binds loopback only.
+
+## 단계별 구현
+
+### Task 1 — Provider-neutral cost and usage boundary
+
+Files:
+
+- modify `apps/api/src/sejong_ai_api/llm/limits.py`
+- add DeepSeek cost/usage module
+- focused tests under `apps/api/tests/llm/`
+
+TDD:
+
+1. RED for provider-specific estimator injection and DeepSeek cache fields.
+2. GREEN with existing Upstage behavior unchanged.
+3. Prove negative/inconsistent usage and cap overflow fail closed.
+4. Commit after focused review.
+
+### Task 2 — Strict settings and provider selection
+
+Files:
+
+- add DeepSeek settings module
+- modify provider-neutral runtime settings/factory
+- modify `apps/api/.env.example` without values
+- focused settings tests
+
+TDD:
+
+1. RED for exact selector/default disabled/model/base/limits.
+2. RED for invalid/conflicting profiles and secret-safe repr/errors.
+3. GREEN without reading the key before non-secret profile validation.
+4. Preserve explicit Upstage selection and generator configuration.
+5. Commit after focused review.
+
+### Task 3 — DeepSeek classifier transport
+
+Files:
+
+- add `deepseek_classifier.py`
+- optionally extract value-free shared envelope helper
+- add transport/parser/non-retention tests
+
+TDD:
+
+1. RED for exact URL/model/json_object/thinking disabled/temp0/max128.
+2. RED for the typed `SafeQuestion` transport boundary and one end-to-end redaction flow, plus
+   request/body/value/secret/exception non-retention.
+3. RED for timeout/empty/HTTP/JSON/key/type/enum/shape/catalog/usage failures.
+4. GREEN using existing exact parser; network tests use controlled `httpx.MockTransport` only.
+5. Commit after focused review.
+
+### Task 4 — Local composition and deterministic routing
+
+Files:
+
+- modify `apps/api/src/sejong_ai_api/local.py`
+- focused local/chat integration tests
+
+TDD:
+
+1. RED for `disabled`, `upstage`, `deepseek` exact selection.
+2. RED for policy/privacy, obvious NON_CIVIC and obvious supported outbound 0.
+3. RED for masked ambiguous outbound at most once and deterministic fallback on failure.
+4. Prove separately enabled Upstage grounded generation remains intact.
+5. Commit after focused review.
+
+### Task 5 — One-shot DeepSeek actual runner
+
+Files:
+
+- add `scripts/run_deepseek_classifier_actual.py`
+- add controlled runner tests
+- add `docs/runbooks/DEEPSEEK-CLASSIFIER-ACTUAL.md`
+- add new A-074 offline wrapper and tests
+
+TDD:
+
+1. readiness performs no network, lock, report or secret output;
+2. actual lease is acquired before network and cannot be reused;
+3. exact fixture
+   `apps/api/tests/chat/fixtures/hybrid-rag-uat.v1.json` at SHA-256
+   `4c6bf8cad6a00c94775f36b3731e7878a10722a2031e97e2a49fb8cb2141351d`
+   yields 20/0/11/9;
+4. four policy/privacy probes produce outbound 0;
+5. report is aggregate-only and forbids questions/bodies/invalid values/secrets;
+6. PASS requires all 9 HTTP/parse/accepted/oracle matches and cost cap;
+7. any failure writes immutable FAIL and rerun remains 0;
+8. `scripts/run_a074_offline_gate.ps1` invokes root `verify.ps1 -Offline` once, continuously
+   preserves output in the plan-owned ignored SDD directory, uses a long timeout and never invokes
+   A-073/Upstage actual.
+9. Commit after focused review.
+
+### Task 6 — Area integration, versions and documentation
+
+Files:
+
+- authority and version documents, ADR index, task/changelog/RFP
+- A-074 implementation note and INDEX
+- A-074 offline and actual report paths
+
+Actions:
+
+1. run complete LLM/chat/local/runner area suite once;
+2. Ruff format/check and Mypy;
+3. update application `0.13.0`, tests `2.2.0`, docs `2.31.0`; prompt unchanged if bytes unchanged;
+4. run docs, secret and diff checks;
+5. commit truthful offline implementation evidence.
+
+### Task 6b — Integrated pre-gate hardening
+
+The original approved plan did not predict this review-driven patch. It is a realized hardening
+addendum before consuming either one-shot:
+
+1. preserve the initial integrated review result Critical 0 / Important 5 `NOT READY`;
+2. preserve RED evidence: 19 Python and 3 controlled fake-wrapper failures;
+3. reject recursive duplicate JSON keys and bound identity/raw response streaming below 64 KiB;
+4. enforce a complete-exchange 3-second deadline and aggregate actual 32-second deadline;
+5. parse the exact bytes that were hashed and revalidate source, fixture/catalog/settings/offline
+   evidence and report/lease absence immediately before lease acquisition;
+6. recheck original HEAD and clean tree after the offline child exits, and treat nonzero `taskkill`
+   as unconfirmed termination without publishing mutable-log evidence;
+7. preserve wave 1 GREEN focused 195 / area 655+5;
+8. preserve the second review Critical 0 / Important 1 `NOT READY` for compressed decoding;
+9. preserve wave 2 GREEN focused 196 / area 656+5;
+10. require a final fresh Critical 0 / Important 0 / Minor 0 `READY` review before Task 7.
+
+Final hardening evidence also includes reviewer focused 257, Ruff 126 files, API Mypy 123 files,
+runner strict Mypy 3 files, PowerShell parser 1,523 tokens, and docs/secret/diff PASS. Neither
+Neither A-074 one-shot was consumed at this Task 6b checkpoint; both remained
+invocation/rerun 0/0 with artifacts absent before Task 7.
+
+### Task 7 — New A-074 offline gate exactly once
+
+1. Confirm these paths do not exist:
+   `.superpowers/sdd/2026-07-29-deepseek-classifier-provider/a074-offline-gate-result.json`
+   and its one-shot lock.
+2. Start it with a 60-minute bound and continuous ignored stdout/stderr files.
+3. Invoke exactly once; poll without losing process/output.
+4. Record source SHA, exit, bounded stage, output hash/byte count and invocation/rerun `1/0` in the
+   ignored result. Actual must consume the same clean HEAD; no tracked evidence commit occurs in
+   between.
+5. Never rerun it, including on environment failure.
+
+Recorded outcome: source `9c7f818123533a4adc61d3953ed4d4630c793891`, immutable `FAIL`,
+exit 1, timed_out false, invocation/rerun 1/0, stdout/stderr 475/0 bytes and first failing governed
+stage `TEST-ROOT`. The result, lock and aggregate hashes remain immutable; Task 7 is complete as
+FAIL and must never be rerun.
+
+### Task 8 — Clean-source review and DeepSeek actual exactly once
+
+1. independent code/security/privacy review with no Critical/Important findings;
+2. clean committed source SHA and pinned fixture/report paths;
+3. value-free readiness without network or lease against the pinned fixture/hash, canonical
+   report `docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-ACTUAL.md` and exact same source SHA;
+4. if ready, execute actual once;
+5. record PASS/FAIL aggregate and rerun 0;
+6. do not inspect or retain provider body and do not attempt a correction rerun.
+
+Recorded outcome: not run. Task 7 did not PASS, so readiness, lease and provider network were
+correctly blocked. Actual invocation/rerun are 0/0; report/lease, outbound, token and cost are 0.
+
+### Task 9 — Final evidence and Draft PR
+
+1. synchronize D-123, ambiguity, source-of-truth, task, RFP, versions and implementation note;
+   do not create D-124 because Task 8 actual did not run;
+2. final scoped independent review;
+3. docs/secret/diff/status checks;
+4. commit and push `codex/a-074-deepseek-classifier-provider`;
+5. create Draft PR;
+6. do not merge.
+
+## 테스트 계획
+
+- 단위: settings, cost, usage, request shape, exact parser, error paths.
+- 계약: exact five keys/all strings/uppercase `NONE`, current catalog validation.
+- 통합: chat service and local composition with controlled transports.
+- E2E: fixed synthetic 20 runner; no public/remote browser E2E change.
+- 보안/PII: outbound capture, caplog, exceptions, report and repository secret scan.
+- 접근성: Web unchanged; existing regression only.
+- 성능: concurrency 1 and bounded timeout/output; no 100-user target in this task.
+
+Focused tests run during each task. One area suite runs after integration. One new A-074 root
+offline gate runs at the final source. The A-073 wrapper and Upstage actual are never rerun.
+
+## 버전 변경 계획
+
+- application: `0.12.4-classifier-wire-diagnostics` →
+  `0.13.0-selectable-classifier-provider`
+- api/shared/web/database/data/product: unchanged
+- prompt: `0.4.3-explicit-route-matrix`, unchanged unless bytes change
+- tests: `2.1.7-classifier-wire-correction` → `2.2.0-deepseek-classifier-provider`
+- docs: `2.30.7` → `2.30.8` approved design checkpoint →
+  `2.31.0-deepseek-classifier-provider`
+
+Those values are the historical approved implementation target. The realized Task 6b internal
+hardening patch advances application to `0.13.1-selectable-classifier-provider-hardening`, tests to
+`2.2.1-deepseek-classifier-provider-hardening`, and docs to
+`2.31.1-deepseek-classifier-provider-hardening`; every other version axis remains unchanged.
+Task 7 fail-closeout keeps application `0.13.1`, advances tests to
+`2.2.2-a074-offline-gate-correction` and docs to
+`2.31.2-a074-offline-gate-fail-closeout`; every other axis remains unchanged.
+
+## 위험과 롤백
+
+- 위험: wrong provider price, selector ambiguity, JSON-mode over-trust, mixed-provider accounting,
+  raw/body retention, one-shot evidence loss.
+- 조기 신호: setting rejection, unexpected outbound, parser bypass, cost mismatch, forbidden text
+  in caplog/report, existing lock/report.
+- 롤백: set selector disabled; revert DeepSeek-only adapter/composition; keep Upstage generator;
+  no DB/data/API rollback.
+
+## 인간이 승인해야 하는 사항
+
+Already approved:
+
+- DeepSeek classifier-only provider and exact model;
+- local/private offline and exactly one actual;
+- USD 0.20 cap;
+- commit, push and Draft PR.
+
+Still prohibited:
+
+- public/remote/free-input;
+- final answer-provider change;
+- new dependency;
+- automatic merge or actual rerun.
+
+## 진행 기록
+
+- 2026-07-29: A-073 scoped review fix closed as D-121 without rerunning its failed wrapper.
+- 2026-07-29: A-074 code, docs and gate discovery audits completed; no A blocker.
+- 2026-07-29: ADR-0028, written specification and executable plan drafted under the user's
+  explicit approval.
+- 2026-07-29: Tasks 1~6 offline implementation, area integration, documentation/version
+  synchronization and independent review completed. No A-074 offline gate or provider actual has
+  run; invocation/rerun remain 0/0.
+- 2026-07-29: integrated pre-gate review returned C0/I5 `NOT READY`. Task 6b preserved 19 Python
+  and 3 fake-wrapper REDs, then passed wave 1 focused 195 / area 655+5.
+- 2026-07-29: second review returned C0/I1 `NOT READY` for compressed decoding. Wave 2 passed
+  focused 196 / area 656+5, and the final fresh review returned C0/I0/M0 `READY`; reviewer focused
+  257, Ruff/Mypy/PowerShell parser/docs/secret/diff also passed.
+- 2026-07-29: at the Task 6b checkpoint, A-074 gate/actual invocation/rerun were 0/0 with
+  artifacts absent. A-073 remained `NOT VERIFIED/FAIL`, invocation/rerun 1/0.
+- 2026-07-29: Task 7 consumed the exact-one wrapper from source
+  `9c7f818123533a4adc61d3953ed4d4630c793891` and closed immutable `FAIL`: exit 1, timed_out false,
+  invocation/rerun 1/0, stdout/stderr 475/0 bytes, first governed failure `TEST-ROOT`.
+- 2026-07-29: standalone root diagnostics isolated one expected-map repository-truth mismatch in
+  434 tests with 2 skips. Test-only +4 values produced exact PASS and full `434 OK / skipped 2`;
+  corrective review C0/I0/M0. This does not reclassify or rerun Task 7.
+- 2026-07-29: Task 8 was not run. DeepSeek actual remains blocked/unexecuted 0/0 with report/lease,
+  outbound, token and cost all 0.
+
+## 결과와 회고
+
+- 실제 결과: hardened offline implementation completed through Task 6b. Task 7 is immutable
+  `FAIL` at `TEST-ROOT`, invocation/rerun 1/0; Task 8 actual is blocked/not run at 0/0.
+- 계획과 달라진 점: original wrapper review corrected lock-owner/unconfirmed termination races.
+  The later integrated pre-gate review additionally found recursive JSON, response-boundary,
+  total-deadline, exact-byte/pre-lease TOCTOU and post-child source/termination gaps. Two
+  RED/GREEN waves closed all Critical/Important/Minor findings before any real gate execution.
+- 2026-07-29: Task 9 completed with fail-closeout commit `be877c5`, branch push and Draft PR #21.
+- 다음 단계: preserve Task 7 evidence, review Draft PR #21 manually, and do not run Task 8 or
+  either wrapper again without a new task/identity and explicit human decision.
+
+## Plan self-review
+
+- Every user security, provider, exact-wire, cost, one-shot and no-rerun constraint maps to a task.
+- Shared parser/catalog authority is not duplicated.
+- Upstage classifier/generator preservation is explicit.
+- A-073 failed root evidence and Upstage actual are immutable.
+- No public API, DB, data, Web or dependency change is planned.
+- Actual readiness and actual lease are separate; actual failure cannot trigger a rerun.
