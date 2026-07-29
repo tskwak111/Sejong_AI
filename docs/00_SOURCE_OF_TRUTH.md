@@ -296,6 +296,13 @@ DeepSeek connect/write/pool timeout은 3초로 유지하고 read와 complete exc
 경우에만 별도 9-call actual을 실행한다. A-074~076 증거, API/DB/data/Web/final-answer provider,
 public/remote/free-input과 dependency는 변경하지 않는다.
 
+D-129는 source `675eef4de38ecead70af6f74c2493c115bcad0c2`의 A-077 offline PASS
+1/0을 불변 보존한다. Provider probe/actual은 0회였고, independent review에서 probe exact lease
+미결합과 clean-source revalidation 이후 actual lease 직전 same-source 재검사 누락을 발견했다.
+따라서 D-128의 호출·비용 권한을 늘리지 않은 별도 A-078 successor가 bounded report+exact
+lease, callback 뒤 final source/input revalidation, probe 응답 뒤 revalidation을 모두 통과할
+때만 probe 1-call→조건부 actual run 1회(정확히 9 provider calls)를 실행한다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

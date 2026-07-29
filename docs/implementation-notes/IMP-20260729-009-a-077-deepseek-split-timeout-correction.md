@@ -1,13 +1,14 @@
 # IMP-20260729-009 — A-077 DeepSeek split timeout correction
 
-- Date/Time (KST): 2026-07-29T12:30:00+09:00
-- Task ID: A-077-DEEPSEEK-SPLIT-TIMEOUT
+- Date/Time (KST): 2026-07-29T13:11:00+09:00
+- Task ID: A-077/A-078-DEEPSEEK-SPLIT-TIMEOUT
 - Type: implementation-provider-actual
-- Status: In Progress — offline/probe/conditional actual not yet consumed
+- Status: In Progress — A-077 offline PASS preserved; A-078 provider evidence pending
 - Author/Agent: Codex root agent
 - Branch: `codex/a-075-deepseek-corrective-actual`
 - Base commit: `8975585001125f4766dc585cd541ce8e0ac8a05c`
-- Related plan/ADR/RFP: D-128, ADR-0028 amendment, A-077 approved specification/plan, SFR-002
+- Related plan/ADR/RFP: D-128/D-129, ADR-0028 amendments, A-077/A-078 approved
+  specification/plan, SFR-002
 
 ## 1. 사용자 요청과 완료 기준
 
@@ -22,6 +23,8 @@
 - A-074/A-075/A-076 report·lease·invocation/rerun을 변경하거나 재실행하지 않는다.
 - connect/write/pool은 3초, read와 complete exchange는 10초, retry0을 강제한다.
 - A-077은 별도 offline/result/report/lease와 100초 aggregate deadline을 사용한다.
+- A-077 source `675eef4...` offline PASS 1/0은 보존하고 provider probe/actual 0회 상태에서
+  reviewer 보강 A-078 identity로 승계한다.
 - aggregate-only 1-call probe가 HTTP 2xx를 받은 경우에만 9 provider-case actual을 실행한다.
 - 질문·masked question·provider body·invalid value·exception detail·key·DSN을 보관하지 않는다.
 - API/DB/data/Web/final-answer provider/dependency/public/remote/free-input은 변경하지 않는다.
@@ -34,7 +37,7 @@
 | Who — 누가 | 사용자 승인자와 Codex 설계·구현·검토자 |
 | When — 언제 | 2026-07-29 KST |
 | Where — 어디서 | private local branch, DeepSeek classifier transport와 ignored evidence directory |
-| What — 무엇을 | split timeout, identity-owned actual deadline, 1-call probe와 조건부 actual gate |
+| What — 무엇을 | split timeout, identity-owned actual deadline, exact-lease 1-call probe와 pre-lease 조건부 actual gate |
 | Why — 왜 | A-076 28.6초≈9×3초와 응답 전 실패라는 단일 timeout 가설을 최소 변경으로 검증 |
 | How — 어떻게 | TDD RED/GREEN, immutable evidence identity, aggregate-only report, exact-one wrapper |
 | How much — 어느 정도 | probe1, 조건부 provider9, retry/rerun0, concurrency1, cost cap USD0.20 |
@@ -56,14 +59,16 @@
 | A077-PROBE | C | 9-call 전에 필요한 최소 진단 | HTTP 2xx 1건만 통과 | 비용·실패 격리 |
 | A077-DEADLINE | C | 9×10초 aggregate 상한 | 100초 | hung process 제한 |
 | A077-REPORT | D | probe report가 clean-source actual을 막지 않는 경로 | ignored local JSON 후 tracked closeout summary | Git/evidence 무결성 |
+| A078-PRELEASE | D | review가 찾은 exact lease·same-source TOCTOU 보강 | 별도 identity, callback 뒤 final revalidation, probe 응답 뒤 revalidation | 증거 체인 |
 
 ## 5. 설계 결정과 대안
 
 ### 선택
 
 Immutable settings에 별도 connect budget을 추가하고 complete-exchange budget을 10초로
-늘린다. Probe와 actual은 서로 다른 lease를 사용하며 actual runner가 same-source probe PASS를
-fail-closed로 확인한다.
+늘린다. Probe와 actual은 서로 다른 lease를 사용한다. A-078 actual runner는 bounded strict
+probe report, exact lease bytes와 same-source PASS를 clean-source 재검증 뒤 actual lease 직전에
+다시 fail-closed로 확인한다.
 
 ### 이유
 
@@ -84,7 +89,8 @@ fail-closed로 확인한다.
 | DeepSeek settings/client | connect3, read/complete10 분리 | timeout 가설 최소 교정 |
 | core actual runner | evidence identity별 aggregate deadline | A-074~076 32초 보존, A-077 100초 |
 | A-077 probe | ignored one-shot report/lease, 2xx-only acceptance | 비용과 실행 단계 차단 |
-| A-077 runner/wrapper | disjoint identity, same-source probe gate, offline exact-one | 증거 불변성 |
+| A-077 runner/wrapper | historical clean checkpoint와 offline PASS 1/0, provider 0 | 증거 불변성 |
+| A-078 runner/wrapper | disjoint identity, exact lease/report/source gate, final/post-probe revalidation | review 보강 |
 | tests/docs/versions | RED/GREEN과 권위 동기화 | 회귀·인수인계 |
 
 ### 데이터 흐름/상태 변화
@@ -110,8 +116,8 @@ revert가 가능하고 실행 후에는 새 identity 없이 evidence를 삭제·
 | Official data | 0.1.0-initial.2 | 동일 | 데이터 불변 |
 | Mock data | 0.0.0 | 동일 | 데이터 불변 |
 | Prompt set | 0.4.3 | 동일 | prompt 불변 |
-| Test suite | 2.2.5 | 2.2.6 | A-077 timeout/probe/identity/wrapper tests |
-| Docs | 2.31.6 | 2.31.7 pre-execution | D-128/spec/plan/authority |
+| Test suite | 2.2.5 | 2.2.7 | A-077 split timeout + A-078 pre-lease hardening tests |
+| Docs | 2.31.6 | 2.31.8 pre-execution | D-128/D-129/spec/plan/authority |
 
 ## 8. 명령과 테스트 증거
 
@@ -126,11 +132,22 @@ revert가 가능하고 실행 후에는 새 identity 없이 evidence를 삭제·
 | DeepSeek/evidence related area | PASS | 153 passed in 39.05s | pytest terminal |
 | Ruff focused | PASS | all checked files | terminal |
 | Mypy strict | PASS | 5 source files | terminal |
+| A-077 offline exact-one | PASS | source `675eef4...`; exit0; invocation/rerun1/0; stdout/stderr2006/0 | ignored immutable result/log/lease |
+| Independent review wave 1 | NOT READY | Critical0 / Important3 / Minor2 | exact lease, pre-lease recheck, format |
+| A-078 hardening RED/GREEN wave 1 | expected FAIL → PASS | 5 RED; focused 68 PASS | pytest terminal |
+| Independent review wave 2 | NOT READY | Important2 | final revalidation, post-probe drift |
+| A-078 hardening RED/GREEN wave 2 | expected FAIL → PASS | 2 RED; exact 2 PASS | pytest terminal |
+| A-074~A-078 related area final | PASS | 169 passed in 53.68s | pytest terminal |
+| Final independent scoped review | READY | Critical0 / Important0 / Minor0 | read-only reviewer |
+| Ruff format/lint | PASS | 11 files | terminal |
+| Mypy strict | PASS | 7 source files | terminal |
+| Docs/secret/diff | PASS | no secret output; diff clean | terminal |
 
 ### 미실행 검증과 이유
 
-A-077 offline, readiness, external probe와 conditional actual은 clean source commit 전이라 아직
-실행하지 않았다. 문서·secret·전체 offline gate도 다음 단계다.
+A-077 offline은 정확히 한 번 PASS했고 재실행하지 않는다. A-077 provider probe/actual은
+실행하지 않았다. A-078 offline/readiness/external probe/conditional actual과 최종 전체 gate는
+새 clean source commit 뒤에만 진행한다.
 
 ## 9. 보안·개인정보·접근성·성능 영향
 
@@ -149,7 +166,8 @@ A-077 offline, readiness, external probe와 conditional actual은 clean source c
 
 ## 11. 인간이 반드시 알아야 하거나 승인할 내용
 
-- Q-LLM-015=A 권한은 A-077 probe1과 조건부 actual1에 한정된다.
+- Q-LLM-015=A 권한은 A-077/A-078 전체를 합쳐 probe 1-call과 조건부 actual run 1회
+  (정확히 9 provider calls)에 한정된다.
 - Probe PASS는 DeepSeek 분류 품질 PASS가 아니라 authenticated HTTP 2xx 도달 증거다.
 - Public/remote/실제 시민 free-input과 자동 merge는 승인되지 않았다.
 - `LLM_PROVIDER`/Upstage final generator는 이번 변경 대상이 아니다.
@@ -163,12 +181,14 @@ A-077 offline, readiness, external probe와 conditional actual은 clean source c
 
 ### 재현
 
-Clean source에서 `run_a077_offline_gate.ps1` → A-077 readiness → probe readiness/actual →
-probe2xx일 때만 A-077 actual 순서를 사용한다. 한 번 실행된 단계는 재실행하지 않는다.
+Historical A-077 offline은 재실행하지 않는다. 새 clean source에서
+`run_a078_offline_gate.ps1` → A-078 readiness → probe readiness/actual → probe2xx일 때만
+A-078 actual 순서를 사용한다. 한 번 실행된 단계는 재실행하지 않는다.
 
 ### 롤백
 
-외부 실행 전에는 A-077 commit을 revert하고 `CLASSIFIER_PROVIDER=disabled`를 사용한다. 실행
+외부 실행 전에는 A-078 hardening commit을 revert하고 `CLASSIFIER_PROVIDER=disabled`를
+사용한다. Split timeout 자체도 되돌리려면 A-077 commit을 별도로 revert한다. 실행
 후 report/lease는 보존하고 후속 변경은 새 decision/identity에서 수행한다.
 
 ### 다음 개발자 시작점
@@ -180,7 +200,7 @@ D-128, ADR-0028 amendment와 A-077 spec/plan에서 시작하고, implementation 
 
 - 실제 authenticated 2xx와 exact five-field acceptance는 아직 미검증이다.
 - External service latency가 10초를 넘으면 기존 deterministic fallback이 유지된다.
-- Offline/probe/actual 결과에 따라 이 노트를 aggregate-only 값으로 마감해야 한다.
+- A-078 offline/probe/actual 결과에 따라 이 노트를 aggregate-only 값으로 마감해야 한다.
 
 ## 15. 자체 리뷰
 

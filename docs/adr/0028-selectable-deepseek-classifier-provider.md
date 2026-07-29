@@ -126,3 +126,17 @@ Q-LLM-015=A therefore approves a local/private split-timeout diagnostic: 3-secon
 connect/write/pool, 10-second read and complete exchange, retry 0. A separate one-call synthetic
 probe must receive HTTP 2xx before the new A-077 nine-provider-case actual may run. Both runs use
 new permanent evidence identities and keep every A-074/A-075/A-076 artifact immutable.
+
+## 2026-07-29 second amendment — D-129 / A-078
+
+The A-077 offline gate passed once on source `675eef4de38ecead70af6f74c2493c115bcad0c2`,
+but no provider probe or actual was consumed. Independent review found that the conditional actual
+accepted a probe report without proving the exact probe lease and did not repeat the same-source
+probe check after clean-source revalidation immediately before the actual lease.
+
+A-077 evidence therefore remains immutable historical evidence and provider execution moves to a
+disjoint A-078 successor under the unchanged D-128 authority. A-078 validates bounded strict probe
+JSON plus exact lease bytes and repeats that same-source acceptance check after source
+revalidation, performs one final source/input/settings revalidation before consuming the actual
+lease, and revalidates source/evidence after the probe response before publishing probe PASS. This
+correction adds no provider call, retry, cost, public scope, dependency or product behavior.

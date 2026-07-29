@@ -6,6 +6,11 @@
 - Human authority: `A로 ㄱㄱ`
 - Predecessor: D-126/D-127 and immutable A-074/A-075/A-076 evidence
 
+> D-129 security amendment: A-077 source `675eef4de38ecead70af6f74c2493c115bcad0c2`
+> consumed offline PASS `1/0` only. Provider probe/actual remained `0/0`. Independent review kept
+> it from provider execution and transferred the unchanged D-128 authority to the disjoint A-078
+> identity below.
+
 ## Goal
 
 Test the strongest A-076 failure hypothesis by separating the DeepSeek classifier's short
@@ -34,15 +39,19 @@ budget for connect/write/pool and the response budget for read. `DeepSeekQuestio
 continues to wrap the entire request/response exchange in the response budget, so slow-drip bodies
 cannot extend the call indefinitely.
 
-The evidence flow is:
+The final evidence flow is:
 
-1. commit a clean A-077 source checkpoint;
-2. consume the new `A-077-OFFLINE` gate once;
-3. run network-free A-077 readiness;
-4. consume one A-077 latency-probe lease and send one preselected masked synthetic provider case;
-5. write only aggregate counts and accept the probe only for one HTTP 2xx response;
-6. only after probe PASS, consume the separate A-077 actual lease and run the fixed 20-case
-   selection with 11 deterministic/provider-free and 9 provider cases.
+1. preserve the historical A-077 offline PASS without rerunning it;
+2. commit a clean A-078 source checkpoint;
+3. consume the new `A-078-OFFLINE` gate once;
+4. run network-free A-078 readiness;
+5. consume one A-078 latency-probe lease and send one preselected masked synthetic provider case;
+6. revalidate source/evidence after the provider response before publishing aggregate probe PASS;
+7. bind a bounded strict probe report to the exact lease bytes and source SHA;
+8. re-check that binding after clean-source revalidation, then perform final source/input/settings
+   revalidation immediately before the actual lease;
+9. consume the separate A-078 actual lease only when every check passes;
+10. run the fixed 20-case selection with 11 deterministic/provider-free and 9 provider cases.
 
 ## Trust, privacy and failure boundary
 
@@ -61,35 +70,36 @@ The evidence flow is:
 ## Required evidence identities
 
 ```text
-offline wrapper: scripts/run_a077_offline_gate.ps1
-offline directory: .superpowers/sdd/2026-07-29-deepseek-split-timeout-correction
-offline gate: A-077-OFFLINE
-probe runner: scripts/run_deepseek_classifier_a077_probe.py
-local probe report: .superpowers/sdd/2026-07-29-deepseek-split-timeout-correction/a077-probe-result.json
-tracked closeout summary: docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A077-PROBE.md
-actual runner: scripts/run_deepseek_classifier_split_timeout_actual.py
-actual report: docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A077-ACTUAL.md
+offline wrapper: scripts/run_a078_offline_gate.ps1
+offline directory: .superpowers/sdd/2026-07-29-deepseek-prelease-hardening
+offline gate: A-078-OFFLINE
+probe runner: scripts/run_deepseek_classifier_a078_probe.py
+local probe report: .superpowers/sdd/2026-07-29-deepseek-prelease-hardening/a078-probe-result.json
+tracked closeout summary: docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A078-PROBE.md
+actual runner: scripts/run_deepseek_classifier_prelease_hardened_actual.py
+actual report: docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A078-ACTUAL.md
 ```
 
 Probe and actual leases are separate. The machine-readable probe result stays in the ignored local
 evidence directory so the committed source remains clean for the actual; its aggregate values are
-copied to the tracked closeout summary only after the provider run. All A-077 paths and sentinel
-payloads are disjoint from A-074/A-075/A-076.
+copied to the tracked closeout summary only after the provider run. All A-078 paths and sentinel
+payloads are disjoint from A-074/A-075/A-076/A-077.
 
 ## Acceptance
 
 ### Offline and probe
 
 - offline exit `0`, no timeout, invocation/rerun `1/0`, preserved stdout/stderr hashes;
-- readiness exact profile and absent A-077 probe/actual report and leases;
+- readiness exact profile and absent A-078 probe/actual report and leases;
 - probe invocation/outbound `1/1`, retry/rerun `0/0`;
 - probe provider response/HTTP 2xx `1/1`, transport-no-response `0`;
 - all retained question/body/value/secret counters `0`;
 - conservative cost at most USD `0.20`.
 
 The probe does not require a matching classification decision; it verifies authenticated
-response transport after the timeout correction. The normal parser still processes the response
-and records only a closed response-stage counter.
+response transport after the timeout correction. The normal parser still processes the response,
+but the probe retains no response content or parser-stage detail. The fixed actual owns the
+closed response-stage acceptance evidence.
 
 ### Fixed actual
 
@@ -103,7 +113,8 @@ and records only a closed response-stage counter.
 
 ## Rollback and revisit triggers
 
-Before external evidence is consumed, revert the A-077 timeout and evidence-tooling commit.
+Before external evidence is consumed, revert the A-077 timeout commit and the A-078 evidence-chain
+hardening commit together.
 After a probe or actual lease exists, preserve its report/lease and make any further change under a
 new human decision and evidence identity. Set `CLASSIFIER_PROVIDER=disabled` for runtime rollback.
 

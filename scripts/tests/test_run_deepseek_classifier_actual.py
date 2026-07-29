@@ -571,10 +571,7 @@ def test_aggregate_actual_deadline_bounds_slow_run(
 def test_corrective_identity_binds_its_own_actual_deadline_and_restores_a074() -> None:
     runner = _runner()
     offline_directory = (
-        _REPOSITORY_ROOT
-        / ".superpowers"
-        / "sdd"
-        / "synthetic-corrective-deadline-test"
+        _REPOSITORY_ROOT / ".superpowers" / "sdd" / "synthetic-corrective-deadline-test"
     )
     identity = runner.EvidenceIdentity(
         report_path=(
@@ -599,6 +596,135 @@ def test_corrective_identity_binds_its_own_actual_deadline_and_restores_a074() -
         assert runner._current_evidence_identity() == identity
     assert runner._ACTUAL_RUN_DEADLINE_SECONDS == 32
     assert runner._current_evidence_identity() == runner.A074_EVIDENCE_IDENTITY
+
+
+def test_pre_actual_check_runs_after_revalidation_and_before_lease(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    runner = _runner()
+    offline_directory = (
+        _REPOSITORY_ROOT / ".superpowers" / "sdd" / "synthetic-pre-actual-check-test"
+    )
+    report_path = (
+        _REPOSITORY_ROOT
+        / "docs"
+        / "test-reports"
+        / "SYNTHETIC-PRE-ACTUAL-CHECK-TEST.md"
+    )
+    order: list[str] = []
+
+    def reject_pre_actual(source_sha: str) -> bool:
+        order.append(f"precheck:{source_sha}")
+        return False
+
+    identity = runner.EvidenceIdentity(
+        report_path=report_path,
+        offline_result_path=offline_directory / "result.json",
+        offline_lock_path=offline_directory / "result.json.run.lock",
+        offline_stdout_path=offline_directory / "stdout.log",
+        offline_stderr_path=offline_directory / "stderr.log",
+        offline_gate="A-998-OFFLINE",
+        offline_lease_text="A-998-OFFLINE-GATE one-shot lease\n",
+        actual_lease_text="A-998-DEEPSEEK-CLASSIFIER one-shot lease\n",
+        actual_run_deadline_seconds=100,
+        pre_actual_check=reject_pre_actual,
+    )
+    options = runner._RunnerOptions(
+        fixture_path=runner._FIXTURE_PATH,
+        report_path=report_path,
+        readiness_only=False,
+    )
+    prepared = _prepared(runner, report_path)
+    monkeypatch.setattr(runner, "_parse_args", lambda _argv=None: options)
+    monkeypatch.setattr(runner, "_perform_readiness", lambda _options: prepared)
+    monkeypatch.setattr(runner, "_new_evidence", lambda _prepared: object())
+    monkeypatch.setattr(
+        runner,
+        "_revalidate_prepared_run",
+        lambda _prepared: order.append("revalidated"),
+    )
+    monkeypatch.setattr(
+        runner._RunLease,
+        "acquire",
+        lambda _path: pytest.fail("lease must remain unconsumed"),
+    )
+
+    assert runner.main([], evidence_identity=identity) == 2
+    assert order == ["revalidated", f"precheck:{prepared.source_sha}"]
+    assert (
+        capsys.readouterr().err.strip()
+        == "DEEPSEEK_CLASSIFIER_ACTUAL_READINESS_INVALID"
+    )
+
+
+def test_pre_actual_check_is_followed_by_final_revalidation_before_lease(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    runner = _runner()
+    offline_directory = (
+        _REPOSITORY_ROOT / ".superpowers" / "sdd" / "synthetic-final-revalidation-test"
+    )
+    report_path = (
+        _REPOSITORY_ROOT
+        / "docs"
+        / "test-reports"
+        / "SYNTHETIC-FINAL-REVALIDATION-TEST.md"
+    )
+    order: list[str] = []
+
+    def accept_pre_actual(source_sha: str) -> bool:
+        order.append(f"precheck:{source_sha}")
+        return True
+
+    identity = runner.EvidenceIdentity(
+        report_path=report_path,
+        offline_result_path=offline_directory / "result.json",
+        offline_lock_path=offline_directory / "result.json.run.lock",
+        offline_stdout_path=offline_directory / "stdout.log",
+        offline_stderr_path=offline_directory / "stderr.log",
+        offline_gate="A-997-OFFLINE",
+        offline_lease_text="A-997-OFFLINE-GATE one-shot lease\n",
+        actual_lease_text="A-997-DEEPSEEK-CLASSIFIER one-shot lease\n",
+        actual_run_deadline_seconds=100,
+        pre_actual_check=accept_pre_actual,
+    )
+    options = runner._RunnerOptions(
+        fixture_path=runner._FIXTURE_PATH,
+        report_path=report_path,
+        readiness_only=False,
+    )
+    prepared = _prepared(runner, report_path)
+    revalidation_count = 0
+
+    def revalidate_then_drift(_prepared: object) -> None:
+        nonlocal revalidation_count
+        revalidation_count += 1
+        order.append("revalidated")
+        if revalidation_count == 2:
+            raise RuntimeError
+
+    monkeypatch.setattr(runner, "_parse_args", lambda _argv=None: options)
+    monkeypatch.setattr(runner, "_perform_readiness", lambda _options: prepared)
+    monkeypatch.setattr(runner, "_new_evidence", lambda _prepared: object())
+    monkeypatch.setattr(runner, "_revalidate_prepared_run", revalidate_then_drift)
+    monkeypatch.setattr(
+        runner._RunLease,
+        "acquire",
+        lambda _path: pytest.fail("lease must remain unconsumed"),
+    )
+
+    assert runner.main([], evidence_identity=identity) == 2
+    assert order == [
+        "revalidated",
+        f"precheck:{prepared.source_sha}",
+        "revalidated",
+    ]
+    assert (
+        capsys.readouterr().err.strip()
+        == "DEEPSEEK_CLASSIFIER_ACTUAL_READINESS_INVALID"
+    )
 
 
 def test_readiness_rejects_nine_worst_case_costs_over_cap_before_lease_or_network(

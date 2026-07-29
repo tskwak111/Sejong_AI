@@ -4,8 +4,8 @@
 > (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use
 > checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Separate the DeepSeek connect and response budgets, prove the boundary offline, then run
-one gated probe and at most one fixed actual under new immutable evidence identities.
+**Goal:** Separate the DeepSeek connect and response budgets, harden the probe-to-actual evidence
+chain, then run one gated probe and at most one fixed actual under new immutable identities.
 
 **Architecture:** Extend immutable DeepSeek settings with a `3.0` second connection budget and a
 `10.0` second complete-response budget. Reuse the hardened evaluator with an identity-owned
@@ -22,6 +22,7 @@ all predecessor evidence.
 - Probe is exactly one synthetic provider call; actual runs only after probe HTTP 2xx PASS.
 - No question/body/invalid value/exception detail/key/DSN retention.
 - No public/API/DB/data/Web/dependency/final-answer-provider change and no automatic merge.
+- A-077 offline PASS `1/0` is historical and immutable; provider execution uses only A-078.
 
 ---
 
@@ -97,13 +98,39 @@ all predecessor evidence.
 
 **Files:**
 - Modify: authority, ADR, task, version, changelog and implementation-note documents.
-- Create conditionally: A-077 probe and actual aggregate reports.
+- Create conditionally: A-078 probe and actual aggregate reports.
 
 - [x] Record D-128 and the ADR-0028 timeout amendment without claiming unrun evidence.
-- [ ] Run the focused and related-area tests, Ruff, Mypy, documentation, secret and diff checks.
-- [ ] Commit the clean A-077 source checkpoint.
-- [ ] Run A-077 offline exactly once and then readiness.
-- [ ] Run the one-call probe exactly once.
+- [x] Run the first focused and related-area tests, Ruff, Mypy, documentation, secret and diff checks.
+- [x] Commit the clean A-077 source checkpoint.
+- [x] Run A-077 offline exactly once: PASS `1/0`; do not rerun.
+- [ ] Run the A-078 one-call probe exactly once.
 - [ ] Run the nine-provider-case actual exactly once only if the probe report says HTTP 2xx `1`.
 - [ ] Record the actual aggregate result, hashes, retention, retry/rerun and cost.
 - [ ] Run final scoped review, commit, push and update Draft PR #22 without merging.
+
+### Task 6: Independent-review security correction and A-078 successor
+
+**Files:**
+- Modify: `scripts/run_deepseek_classifier_actual.py`
+- Create: `scripts/run_deepseek_classifier_a078_probe.py`
+- Create: `scripts/run_deepseek_classifier_prelease_hardened_actual.py`
+- Create: `scripts/run_a078_offline_gate.ps1`
+- Modify/create: focused tests and authority documents
+
+**Interfaces:**
+- Consumes: unchanged D-128 probe 1-call + conditional actual run 1회 containing exactly 9
+  provider calls.
+- Produces: exact probe lease/report/source binding, one final source revalidation before the
+  actual lease, and post-probe revalidation before publishing PASS.
+
+- [x] Preserve the reviewer result Critical 0 / Important 3 / Minor 2 and provider call count 0.
+- [x] Observe RED for wrong/missing/oversized lease and missing pre-lease recheck.
+- [x] Implement bounded exact-lease validation and identity-owned pre-actual callback.
+- [x] Create disjoint A-078 probe/actual/offline identities and controlled wrapper tests.
+- [x] Observe second RED for callback-following final revalidation and probe post-execution drift.
+- [x] Fail closed before actual lease and before probe PASS publication on those drifts.
+- [x] Format, run full relevant gates and independent re-review Critical0/Important0/Minor0.
+- [ ] Commit clean A-078 source.
+- [ ] Consume A-078 offline once, then readiness, probe 1-call and one conditional actual run
+  containing exactly 9 provider calls.
