@@ -175,6 +175,8 @@ review의 post-actual exact-field correction으로 application/prompt/tests/docs
 | independent final review round 1 | NOT READY: Critical `0`, Important `2`, Minor `0` | lineage + undefined field fixed | two independent reviewers |
 | security re-review after fixes | APPROVED: Critical `0`, Important `0`, Minor `0` | artifact/privacy/lineage clean | independent reviewer |
 | specification re-review after fixes | READY: Critical `0`, Important `0`, Minor `0` | contract/docs/final evidence clean | independent reviewer |
+| `git push -u origin codex/a-080-deepseek-classifier-quality` | PASS | tracked remote branch created | private source remote |
+| Draft PR publication | PASS: [PR #25](https://github.com/tskwak111/Sejong_AI/pull/25) | base `main`, auto-merge off | GitHub |
 
 ### 미실행 검증과 이유
 
@@ -216,6 +218,7 @@ review의 post-actual exact-field correction으로 application/prompt/tests/docs
   real-citizen free-input, default promotion, final citizen-answer provider 변경은 승인되지 않았다.
 - DB/API/Web/official data/dependency는 바뀌지 않았다. 제품 runtime은 결정론적 fail-closed
   fallback을 계속 권위로 사용한다.
+- Draft PR #25는 사람이 diff·CI를 검토한 뒤에만 병합한다. Codex는 자동 merge하지 않았다.
 
 ## 12. AI 내부 구현 세부 — 인간이 굳이 이해하지 않아도 되는 내용
 
@@ -260,6 +263,7 @@ fixture 실패나 provider 응답을 추정해서는 안 된다.
   없다. 관찰성을 높이려면 raw content 없이 fixed value-free mismatch category 같은 별도 설계와
   인간 승인이 필요하다.
 - Post-actual `intent` correction은 offline tests만 통과했으며 live DeepSeek 품질은 미검증이다.
+- Draft PR #25의 CI/사람 검토와 병합 결정은 Pending이다.
 - Offline semantic rubric 성공은 live model 품질 `9/9`을 보장하지 않았으며, 현재 증거는 fixed
   synthetic 20문항과 local/private 환경에만 한정된다.
 - 통합 소유자는 IMP-014 INDEX row, version/decision/ADR/RFP/task/changelog 정합성, final scoped
@@ -274,3 +278,4 @@ fixture 실패나 provider 응답을 추정해서는 안 된다.
 - [x] API/DB/Web/data/dependency 변화 없음 명시
 - [x] 재현·롤백·인수인계와 인간/AI 책임 분리
 - [x] INDEX·shared authority/version 동기화 — 통합 소유자 완료
+- [x] Commit·push·Draft PR #25 게시 — 자동 merge 없음
