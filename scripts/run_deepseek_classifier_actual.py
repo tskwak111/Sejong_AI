@@ -388,7 +388,7 @@ class _RunLease:
         try:
             descriptor = os.open(
                 lock_path,
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0),
                 0o600,
             )
             os.write(descriptor, _ACTUAL_LEASE_TEXT.encode("ascii"))
@@ -1502,7 +1502,7 @@ def _write_report_once(path: Path, report: Mapping[str, object]) -> None:
     try:
         descriptor = os.open(
             path,
-            os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0),
             0o600,
         )
         payload = _report_to_markdown(report).encode("utf-8")

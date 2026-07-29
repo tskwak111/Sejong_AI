@@ -309,6 +309,9 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   뒤 actual lease 직전에 재검사하고 callback 뒤 final source/input 재검증, probe 응답 뒤
   재검증도 강제한다. D-128의 probe 1-call과 조건부 actual run 1회(정확히 9 provider calls)
   한도를 공유한다.
+- D-130/D-131의 A-078 probe는 transport-no-response1로 FAIL해 actual을 차단했다. Binary-open
+  lease correction 뒤 별도 A-079 clean source에서 offline/readiness/probe 1-call을 재시도하고
+  2xx일 때만 9-call actual run 1회를 실행한다. 모든 이전 evidence는 불변이다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.

@@ -304,6 +304,7 @@ def test_permanent_lease_is_atomic_fsynced_and_never_reusable(
 
     assert lease.lock_path == lease_path
     assert lease_path.is_file()
+    assert lease_path.read_bytes() == runner._ACTUAL_LEASE_TEXT.encode("ascii")
     assert fsync_calls
     with pytest.raises(runner._RunAlreadyExists):
         runner._RunLease.acquire(report_path)

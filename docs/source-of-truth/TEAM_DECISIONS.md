@@ -255,6 +255,10 @@
   교정한 별도 A-078 identity만 실행 후보로 사용한다. Callback 뒤 final source/input 재검증과
   probe 응답 뒤 재검증도 PASS 전 강제한다. D-128의 probe 1-call·조건부 actual run 1회
   (정확히 9 provider calls)·비용·local/private 범위는 늘리지 않고 A-074~077을 재실행하지 않는다.
+- D-130/D-131: A-078 source `844e53b...` offline은 PASS 1/0이지만 exact-one probe는
+  response/2xx0·transport-no-response1로 FAIL했고 actual은 0회다. Windows CRLF lease writer를
+  binary-open으로 교정한 별도 A-079에서 사용자가 승인한 probe 1-call을 다시 실행하고, 2xx일
+  때만 9 provider-call actual run 1회를 실행한다. A-078은 불변 보존한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

@@ -104,10 +104,10 @@ all predecessor evidence.
 - [x] Run the first focused and related-area tests, Ruff, Mypy, documentation, secret and diff checks.
 - [x] Commit the clean A-077 source checkpoint.
 - [x] Run A-077 offline exactly once: PASS `1/0`; do not rerun.
-- [ ] Run the A-078 one-call probe exactly once.
-- [ ] Run the nine-provider-case actual exactly once only if the probe report says HTTP 2xx `1`.
-- [ ] Record the actual aggregate result, hashes, retention, retry/rerun and cost.
-- [ ] Run final scoped review, commit, push and update Draft PR #22 without merging.
+- [x] Run the A-078 one-call probe exactly once: transport-no-response FAIL.
+- [x] Do not run the nine-provider-case actual because the probe did not return HTTP 2xx.
+- [x] Record A-078 aggregate result, retention, retry/rerun and conservative cost.
+- [x] Run A-078 final scoped review and commit; PR closeout continues only in Task 7/A-079.
 
 ### Task 6: Independent-review security correction and A-078 successor
 
@@ -131,6 +131,21 @@ all predecessor evidence.
 - [x] Observe second RED for callback-following final revalidation and probe post-execution drift.
 - [x] Fail closed before actual lease and before probe PASS publication on those drifts.
 - [x] Format, run full relevant gates and independent re-review Critical0/Important0/Minor0.
-- [ ] Commit clean A-078 source.
-- [ ] Consume A-078 offline once, then readiness, probe 1-call and one conditional actual run
-  containing exactly 9 provider calls.
+- [x] Commit clean A-078 source `844e53b...`.
+- [x] Consume A-078 offline and probe exactly once; probe FAIL blocked the conditional actual,
+  which was not run. Never rerun A-078.
+
+### Task 7: Close A-078 and execute the approved A-079 retry
+
+**Files:**
+- Create: `docs/test-reports/CHAT-HYBRID-RAG-001-DEEPSEEK-A078-PROBE.md`
+- Create: A-079 probe/actual/offline runners and controlled tests
+- Modify: binary evidence writers, authority, versions and implementation notes
+
+- [x] Preserve A-078 offline PASS and probe transport-no-response FAIL; actual remains 0.
+- [x] Observe Windows exact-lease RED and fix writers with binary-open flags.
+- [x] Create disjoint A-079 identities and pass focused runner/wrapper tests.
+- [x] Run related checks and independent scoped review Critical0/Important0/Minor0.
+- [ ] Commit clean A-079 source.
+- [ ] Consume A-079 offline once, readiness, probe once and conditional actual once.
+- [ ] Record aggregate evidence, commit, push and update Draft PR #22 without merging.

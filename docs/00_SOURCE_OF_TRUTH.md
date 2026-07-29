@@ -303,6 +303,12 @@ D-129는 source `675eef4de38ecead70af6f74c2493c115bcad0c2`의 A-077 offline PASS
 lease, callback 뒤 final source/input revalidation, probe 응답 뒤 revalidation을 모두 통과할
 때만 probe 1-call→조건부 actual run 1회(정확히 9 provider calls)를 실행한다.
 
+D-130의 A-078 source `844e53b...`는 offline PASS 1/0 뒤 probe outbound1에서 HTTP 응답 없이
+`transport_no_response=1`로 FAIL했다. Retry/rerun/retention은 0이고 actual은 실행하지 않았다.
+별도로 발견된 Windows CRLF lease writer는 binary-open으로 교정하지만 A-078을 수정·재실행하지
+않는다. D-131은 사용자의 네트워크 재시도 지시로 별도 A-079 probe 1-call과, 2xx일 때만 actual
+run 1회(9 provider calls)를 승인했다. 나머지 안전·비용·제품 경계는 그대로다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

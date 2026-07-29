@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-### In progress — A-077/A-078 DeepSeek split-timeout correction
+### Closed — A-077/A-078 DeepSeek split-timeout correction
 
 - Approved and implemented a local/private timeout split: connect/write/pool remain 3 seconds,
   while response read and the complete exchange use 10 seconds. Retry remains 0.
@@ -13,6 +13,15 @@
   before the actual lease, and post-probe source/evidence revalidation before PASS publication.
   A-074~A-077 evidence remains immutable and D-128's call/cost authority is unchanged.
 - Product API/DB/data/Web/final-answer provider and dependencies remain unchanged.
+
+### In progress — A-079 DeepSeek network retry
+
+- A-078 source `844e53b...` passed offline once, but its exact-one probe closed FAIL with one
+  transport-no-response and no HTTP response; the conditional actual did not run.
+- Fixed Windows text-mode CRLF translation in exclusive evidence writers by opening them in binary
+  mode. The A-078 evidence stays immutable.
+- The user's explicit retry authorizes a disjoint A-079 probe 1-call and, only after 2xx, one
+  nine-provider-call actual run. Public/product/provider boundaries remain unchanged.
 
 ### Actual FAIL — A-076 DeepSeek network-recovery evidence
 
