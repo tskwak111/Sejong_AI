@@ -495,7 +495,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 
 - Runtime evidence only:
   `.superpowers/sdd/2026-07-29-deepseek-classifier-quality/`
-- Modify after result: A-080 implementation note, decision/task/version/changelog documents.
+- Modify after result: no tracked file until the separate actual decision is resolved.
 
 **Interfaces:**
 
@@ -531,16 +531,19 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   Expected on offline PASS: `DEEPSEEK_CLASSIFIER_ACTUAL_READY`. This command does not acquire the
   actual lease or call DeepSeek.
 
-- [ ] **Step 4: Record aggregate-only evidence**
+- [ ] **Step 4: Record aggregate-only evidence without changing the source SHA**
 
   Record gate, source SHA, outcome, exit code, timed-out flag, invocation/rerun `1/0`, log byte
-  counts/hashes and provider call/cost `0/0`. Do not copy stdout/stderr contents into tracked docs.
+  counts/hashes and provider call/cost `0/0` in this plan's gitignored SDD ledger. Do not copy
+  stdout/stderr contents into tracked docs and do not modify any tracked file before the actual
+  decision. This preserves the same committed source required by actual readiness.
 
 - [ ] **Step 5: Stop on offline failure**
 
   If the immutable gate is FAIL or readiness fails, record the exact bounded stage/reason and open
-  no actual approval request. A successor identity requires a new design decision; A-080 is not
-  rerun.
+  no actual approval request. In that failure branch, update tracked closeout documents only after
+  the same-source actual path has been abandoned. A successor identity requires a new design
+  decision; A-080 is not rerun.
 
 ### Task 7: Human gate for one live A-080 quality evaluation
 
