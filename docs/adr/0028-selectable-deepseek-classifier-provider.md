@@ -152,3 +152,9 @@ The lease/report writers now use binary-open flags. The user's explicit network-
 authorizes one disjoint A-079 probe call and, only after HTTP 2xx, one actual run containing exactly
 nine provider calls. A-078 evidence remains immutable. Timeout, retry, cost, retention,
 local/private scope and every product/provider boundary remain unchanged.
+
+Source `a2d617cd10c729e7e415301ad48dcf19ec135ed2` then passed offline and the
+one-call probe received HTTP 2xx with strict parse and accepted usage. The conditional actual
+received nine HTTP 2xx responses and accepted all nine exact wire decisions. Oracle agreement was
+six of nine, so overall acceptance is `FAIL` on classification quality, not transport or contract
+shape. No automatic rerun is allowed; a quality-correction run requires a new human decision.

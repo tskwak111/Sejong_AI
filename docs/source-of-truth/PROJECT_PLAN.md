@@ -312,6 +312,9 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
 - D-130/D-131의 A-078 probe는 transport-no-response1로 FAIL해 actual을 차단했다. Binary-open
   lease correction 뒤 별도 A-079 clean source에서 offline/readiness/probe 1-call을 재시도하고
   2xx일 때만 9-call actual run 1회를 실행한다. 모든 이전 evidence는 불변이다.
+- D-132 A-079 actual은 provider transport·exact wire 9/9를 확인했지만 oracle match6/9로
+  품질 acceptance FAIL이다. 시민 runtime은 기존 deterministic fallback과 ACTIVE grounding을
+  유지하며 추가 provider 튜닝/actual은 새 결정으로 분리한다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.

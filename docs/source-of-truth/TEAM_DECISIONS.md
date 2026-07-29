@@ -259,6 +259,10 @@
   response/2xx0·transport-no-response1로 FAIL했고 actual은 0회다. Windows CRLF lease writer를
   binary-open으로 교정한 별도 A-079에서 사용자가 승인한 probe 1-call을 다시 실행하고, 2xx일
   때만 9 provider-call actual run 1회를 실행한다. A-078은 불변 보존한다.
+- D-132: A-079 probe는 HTTP2xx·strict parse PASS했고 actual도 provider9 전부
+  response/2xx/strict/server accepted를 통과했다. Oracle match6/9로 overall FAIL이며
+  transport·wire 문제가 아닌 분류 품질 차이다. Retry/rerun/retention0이고 추가 actual은
+  새 인간 결정 전 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
