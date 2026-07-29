@@ -158,3 +158,72 @@ one-call probe received HTTP 2xx with strict parse and accepted usage. The condi
 received nine HTTP 2xx responses and accepted all nine exact wire decisions. Oracle agreement was
 six of nine, so overall acceptance is `FAIL` on classification quality, not transport or contract
 shape. No automatic rerun is allowed; a quality-correction run requires a new human decision.
+
+## 2026-07-29 fourth amendment — D-133 / A-080 quality design
+
+The user approved option A for the `6/9` quality follow-up. Because the literal
+`Q-LLM-015` label was already used by D-128, D-133 preserves history and assigns the canonical
+alias `Q-LLM-016-QUALITY`.
+
+A-080 will keep one provider-neutral prompt and add compact semantics for all five routes, require
+the narrowest covered catalog row and treat coverage exclusions as binding. Exact wire, parser,
+PII, storage, ACTIVE/OFFICIAL grounding, provider limits, final-answer provider, public API, DB,
+data and deployment remain unchanged. This amendment approves the written design only. Product
+code and A-080 provider calls remain unapproved.
+
+## 2026-07-29 fifth amendment — D-134 / A-080 specification approval
+
+The user approved the integrated A-080 written specification. The published TDD plan keeps the
+semantic rubric provider-neutral, preserves the exact five-string parser and all server-owned
+privacy, storage and grounding boundaries, and creates only disjoint A-080 evidence identities.
+
+Plan approval may authorize provider-free Tasks 1 through 6. It does not authorize a DeepSeek
+provider call. A live A-080 evaluation requires the separate exact approval
+`A-080 DeepSeek actual 1회 실행 승인`, uses 20 selected/0 skipped and 11 provider-free/9 provider
+cases, and can run only once on a clean source after the immutable offline gate passes.
+
+## 2026-07-29 sixth amendment — D-135 / A-080 provider-free implementation
+
+The A-080 specification and plan are Approved implementation authority. Provider-free Tasks 1~3
+implemented the shared semantic route rubric and disjoint evidence identities: the prompt system
+length is 896, prompt tests are 22 PASS, the DeepSeek framing bound is 1 PASS, provider suites are
+133 PASS, and controlled-wrapper tests are 9 PASS with a clean PowerShell parser and Ruff. Scoped
+task reviews are clean.
+
+This checkpoint does not consume the A-080 offline gate, readiness, or actual lease: all are 0;
+provider calls and cost are 0. It changes neither the exact five-string wire/parser nor
+fail-closed/server-owned privacy, storage, ACTIVE/OFFICIAL grounding and source boundaries. It
+also does not alter API, shared contracts, Web, DB, official/mock data, dependencies, public/remote
+scope or the final-answer provider. A-079 remains transport/wire verified and quality `FAIL 6/9`.
+The A-080 actual may run only after the separate exact approval `A-080 DeepSeek actual 1회 실행 승인`.
+
+## 2026-07-29 seventh amendment — D-136 / A-080 exact-one quality actual
+
+After the exact human approval, source
+`f2c3aec50c6b615cbbaf989a9d7bf5760d1436c4` passed the A-080 immutable offline gate once and
+readiness. The live actual consumed its permanent lease once: all nine provider cases received HTTP
+2xx responses, passed strict parsing and were accepted by the server. Oracle agreement was eight of
+nine, so the strict `9/9` acceptance target was not met and the overall result is `FAIL`.
+
+This result verifies DeepSeek transport, the exact five-string wire and the server parser, and
+improves the bounded oracle agreement from A-079's `6/9` to `8/9`; it does not prove full quality.
+Policy/privacy outbound and all six retention counters are zero, retry/rerun/runtime failure are
+zero, and conservative VAT-inclusive cost is USD `0.002961266`, below the USD `0.20` cap. The
+provider is not promoted to the citizen runtime default. Deterministic fallback, server-owned
+ACTIVE/OFFICIAL grounding, local/private scope and every API/DB/data/Web/dependency/public boundary
+remain unchanged. A-080 is immutable and must not be rerun; any successor requires a new decision
+and evidence identity.
+
+## 2026-07-29 eighth amendment — D-137 / A-080 final review correction
+
+The immutable actual remains bound to original source `f2c3aec50c6b615cbbaf989a9d7bf5760d1436c4`.
+Before any post-actual source edit, rebased checkpoint `6a44201` had the identical Git tree
+`9ad169344c8b115d5d943c6118af213683fdd940`; the final publication branch preserves the original
+executed commit in its ancestry.
+
+Final review then found that the approved exact route shape named `intent=supported`, while runtime
+and tests used the undefined abbreviation `I=supported`. TDD changes this to the exact field name.
+This correction happened after the one-shot actual and therefore has no live quality claim. The
+A-080 report, lease and `8/9 FAIL` remain immutable and the provider is not rerun or promoted.
+Only application, prompt, tests and documentation versions advance; API, contracts, Web, DB,
+official/mock data, dependencies, server-owned grounding and local/private boundaries do not.

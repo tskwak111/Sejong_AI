@@ -2,6 +2,52 @@
 
 ## [Unreleased]
 
+### Closed — A-080 DeepSeek classifier quality actual
+
+- On exact human approval, source `f2c3aec...` passed the immutable A-080 offline gate once and
+  readiness, then consumed the live actual lease once without retry or rerun.
+- The fixed 20-case run selected/skipped `20/0`, used `11` provider-free and `9` provider cases,
+  kept policy/privacy outbound at `0`, and received/parsed/server-accepted all nine provider
+  responses. Oracle agreement improved from A-079's `6/9` to `8/9` but missed the strict `9/9`
+  target, so overall acceptance is `FAIL`.
+- All six retention counters and runtime failures are `0`; conservative VAT-inclusive cost is
+  USD `0.002961266` below the USD `0.20` cap. DeepSeek is not promoted to the citizen runtime
+  default, A-080 is not rerun, and API/DB/data/Web/dependency/public/remote boundaries are unchanged.
+- Advanced documentation only to `2.32.4-a080-quality-actual-fail`; application, prompt, tests and
+  every public/runtime contract version remain unchanged.
+- Final review found two Important closeout defects. The publication branch now preserves executed
+  source `f2c3aec...` in its ancestry (its rebased checkpoint had identical tree
+  `9ad169344c8b115d5d943c6118af213683fdd940`) and replaces undefined prompt shorthand
+  `I=supported` with approved exact `intent=supported` under TDD. Because the prompt fix is
+  post-actual, no live quality improvement is claimed and the immutable `8/9 FAIL` remains.
+- Advanced application/prompt/tests/docs to `0.13.4-classifier-route-shape-fix`,
+  `0.4.5-explicit-intent-route-shape`, `2.2.10-a080-final-review-fix` and
+  `2.32.5-a080-final-review-fix`; API/DB/data/Web/dependency/default/public/remote remain unchanged.
+
+### Implemented offline — A-080 classifier semantic route rubric
+
+- Recorded D-135 after approved-plan provider-free Tasks 1~3: the shared five-route semantic
+  rubric and disjoint A-080 evidence identities are implemented. Prompt system length896, prompt22,
+  DeepSeek framing bound1, shared-provider133 and controlled-wrapper9 passed; PowerShell parser and
+  Ruff passed, and task-scoped reviews are clean.
+- Advanced only application `0.13.3-classifier-semantic-rubric`, prompt
+  `0.4.4-semantic-route-rubric`, tests `2.2.9-a080-quality` and documentation
+  `2.32.3-a080-quality-offline`. API/shared contracts, Web, DB, official/mock data and dependencies
+  are unchanged.
+- A-080 root offline gate, readiness and actual remain unexecuted (0); provider calls and cost are
+  0. A separate exact approval is still required for one live evaluation. A-079 remains
+  transport/wire verified with quality FAIL 6/9.
+
+### Design — A-080 classifier semantic route rubric
+
+- Recorded D-133/Q-LLM-016-QUALITY=A after detecting that the user's literal Q-LLM-015 label
+  collided with historical D-128; history is preserved rather than rewritten.
+- Approved the written specification for a compact shared five-route semantic rubric,
+  narrowest-row selection and binding coverage exclusions.
+- Published the exact TDD execution plan; D-135 subsequently approved it and completed
+  provider-free Tasks 1~3. The live A-080 9-call evaluation remains behind a separate exact
+  approval; provider calls are still zero.
+
 ### Closed — A-077/A-078 DeepSeek split-timeout correction
 
 - Approved and implemented a local/private timeout split: connect/write/pool remain 3 seconds,

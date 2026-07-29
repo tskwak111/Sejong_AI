@@ -1,19 +1,19 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-29T13:55:00+09:00",
+  "updated_at": "2026-07-29T17:06:03+09:00",
   "versions": {
     "product_spec": "2.6.0",
     "repo_guidance": "1.7.10",
-    "application": "0.13.2-deepseek-split-timeout",
+    "application": "0.13.4-classifier-route-shape-fix",
     "web": "0.8.0-guided-chat",
     "api": "4.0.0-draft",
     "shared_contracts": "1.0.0",
     "database_schema": "0.5.0-local",
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
-    "prompt_set": "0.4.3-explicit-route-matrix",
-    "test_suite": "2.2.8-a079-network-retry",
-    "documentation": "2.32.0-a079-network-retry-closeout"
+    "prompt_set": "0.4.5-explicit-intent-route-shape",
+    "test_suite": "2.2.10-a080-final-review-fix",
+    "documentation": "2.32.5-a080-final-review-fix"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

@@ -27,6 +27,7 @@ from sejong_ai_api.privacy.redaction import redact_question
 
 Handler = Callable[[httpx.Request], httpx.Response]
 SECRET = "classifier-test-key-not-a-real-secret"
+DSN_SENTINEL = "postgresql://forbidden-dsn.invalid/database"
 CLASSIFIER_WORST_CASE_USD = estimate_cost_usd(TokenUsage(4096, 0, 128))
 GENERATOR_WORST_CASE_USD = estimate_cost_usd(TokenUsage(4096, 0, 1024))
 
@@ -146,12 +147,12 @@ def test_prompt_defines_supported_boundary_and_closed_route_meanings() -> None:
     system = messages[0]["content"]
 
     for required in (
-        "keys: route,intent,topic_id,coverage_id,pending_slot",
-        "all five values are strings",
-        "no extra key, prose or Markdown",
-        "NONE is exact uppercase ASCII; 없음/none/null/empty are forbidden",
-        "cat={intent:[[topic_id,coverage_id,coverage_label,approved_examples]]}",
-        "SUPPORTED intent=cat group key; topic_id/coverage_id=same row",
+        "keys=route,intent,topic_id,coverage_id,pending_slot",
+        "5 strings",
+        "no extra/prose/MD",
+        "NONE uppercase ASCII",
+        "cat[intent]=[topic_id,coverage_id,coverage_label,approved_examples]",
+        "SUPPORTED=one cat row covers ask",
     ):
         assert required in system
 
@@ -182,15 +183,12 @@ def test_prompt_defines_all_closed_pending_slots_and_route_shapes() -> None:
         assert output_key in system
 
     for row in (
-        "SUPPORTED|catalog intent|same-row topic_id|same-row coverage_id|NONE",
-        "NO_TOPIC_MATCH|supported intent|NONE|NONE|NONE",
-        "CIVIC_SCOPE_GAP|NONE|NONE|NONE|NONE",
-        "NON_CIVIC|NONE|NONE|NONE|NONE",
-        "NEEDS_FOLLOWUP|NONE|NONE|NONE|DOMAIN",
-        "NEEDS_FOLLOWUP|supported intent|NONE|NONE|TOPIC_CHOICE",
-        "NEEDS_FOLLOWUP|CERTIFICATE_ISSUANCE|NONE|NONE|CERTIFICATE_KIND",
-        "NEEDS_FOLLOWUP|supported intent|NONE|NONE|REGION",
-        "NEEDS_FOLLOWUP|BULKY_WASTE|NONE|NONE|WASTE_ITEM",
+        "SUPPORTED:intent/topic_id/coverage_id=same row,pending_slot=NONE",
+        "NO_TOPIC_MATCH:intent=supported,other3=NONE",
+        "CIVIC_SCOPE_GAP/NON_CIVIC:other4=NONE",
+        "NEEDS_FOLLOWUP:topic_id/coverage_id=NONE",
+        "pairs=NONE:DOMAIN|supported:TOPIC_CHOICE/REGION|",
+        "CERTIFICATE_ISSUANCE:CERTIFICATE_KIND|BULKY_WASTE:WASTE_ITEM",
     ):
         assert row in system
     for obsolete in (
@@ -234,7 +232,8 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
     request = seen[0]
     assert request.method == "POST"
     assert str(request.url) == "https://api.upstage.ai/v1/chat/completions"
-    assert json.loads(request.content) == {
+    request_payload = json.loads(request.content)
+    assert request_payload == {
         "model": "solar-pro3",
         "messages": list(
             build_classifier_messages(
@@ -272,17 +271,37 @@ async def test_success_makes_one_exact_closed_source_free_request() -> None:
             },
         },
     }
+    system = request_payload["messages"][0]["content"]
+    assert "pick narrowest covered row" in system
+    assert "exclusions bind" in system
+    assert request_payload["temperature"] == 0
+    assert request_payload["max_tokens"] == 128
     serialized = request.content.decode("utf-8")
     for forbidden in (
         SECRET,
-        "answer",
+        DSN_SENTINEL,
+        "answer_summary",
+        "procedure_steps",
+        "required_documents",
+        "fee",
         "source_url",
         "source_title",
+        "last_verified_at",
+        "department",
+        "caution",
+        "대형폐기물 배출신청 절차",
         "candidate_eligible",
         "FACT-SENTINEL",
+        "PROCEDURE-SENTINEL",
+        "DOCUMENT-SENTINEL",
+        "PROCESSING-SENTINEL",
         "OFFICE-SENTINEL",
         "FEE-SENTINEL",
         "CAUTION-SENTINEL",
+        "SOURCE-SENTINEL",
+        "https://example.invalid/source-sentinel",
+        "2026-07-27",
+        "provider에 보내면 안 되는 세 번째 예시",
     ):
         assert forbidden not in serialized
     response_schema = json.loads(request.content)["response_format"]["json_schema"]["schema"]

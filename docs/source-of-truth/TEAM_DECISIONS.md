@@ -263,6 +263,42 @@
   response/2xx/strict/server accepted를 통과했다. Oracle match6/9로 overall FAIL이며
   transport·wire 문제가 아닌 분류 품질 차이다. Retry/rerun/retention0이고 추가 actual은
   새 인간 결정 전 금지한다.
+- D-133/Q-LLM-016-QUALITY=A: 사용자의 literal `Q-LLM-015: A`는 기존 D-128 ID와
+  충돌하므로 history를 보존하고 canonical alias로 분리한다. A-080은 shared classifier
+  prompt에 다섯 route 의미·narrowest-row·binding coverage exclusions를 추가하는 설계다.
+  Exact wire/parser/PII/storage/ACTIVE-OFFICIAL/provider limits/API/DB/data/public 경계는
+  불변이며 written spec review 전 code0, 별도 승인 전 actual0이다.
+- D-134: 사용자의 `명세 승인`으로 A-080 written specification은 Approved다. 실행계획은
+  prompt RED/GREEN→shared-provider 경계→새 A-080 one-shot harness→독립 review→provider-free
+  offline gate 순서로 Review에 게시했다. 계획 승인 전 code0이며, 계획 승인 뒤에도 actual은
+  exact `A-080 DeepSeek actual 1회 실행 승인` 전까지 0이다. A-079 evidence는 불변이다.
+- D-135: A-080의 승인된 실행계획에 따라 Tasks 1~3 provider-free 구현을 완료했다. 공용 semantic
+  route rubric은 prompt system 길이 896과 prompt 22 PASS, DeepSeek framing bound 1 PASS로
+  검증됐고, 두 provider 공용 경계 suite 133 PASS, disjoint A-080 controlled wrapper 9 PASS와
+  PowerShell parser/Ruff PASS를 기록했다. task-scoped review의 남은 actionable finding은 없다.
+  application/prompt/tests/docs만 `0.13.3/0.4.4/2.2.9/2.32.3`으로 전진하며 API/shared contracts/
+  Web/DB/official·mock data/dependency는 불변이다. A-080 actual, root offline gate와 readiness는
+  모두 미실행(각 0)이고 provider call·cost도 0이다. actual은 exact
+  `A-080 DeepSeek actual 1회 실행 승인`을 별도로 받아야 하며, A-079 transport/wire verified와
+  quality FAIL 6/9는 변경하지 않는다.
+- D-136: 사용자의 exact `A-080 DeepSeek actual 1회 실행 승인` 뒤 source
+  `f2c3aec50c6b615cbbaf989a9d7bf5760d1436c4`에서 A-080 offline gate는 exact-one
+  PASS(invocation/rerun 1/0), readiness PASS였고 actual도 exact-one 소비했다. Actual은
+  selected/skip20/0·provider-free/provider11/9·privacy/policy outbound0,
+  response/2xx/strict/server-accepted9/9/9/9였으나 oracle match8/9라 overall quality
+  acceptance는 FAIL이다. Retry/rerun/runtime failure와 retention 6종은 0이고 VAT 포함
+  보수 비용 USD0.002961266<0.20이다. Transport·wire·parser는 검증됐지만 strict 9/9에 미달하므로
+  DeepSeek를 시민 runtime 기본값으로 승격하지 않고 기존 결정론적 fallback과 local/private
+  경계를 유지한다. A-080은 재실행하지 않으며 후속 품질 실험은 새 결정·새 evidence identity가
+  필요하다.
+- D-137: A-080 final review Important 2건을 offline으로 교정한다. Rebase 전 actual source
+  `f2c3aec...`와 rebased checkpoint `6a44201...`은 동일 tree
+  `9ad169344c8b115d5d943c6118af213683fdd940`였고 final branch ancestry에 원 실행 commit을
+  merge parent로 보존한다. 또한 미정의 축약 `I=supported`를 approved exact field
+  `intent=supported`로 TDD 교정한다. 이 post-actual prompt는 provider로 재검증하지 않았으므로
+  A-080 actual `8/9 FAIL`을 그대로 보존하고 품질 개선을 주장하지 않는다. Application/prompt/
+  tests/docs만 `0.13.4/0.4.5/2.2.10/2.32.5`로 전진하며 API/shared contracts/Web/DB/data/
+  dependency/default/public/remote 경계는 불변이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

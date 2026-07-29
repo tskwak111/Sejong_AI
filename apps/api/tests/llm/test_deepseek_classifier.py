@@ -262,7 +262,8 @@ async def test_success_posts_one_exact_deepseek_json_object_request() -> None:
     assert request.method == "POST"
     assert str(request.url) == "https://api.deepseek.com/chat/completions"
     assert request.headers["Accept-Encoding"] == "identity"
-    assert json.loads(request.content) == {
+    request_payload = json.loads(request.content)
+    assert request_payload == {
         "model": "deepseek-v4-flash",
         "messages": list(
             build_classifier_messages(
@@ -277,17 +278,38 @@ async def test_success_posts_one_exact_deepseek_json_object_request() -> None:
         "max_tokens": 128,
         "n": 1,
     }
+    system = request_payload["messages"][0]["content"]
+    assert "pick narrowest covered row" in system
+    assert "exclusions bind" in system
+    assert request_payload["response_format"] == {"type": "json_object"}
+    assert request_payload["thinking"] == {"type": "disabled"}
+    assert request_payload["temperature"] == 0
+    assert request_payload["max_tokens"] == 128
     serialized = request.content.decode("utf-8")
     for forbidden in (
         SECRET,
-        "answer",
+        DSN_SENTINEL,
+        "answer_summary",
+        "procedure_steps",
+        "required_documents",
+        "fee",
         "source_url",
         "source_title",
+        "last_verified_at",
+        "department",
+        "caution",
+        "대형폐기물 배출신청 절차",
         "candidate_eligible",
         "FACT-SENTINEL",
+        "PROCEDURE-SENTINEL",
+        "DOCUMENT-SENTINEL",
+        "PROCESSING-SENTINEL",
         "OFFICE-SENTINEL",
         "FEE-SENTINEL",
         "CAUTION-SENTINEL",
+        "SOURCE-SENTINEL",
+        "https://example.invalid/source-sentinel",
+        "2026-07-27",
     ):
         assert forbidden not in serialized
     assert ledger.actual_cost_usd == estimate_deepseek_cost_usd(TokenUsage(20, 5, 10))

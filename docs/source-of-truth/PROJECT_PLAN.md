@@ -315,6 +315,22 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
 - D-132 A-079 actual은 provider transport·exact wire 9/9를 확인했지만 oracle match6/9로
   품질 acceptance FAIL이다. 시민 runtime은 기존 deterministic fallback과 ACTIVE grounding을
   유지하며 추가 provider 튜닝/actual은 새 결정으로 분리한다.
+- D-135 A-080은 승인된 specification/plan 아래 provider-free Tasks 1~3만 완료했다. shared
+  semantic route rubric의 system length896·prompt22·DeepSeek framing bound1, shared-provider
+  suite133, controlled wrapper9·PowerShell parser·Ruff가 PASS했고 task-scoped reviews는 clean이다.
+  그러나 root offline gate·readiness·actual은 모두 0이며 provider call/cost도 0이다. A-080의
+  one-shot actual은 separate exact human approval 전 실행하지 않고, SFR-002는 A-079의
+  transport/wire verified·quality FAIL 6/9 상태를 유지한다.
+- D-136 A-080 exact-one offline/readiness는 PASS했고 live actual은 transport·wire·strict
+  parser·server acceptance9/9를 다시 확인했다. Provider-neutral semantic rubric으로 oracle
+  agreement가 A-079의6/9에서8/9로 개선됐지만 strict target9/9에는 1건 부족해 overall FAIL이다.
+  질문·provider body·invalid value·secret retention은 0이고 비용은 USD0.002961266<0.20이다.
+  시민 runtime은 기존 deterministic fallback을 유지하며 A-080 재실행·default 승격·public/
+  remote/free-input 확대는 하지 않는다.
+- D-137 final review는 actual source lineage와 `NO_TOPIC_MATCH` route-shape 축약을 교정한다.
+  원 실행 source `f2c3aec...`는 final branch ancestry에 보존하고, rebase checkpoint
+  `6a44201...`과의 identical tree를 기록한다. Prompt는 exact `intent=supported`로 바꿨지만
+  actual 이후 offline 교정이므로 live quality는 미검증이며 D-136의 `8/9 FAIL`을 변경하지 않는다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.
