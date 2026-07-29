@@ -226,6 +226,14 @@
   readiness 뒤에만 고정 synthetic 9 outbound actual을 정확히 한 번 실행한다. 제품 코드,
   exact five-string/`NONE`, ACTIVE/OFFICIAL source, 3초·retry0·concurrency1·USD0.20 및 비보관
   경계는 유지하고 public/remote/free-input·새 dependency·자동 rerun/merge는 금지한다.
+- D-125: Source `982198faed073a6c4e04205f5b3dde3f95ebae20`의 A-075 offline gate는
+  exact-one `PASS`, exit0·timed_out false·invocation/rerun1/0·stdout/stderr2006/0이며
+  network-free readiness도 PASS했다. 이어 actual lease를 한 번 소비했으나 fixed
+  20/0·11/9·policy/privacy outbound0과 별개로 outbound9 모두 HTTP 응답 전
+  `transport_no_response`여서 provider response/2xx/parse/accepted/match/token 0,
+  acceptance `FAIL`이다. Retention/retry/rerun은 모두 0이고 report/lease를 보존한다.
+  Conservative worst-case USD0.02306304<0.20은 실제 청구액 주장이 아니며 transport 하위
+  원인은 단정하지 않는다. A-074 evidence는 불변이고 추가 actual은 새 인간 결정 전 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

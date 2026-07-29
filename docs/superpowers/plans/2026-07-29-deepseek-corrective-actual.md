@@ -80,14 +80,14 @@ paths, gate name, lease payloads and report.
 - [x] Run the complete relevant API/script area.
 - [x] Run Ruff, Mypy, documentation, secret and diff checks.
 - [x] Review the exact diff for Critical/Important findings.
-- [ ] Commit a clean source checkpoint and record its SHA.
+- [x] Commit a clean source checkpoint and record its SHA.
 
 ### Task 5: One-shot execution and closeout
 
-- [ ] Confirm all A-075 artifacts are absent and run `run_a075_offline_gate.ps1` exactly once.
-- [ ] If and only if offline PASS, run network-free A-075 readiness.
-- [ ] If and only if readiness PASS, run A-075 actual exactly once.
-- [ ] Record aggregate result, source SHA, invocation/rerun and cost without provider content.
-- [ ] Synchronize decisions, task, versions, report links, implementation note and INDEX.
+- [x] Confirm all A-075 artifacts are absent and run `run_a075_offline_gate.ps1` exactly once.
+- [x] If and only if offline PASS, run network-free A-075 readiness.
+- [x] If and only if readiness PASS, run A-075 actual exactly once.
+- [x] Record aggregate result, source SHA, invocation/rerun and cost without provider content.
+- [x] Synchronize decisions, task, versions, report links, implementation note and INDEX.
 - [ ] Run final documentation/secret/diff checks, commit, push and create a Draft PR.
-- [ ] Do not auto merge.
+- [x] Do not auto merge.

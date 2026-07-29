@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Actual FAIL — A-075 DeepSeek corrective evidence
+
+- Added a separate A-075 offline/result/report/lease identity without changing or rerunning A-074.
+  Source `982198faed073a6c4e04205f5b3dde3f95ebae20` passed the exact-one offline gate and
+  network-free readiness.
+- Consumed the A-075 actual once. The fixed distribution was 20 selected, 0 skipped, 11
+  deterministic and 9 provider cases with policy/privacy outbound 0, but all 9 outbound attempts
+  ended before an HTTP response (`transport_no_response=9`). Provider response, 2xx, parse,
+  accepted decision, oracle match and observed tokens were all 0, so acceptance is `FAIL`.
+- Question/body/invalid-value/secret retention, retry and rerun are all 0. The conservative
+  worst-case USD0.02306304 remains below the USD0.20 cap and is not claimed as actual billing.
+  The permanent A-075 report and local ignored lease are preserved; no automatic retry or merge
+  occurred. Tests advanced `2.2.2→2.2.4` and docs `2.31.2→2.31.4`; product/API/DB/data stayed
+  unchanged.
+
 ### Closed offline — A-074 immutable gate FAIL
 
 - Consumed the approved A-074 offline wrapper exactly once from source

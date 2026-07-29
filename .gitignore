@@ -44,6 +44,7 @@ Thumbs.db
 # Runtime / local DB / logs
 *.log
 logs/
+docs/test-reports/*.run.lock
 .tmp/
 tmp/
 .tools/

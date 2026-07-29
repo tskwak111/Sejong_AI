@@ -89,6 +89,7 @@ class RepositoryScaffoldContractTests(unittest.TestCase):
             ".worktrees/",
             ".superpowers/",
             ".tools/",
+            "docs/test-reports/*.run.lock",
             "supabase/.temp/",
             "supabase/.branches/",
         }

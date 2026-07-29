@@ -260,6 +260,18 @@ C0/I0/M0를 확인했다. 이 교정은 gate FAIL을 소급 변경하지 않는�
 blocked/unexecuted invocation/rerun 0/0이고 report/lease·outbound·token·cost는 모두 0이다.
 A-073 root `NOT VERIFIED/FAIL`, invocation/rerun 1/0도 그대로다.
 
+2026-07-29 D-124/D-125의 A-075 corrective evidence는 A-074를 덮어쓰지 않는 새
+identity다. Source `982198faed073a6c4e04205f5b3dde3f95ebae20`의 A-075 offline gate는
+exact-one `PASS`, exit0·timed_out false·invocation/rerun1/0이다. Network-free readiness도
+PASS한 뒤 DeepSeek actual lease를 정확히 한 번 소비했으나 acceptance는 `FAIL`이다. Fixed
+20/0과 deterministic/provider 11/9, policy/privacy outbound0은 맞았지만 outbound9 모두
+HTTP 응답 전 `transport_no_response`였고 provider response·2xx·parse·accepted·oracle match와
+observed token은 모두 0이다. 보수적 worst-case 비용은 USD0.02306304<0.20이며 실제 청구액으로
+간주하지 않는다. 질문·masked question·request/response body·invalid value·secret 보관은
+모두 0, retry/rerun0, permanent report/lease 존재 상태로 종료한다. 원인은 transport 단계로만
+한정하며 DNS/TLS/proxy/timeout 중 무엇인지 추측하지 않는다. 실제 classifier 활성화 성공이나
+public/remote/free-input 승격 근거로 사용하지 않는다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

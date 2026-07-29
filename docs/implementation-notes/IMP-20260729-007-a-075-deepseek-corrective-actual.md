@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-29T10:35:59+09:00
 - Task ID: A-075-DEEPSEEK-CORRECTIVE-ACTUAL
 - Type: implementation-provider-actual
-- Status: In progress — tooling GREEN; offline/actual unexecuted
+- Status: Done — offline/readiness PASS; actual FAIL transport-no-response 9/9
 - Author/Agent: Codex root agent
 - Branch: codex/a-075-deepseek-corrective-actual
 - Base commit: 67fe37c
@@ -75,15 +75,17 @@ refactor는 one-shot 작업 범위를 초과해 버렸다.
 | `run_a075_offline_gate.ps1` | A-075 one-shot offline wrapper | clean source 증거 |
 | runner/wrapper tests | disjoint identity·restore·drift·one-shot PASS/FAIL | TDD |
 | authority/version docs | D-124와 task/versions 기록 | 추적성 |
+| `.gitignore`, scaffold test | local permanent `.run.lock` 제외 | lease 커밋 방지 |
 
 ### 데이터 흐름/상태 변화
 
-현재 checkpoint는 provider/network 호출 0이다. actual은 offline PASS와 readiness 뒤에만 시작한다.
+Offline/readiness PASS 뒤 provider outbound 9회를 실행했다. 모두 HTTP 응답 전
+`transport_no_response`였으며 provider response/body/token은 보관되지 않았다.
 
 ### 오류·빈 상태·롤백
 
-profile mismatch, A-074 core drift, dirty tree, 기존 A-075 artifact, offline FAIL 또는 readiness
-FAIL은 lease/network 전에 종료한다.
+Profile mismatch, A-074 core drift, dirty tree와 기존 artifact는 lease/network 전에
+차단한다. Actual lease 소비 뒤 FAIL은 영구 보존하며 재실행하지 않는다.
 ## 7. 버전 전후
 
 ### 생성 시 매니페스트
@@ -109,8 +111,8 @@ FAIL은 lease/network 전에 종료한다.
 | Official data | 0.1.0-initial.2 | 동일 | fixture identity 유지 |
 | Mock data | 0.0.0 | 동일 | 영향 없음 |
 | Prompt set | 0.4.3 | 동일 | prompt 불변 |
-| Test suite | 2.2.2 | 2.2.3 | A-075 evidence tests |
-| Docs | 2.31.2 | 2.31.3 | 승인·설계·계획 checkpoint |
+| Test suite | 2.2.2 | 2.2.4 | A-075 evidence tests와 lease ignore 회귀 |
+| Docs | 2.31.2 | 2.31.4 | 승인·계획과 immutable actual FAIL closeout |
 
 ## 8. 명령과 테스트 증거
 
@@ -128,16 +130,24 @@ FAIL은 lease/network 전에 종료한다.
 | runner Mypy strict | PASS | 6 source files | terminal evidence |
 | A-075 PowerShell parser | PASS | 1,523 tokens / 0 errors | terminal evidence |
 | docs/secret/diff | PASS | value-free | repository scripts |
+| source checkpoint | PASS | `982198faed073a6c4e04205f5b3dde3f95ebae20` clean | Git commit |
+| A-075 offline gate exact-one | PASS | 831.3s; exit0; invocation/rerun1/0; stdout/stderr2006/0 | ignored immutable result/log/lease |
+| A-075 readiness | PASS | network-free; report/lease absent | exact `READY` |
+| A-075 actual exact-one | FAIL | 28.4s; outbound9; transport-no-response9; retry/rerun0 | tracked aggregate report + permanent lease |
+| lease-ignore RED→GREEN | PASS | expected FAIL 1 → PASS 1 | repository scaffold |
+| final closeout checks | PASS | scaffold7, Ruff, docs, secret, diff | current closeout tree |
+| actual report integrity | PASS | 3,124 bytes; SHA-256 `fc3f28fc0b30f12c0ac037311c6e467f77d25247a7b5f7371631296f0b8e0c51` | tracked aggregate report |
 
 ### 미실행 검증과 이유
 
-Offline/actual은 clean source commit 뒤 실행한다. 영역 전체와 정적 검사는 완료했다.
+추가 provider call과 actual 재실행은 금지되어 실행하지 않았다.
 ## 9. 보안·개인정보·접근성·성능 영향
 
 - Privacy: key 값·질문·provider body를 출력하지 않았다. 설정은 boolean/name-only로 확인했다.
 - Security: A-074와 모든 report/offline path 및 lease payload를 분리했다.
 - Accessibility: UI 변경 없음.
-- Performance/cost: 현재 outbound 0/USD 0; actual cap USD 0.20.
+- Performance/cost: outbound9, provider response0. Conservative worst-case USD0.02306304<0.20은
+  actual billing 주장이 아니며 observed token은 0이다.
 
 ## 10. 데이터와 출처 영향
 
@@ -151,6 +161,7 @@ Offline/actual은 clean source commit 뒤 실행한다. 영역 전체와 정적 
 - A-075 actual 1회는 승인됐으며 성공/실패와 무관하게 재실행하지 않는다.
 - A-074 FAIL 1/0과 actual 0/0은 이 작업으로 변경되지 않는다.
 - public/remote/실제 시민 운영은 승인되지 않았다.
+- A-075는 transport-no-response 9/9로 FAIL했으므로 DeepSeek 연결 성공으로 볼 수 없다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
 
@@ -171,15 +182,18 @@ actual 후 report/lease는 삭제하거나 재사용하지 않는다.
 
 ### 다음 개발자 시작점
 
-`docs/superpowers/plans/2026-07-29-deepseek-corrective-actual.md` Task 4에서 계속한다.
+새 개발자는 D-125와 aggregate report에서 시작한다. 추가 network actual은 새 인간 결정과
+새 identity가 필요하다.
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- 실제 `deepseek-v4-flash` 2xx와 exact decision acceptance는 actual 전까지 미확인이다.
+- `deepseek-v4-flash` 2xx와 exact decision acceptance는 여전히 미확인이다.
+- Aggregate evidence로는 HTTP 응답 전 transport 실패까지만 확정 가능하며 DNS/TLS/proxy/
+  timeout 중 무엇인지는 단정할 수 없다.
 
 ## 15. 자체 리뷰
 
-- [ ] 요청 충족
-- [ ] 테스트/검증
+- [x] 요청 충족
+- [x] 테스트/검증
 - [x] source-of-truth/계약/버전 동기화
 - [x] 개인정보 원문 노출 없음
 - [x] 구현 노트 INDEX 갱신
