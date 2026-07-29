@@ -8,6 +8,8 @@
 - Branch: codex/a-075-deepseek-corrective-actual
 - Base commit: c71f8b8
 - Source checkpoint: c9fc1be
+- Evidence closeout commit: 6871a2a
+- Draft PR: https://github.com/tskwak111/Sejong_AI/pull/22
 - Related plan/ADR/RFP: D-126, ADR-0028, A-076 specification/plan, A-075
 
 ## 1. 사용자 요청과 완료 기준

@@ -67,4 +67,4 @@ source, then consume offline/readiness/actual exactly once.
 - [x] Run network-free readiness only after offline PASS.
 - [x] Run A-076 actual exactly once only after readiness PASS.
 - [x] Record aggregate outcome, hashes, retention, retry/rerun and cost.
-- [ ] Commit/push the evidence and update Draft PR #22 without automatic merge.
+- [x] Commit/push the evidence and update Draft PR #22 without automatic merge.
