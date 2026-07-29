@@ -282,8 +282,12 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   최종 fresh review는 Critical 0 / Important 0 / Minor 0 `READY`다. Recursive duplicate-key
   rejection, identity/raw `<64 KiB` streaming, complete exchange 3초·aggregate 32초 deadline,
   exact-byte/pre-lease TOCTOU와 post-child source/tree fail-closed가 포함된다. public main과
-  final answer provider는 불변이며 A-074 offline gate·DeepSeek actual은 invocation/rerun
-  0/0이고 artifact도 없다.
+  final answer provider는 불변이다. D-123의 source
+  `9c7f818123533a4adc61d3953ed4d4630c793891` A-074 offline exact-one은 exit 1,
+  timed_out false, invocation/rerun 1/0과 `TEST-ROOT` first failure로 immutable `FAIL`이다.
+  Standalone 434-test repository-boundary mismatch는 test-only +4 교정 뒤 `434 OK / skipped 2`
+  와 corrective review C0/I0/M0로 해소했지만 gate를 소급 변경하지 않는다. DeepSeek actual은
+  blocked/unexecuted 0/0이며 report/lease·outbound·token·cost는 0이다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.

@@ -2,7 +2,7 @@
 
 ## 상태
 
-Approved / In Progress
+Approved / Closed offline — Task 7 immutable FAIL; Task 8 actual blocked/not run; publication pending
 
 The user's exact A-074 instruction approves this plan, Subagent-Driven TDD, one new offline gate,
 one DeepSeek actual and Draft PR publication. It does not approve automatic merge.
@@ -59,10 +59,10 @@ one DeepSeek actual and Draft PR publication. It does not approve automatic merg
 |---|---|---|---|---|
 | Q-LLM-PROVIDER-001 | Architecture/security/cost | DeepSeek classifier provider | Resolved | A |
 | DeepSeek pricing drift | Cost | Which rates govern actual | Defaulted | Official rates checked 2026-07-29, conservative miss+VAT upper bound |
-| Local key presence | Actual only | Is ignored secret configured | Pending readiness | Value-free readiness; no secret read/output |
+| Local key presence | Actual only | Is ignored secret configured | Not evaluated — Task 7 FAIL blocked readiness | No secret read/output |
 
-No implementation blocker remains. Key absence can stop only the actual stage and is recorded
-without compromising completed offline work.
+No implementation blocker remains. Actual validation is blocked by the immutable Task 7 FAIL,
+so local key presence was not evaluated.
 
 ## 제안 설계
 
@@ -204,7 +204,8 @@ addendum before consuming either one-shot:
 
 Final hardening evidence also includes reviewer focused 257, Ruff 126 files, API Mypy 123 files,
 runner strict Mypy 3 files, PowerShell parser 1,523 tokens, and docs/secret/diff PASS. Neither
-A-074 one-shot was consumed; both remain invocation/rerun 0/0 with artifacts absent.
+Neither A-074 one-shot was consumed at this Task 6b checkpoint; both remained
+invocation/rerun 0/0 with artifacts absent before Task 7.
 
 ### Task 7 — New A-074 offline gate exactly once
 
@@ -218,6 +219,11 @@ A-074 one-shot was consumed; both remain invocation/rerun 0/0 with artifacts abs
    between.
 5. Never rerun it, including on environment failure.
 
+Recorded outcome: source `9c7f818123533a4adc61d3953ed4d4630c793891`, immutable `FAIL`,
+exit 1, timed_out false, invocation/rerun 1/0, stdout/stderr 475/0 bytes and first failing governed
+stage `TEST-ROOT`. The result, lock and aggregate hashes remain immutable; Task 7 is complete as
+FAIL and must never be rerun.
+
 ### Task 8 — Clean-source review and DeepSeek actual exactly once
 
 1. independent code/security/privacy review with no Critical/Important findings;
@@ -228,9 +234,13 @@ A-074 one-shot was consumed; both remain invocation/rerun 0/0 with artifacts abs
 5. record PASS/FAIL aggregate and rerun 0;
 6. do not inspect or retain provider body and do not attempt a correction rerun.
 
+Recorded outcome: not run. Task 7 did not PASS, so readiness, lease and provider network were
+correctly blocked. Actual invocation/rerun are 0/0; report/lease, outbound, token and cost are 0.
+
 ### Task 9 — Final evidence and Draft PR
 
-1. synchronize D-123/D-124, ambiguity, source-of-truth, task, RFP, versions and implementation note;
+1. synchronize D-123, ambiguity, source-of-truth, task, RFP, versions and implementation note;
+   do not create D-124 because Task 8 actual did not run;
 2. final scoped independent review;
 3. docs/secret/diff/status checks;
 4. commit and push `codex/a-074-deepseek-classifier-provider`;
@@ -264,6 +274,9 @@ Those values are the historical approved implementation target. The realized Tas
 hardening patch advances application to `0.13.1-selectable-classifier-provider-hardening`, tests to
 `2.2.1-deepseek-classifier-provider-hardening`, and docs to
 `2.31.1-deepseek-classifier-provider-hardening`; every other version axis remains unchanged.
+Task 7 fail-closeout keeps application `0.13.1`, advances tests to
+`2.2.2-a074-offline-gate-correction` and docs to
+`2.31.2-a074-offline-gate-fail-closeout`; every other axis remains unchanged.
 
 ## 위험과 롤백
 
@@ -304,19 +317,27 @@ Still prohibited:
 - 2026-07-29: second review returned C0/I1 `NOT READY` for compressed decoding. Wave 2 passed
   focused 196 / area 656+5, and the final fresh review returned C0/I0/M0 `READY`; reviewer focused
   257, Ruff/Mypy/PowerShell parser/docs/secret/diff also passed.
-- 2026-07-29: A-074 gate/actual invocation/rerun remain 0/0 with artifacts absent. A-073 remains
-  `NOT VERIFIED/FAIL`, invocation/rerun 1/0.
+- 2026-07-29: at the Task 6b checkpoint, A-074 gate/actual invocation/rerun were 0/0 with
+  artifacts absent. A-073 remained `NOT VERIFIED/FAIL`, invocation/rerun 1/0.
+- 2026-07-29: Task 7 consumed the exact-one wrapper from source
+  `9c7f818123533a4adc61d3953ed4d4630c793891` and closed immutable `FAIL`: exit 1, timed_out false,
+  invocation/rerun 1/0, stdout/stderr 475/0 bytes, first governed failure `TEST-ROOT`.
+- 2026-07-29: standalone root diagnostics isolated one expected-map repository-truth mismatch in
+  434 tests with 2 skips. Test-only +4 values produced exact PASS and full `434 OK / skipped 2`;
+  corrective review C0/I0/M0. This does not reclassify or rerun Task 7.
+- 2026-07-29: Task 8 was not run. DeepSeek actual remains blocked/unexecuted 0/0 with report/lease,
+  outbound, token and cost all 0.
 
 ## 결과와 회고
 
-- 실제 결과: hardened offline implementation complete through Task 6b; A-074 gate and DeepSeek
-  actual both pending with invocation/rerun 0/0 and artifacts absent.
+- 실제 결과: hardened offline implementation completed through Task 6b. Task 7 is immutable
+  `FAIL` at `TEST-ROOT`, invocation/rerun 1/0; Task 8 actual is blocked/not run at 0/0.
 - 계획과 달라진 점: original wrapper review corrected lock-owner/unconfirmed termination races.
   The later integrated pre-gate review additionally found recursive JSON, response-boundary,
   total-deadline, exact-byte/pre-lease TOCTOU and post-child source/termination gaps. Two
   RED/GREEN waves closed all Critical/Important/Minor findings before any real gate execution.
-- 다음 단계: Task 7 — commit the reviewed hardening as a clean source checkpoint and run the new
-  A-074 offline gate exactly once.
+- 다음 단계: preserve Task 7 evidence, publish this fail-closeout through Task 9, and do not run
+  Task 8 or either wrapper again without a new task/identity and explicit human decision.
 
 ## Plan self-review
 

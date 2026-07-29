@@ -13,6 +13,21 @@
 - 질문, 마스킹 문장, request/response body, invalid value, status detail, exception, key,
   DSN 또는 환경 dump를 console·report·lease에 남기지 않는다.
 
+## D-123 recorded outcome — 이 identity로 다시 실행하지 않음
+
+이 런북의 A-074 offline identity는 이미 source
+`9c7f818123533a4adc61d3953ed4d4630c793891`에서 정확히 한 번 소비됐다. Immutable outcome은
+`FAIL`, exit 1, timed_out false, invocation/rerun 1/0, stdout/stderr 475/0 bytes, first failing
+governed stage `TEST-ROOT`다. 아래 Task 7 명령은 재현 설명일 뿐 다시 실행하는 절차가 아니다.
+Ignored result·lock·logs와 aggregate hashes를 삭제·이동·덮어쓰지 않는다.
+
+Standalone 진단은 434 tests 중 repository boundary expected-map mismatch 1건과 2 skips를
+찾았다. Test-only +4 교정 뒤 exact boundary test와 full standalone root `434 OK / skipped 2`,
+corrective review C0/I0/M0가 PASS했다. 이 결과는 immutable gate FAIL을 PASS로 소급 변경하지
+않는다. 따라서 DeepSeek actual은 blocked/unexecuted invocation/rerun 0/0이며 report/lease가
+없고 outbound/token/cost는 0이다. 새 actual 시도에는 새 인간 결정, 새 task/identity와 별도
+runner/report/lease가 필요하다.
+
 ## 고정 identity
 
 | 구분 | 경로/값 |

@@ -63,8 +63,8 @@ database_schema: 0.5.0-local
 official_data: 0.1.0-initial.2
 mock_data: 0.0.0-not-populated
 prompt_set: 0.4.3-explicit-route-matrix
-test_suite: 2.2.1-deepseek-classifier-provider-hardening
-documentation: 2.31.1-deepseek-classifier-provider-hardening
+test_suite: 2.2.2-a074-offline-gate-correction
+documentation: 2.31.2-a074-offline-gate-fail-closeout
 ```
 
 승격 근거는 current local source gate pgTAP 11 files/385 tests, 11-stage rollback
@@ -499,9 +499,34 @@ TOCTOU 재검증, nonzero `taskkill`과 post-child source drift의 fail-closed �
 `2.2.0→2.2.1-deepseek-classifier-provider-hardening`, documentation은
 `2.31.0→2.31.1-deepseek-classifier-provider-hardening`으로 patch 승격했다. Prompt
 `0.4.3-explicit-route-matrix`와 product/repository guidance/API/contracts/Web/DB/
-official/mock data/dependency 축은 불변이다. A-074 offline gate와 DeepSeek actual은
-여전히 invocation/rerun `0/0`이고 artifact도 없다. A-073 root는
+official/mock data/dependency 축은 불변이다. 이 pre-gate hardening checkpoint에서 A-074
+offline gate와 DeepSeek actual은 invocation/rerun `0/0`이고 artifact도 없었다. 이후
+immutable outcome은 다음 절에 기록한다. A-073 root는
 `NOT VERIFIED/FAIL`, invocation/rerun `1/0`을 그대로 보존한다.
+
+## A-074 immutable offline gate FAIL closeout
+
+2026-07-29 hardened source `9c7f818123533a4adc61d3953ed4d4630c793891`에서 A-074 offline
+wrapper를 승인된 정확히 한 번 실행했다. Immutable outcome은 `FAIL`, exit 1,
+`timed_out=false`, invocation/rerun `1/0`, stdout/stderr `475/0` bytes이며 first failing
+governed stage는 `TEST-ROOT`다. 결과·lock·aggregate hash evidence는 보존하고 wrapper를
+재실행하지 않는다.
+
+Value-free standalone 진단은 434 tests 중 정확히 1 failure와 2 skips를 기록했다.
+`EnvironmentBoundaryTest`의 expected map이 이미 안전하게 tracked된 네 classifier 환경
+경계를 누락한 repository-truth mismatch였다. Test-only corrective patch는
+`CLASSIFIER_PROVIDER=disabled`, blank `DEEPSEEK_API_KEY`, exact model/base URL 네 값을 map에
+추가했고 exact test PASS와 standalone root corrective `434 OK / skipped 2`를 확인했다.
+Corrective patch review는 Critical 0 / Important 0 / Minor 0이다. 이 후속 증거는 immutable
+gate를 PASS로 소급 변경하지 않는다.
+
+Application은 `0.13.1-selectable-classifier-provider-hardening` 그대로다. Test-only
+repository-boundary 교정으로 tests를 `2.2.1→2.2.2-a074-offline-gate-correction`,
+immutable FAIL closeout 문서화로 documentation을
+`2.31.1→2.31.2-a074-offline-gate-fail-closeout`으로 patch 승격했다. 다른 version axis는
+불변이다. DeepSeek actual은 blocked/unexecuted, invocation/rerun `0/0`, report/lease 부재,
+outbound/token/cost `0/0/USD 0`이다. A-073은 `NOT VERIFIED/FAIL`, invocation/rerun `1/0`을
+유지한다.
 
 ## CHAT-NATURAL-001 grouped implementation promotion
 

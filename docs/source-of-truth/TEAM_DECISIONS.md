@@ -209,6 +209,15 @@
   key·bounded identity/raw response·total deadline·exact-byte/pre-lease identity·post-child
   source/tree 경계를 포함한다. 이 checkpoint의 A-074 gate와 DeepSeek actual은 invocation/
   rerun 각각 0/0이고 artifact·token·비용·PASS/FAIL은 아직 없다.
+- D-123: hardened source `9c7f818123533a4adc61d3953ed4d4630c793891`의 A-074 offline
+  wrapper exact-one outcome은 immutable `FAIL`이다. Exit 1, timed_out false, invocation/rerun
+  1/0, stdout/stderr 475/0 bytes, first failing governed stage `TEST-ROOT`를 aggregate로
+  보존하고 재실행하지 않는다. Standalone 434-test 진단은 expected environment map이 이미
+  안전하게 tracked된 classifier 네 값을 누락한 repository-truth mismatch 1건을 찾았고
+  test-only +4 교정 뒤 exact PASS와 full `434 OK / skipped 2`, review C0/I0/M0를 확인했다.
+  이 corrective evidence는 immutable gate를 PASS로 바꾸지 않는다. DeepSeek actual은
+  blocked/unexecuted invocation/rerun 0/0이고 report/lease, outbound, token, cost는 모두 0이다.
+  A-073 root `NOT VERIFIED/FAIL` 1/0은 불변이다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

@@ -248,10 +248,17 @@ Important 1을 두 RED/GREEN wave로 닫았고, 최종 fresh review는 Critical 
 Minor 0 `READY`였다. Recursive duplicate-key 거부, identity/raw `<64 KiB` bounded
 streaming, complete exchange 3초·aggregate 32초 deadline, exact-byte/pre-lease TOCTOU
 재검증, nonzero `taskkill`·post-child source drift fail-closed가 현재 경계다.
-public main·API/contracts/Web/DB/data/dependency는 변경하지 않았고 A-074 offline wrapper와
-DeepSeek actual은 아직 각각 invocation/rerun 0/0이며 artifact와 관측 token·비용 metric은
-없다. 다음 상태 전이는 이 hardened clean source에서 새 A-074 offline gate exact 1회이며,
-그 결과가 PASS일 때에만 같은 source SHA의 DeepSeek actual lease exact 1회를 소비한다.
+public main·API/contracts/Web/DB/data/dependency는 변경하지 않았다.
+
+D-123에서 hardened source `9c7f818123533a4adc61d3953ed4d4630c793891`의 A-074 offline
+wrapper를 exact-one 소비했고 immutable outcome은 `FAIL`이다. Exit 1, timed_out false,
+invocation/rerun 1/0, stdout/stderr 475/0 bytes, first failing governed stage `TEST-ROOT`를
+aggregate evidence로 보존하며 wrapper는 재실행하지 않는다. Standalone 434-test 진단은
+expected environment map과 기존 안전 tracked classifier 설정 사이 repository-truth mismatch
+1건을 찾았고 test-only +4 교정 뒤 exact PASS와 full `434 OK / skipped 2`, corrective review
+C0/I0/M0를 확인했다. 이 교정은 gate FAIL을 소급 변경하지 않는다. 따라서 DeepSeek actual은
+blocked/unexecuted invocation/rerun 0/0이고 report/lease·outbound·token·cost는 모두 0이다.
+A-073 root `NOT VERIFIED/FAIL`, invocation/rerun 1/0도 그대로다.
 
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는

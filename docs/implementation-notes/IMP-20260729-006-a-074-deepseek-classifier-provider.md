@@ -1,18 +1,17 @@
 # IMP-20260729-006 — A-074 DeepSeek classifier provider
 
 - Date/Time (KST): 2026-07-29T05:21:53+09:00
-- Last updated (KST): 2026-07-29T08:21:43+09:00
+- Last updated (KST): 2026-07-29T08:52:44+09:00
 - Task ID: A-074-DEEPSEEK-CLASSIFIER-PROVIDER
 - Type: implementation-provider-offline
-- Status: In Progress
+- Status: Closed offline — immutable A-074 gate FAIL; DeepSeek actual blocked
 - Author/Agent: 사용자 결정자 / Codex root / task-scoped implementer·reviewer agents
 - Branch: codex/a-074-deepseek-classifier-provider
 - Formal A-074 base commit: 50aab6e
 - Task 1 reviewed checkpoint: 8d36e04
 - Original Task 6 checkpoint: 0b15572
-- Task 6b hardened source: 이 노트를 포함하는 clean checkpoint commit이며, exact SHA는
-  forthcoming immutable A-074 offline result가 기록한다.
-- Related plan/ADR/RFP: ADR-0028, D-122, A-074, SFR-002,
+- Task 6b hardened/gate source: 9c7f818123533a4adc61d3953ed4d4630c793891
+- Related plan/ADR/RFP: ADR-0028, D-122/D-123, A-074, SFR-002,
   `docs/superpowers/plans/2026-07-29-deepseek-classifier-provider.md`
 
 ## 1. 사용자 요청과 완료 기준
@@ -31,7 +30,8 @@ commit·push·Draft PR까지 진행하되 자동 merge하지 않는다.
 - deterministic 11/DeepSeek outbound 9, privacy/policy outbound 0
 - HTTP 2xx·parse·accepted·expected match 각 9
 - 질문/body/invalid value/secret 보관 0, cost <= USD0.20
-- 새 A-074 offline gate·actual invocation 각 1, rerun 0
+- 새 A-074 offline gate invocation/rerun 1/0을 immutable PASS/FAIL로 보존하고 PASS일 때만
+  actual 1회를 허용
 - 새 dependency/API/DB/data/Web/public/remote 변경 0
 
 ## 2. 육하원칙(6W1H)
@@ -138,8 +138,8 @@ environment에서 `CLASSIFIER_PROVIDER=disabled`로 되돌리는 것이며 DB mi
 | Official data | 0.1.0-initial.2 | 동일 | immutable approved data 사용 |
 | Mock data | 0.0.0-not-populated | 동일 | mock 추가 없음 |
 | Prompt set | 0.4.3-explicit-route-matrix | 동일 | A-073 prompt byte 변경 없음 |
-| Test suite | 2.1.7-classifier-wire-correction | 2.2.1-deepseek-classifier-provider-hardening | provider·one-shot·review-fix TDD |
-| Docs | 2.30.8 | 2.31.1-deepseek-classifier-provider-hardening | offline 구현·hardening·runbook 동기화 |
+| Test suite | 2.1.7-classifier-wire-correction | 2.2.2-a074-offline-gate-correction | provider·one-shot·review-fix와 repository-boundary 교정 |
+| Docs | 2.30.8 | 2.31.2-a074-offline-gate-fail-closeout | offline 구현·hardening·immutable FAIL closeout |
 
 ## 8. 명령과 테스트 증거
 
@@ -167,6 +167,11 @@ environment에서 `CLASSIFIER_PROVIDER=disabled`로 되돌리는 것이며 DB mi
 | Final fresh scoped review | READY | Critical 0 / Important 0 / Minor 0 | reviewer focused 257 PASS |
 | Final Ruff/Mypy/PS parser | PASS | Ruff 126; API Mypy 123; runner Mypy 3; parser 1,523/0 | hardened source |
 | Final docs/secret/diff | PASS | repository docs, secret scan, diff | artifact·secret 노출 0 |
+| A-074 offline gate exact-one | FAIL | source `9c7f818...`; exit 1; timed_out false; invocation/rerun 1/0 | stdout/stderr 475/0; first governed stage `TEST-ROOT` |
+| Standalone root diagnostic | expected FAIL | 434 tests: failure 1, skips 2 | safe tracked classifier profile의 expected-map 누락 |
+| Test-only repository-boundary correction | PASS | exact test PASS; full `434 OK / skipped 2` | existing safe four-value map +4 |
+| Corrective patch scoped review | READY | Critical 0 / Important 0 / Minor 0 | repository truth mismatch resolved |
+| DeepSeek actual | BLOCKED / not run | invocation/rerun 0/0; outbound/token/cost 0 | report/lease absent |
 
 ### Task 6 재현 명령
 
@@ -200,12 +205,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 git diff --check
 ```
 
-### 미실행 검증과 이유
+### One-shot 결과와 미실행 검증
 
-- A-074 offline gate: hardened source checkpoint commit 전이므로 invocation 0, rerun 0이고
-  canonical result/lock/stdout/stderr artifact가 없다.
-- DeepSeek actual: offline gate·same-SHA clean review 전이므로 invocation 0, rerun 0이고
-  report/lease artifact와 관측 token·비용 metric은 존재하지 않는다.
+- A-074 offline gate: source `9c7f818123533a4adc61d3953ed4d4630c793891`에서 exact-one
+  실행했다. Immutable `FAIL`, exit 1, timed_out false, invocation/rerun 1/0,
+  stdout/stderr 475/0 bytes, first failing governed stage `TEST-ROOT`다. Result·lock·logs와
+  aggregate hashes를 보존하고 재실행하지 않는다.
+- Standalone corrective: 434-test diagnostic의 failure 1/skips 2를 기존 안전 tracked
+  `CLASSIFIER_PROVIDER=disabled`, blank `DEEPSEEK_API_KEY`, exact model/base URL 네 값의
+  expected-map 누락으로 격리했다. Test-only +4 뒤 exact PASS와 full `434 OK / skipped 2`,
+  review C0/I0/M0다. Gate FAIL은 불변이다.
+- DeepSeek actual: offline gate가 PASS하지 않았으므로 blocked/unexecuted invocation/rerun
+  0/0이다. Report/lease가 없고 provider outbound·token·cost는 0이다.
 - A-073 root wrapper와 모든 Upstage actual: 사용자 금지에 따라 재실행하지 않았다.
 - public/remote/실제 시민 free-input: 승인 범위 밖이다.
 
@@ -231,17 +242,17 @@ git diff --check
 - mock/AI 생성: fixed20은 비식별 synthetic fixture이고 official data가 아니다. 모델 출력은
   공식 출처·기관·사실로 저장하지 않는다.
 - schema/lineage: API/DB migration·계약·generated type 변경 0. 서버 catalog가 최종 권위다.
-- verified date: 2026-07-29 KST offline implementation checkpoint.
+- verified date: 2026-07-29 KST immutable offline gate FAIL closeout.
 
 ## 11. 인간이 반드시 알아야 하거나 승인할 내용
 
 - Q-LLM-PROVIDER-001=A가 local/private classifier-only DeepSeek 사용과 actual exact1을
   승인했다. final answer provider는 여전히 Upstage다.
 - public 배포, remote DB, 실제 시민 free-input, 자동 merge는 승인되지 않았다.
-- A-074 offline gate와 actual은 아직 실행하지 않았다. 각각 실행되면 성공·실패와 관계없이
-  자동 재실행하지 않는다.
-- actual readiness에서 ignored `DEEPSEEK_API_KEY`가 유효하지 않으면 lease를 소비하지 않고
-  generic readiness failure로 중단한다. 값 자체는 읽거나 보고하지 않는다.
+- A-074 offline gate는 immutable `FAIL`, invocation/rerun 1/0으로 종료됐다. Standalone
+  corrective PASS가 있어도 이를 PASS로 소급 변경하거나 wrapper를 다시 실행하지 않는다.
+- DeepSeek actual은 차단됐고 invocation/rerun 0/0이다. 새 시도는 현재 승인에 포함되지 않으며
+  새 인간 결정과 새 task/identity가 필요하다.
 
 ## 12. AI 내부 구현 세부 — 필요할 때만 보면 되는 내용
 
@@ -261,31 +272,30 @@ git diff --check
 
 ### 재현
 
-- Offline focused/area 검증은 approved plan Task 6 명령을 사용한다.
-- Gate exact1 전에는 `docs/runbooks/DEEPSEEK-CLASSIFIER-ACTUAL.md`의 artifact-absence와 clean
-  source 절차를 따른다.
-- actual은 같은 source SHA의 offline PASS 뒤 readiness-only를 먼저 실행하고, PASS일 때만
-  runbook의 actual 명령을 정확히 한 번 실행한다.
+- Offline focused/area 검증과 standalone corrective 명령 결과는 §8과 ignored Task 6b
+  evidence를 따른다.
+- 이 A-074 wrapper/result identity는 이미 소비됐으므로 runbook의 Task 7/actual 명령을 다시
+  실행하지 않는다.
 
 ### 롤백
 
 - runtime rollback: ignored local environment의 `CLASSIFIER_PROVIDER=disabled`.
 - code rollback: A-074 provider commits를 revert한다. DB·official data·public contract rollback은
   필요 없다.
-- 실행한 one-shot lease/report는 감사 증거이므로 삭제하거나 덮어쓰지 않는다.
+- 실행한 offline result/lock/log/hash evidence는 감사 증거이므로 삭제하거나 덮어쓰지 않는다.
 
 ### 다음 개발자 시작점
 
-- Task 6b hardened source checkpoint commit을 기준으로 clean HEAD를 확인한다.
-- Task 7 새 A-074 wrapper exact1 → Task 8 same-SHA review/readiness/actual exact1 순서를 바꾸지
-  않는다.
+- Task 7 immutable FAIL과 standalone corrective PASS를 서로 다른 증거로 보존한다.
+- Task 8 actual은 blocked/not run이며, 새 인간 결정·task/identity 없이는 실행하지 않는다.
 - A-073 root wrapper와 Upstage actual은 어떤 이유로도 재실행하지 않는다.
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- DeepSeek actual 응답이 exact wire/oracle에 맞는지는 아직 증명되지 않았다.
-- ignored local key의 실제 유효성은 readiness까지 Pending이다.
-- 한 번 실행한 actual이 FAIL이면 결과를 보존하고 새 인간 승인 없이는 재실행하지 않는다.
+- DeepSeek actual 응답이 exact wire/oracle에 맞는지와 key 유효성은 실행이 차단돼 증명되지
+  않았다.
+- 새 provider actual 검증이 필요하면 D-123을 덮지 않는 새 identity·비용 승인·runner/report/
+  lease가 필요하다.
 - public/remote 운영에는 개인정보·약관·비용·rate-limit 별도 ADR이 필요하다.
 
 ## 15. 자체 리뷰
@@ -293,7 +303,9 @@ git diff --check
 - [x] A-073 증거 불변과 A-074 offline 구현 요청 충족
 - [x] Task 6 area/repository 검증
 - [x] Task 6b two-wave RED/GREEN과 final fresh C0/I0/M0 review
+- [x] Task 7 immutable FAIL 1/0과 standalone corrective 434 OK/skipped2 분리 기록
+- [x] Task 8 DeepSeek actual blocked/unexecuted 0/0
 - [x] source-of-truth/계약/버전 동기화 — 공개 계약은 불변
 - [x] 개인정보 원문·provider body·invalid value·secret 노출 없음
 - [x] 구현 노트 INDEX 갱신
-- [ ] A-074 offline gate·actual·최종 리뷰·Draft PR
+- [ ] Fail-closeout final commit·push·Draft PR

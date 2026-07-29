@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Closed offline — A-074 immutable gate FAIL
+
+- Consumed the approved A-074 offline wrapper exactly once from source
+  `9c7f818123533a4adc61d3953ed4d4630c793891`. The immutable outcome is `FAIL`, exit 1,
+  timed_out false, invocation/rerun 1/0, stdout/stderr 475/0 bytes and first failing governed
+  stage `TEST-ROOT`. Result, lock and aggregate hash evidence are preserved; the wrapper is not
+  rerun.
+- A value-free standalone diagnostic ran 434 tests and found exactly one repository-boundary
+  expected-map mismatch with two skips. A test-only +4 map correction for the existing safe
+  tracked classifier profile passed the exact test and full standalone root `434 OK / skipped 2`.
+  Corrective review returned Critical 0 / Important 0 / Minor 0.
+- The corrective result does not retroactively turn the immutable gate into PASS. DeepSeek actual
+  is blocked/unexecuted at invocation/rerun 0/0; report/lease, outbound, token and cost remain
+  0. A-073 remains `NOT VERIFIED/FAIL`, invocation/rerun 1/0.
+- Application remains `0.13.1-selectable-classifier-provider-hardening`. Advanced tests
+  `2.2.1→2.2.2-a074-offline-gate-correction` and documentation
+  `2.31.1→2.31.2-a074-offline-gate-fail-closeout`; every other version axis is unchanged.
+
 ### Hardened offline — A-074 pre-gate review fix wave
 
 - The initial integrated pre-gate review returned Critical 0 / Important 5 and `NOT READY`.
@@ -19,8 +37,9 @@
 - Advanced application `0.13.0→0.13.1-selectable-classifier-provider-hardening`, tests
   `2.2.0→2.2.1-deepseek-classifier-provider-hardening` and documentation
   `2.31.0→2.31.1-deepseek-classifier-provider-hardening`. All other version axes are unchanged.
-  The A-074 gate and DeepSeek actual remain unexecuted at invocation/rerun `0/0` with artifacts
-  absent. A-073 remains `NOT VERIFIED/FAIL`, invocation/rerun `1/0`.
+  At this pre-gate checkpoint, the A-074 gate and DeepSeek actual were unexecuted at
+  invocation/rerun `0/0` with artifacts absent. The immutable outcome is recorded above.
+  A-073 remains `NOT VERIFIED/FAIL`, invocation/rerun `1/0`.
 
 ### Implemented offline — A-074 selectable DeepSeek classifier provider
 
@@ -38,9 +57,10 @@
   area suite passed 1,012 tests plus 5 subtests. Ruff, Mypy, PowerShell parser, secret, docs and
   diff checks passed and Task 5 review found Critical 0 / Important 0. The later integrated
   pre-gate review and its superseding Task 6b hardening evidence are recorded above.
-- The A-074 offline wrapper and DeepSeek actual have not run yet: invocation count 0, rerun count
-  0 and no observed token/cost metric exists. A-073 remains `NOT VERIFIED/FAIL` with invocation/rerun
-  `1/0`; no A-073 root wrapper or Upstage actual was rerun.
+- At this original implementation checkpoint, the A-074 offline wrapper and DeepSeek actual had
+  invocation/rerun 0/0 and no observed token/cost metric. The later immutable gate outcome is
+  recorded above. A-073 remains `NOT VERIFIED/FAIL` with invocation/rerun `1/0`; no A-073 root
+  wrapper or Upstage actual was rerun.
 - Promoted application `0.12.4→0.13.0-selectable-classifier-provider`, tests
   `2.1.7→2.2.0-deepseek-classifier-provider` and documentation
   `2.30.8→2.31.0-deepseek-classifier-provider`. Prompt `0.4.3`, public API/contracts, Web, DB,
