@@ -64,7 +64,8 @@ def test_exact_deepseek_classifier_settings_expose_only_fixed_profile_limits() -
     assert settings.provider == "deepseek"
     assert settings.model == "deepseek-v4-flash"
     assert settings.base_url == "https://api.deepseek.com"
-    assert settings.timeout_seconds == 3.0
+    assert settings.connect_timeout_seconds == 3.0
+    assert settings.timeout_seconds == 10.0
     assert settings.max_retries == 0
     assert settings.max_concurrency == 1
     assert settings.max_input_chars == 1024

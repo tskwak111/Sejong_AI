@@ -1,10 +1,10 @@
 {
   "manifest_version": "1.0.0",
-  "updated_at": "2026-07-29T11:55:00+09:00",
+  "updated_at": "2026-07-29T12:30:00+09:00",
   "versions": {
     "product_spec": "2.6.0",
     "repo_guidance": "1.7.10",
-    "application": "0.13.1-selectable-classifier-provider-hardening",
+    "application": "0.13.2-deepseek-split-timeout",
     "web": "0.8.0-guided-chat",
     "api": "4.0.0-draft",
     "shared_contracts": "1.0.0",
@@ -12,8 +12,8 @@
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.4.3-explicit-route-matrix",
-    "test_suite": "2.2.5-a076-network-recovery-evidence",
-    "documentation": "2.31.6-a076-transport-timeout-evidence"
+    "test_suite": "2.2.6-a077-split-timeout-evidence",
+    "documentation": "2.31.7-a077-split-timeout-pre-execution"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

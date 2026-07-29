@@ -246,6 +246,10 @@
   일치하므로 3초 timeout 만료가 가장 강한 가설이지만 exception detail 비보관 정책상 확정하지
   않는다. Provider response/2xx/parse/accepted/match/token0, retention/retry/rerun0이며 A-074/
   A-075/A-076 report와 lease를 보존한다. Timeout 변경과 추가 actual은 새 인간 결정이 필요하다.
+- D-128/Q-LLM-015=A: DeepSeek classifier의 connect/write/pool은 3초, read와 complete
+  exchange는 10초로 분리한다. 새 A-077 offline/readiness 뒤 aggregate-only 합성 1-call이
+  HTTP 2xx일 때만 고정 9-call actual을 실행한다. Retry0·무보관·USD0.20와 A-074~076 불변,
+  public/remote/free-input·final-answer provider·dependency 불변을 유지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

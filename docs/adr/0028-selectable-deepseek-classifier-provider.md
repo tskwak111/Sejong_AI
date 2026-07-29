@@ -37,7 +37,8 @@ untrusted.
    `route`, `intent`, `topic_id`, `coverage_id`, `pending_slot`; every value is a JSON string and
    every nullable value is exact uppercase `NONE`.
 7. DeepSeek uses `/chat/completions`, `json_object`, explicit thinking disabled, temperature 0,
-   timeout 3 seconds, retry 0, concurrency 1 and maximum output 128.
+   retry 0, concurrency 1 and maximum output 128. D-128 amends the original all-3-second timeout:
+   connect/write/pool remain 3 seconds while read and the complete exchange are 10 seconds.
 8. The existing server parser is the sole decision trust boundary. It checks exact keys and types,
    closed enums, identifier syntax, route shape and request-local catalog membership.
 9. Deterministic policy/privacy, obvious non-civic and obvious supported-question routing remains
@@ -66,7 +67,8 @@ untrusted.
 - policy/privacy outbound 0;
 - HTTP 2xx, exact parse, server acceptance and expected route/intent/topic match all 9;
 - retained question/body/invalid value/secret counts all 0;
-- timeout 3, retry 0, concurrency 1, output 128, deterministic sampling;
+- connect/write/pool timeout 3, read/complete-exchange timeout 10, retry 0, concurrency 1,
+  output 128, deterministic sampling;
 - conservative cost upper bound at or below USD 0.20.
 
 ## Scope boundary
@@ -115,3 +117,12 @@ reading or printing its value.
 A new human decision and ADR amendment are required before public/remote/free-input use, a final
 answer-provider change, provider fallback cascade, a new production dependency, altered public
 wire, or a changed retention policy.
+
+## 2026-07-29 amendment — D-128 / A-077
+
+A-075 and A-076 each produced nine pre-response failures in approximately nine times the
+three-second complete-exchange budget, while a value-free connectivity probe reached DeepSeek.
+Q-LLM-015=A therefore approves a local/private split-timeout diagnostic: 3-second
+connect/write/pool, 10-second read and complete exchange, retry 0. A separate one-call synthetic
+probe must receive HTTP 2xx before the new A-077 nine-provider-case actual may run. Both runs use
+new permanent evidence identities and keep every A-074/A-075/A-076 artifact immutable.

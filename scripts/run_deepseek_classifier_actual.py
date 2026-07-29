@@ -110,7 +110,7 @@ _ACTUAL_COST_CAP_USD = Decimal("0.20")
 _ACTUAL_INVOCATION_COUNT = 1
 _ACTUAL_RETRY_COUNT = 0
 _ACTUAL_RERUN_COUNT = 0
-_ACTUAL_RUN_DEADLINE_SECONDS = 32
+_ACTUAL_RUN_DEADLINE_SECONDS: float = 32
 _FIXTURE_MAX_BYTES = 1024 * 1024
 _COVERAGE_MAX_BYTES = 1024 * 1024
 _OFFICIAL_RECORDS_MAX_BYTES = 4 * 1024 * 1024
@@ -177,6 +177,7 @@ from sejong_ai_api.llm.deepseek_settings import (  # noqa: E402
     DEEPSEEK_BASE_URL,
     DEEPSEEK_CLASSIFIER_ATTEMPT_CAP,
     DEEPSEEK_COMBINED_ATTEMPT_CAP,
+    DEEPSEEK_CONNECT_TIMEOUT_SECONDS,
     DEEPSEEK_GENERATOR_ATTEMPT_CAP,
     DEEPSEEK_MAX_CONCURRENCY,
     DEEPSEEK_MAX_INPUT_CHARS,
@@ -241,6 +242,7 @@ class EvidenceIdentity:
     offline_gate: str
     offline_lease_text: str
     actual_lease_text: str
+    actual_run_deadline_seconds: float = _ACTUAL_RUN_DEADLINE_SECONDS
 
 
 A074_EVIDENCE_IDENTITY = EvidenceIdentity(
@@ -252,6 +254,7 @@ A074_EVIDENCE_IDENTITY = EvidenceIdentity(
     offline_gate=_OFFLINE_GATE,
     offline_lease_text=_OFFLINE_LEASE_TEXT,
     actual_lease_text=_ACTUAL_LEASE_TEXT,
+    actual_run_deadline_seconds=_ACTUAL_RUN_DEADLINE_SECONDS,
 )
 
 
@@ -460,6 +463,7 @@ def _current_evidence_identity() -> EvidenceIdentity:
         offline_gate=_OFFLINE_GATE,
         offline_lease_text=_OFFLINE_LEASE_TEXT,
         actual_lease_text=_ACTUAL_LEASE_TEXT,
+        actual_run_deadline_seconds=_ACTUAL_RUN_DEADLINE_SECONDS,
     )
 
 
@@ -489,6 +493,8 @@ def _validate_corrective_evidence_identity(identity: EvidenceIdentity) -> None:
         or not identity.actual_lease_text.endswith("\n")
         or len(identity.offline_lease_text) > 128
         or len(identity.actual_lease_text) > 128
+        or type(identity.actual_run_deadline_seconds) not in (int, float)
+        or not 0 < identity.actual_run_deadline_seconds <= 3600
     ):
         raise _EvidenceIdentityInvalid
     try:
@@ -509,6 +515,7 @@ def _validate_corrective_evidence_identity(identity: EvidenceIdentity) -> None:
 
 def _set_evidence_identity(identity: EvidenceIdentity) -> None:
     global _ACTUAL_LEASE_TEXT
+    global _ACTUAL_RUN_DEADLINE_SECONDS
     global _OFFLINE_GATE
     global _OFFLINE_LEASE_TEXT
     global _OFFLINE_LOCK_PATH
@@ -525,6 +532,7 @@ def _set_evidence_identity(identity: EvidenceIdentity) -> None:
     _OFFLINE_GATE = identity.offline_gate
     _OFFLINE_LEASE_TEXT = identity.offline_lease_text
     _ACTUAL_LEASE_TEXT = identity.actual_lease_text
+    _ACTUAL_RUN_DEADLINE_SECONDS = identity.actual_run_deadline_seconds
 
 
 @contextmanager
@@ -955,6 +963,7 @@ def _validate_settings(settings: DeepSeekClassifierSettings) -> None:
         or settings.provider != DEEPSEEK_PROVIDER
         or settings.model != DEEPSEEK_MODEL
         or settings.base_url != DEEPSEEK_BASE_URL
+        or settings.connect_timeout_seconds != DEEPSEEK_CONNECT_TIMEOUT_SECONDS
         or settings.timeout_seconds != DEEPSEEK_TIMEOUT_SECONDS
         or settings.max_retries != DEEPSEEK_MAX_RETRIES
         or settings.max_concurrency != DEEPSEEK_MAX_CONCURRENCY
