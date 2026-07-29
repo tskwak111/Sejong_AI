@@ -188,6 +188,25 @@ def test_classifier_prompt_explicitly_requires_json_output() -> None:
     assert any("json" in message["content"].casefold() for message in messages)
 
 
+def test_classifier_prompt_defines_route_semantics_and_selection_precedence() -> None:
+    system = build_classifier_messages(
+        _safe_question(),
+        _catalog(),
+        max_input_chars=1024,
+    )[0]["content"]
+
+    for rule in (
+        "SUPPORTED=covered catalog row",
+        "NO_TOPIC_MATCH=supported intent but no row covers the requested fact or procedure",
+        "CIVIC_SCOPE_GAP=government or administrative service outside supported intents",
+        "NON_CIVIC=not a government or administrative service",
+        "NEEDS_FOLLOWUP=missing or ambiguous detail blocks a safe choice",
+        "choose the narrowest covering row",
+        "coverage exclusions are binding",
+    ):
+        assert rule in system
+
+
 def test_classifier_prompt_uses_canonical_wire_names_and_exact_none() -> None:
     system = build_classifier_messages(
         _safe_question(),
@@ -258,8 +277,7 @@ def test_classifier_prompt_declares_one_contiguous_exact_provider_intent_vocabul
         max_input_chars=1024,
     )[0]["content"]
     exact_vocabulary = (
-        "provider intents: "
-        "MOVE_IN_RESIDENT_REGISTRATION|CERTIFICATE_ISSUANCE|"
+        "I=MOVE_IN_RESIDENT_REGISTRATION|CERTIFICATE_ISSUANCE|"
         "BULKY_WASTE|LOCAL_TAX_GENERAL|NONE;"
     )
 
@@ -273,20 +291,16 @@ def test_classifier_prompt_encodes_every_complete_route_matrix_row() -> None:
         max_input_chars=1024,
     )[0]["content"]
 
-    assert "keys: route,intent,topic_id,coverage_id,pending_slot" in system
-    assert "valid tuples in key order:" in system
-    for row in (
-        "SUPPORTED|catalog intent|same-row topic_id|same-row coverage_id|NONE",
-        "NO_TOPIC_MATCH|supported intent|NONE|NONE|NONE",
-        "CIVIC_SCOPE_GAP|NONE|NONE|NONE|NONE",
-        "NON_CIVIC|NONE|NONE|NONE|NONE",
-        "NEEDS_FOLLOWUP|NONE|NONE|NONE|DOMAIN",
-        "NEEDS_FOLLOWUP|supported intent|NONE|NONE|TOPIC_CHOICE",
-        "NEEDS_FOLLOWUP|CERTIFICATE_ISSUANCE|NONE|NONE|CERTIFICATE_KIND",
-        "NEEDS_FOLLOWUP|supported intent|NONE|NONE|REGION",
-        "NEEDS_FOLLOWUP|BULKY_WASTE|NONE|NONE|WASTE_ITEM",
+    assert "keys=route,intent,topic_id,coverage_id,pending_slot" in system
+    for route_shape in (
+        "SUPPORTED:same row,slot=NONE",
+        "NO_TOPIC_MATCH:I=supported,other3=NONE",
+        "CIVIC_SCOPE_GAP/NON_CIVIC:other4=NONE",
+        "NEEDS_FOLLOWUP:topic/coverage=NONE",
+        "pair=NONE:DOMAIN|supported:TOPIC_CHOICE/REGION|"
+        "CERTIFICATE_ISSUANCE:CERTIFICATE_KIND|BULKY_WASTE:WASTE_ITEM",
     ):
-        assert row in system
+        assert route_shape in system
 
 
 def test_classifier_prompt_builds_supported_example_from_first_same_catalog_row() -> None:
@@ -334,11 +348,12 @@ def test_classifier_prompt_forbids_none_translations_null_and_explanatory_output
         max_input_chars=1024,
     )[0]["content"]
 
-    assert "all five values are strings" in system
-    assert "no extra key, prose or Markdown" in system
-    assert "NONE is exact uppercase ASCII; 없음/none/null/empty are forbidden" in system
-    assert "cat={intent:[[topic_id,coverage_id,coverage_label,approved_examples]]}" in system
-    assert "SUPPORTED intent=cat group key; topic_id/coverage_id=same row" in system
+    assert "JSON only" in system
+    assert "str" in system
+    assert "no extra/prose/MD/null/empty/translated NONE" in system
+    assert "NONE uppercase" in system
+    assert "cat[I]=[topic_id,coverage_id,coverage_label,approved_examples]" in system
+    assert "SUPPORTED:same row,slot=NONE" in system
     assert "NONE=없음" not in system
 
 
@@ -349,10 +364,8 @@ def test_classifier_prompt_separates_catalog_grammar_from_supported_rule() -> No
         max_input_chars=1024,
     )[0]["content"]
 
-    assert (
-        "cat={intent:[[topic_id,coverage_id,coverage_label,approved_examples]]};"
-        "SUPPORTED intent=cat group key; topic_id/coverage_id=same row" in system
-    )
+    assert "cat[I]=[topic_id,coverage_id,coverage_label,approved_examples]" in system
+    assert "SUPPORTED:same row,slot=NONE" in system
 
 
 def test_classifier_prompt_uses_at_most_two_approved_examples_without_sampling_topics() -> None:
