@@ -120,3 +120,16 @@ new human decision and evidence identity. Set `CLASSIFIER_PROVIDER=disabled` for
 
 Public/remote/free-input use, a final-answer-provider change, retries, a new dependency, a different
 model or another actual run requires a new explicit decision.
+
+## D-130/D-131 A-079 retry amendment
+
+A-078 source `844e53be97be3f70b398f20737a248d55271d551` passed offline once. Its
+exact-one probe closed FAIL with outbound1, response/2xx0 and transport-no-response1, so its actual
+was not run. A Windows CRLF translation in the exclusive lease writer is fixed with binary-open
+flags for successor evidence; A-078 remains immutable.
+
+The user explicitly approved one retry. A-079 uses disjoint offline/probe/actual identities in
+`.superpowers/sdd/2026-07-29-deepseek-network-retry`, runner names ending in `a079_probe` and
+`network_retry_actual`, and report names ending in `A079`. It may send exactly one probe call and,
+only after HTTP 2xx, one actual run containing exactly nine provider calls. Every other acceptance,
+privacy, timeout, retry, cost and scope condition in this specification remains unchanged.

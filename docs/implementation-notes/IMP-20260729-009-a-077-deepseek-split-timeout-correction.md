@@ -3,7 +3,7 @@
 - Date/Time (KST): 2026-07-29T13:11:00+09:00
 - Task ID: A-077/A-078-DEEPSEEK-SPLIT-TIMEOUT
 - Type: implementation-provider-actual
-- Status: In Progress — A-077 offline PASS preserved; A-078 provider evidence pending
+- Status: Done — A-077 offline PASS preserved; A-078 probe FAIL; actual blocked
 - Author/Agent: Codex root agent
 - Branch: `codex/a-075-deepseek-corrective-actual`
 - Base commit: `8975585001125f4766dc585cd541ce8e0ac8a05c`
@@ -142,12 +142,15 @@ revert가 가능하고 실행 후에는 새 identity 없이 evidence를 삭제·
 | Ruff format/lint | PASS | 11 files | terminal |
 | Mypy strict | PASS | 7 source files | terminal |
 | Docs/secret/diff | PASS | no secret output; diff clean | terminal |
+| A-078 offline | PASS | source `844e53b...`; invocation/rerun1/0 | ignored immutable evidence |
+| A-078 probe | FAIL | outbound1; response/2xx0; transport-no-response1 | tracked aggregate report |
+| A-078 actual | Not run | report/lease absent | probe gate blocked |
 
 ### 미실행 검증과 이유
 
-A-077 offline은 정확히 한 번 PASS했고 재실행하지 않는다. A-077 provider probe/actual은
-실행하지 않았다. A-078 offline/readiness/external probe/conditional actual과 최종 전체 gate는
-새 clean source commit 뒤에만 진행한다.
+A-077 offline과 A-078 offline/probe는 exact-one 소비됐다. A-078 probe가 FAIL했으므로 actual은
+차단·미실행이고 report/lease도 없다. A-077/A-078을 재실행하지 않으며 후속은 D-131/A-079만
+사용한다.
 
 ## 9. 보안·개인정보·접근성·성능 영향
 
@@ -181,15 +184,14 @@ A-077 offline은 정확히 한 번 PASS했고 재실행하지 않는다. A-077 p
 
 ### 재현
 
-Historical A-077 offline은 재실행하지 않는다. 새 clean source에서
-`run_a078_offline_gate.ps1` → A-078 readiness → probe readiness/actual → probe2xx일 때만
-A-078 actual 순서를 사용한다. 한 번 실행된 단계는 재실행하지 않는다.
+Historical A-077/A-078 offline과 A-078 probe는 재실행하지 않는다. 사용자가 승인한 후속
+A-079는 IMP-20260729-010과 같은 plan Task 7에서 별도 identity로만 실행한다.
 
 ### 롤백
 
-외부 실행 전에는 A-078 hardening commit을 revert하고 `CLASSIFIER_PROVIDER=disabled`를
-사용한다. Split timeout 자체도 되돌리려면 A-077 commit을 별도로 revert한다. 실행
-후 report/lease는 보존하고 후속 변경은 새 decision/identity에서 수행한다.
+A-078 external probe가 이미 실행됐으므로 report/lease와 source를 보존한다. Runtime rollback은
+`CLASSIFIER_PROVIDER=disabled`이고, 아직 실행되지 않은 successor 변경만 새 identity 규칙 아래
+revert할 수 있다.
 
 ### 다음 개발자 시작점
 
@@ -198,13 +200,13 @@ D-128, ADR-0028 amendment와 A-077 spec/plan에서 시작하고, implementation 
 
 ## 14. 남은 위험·미해결 질문·다음 단계
 
-- 실제 authenticated 2xx와 exact five-field acceptance는 아직 미검증이다.
+- A-078에서는 actual authenticated 2xx와 exact five-field acceptance를 검증하지 못했다.
 - External service latency가 10초를 넘으면 기존 deterministic fallback이 유지된다.
-- A-078 offline/probe/actual 결과에 따라 이 노트를 aggregate-only 값으로 마감해야 한다.
+- 사용자가 별도 A-079 retry를 승인했으며 결과는 IMP-20260729-010에 기록한다.
 
 ## 15. 자체 리뷰
 
-- [ ] 요청 충족
+- [x] 요청 충족
 - [x] 관련 테스트/정적검사
 - [x] source-of-truth/계약/버전 동기화
 - [x] 개인정보 원문 노출 없음

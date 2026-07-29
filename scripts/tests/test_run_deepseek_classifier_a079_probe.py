@@ -16,8 +16,8 @@ if str(_SCRIPTS_ROOT) not in sys.path:
 
 
 def _probe() -> Any:
-    sys.modules.pop("run_deepseek_classifier_a078_probe", None)
-    return importlib.import_module("run_deepseek_classifier_a078_probe")
+    sys.modules.pop("run_deepseek_classifier_a079_probe", None)
+    return importlib.import_module("run_deepseek_classifier_a079_probe")
 
 
 def _passing_metrics(probe: Any) -> dict[str, object]:
@@ -59,10 +59,10 @@ def test_probe_identity_is_local_ignored_and_disjoint_from_actual() -> None:
     probe = _probe()
 
     assert ".superpowers" in probe._PROBE_REPORT_PATH.parts
-    assert probe._PROBE_REPORT_PATH.name == "a078-probe-result.json"
-    assert probe._PROBE_LEASE_PATH.name == "a078-probe-result.json.run.lock"
-    assert probe._PROBE_REPORT_PATH != probe.A078_EVIDENCE_IDENTITY.report_path
-    assert probe._PROBE_LEASE_TEXT == "A-078-DEEPSEEK-PROBE one-shot lease\n"
+    assert probe._PROBE_REPORT_PATH.name == "a079-probe-result.json"
+    assert probe._PROBE_LEASE_PATH.name == "a079-probe-result.json.run.lock"
+    assert probe._PROBE_REPORT_PATH != probe.A079_EVIDENCE_IDENTITY.report_path
+    assert probe._PROBE_LEASE_TEXT == "A-079-DEEPSEEK-PROBE one-shot lease\n"
 
 
 def test_probe_acceptance_requires_one_2xx_response_and_zero_retention() -> None:
@@ -119,7 +119,7 @@ def test_probe_main_readiness_does_not_consume_lease_or_call_provider(
     )
 
     assert probe.main(["--readiness-only"]) == 0
-    assert capsys.readouterr().out.strip() == "DEEPSEEK_A078_PROBE_READY"
+    assert capsys.readouterr().out.strip() == "DEEPSEEK_A079_PROBE_READY"
 
 
 def test_probe_main_writes_aggregate_pass_once_without_sensitive_values(
@@ -149,7 +149,7 @@ def test_probe_main_writes_aggregate_pass_once_without_sensitive_values(
 
     assert probe.main([]) == 0
     captured = capsys.readouterr()
-    assert captured.out.strip() == "DEEPSEEK_A078_PROBE_PASS"
+    assert captured.out.strip() == "DEEPSEEK_A079_PROBE_PASS"
     assert captured.err == ""
     document = json.loads(report_path.read_text(encoding="utf-8"))
     assert document == metrics
@@ -159,7 +159,7 @@ def test_probe_main_writes_aggregate_pass_once_without_sensitive_values(
     )
     assert all(marker not in exposed for marker in forbidden)
     assert probe.main([]) == 2
-    assert capsys.readouterr().err.strip() == "DEEPSEEK_A078_PROBE_RUN_ALREADY_RECORDED"
+    assert capsys.readouterr().err.strip() == "DEEPSEEK_A079_PROBE_RUN_ALREADY_RECORDED"
 
 
 def test_probe_pass_validator_rejects_wrong_source_or_non_2xx(
@@ -253,7 +253,7 @@ def test_probe_runtime_failure_after_lease_still_writes_immutable_fail_report(
 
     assert probe.main([]) == 3
     captured = capsys.readouterr()
-    assert captured.err.strip() == "DEEPSEEK_A078_PROBE_RUNTIME_FAILED"
+    assert captured.err.strip() == "DEEPSEEK_A079_PROBE_RUNTIME_FAILED"
     document = json.loads(report_path.read_text(encoding="utf-8"))
     assert document["acceptance"] == "FAIL"
     assert document["runtime_failure_count"] == 1
@@ -293,7 +293,7 @@ def test_probe_post_execution_source_drift_writes_fail_not_pass(
     assert revalidation_count == 2
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert captured.err.strip() == "DEEPSEEK_A078_PROBE_RUNTIME_FAILED"
+    assert captured.err.strip() == "DEEPSEEK_A079_PROBE_RUNTIME_FAILED"
     document = json.loads(report_path.read_text(encoding="utf-8"))
     assert document["outbound_attempt_count"] == 1
     assert document["http_2xx_count"] == 1

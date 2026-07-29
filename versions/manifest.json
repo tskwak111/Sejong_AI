@@ -12,8 +12,8 @@
     "official_data": "0.1.0-initial.2",
     "mock_data": "0.0.0-not-populated",
     "prompt_set": "0.4.3-explicit-route-matrix",
-    "test_suite": "2.2.7-a078-prelease-hardening",
-    "documentation": "2.31.8-a078-prelease-hardening-pre-execution"
+    "test_suite": "2.2.8-a079-network-retry",
+    "documentation": "2.31.9-a079-network-retry-pre-execution"
   },
   "policy": "Every implementation note records before/after versions. Breaking API or schema changes require human approval and an ADR."
 }

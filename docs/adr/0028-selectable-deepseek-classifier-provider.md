@@ -140,3 +140,15 @@ JSON plus exact lease bytes and repeats that same-source acceptance check after 
 revalidation, performs one final source/input/settings revalidation before consuming the actual
 lease, and revalidates source/evidence after the probe response before publishing probe PASS. This
 correction adds no provider call, retry, cost, public scope, dependency or product behavior.
+
+## 2026-07-29 third amendment — D-130/D-131 / A-079
+
+A-078 source `844e53be97be3f70b398f20737a248d55271d551` passed offline once, but its
+one-call probe received no HTTP response and closed `FAIL`; the conditional actual did not run.
+The Windows probe lease also exposed a separate text-mode CRLF translation defect. It did not
+cause the transport failure, but would have made exact-LF validation fail closed.
+
+The lease/report writers now use binary-open flags. The user's explicit network-retry instruction
+authorizes one disjoint A-079 probe call and, only after HTTP 2xx, one actual run containing exactly
+nine provider calls. A-078 evidence remains immutable. Timeout, retry, cost, retention,
+local/private scope and every product/provider boundary remain unchanged.
