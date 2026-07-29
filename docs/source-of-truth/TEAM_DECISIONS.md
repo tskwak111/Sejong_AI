@@ -218,6 +218,14 @@
   이 corrective evidence는 immutable gate를 PASS로 바꾸지 않는다. DeepSeek actual은
   blocked/unexecuted invocation/rerun 0/0이고 report/lease, outbound, token, cost는 모두 0이다.
   A-073 root `NOT VERIFIED/FAIL` 1/0은 불변이다.
+- D-124: 사용자의 exact `변수명 수정 완료, A-075 DeepSeek actual 1회 실행 승인`으로
+  A-075 corrective evidence를 새 identity에서 실행한다. Remote main의 PR #21 merge
+  `67fe37c...`를 baseline으로 별도 branch를 만들었고, diverged local main은 변경하지 않았다.
+  A-074 wrapper/result/report/lease와 FAIL 1/0·actual 0/0은 불변이다. A-075는 전용 offline
+  result/log/lease와 actual report/lease를 사용하며 새 clean-source offline PASS와 network-free
+  readiness 뒤에만 고정 synthetic 9 outbound actual을 정확히 한 번 실행한다. 제품 코드,
+  exact five-string/`NONE`, ACTIVE/OFFICIAL source, 3초·retry0·concurrency1·USD0.20 및 비보관
+  경계는 유지하고 public/remote/free-input·새 dependency·자동 rerun/merge는 금지한다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
