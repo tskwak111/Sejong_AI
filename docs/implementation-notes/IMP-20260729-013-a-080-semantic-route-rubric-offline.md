@@ -115,14 +115,92 @@ or DB rollback is needed.
 
 | 명령/검증 | 결과 | 시간/개수 | 증거 경로 |
 |---|---|---|---|
-| Task 1 carried-forward evidence | PASS | prompt system length896; prompt22; DeepSeek framing bound1 | A-080 plan Tasks 1~2 / task evidence |
-| Task 2 carried-forward evidence | PASS | provider suites133 | A-080 plan Task 2 evidence |
-| Task 3 carried-forward evidence | PASS | controlled wrapper9; PowerShell parser; Ruff | A-080 plan Task 3 evidence |
+| Task 1 semantic prompt RED/GREEN | reported exact command transcripts below | RED `1 failed`; GREEN `22 passed` | Task 1 report |
+| independent DeepSeek 20-topic framing bound | reported exact command transcript below | `1 passed` | Task 1 carried-forward evidence |
+| Task 2 exact three-suite command | reported exact command transcript below | `133 passed` | Task 2 report |
+| Task 3 controlled wrapper RED/GREEN/parser/Ruff | reported exact command transcripts below | RED `9 failed`; GREEN `9 passed`; parser/Ruff PASS | Task 3 report |
+| `git diff --check` | PASS | no whitespace errors | Task 2/3 reports and this task |
 | task-scoped reviews | clean | Task1/Task2 fix round1 and Task3 first review | supplied A-080 review evidence |
 | `apps/api/.venv/Scripts/python.exe -B scripts/new_implementation_note.py ...` | PASS | IMP-013 generated | this note |
 | `apps/api/.venv/Scripts/python.exe -B scripts/check_repository_docs.py` | PASS | documentation links/JSON | executed in this task |
 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check_secret_patterns.ps1 -RepositoryRoot .` | PASS | secret pattern scan | executed in this task |
-| `git diff --check` | PASS | whitespace check | executed in this task |
+| `git diff --cached --check` | PASS | staged whitespace check | executed in this task |
+
+### Tasks 1~3 carried-forward exact command transcripts
+
+Task 1 semantic prompt RED (reported outcome: `1 failed in 0.30s`):
+
+```powershell
+Push-Location apps/api
+.\.venv\Scripts\python.exe -m pytest `
+  tests/llm/test_prompt.py::test_classifier_prompt_defines_route_semantics_and_selection_precedence `
+  -q
+Pop-Location
+```
+
+Task 1 prompt GREEN (reported outcome: `22 passed in 0.15s`):
+
+```powershell
+Push-Location apps/api
+.\.venv\Scripts\python.exe -m pytest tests/llm/test_prompt.py -q
+$testExitCode = $LASTEXITCODE
+Pop-Location
+exit $testExitCode
+```
+
+Independent DeepSeek 20-topic framing-bound GREEN (reported outcome: `1 passed`; duration was not
+provided to this documentation task):
+
+```powershell
+Push-Location apps/api
+.\.venv\Scripts\python.exe -m pytest `
+  tests/llm/test_deepseek_classifier.py::test_approved_twenty_topic_prompt_remains_within_byte_and_framing_bound `
+  -q
+Pop-Location
+```
+
+Task 2 shared-provider GREEN (reported outcome: `133 passed in 0.75s`; the later Task 2 fix-round
+report also records `133 passed in 0.79s`):
+
+```powershell
+Push-Location apps/api
+.\.venv\Scripts\python.exe -m pytest `
+  tests/llm/test_prompt.py `
+  tests/llm/test_deepseek_classifier.py `
+  tests/llm/test_upstage_classifier.py `
+  -q
+Pop-Location
+```
+
+Task 3 controlled-wrapper RED (reported outcome: `9 failed`; before either wrapper existed,
+with expected `ModuleNotFoundError` and `FileNotFoundError`):
+
+```powershell
+apps/api/.venv/Scripts/python.exe -m pytest `
+  scripts/tests/test_run_deepseek_classifier_quality_actual.py `
+  scripts/tests/test_run_a080_offline_gate.py `
+  -q
+```
+
+Task 3 controlled-wrapper GREEN and PowerShell parser (reported outcome: `9 passed in 8.78s`; parser
+completed without an exception):
+
+```powershell
+apps/api/.venv/Scripts/python.exe -m pytest `
+  scripts/tests/test_run_deepseek_classifier_quality_actual.py `
+  scripts/tests/test_run_a080_offline_gate.py `
+  -q
+[void][ScriptBlock]::Create((Get-Content -Raw scripts/run_a080_offline_gate.ps1))
+```
+
+Task 3 Ruff (reported outcome: `All checks passed!`):
+
+```powershell
+apps/api/.venv/Scripts/python.exe -m ruff check `
+  scripts/run_deepseek_classifier_quality_actual.py `
+  scripts/tests/test_run_deepseek_classifier_quality_actual.py `
+  scripts/tests/test_run_a080_offline_gate.py
+```
 
 ### 미실행 검증과 이유
 

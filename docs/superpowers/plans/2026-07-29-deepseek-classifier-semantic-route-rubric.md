@@ -130,9 +130,9 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   )
   ```
 
-  The measured system instruction is `899` characters. Do not expand it past the existing complete
-  prompt bound. Do not remove a route meaning, selection precedence, shape, intent or
-  uppercase-`NONE` rule.
+  The measured system instruction is `896` characters. Do not expand it past the existing complete
+  prompt bound. This is the only active measured length; do not retain a competing superseded value.
+  Do not remove a route meaning, selection precedence, shape, intent or uppercase-`NONE` rule.
 
 - [x] **Step 4: Update stale prose assertions without weakening invariants**
 
@@ -384,18 +384,18 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 - Preserves API `4.0.0-draft`, shared contracts `1.0.0`, DB `0.5.0-local`, Web
   `0.8.0-guided-chat`, official data `0.1.0-initial.2`.
 
-- [ ] **Step 1: Record implementation truth without claiming actual quality**
+- [x] **Step 1: Record implementation truth without claiming actual quality**
 
   Add D-135 only after Tasks 1~3 pass. It must say the rubric and new evidence identities are
   implemented provider-offline, while A-080 actual remains unexecuted and requires a separate
   approval.
 
-- [ ] **Step 2: Update the ADR, task and requirement status**
+- [x] **Step 2: Update the ADR, task and requirement status**
 
   Mark the A-080 specification and plan Approved, implementation Offline Review, and keep
   `SFR-002` at “A-079 transport/wire verified; quality FAIL 6/9” until a new actual proves otherwise.
 
-- [ ] **Step 3: Write the implementation note**
+- [x] **Step 3: Write the implementation note**
 
   Generate it with:
 
@@ -410,7 +410,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   privacy/security/cost effect, no official/mock data change, rollback, handoff and the separate
   actual approval gate. Append exactly one INDEX row.
 
-- [ ] **Step 4: Commit authority synchronization**
+- [x] **Step 4: Commit authority synchronization**
 
   ```powershell
   git add versions/manifest.json docs TASKS.md CHANGELOG.md
