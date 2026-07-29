@@ -14,6 +14,7 @@ describe("FollowupCard", () => {
     ];
     render(
       <FollowupCard
+        requestId="11111111-1111-4111-8111-111111111111"
         intent="CERTIFICATE_ISSUANCE"
         options={options}
         onSelect={vi.fn()}
@@ -34,6 +35,7 @@ describe("FollowupCard", () => {
   it("prioritizes the residence-region prompt when every option is a region", () => {
     render(
       <FollowupCard
+        requestId="11111111-1111-4111-8111-111111111111"
         intent="CERTIFICATE_ISSUANCE"
         options={["아름동", "도담동", "조치원읍"]}
         onSelect={vi.fn()}

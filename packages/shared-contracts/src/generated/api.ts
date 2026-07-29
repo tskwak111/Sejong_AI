@@ -1,6 +1,6 @@
 /**
  * source: contracts/openapi-v1.yaml
- * OpenAPI: 4.0.0-draft; generator: openapi-typescript 7.13.0
+ * OpenAPI: 4.1.0-draft; generator: openapi-typescript 7.13.0
  * Generated deterministically; do not edit by hand.
  */
 export interface paths {
@@ -84,6 +84,22 @@ export interface paths {
         patch: operations["confirmFallbackReason"];
         trace?: never;
     };
+    "/api/v1/admin/feedback-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCitizenFeedbackSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/kb-candidates": {
         parameters: {
             query?: never;
@@ -158,6 +174,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["createChatAnswer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createCitizenFeedback"];
         delete?: never;
         options?: never;
         head?: never;
@@ -308,6 +340,23 @@ export interface components {
             sources: components["schemas"]["Source"][];
             summary?: string | null;
         };
+        CitizenFeedbackSummaryItem: {
+            category: components["schemas"]["FeedbackCategory"] | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            detail_expires_at: string | null;
+            /** Format: date-time */
+            detail_purged_at: string | null;
+            detail_was_masked: boolean;
+            /** Format: uuid */
+            id: string;
+            masked_detail: string | null;
+            rating: components["schemas"]["FeedbackRating"];
+            reason_code: components["schemas"]["FeedbackReasonCode"] | null;
+            /** Format: uuid */
+            response_request_id: string;
+        };
         CivicScopeGapFallback: components["schemas"]["FallbackPayloadBase"] & {
             /** @constant */
             candidate_eligible: false;
@@ -421,6 +470,65 @@ export interface components {
             sources: [
             ];
             summary?: null;
+        };
+        /** @enum {string} */
+        FeedbackCategory: "MOVE_IN_RESIDENT_REGISTRATION" | "CERTIFICATE_ISSUANCE" | "BULKY_WASTE" | "LOCAL_TAX_GENERAL" | "OTHER";
+        FeedbackConflictErrorEnvelope: {
+            error: {
+                /** @constant */
+                code: "FEEDBACK_CONFLICT";
+                /** @constant */
+                message: "이미 제출된 의견과 요청 정보가 다릅니다.";
+                /** Format: uuid */
+                request_id: string;
+                /** @constant */
+                retryable: false;
+            };
+        };
+        FeedbackCount: {
+            code: string;
+            count: number;
+        };
+        FeedbackCreateRequest: {
+            category: components["schemas"]["FeedbackCategory"] | null;
+            detail: string | null;
+            rating: components["schemas"]["FeedbackRating"];
+            reason_code: components["schemas"]["FeedbackReasonCode"] | null;
+            /** Format: uuid */
+            request_id: string;
+        } & (unknown & unknown & unknown);
+        FeedbackCreateResponse: {
+            /** @enum {string} */
+            detail_status: "NOT_PROVIDED" | "STORED" | "MASKED";
+            /** Format: uuid */
+            request_id: string;
+            /** @constant */
+            status: "RECORDED";
+        };
+        FeedbackPrivacyErrorEnvelope: {
+            error: {
+                /** @constant */
+                code: "FEEDBACK_PRIVACY_UNRESOLVED";
+                /** @constant */
+                message: "개인정보를 빼고 다시 작성해 주세요.";
+                /** Format: uuid */
+                request_id: string;
+                /** @constant */
+                retryable: false;
+            };
+        };
+        /** @enum {string} */
+        FeedbackRating: "SATISFIED" | "DISSATISFIED";
+        /** @enum {string} */
+        FeedbackReasonCode: "INACCURATE" | "NOT_RELEVANT" | "HARD_TO_UNDERSTAND" | "WRONG_CONTACT" | "OTHER";
+        FeedbackSummaryResponse: {
+            category_counts: components["schemas"]["FeedbackCount"][];
+            dissatisfied: number;
+            reason_counts: components["schemas"]["FeedbackCount"][];
+            recent: components["schemas"]["CitizenFeedbackSummaryItem"][];
+            satisfaction_rate: number | null;
+            satisfied: number;
+            total: number;
         };
         FollowupResponse: components["schemas"]["ChatResponseBase"] & {
             /** @constant */
@@ -900,6 +1008,32 @@ export interface operations {
             422: components["responses"]["AdminError"];
         };
     };
+    getCitizenFeedbackSummary: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Local/private demo actor only; not an authentication credential. */
+                "X-Demo-Actor-Id": components["parameters"]["DemoActorId"];
+                /** @description Local/private role switch only; reject when admin routes are not privately gated. */
+                "X-Demo-Role": components["parameters"]["DemoRole"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Local/private aggregate and recent masked feedback only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackSummaryResponse"];
+                };
+            };
+            403: components["responses"]["AdminError"];
+        };
+    };
     listKBCandidates: {
         parameters: {
             query?: never;
@@ -1095,6 +1229,49 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createCitizenFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Feedback recorded without question or answer text. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackCreateResponse"];
+                };
+            };
+            /** @description The response request ID was already used with different feedback. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackConflictErrorEnvelope"];
+                };
+            };
+            /** @description Value-free validation or unresolved privacy error. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorEnvelope"] | components["schemas"]["FeedbackPrivacyErrorEnvelope"];
+                };
+            };
             503: components["responses"]["ServiceUnavailable"];
         };
     };

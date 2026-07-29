@@ -24,11 +24,14 @@ from sejong_ai_api.contracts.admin import (
     KBCandidateSummary,
 )
 from sejong_ai_api.contracts.chat import CHAT_RESPONSE_ADAPTER
+from sejong_ai_api.contracts.feedback import CitizenFeedbackSummaryItem
 from sejong_ai_api.db.errors import DatabaseUnavailableError, map_database_error
 from sejong_ai_api.db.models import (
     Actor,
     AdminRole,
     CandidateDraft,
+    CitizenFeedbackAggregate,
+    CitizenFeedbackWrite,
     FailureReasonConfirmation,
     FallbackReason,
     Intent,
@@ -73,6 +76,12 @@ REVIEW_CIVIC_SCOPE_GAP_SQL = "SELECT app_api.review_civic_scope_gap(%s, %s, %s, 
 PURGE_EXPIRED_CIVIC_SCOPE_GAP_TEXT_SQL = (
     "SELECT * FROM app_api.purge_expired_civic_scope_gap_text()"
 )
+RECORD_CITIZEN_FEEDBACK_SQL = "SELECT app_api.record_citizen_feedback(%s, %s, %s, %s, %s, %s)"
+LIST_CITIZEN_FEEDBACK_SQL = "SELECT * FROM app_api.list_citizen_feedback(%s)"
+PURGE_EXPIRED_CITIZEN_FEEDBACK_DETAIL_SQL = (
+    "SELECT * FROM app_api.purge_expired_citizen_feedback_detail()"
+)
+SUMMARIZE_CITIZEN_FEEDBACK_SQL = "SELECT * FROM app_api.summarize_citizen_feedback()"
 
 _SUPPORTED_INTENTS = frozenset(
     {
@@ -201,6 +210,16 @@ class SejongRepository(Protocol):
     ) -> None: ...
 
     async def purge_expired_civic_scope_gap_text(self) -> PurgeResult: ...
+
+    async def record_citizen_feedback(self, write: CitizenFeedbackWrite) -> None: ...
+
+    async def list_citizen_feedback(
+        self, *, limit: int
+    ) -> Sequence[CitizenFeedbackSummaryItem]: ...
+
+    async def purge_expired_citizen_feedback_detail(self) -> PurgeResult: ...
+
+    async def summarize_citizen_feedback(self) -> CitizenFeedbackAggregate: ...
 
     async def claim_chat_idempotency(
         self,
@@ -446,6 +465,26 @@ def _safe_civic_scope_gaps(
         return tuple(CivicScopeGapSummary.model_validate(row) for row in rows)
     except (TypeError, ValueError, ValidationError):
         raise DatabaseUnavailableError() from None
+
+
+def _safe_citizen_feedback(
+    rows: list[dict[str, Any]],
+) -> tuple[CitizenFeedbackSummaryItem, ...]:
+    try:
+        return tuple(CitizenFeedbackSummaryItem.model_validate(row) for row in rows)
+    except (TypeError, ValueError, ValidationError):
+        raise DatabaseUnavailableError() from None
+
+
+def _feedback_count_map(value: object) -> tuple[tuple[str, int], ...]:
+    if type(value) is not dict:
+        raise ValueError("MALFORMED_DATABASE_RESULT")
+    items: list[tuple[str, int]] = []
+    for key, count in value.items():
+        if type(key) is not str or not key or type(count) is not int or count < 0:
+            raise ValueError("MALFORMED_DATABASE_RESULT")
+        items.append((key, count))
+    return tuple(sorted(items))
 
 
 class PsycopgSejongRepository:
@@ -783,6 +822,83 @@ class PsycopgSejongRepository:
         except psycopg.Error as exc:
             raise map_database_error(exc) from exc
         return result
+
+    async def record_citizen_feedback(self, write: CitizenFeedbackWrite) -> None:
+        if type(write) is not CitizenFeedbackWrite:
+            raise ValueError("FEEDBACK_WRITE_INVALID")
+        try:
+            async with (
+                self._pool.connection() as connection,
+                connection.transaction(),
+                connection.cursor(row_factory=dict_row) as cursor,
+            ):
+                await cursor.execute(
+                    RECORD_CITIZEN_FEEDBACK_SQL,
+                    (
+                        write.response_request_id,
+                        write.rating,
+                        write.category,
+                        write.reason_code,
+                        write.masked_detail,
+                        write.detail_was_masked,
+                    ),
+                )
+                rows = await cursor.fetchall()
+                self._scalar_uuid(rows, "record_citizen_feedback")
+        except psycopg.Error as exc:
+            raise map_database_error(exc) from exc
+
+    async def list_citizen_feedback(self, *, limit: int) -> tuple[CitizenFeedbackSummaryItem, ...]:
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("FEEDBACK_LIMIT_INVALID")
+        try:
+            async with (
+                self._pool.connection() as connection,
+                connection.cursor(row_factory=dict_row) as cursor,
+            ):
+                await cursor.execute(LIST_CITIZEN_FEEDBACK_SQL, (limit,))
+                rows = await cursor.fetchall()
+        except psycopg.Error as exc:
+            raise map_database_error(exc) from exc
+        return _safe_citizen_feedback(rows)
+
+    async def purge_expired_citizen_feedback_detail(self) -> PurgeResult:
+        try:
+            async with (
+                self._pool.connection() as connection,
+                connection.transaction(),
+                connection.cursor(row_factory=dict_row) as cursor,
+            ):
+                await cursor.execute(PURGE_EXPIRED_CITIZEN_FEEDBACK_DETAIL_SQL, ())
+                rows = await cursor.fetchall()
+                result = self._purge_result(rows)
+        except psycopg.Error as exc:
+            raise map_database_error(exc) from exc
+        return result
+
+    async def summarize_citizen_feedback(self) -> CitizenFeedbackAggregate:
+        try:
+            async with (
+                self._pool.connection() as connection,
+                connection.cursor(row_factory=dict_row) as cursor,
+            ):
+                await cursor.execute(SUMMARIZE_CITIZEN_FEEDBACK_SQL, ())
+                rows = await cursor.fetchall()
+        except psycopg.Error as exc:
+            raise map_database_error(exc) from exc
+        try:
+            if len(rows) != 1:
+                raise ValueError
+            row = rows[0]
+            return CitizenFeedbackAggregate(
+                total=row["total_count"],
+                satisfied=row["satisfied_count"],
+                dissatisfied=row["dissatisfied_count"],
+                category_counts=_feedback_count_map(row["category_counts"]),
+                reason_counts=_feedback_count_map(row["reason_counts"]),
+            )
+        except (KeyError, TypeError, ValueError):
+            raise DatabaseUnavailableError() from None
 
     async def claim_chat_idempotency(
         self,

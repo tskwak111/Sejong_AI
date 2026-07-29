@@ -31,6 +31,11 @@ from sejong_ai_api.contracts.admin import (
     ReasonConfirmationRequest,
     ReasonConfirmationResponse,
 )
+from sejong_ai_api.contracts.feedback import (
+    CitizenFeedbackSummaryItem,
+    FeedbackCount,
+    FeedbackSummaryResponse,
+)
 from sejong_ai_api.db.errors import (
     DatabaseRuleCode,
     DatabaseRuleError,
@@ -40,6 +45,7 @@ from sejong_ai_api.db.models import (
     Actor,
     AdminRole,
     CandidateDraft,
+    CitizenFeedbackAggregate,
     DataOrigin,
     FallbackReason,
     Intent,
@@ -173,6 +179,14 @@ class AdminRepository(Protocol):
 
     async def purge_expired_civic_scope_gap_text(self) -> PurgeResult: ...
 
+    async def list_citizen_feedback(
+        self, *, limit: int
+    ) -> Sequence[CitizenFeedbackSummaryItem]: ...
+
+    async def summarize_citizen_feedback(self) -> CitizenFeedbackAggregate: ...
+
+    async def purge_expired_citizen_feedback_detail(self) -> PurgeResult: ...
+
 
 T = TypeVar("T")
 
@@ -252,6 +266,27 @@ class AdminService:
         await self._safe_call(self._repository.purge_expired_civic_scope_gap_text)
         items = await self._safe_call(lambda: self._repository.list_civic_scope_gaps(status=status))
         return CivicScopeGapListResponse(items=list(items), total=len(items))
+
+    async def get_feedback_summary(self, actor: Actor) -> FeedbackSummaryResponse:
+        self._require_admin(actor)
+        await self._safe_call(self._repository.purge_expired_citizen_feedback_detail)
+        aggregate = await self._safe_call(self._repository.summarize_citizen_feedback)
+        recent = await self._safe_call(lambda: self._repository.list_citizen_feedback(limit=100))
+        return FeedbackSummaryResponse(
+            total=aggregate.total,
+            satisfied=aggregate.satisfied,
+            dissatisfied=aggregate.dissatisfied,
+            satisfaction_rate=(
+                None if aggregate.total == 0 else aggregate.satisfied / aggregate.total
+            ),
+            category_counts=[
+                FeedbackCount(code=code, count=count) for code, count in aggregate.category_counts
+            ],
+            reason_counts=[
+                FeedbackCount(code=code, count=count) for code, count in aggregate.reason_counts
+            ],
+            recent=list(recent),
+        )
 
     async def review_civic_scope_gap(
         self,

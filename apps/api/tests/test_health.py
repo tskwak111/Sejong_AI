@@ -73,7 +73,7 @@ def test_injected_readiness_probe_can_report_ready_without_database_code() -> No
 def test_generated_openapi_uses_the_tracked_health_operation_ids() -> None:
     schema = create_app().openapi()
 
-    assert schema["info"]["version"] == "4.0.0-draft"
+    assert schema["info"]["version"] == "4.1.0-draft"
     assert schema["paths"]["/health"]["get"]["operationId"] == "health"
     assert schema["paths"]["/ready"]["get"]["operationId"] == "readiness"
 

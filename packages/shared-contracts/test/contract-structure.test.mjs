@@ -9,7 +9,7 @@ import {
 const { openApi } = loadContracts();
 
 test("health and readiness 200 responses use strict required body components", () => {
-  assert.equal(openApi.info.version, "4.0.0-draft");
+  assert.equal(openApi.info.version, "4.1.0-draft");
 
   for (const [path, componentName, status] of [
     ["/health", "HealthResponse", "ok"],

@@ -15,16 +15,21 @@ import { useState } from "react";
 import type { Intent } from "@/lib/chat-api";
 import { isRegion } from "@/lib/labels";
 import FeedbackButtons from "@/components/citizen/FeedbackButtons";
+import type { FeedbackTransport } from "@/lib/feedback-api";
 
 export default function FollowupCard({
   options,
   intent,
   disabled = false,
   onSelect,
+  requestId,
+  feedbackTransport,
 }: {
   options: readonly string[];
   intent: Intent;
   disabled?: boolean;
+  requestId: string;
+  feedbackTransport?: FeedbackTransport;
   /** 선택지 클릭 - 부모가 지역 승격/질문 재전송을 결정 */
   onSelect: (option: string) => void;
 }) {
@@ -129,7 +134,7 @@ export default function FollowupCard({
       </div>
 
       {/* 만족/불만족 - 모든 응답 공통 (§6-5) */}
-      <FeedbackButtons />
+      <FeedbackButtons requestId={requestId} transport={feedbackTransport} />
     </article>
   );
 }

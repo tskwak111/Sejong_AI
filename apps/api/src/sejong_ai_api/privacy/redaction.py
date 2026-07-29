@@ -698,6 +698,7 @@ _SAFE_STANDALONE_NAME_TERMS: Final = frozenset(
         "신청인",
         "담당자",
         "가명",
+        "설명이",
     }
 )
 _SAFE_ADMIN_LOCALITIES: Final = frozenset(
@@ -866,6 +867,8 @@ _SAFE_CONTEXTUAL_NAME_TERMS: Final = frozenset(
         "한글로",
         "연락처",
         "성명이",
+        "설명이",
+        "테스트",
     }
 )
 _AMBIGUOUS_EXPLICIT_PII: Final = re.compile(
@@ -1828,8 +1831,13 @@ def _has_compact_unclassified_tail(text: str) -> bool:
     return match is not None and _ANY_FIXED_TOKEN.fullmatch(match.group("tail")) is None
 
 
-def redact_question(raw_question: str) -> RedactionResult:
-    normalized, reason = _normalize(raw_question)
+def _redact_text(
+    raw_text: str,
+    *,
+    reject_compact_unclassified_tail: bool,
+    enforce_question_context_shape: bool,
+) -> RedactionResult:
+    normalized, reason = _normalize(raw_text)
     if reason is not None:
         return _closed(reason)
     assert normalized is not None
@@ -1841,17 +1849,38 @@ def redact_question(raw_question: str) -> RedactionResult:
     masked = _apply_findings(normalized, findings)
     if _has_ambiguous_address(masked):
         return _closed(UnresolvedReason.AMBIGUOUS_DETAILED_ADDRESS, findings)
-    if _has_unsafe_explicit_context(masked, _generated_token_spans(findings)):
+    if enforce_question_context_shape and _has_unsafe_explicit_context(
+        masked,
+        _generated_token_spans(findings),
+    ):
         return _closed(UnresolvedReason.RESIDUAL_HIGH_RISK_PATTERN, findings)
     if _has_ambiguous_name(masked):
         return _closed(UnresolvedReason.AMBIGUOUS_PERSON_NAME, findings)
     if _has_unsafe_sensitive_finding_tail(masked, findings):
         return _closed(UnresolvedReason.RESIDUAL_HIGH_RISK_PATTERN, findings)
     if (
-        _has_compact_unclassified_tail(masked)
+        (reject_compact_unclassified_tail and _has_compact_unclassified_tail(masked))
         or _AMBIGUOUS_EXPLICIT_PII.search(masked)
         or _select_findings(_collect_findings(masked))
         or _has_uncovered_high_risk_span(masked, ())
     ):
         return _closed(UnresolvedReason.RESIDUAL_HIGH_RISK_PATTERN, findings)
     return RedactionResult(masked, findings, True, True, None)
+
+
+def redact_question(raw_question: str) -> RedactionResult:
+    return _redact_text(
+        raw_question,
+        reject_compact_unclassified_tail=True,
+        enforce_question_context_shape=True,
+    )
+
+
+def redact_feedback_detail(raw_detail: str) -> RedactionResult:
+    """Mask feedback prose while retaining all fixed and ambiguous PII gates."""
+
+    return _redact_text(
+        raw_detail,
+        reject_compact_unclassified_tail=False,
+        enforce_question_context_shape=False,
+    )

@@ -16,6 +16,7 @@ import { INTENT_LABEL, STORED_REASON_LABEL } from "@/lib/labels";
 
 type FailedQuestion = components["schemas"]["FailedQuestion"];
 type FailedQuestionStatus = FailedQuestion["status"];
+type KBCandidateSummary = components["schemas"]["KBCandidateSummary"];
 
 /** §10 상태 뱃지 색 규칙 - 대기=warning / 완료=verify */
 const STATUS_BADGE: Record<FailedQuestionStatus, string> = {
@@ -44,16 +45,17 @@ const PURGED_NOTE = "보관 기간 경과 (질문 텍스트 파기됨)";
 
 export default function FailureTable({
   items,
-  draftedFailureIds,
+  candidateByFailureId,
   busyId,
   highlightIds,
   canOperate,
   onConfirmReason,
   onCreateDraft,
+  onSubmitDraft,
 }: {
   items: FailedQuestion[];
-  /** 이미 KB 후보가 생성된 실패 건 id 집합 - 중복 생성 방지 (계약 409) */
-  draftedFailureIds: Set<string>;
+  /** 실패 질문별 후보 상태. DRAFTED는 승인 요청 재시도를 허용한다. */
+  candidateByFailureId: Map<string, KBCandidateSummary>;
   /** 처리 중인 행 id (버튼 비활성) */
   busyId: string | null;
   /** 새로고침 후 새로 등장한 행 - highlight 배경에서 2초 페이드 (§9-2) */
@@ -62,10 +64,11 @@ export default function FailureTable({
   canOperate: boolean;
   onConfirmReason: (id: string) => void;
   onCreateDraft: (id: string) => void;
+  onSubmitDraft: (candidateId: string, title: string) => void;
 }) {
   const actionsFor = (item: FailedQuestion, dense: boolean) => {
     const busy = busyId === item.id;
-    const drafted = draftedFailureIds.has(item.id);
+    const candidate = candidateByFailureId.get(item.id);
     const buttonBase = dense ? "min-h-[38px]" : "min-h-11";
     return (
       <div className="flex flex-wrap items-center justify-end gap-2 md:justify-start">
@@ -83,14 +86,29 @@ export default function FailureTable({
           item.status === "REASON_CONFIRMED" &&
           item.candidate_eligible &&
           item.masked_question !== null && (
-            <button
-              type="button"
-              disabled={busy || drafted}
-              onClick={() => onCreateDraft(item.id)}
-              className={`${buttonBase} rounded-btn-s border border-primary bg-white px-3 text-[13.5px] font-bold text-primary hover:bg-primary-light active:bg-primary-light disabled:opacity-60`}
-            >
-              {drafted ? "초안 생성됨" : "KB 후보 생성"}
-            </button>
+            candidate?.status === "DRAFTED" ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onSubmitDraft(candidate.id, candidate.title)}
+                className={`${buttonBase} rounded-btn-s border border-primary bg-white px-3 text-[13.5px] font-bold text-primary hover:bg-primary-light active:bg-primary-light disabled:opacity-60`}
+              >
+                승인 요청 다시 시도
+              </button>
+            ) : candidate ? (
+              <span className="text-[13.5px] text-text-faint">
+                승인 요청됨
+              </span>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onCreateDraft(item.id)}
+                className={`${buttonBase} rounded-btn-s border border-primary bg-white px-3 text-[13.5px] font-bold text-primary hover:bg-primary-light active:bg-primary-light disabled:opacity-60`}
+              >
+                KB 후보 생성
+              </button>
+            )
           )}
         {/* 텍스트가 파기된 대상 행 - 대표 질문을 만들 수 없어 초안 작성 불가 */}
         {item.status === "REASON_CONFIRMED" &&

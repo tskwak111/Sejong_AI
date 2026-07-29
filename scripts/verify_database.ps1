@@ -1134,6 +1134,7 @@ try {
 
     if (-not $skipRollbackReplay) {
         $rollbackFiles = @(
+            (Join-Path $repositoryRoot "database\rollbacks\20260729000710_citizen_feedback.rollback.sql"),
             (Join-Path $repositoryRoot "database\rollbacks\20260727000700_privileged_function_search_path.rollback.sql"),
             (Join-Path $repositoryRoot "database\rollbacks\20260727000680_civic_scope_gap_queue.rollback.sql"),
             (Join-Path $repositoryRoot "database\rollbacks\20260722000670_candidate_public_id_binding.rollback.sql"),

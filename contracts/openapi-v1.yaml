@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sejong Civil AI API
-  version: 4.0.0-draft
+  version: 4.1.0-draft
   description: |
     Final-scope draft. Validate through discovery/interview before implementation.
     Admin routes are local/private demo surfaces, not public authentication boundaries.
@@ -12,6 +12,11 @@ x-chat-context-policy:
   server-persistence: none
   raw-transcript-persistence: prohibited
   browser-storage: current-tab-memory-only
+x-feedback-privacy-policy:
+  raw-detail-persistence: prohibited
+  question-answer-linkage: prohibited
+  masked-detail-retention-days: 30
+  public-abuse-controls: pending-before-public-deployment
 servers:
   - url: http://localhost:8000
 paths:
@@ -64,6 +69,34 @@ paths:
                   - 지방세 납부확인서 발급 안내
                 context_token: synthetic-context-token
         '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+  /api/v1/feedback:
+    post:
+      operationId: createCitizenFeedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FeedbackCreateRequest' }
+      responses:
+        '201':
+          description: Feedback recorded without question or answer text.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeedbackCreateResponse' }
+        '409':
+          description: The response request ID was already used with different feedback.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeedbackConflictErrorEnvelope' }
+        '422':
+          description: Value-free validation or unresolved privacy error.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/ValidationErrorEnvelope' }
+                  - { $ref: '#/components/schemas/FeedbackPrivacyErrorEnvelope' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
   /api/v1/offices:
     get:
@@ -247,6 +280,17 @@ paths:
       responses:
         '200':
           description: "Values labeled by source: event, evaluation, or mock"
+        '403': { $ref: '#/components/responses/AdminError' }
+  /api/v1/admin/feedback-summary:
+    get:
+      operationId: getCitizenFeedbackSummary
+      parameters: [ { $ref: '#/components/parameters/DemoActorId' }, { $ref: '#/components/parameters/DemoRole' } ]
+      responses:
+        '200':
+          description: Local/private aggregate and recent masked feedback only.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeedbackSummaryResponse' }
         '403': { $ref: '#/components/responses/AdminError' }
 components:
   parameters:
@@ -986,3 +1030,136 @@ components:
         source_url: { type: string, format: uri, pattern: '^https://' }
         last_verified_at: { type: string, format: date }
         caution: { type: [string, 'null'] }
+    FeedbackRating:
+      type: string
+      enum: [SATISFIED, DISSATISFIED]
+    FeedbackCategory:
+      type: string
+      enum: [MOVE_IN_RESIDENT_REGISTRATION, CERTIFICATE_ISSUANCE, BULKY_WASTE, LOCAL_TAX_GENERAL, OTHER]
+    FeedbackReasonCode:
+      type: string
+      enum: [INACCURATE, NOT_RELEVANT, HARD_TO_UNDERSTAND, WRONG_CONTACT, OTHER]
+    FeedbackCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, rating, category, reason_code, detail]
+      properties:
+        request_id: { type: string, format: uuid }
+        rating: { $ref: '#/components/schemas/FeedbackRating' }
+        category:
+          oneOf:
+            - { $ref: '#/components/schemas/FeedbackCategory' }
+            - { type: 'null' }
+        reason_code:
+          oneOf:
+            - { $ref: '#/components/schemas/FeedbackReasonCode' }
+            - { type: 'null' }
+        detail: { type: [string, 'null'], minLength: 1, maxLength: 300 }
+      allOf:
+        - if:
+            properties:
+              rating: { const: SATISFIED }
+            required: [rating]
+          then:
+            properties:
+              category: { type: 'null' }
+              reason_code: { type: 'null' }
+              detail: { type: 'null' }
+        - if:
+            properties:
+              rating: { const: DISSATISFIED }
+            required: [rating]
+          then:
+            properties:
+              category: { $ref: '#/components/schemas/FeedbackCategory' }
+              reason_code: { $ref: '#/components/schemas/FeedbackReasonCode' }
+        - if:
+            properties:
+              reason_code: { const: OTHER }
+            required: [reason_code]
+          then:
+            properties:
+              detail: { type: string, minLength: 1, maxLength: 300 }
+    FeedbackCreateResponse:
+      type: object
+      additionalProperties: false
+      required: [request_id, status, detail_status]
+      properties:
+        request_id: { type: string, format: uuid }
+        status: { const: RECORDED }
+        detail_status: { type: string, enum: [NOT_PROVIDED, STORED, MASKED] }
+    FeedbackPrivacyErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, request_id, retryable]
+          properties:
+            code: { const: FEEDBACK_PRIVACY_UNRESOLVED }
+            message: { const: 개인정보를 빼고 다시 작성해 주세요. }
+            request_id: { type: string, format: uuid }
+            retryable: { const: false }
+    FeedbackConflictErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, request_id, retryable]
+          properties:
+            code: { const: FEEDBACK_CONFLICT }
+            message: { const: 이미 제출된 의견과 요청 정보가 다릅니다. }
+            request_id: { type: string, format: uuid }
+            retryable: { const: false }
+    CitizenFeedbackSummaryItem:
+      type: object
+      additionalProperties: false
+      required: [id, response_request_id, rating, category, reason_code, masked_detail, detail_was_masked, created_at, detail_expires_at, detail_purged_at]
+      properties:
+        id: { type: string, format: uuid }
+        response_request_id: { type: string, format: uuid }
+        rating: { $ref: '#/components/schemas/FeedbackRating' }
+        category:
+          oneOf:
+            - { $ref: '#/components/schemas/FeedbackCategory' }
+            - { type: 'null' }
+        reason_code:
+          oneOf:
+            - { $ref: '#/components/schemas/FeedbackReasonCode' }
+            - { type: 'null' }
+        masked_detail: { type: [string, 'null'], minLength: 1, maxLength: 300 }
+        detail_was_masked: { type: boolean }
+        created_at: { type: string, format: date-time }
+        detail_expires_at: { type: [string, 'null'], format: date-time }
+        detail_purged_at: { type: [string, 'null'], format: date-time }
+    FeedbackCount:
+      type: object
+      additionalProperties: false
+      required: [code, count]
+      properties:
+        code: { type: string, minLength: 1 }
+        count: { type: integer, minimum: 0 }
+    FeedbackSummaryResponse:
+      type: object
+      additionalProperties: false
+      required: [total, satisfied, dissatisfied, satisfaction_rate, category_counts, reason_counts, recent]
+      properties:
+        total: { type: integer, minimum: 0 }
+        satisfied: { type: integer, minimum: 0 }
+        dissatisfied: { type: integer, minimum: 0 }
+        satisfaction_rate: { type: [number, 'null'], minimum: 0, maximum: 1 }
+        category_counts:
+          type: array
+          items: { $ref: '#/components/schemas/FeedbackCount' }
+        reason_counts:
+          type: array
+          items: { $ref: '#/components/schemas/FeedbackCount' }
+        recent:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/CitizenFeedbackSummaryItem' }
