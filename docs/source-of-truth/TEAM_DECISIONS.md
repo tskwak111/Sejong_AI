@@ -234,6 +234,12 @@
   acceptance `FAIL`이다. Retention/retry/rerun은 모두 0이고 report/lease를 보존한다.
   Conservative worst-case USD0.02306304<0.20은 실제 청구액 주장이 아니며 transport 하위
   원인은 단정하지 않는다. A-074 evidence는 불변이고 추가 actual은 새 인간 결정 전 금지한다.
+- D-126: 사용자의 DeepSeek network-recovery 재실행 지시로 A-075를 덮어쓰지 않는 A-076
+  actual 1회를 승인한다. 비밀 없는 DNS·TCP443·TLS/HTTP 사전 진단은 모두 성공했고 무인증
+  HTTP 4xx를 받아 응답 경로 복구를 확인했다. A-076은 별도 offline/result/report/lease
+  identity에서 기존 20/0·11/9·3초·retry0·concurrency1·output128·USD0.20·무보관 경계를
+  그대로 사용한다. clean source offline PASS와 readiness 뒤 정확히 한 번만 actual을 실행하며
+  결과와 무관하게 A-074/A-075 증거를 변경하거나 자동 재실행·merge하지 않는다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며
