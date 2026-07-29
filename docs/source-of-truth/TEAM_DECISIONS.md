@@ -240,6 +240,12 @@
   identity에서 기존 20/0·11/9·3초·retry0·concurrency1·output128·USD0.20·무보관 경계를
   그대로 사용한다. clean source offline PASS와 readiness 뒤 정확히 한 번만 actual을 실행하며
   결과와 무관하게 A-074/A-075 증거를 변경하거나 자동 재실행·merge하지 않는다.
+- D-127: Source `c9fc1be452db81ea6270211da666e7c854298fe0`의 A-076 offline/readiness는
+  PASS했지만 exact-one actual은 다시 `transport_no_response` 9/9로 `FAIL`했다. DNS·TCP443·
+  TLS/HTTP value-free probe는 PASS했고 actual 28.6초가 9×3초 전체 timeout budget과 거의
+  일치하므로 3초 timeout 만료가 가장 강한 가설이지만 exception detail 비보관 정책상 확정하지
+  않는다. Provider response/2xx/parse/accepted/match/token0, retention/retry/rerun0이며 A-074/
+  A-075/A-076 report와 lease를 보존한다. Timeout 변경과 추가 actual은 새 인간 결정이 필요하다.
 - 화면 transcript와 대화 token은 현재 탭 메모리에만 유지; 서버 세션·raw transcript·token 영속 저장 금지
 - D-089/D-090 context v2 implemented local/private: optional topic ID, `CERTIFICATE_KIND|REGION|WASTE_ITEM`
   pending slot, closed dialog act만 추가한다. v1은 남은 최대 TTL read-only, issuer v2 only며

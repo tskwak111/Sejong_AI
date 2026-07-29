@@ -280,6 +280,15 @@ report·lease·invocation/rerun은 불변이며 새 A-076 offline/result/report/
 clean source offline PASS와 readiness 뒤 actual을 정확히 한 번만 실행하며 자동 rerun/merge와
 public/remote/free-input은 금지한다.
 
+D-127의 A-076 source `c9fc1be452db81ea6270211da666e7c854298fe0` offline gate와
+network-free readiness는 PASS했다. 이어 actual lease를 정확히 한 번 소비했지만 20/0·11/9의
+outbound9 모두 다시 HTTP 응답 전 `transport_no_response`였고 provider response·2xx·parse·
+accepted·oracle match·observed token은 0이라 acceptance는 `FAIL`이다. Value-free DNS·
+TCP443·TLS/HTTP probe는 PASS했고 actual 28.6초가 9×3초 전체 timeout budget과 거의 일치해
+3초 만료가 가장 강한 가설이지만 exception detail 비보관 경계상 확정하지 않는다. 질문·body·
+invalid value·secret retention과 retry/rerun은 0이고 report/lease를 보존한다. Timeout 정책
+변경과 추가 actual은 새 인간 결정 전 금지한다.
+
 Task 11 local/private 마감은 browser 27/27, API 2,357 pass·8 local-DB skip, contracts 96/96,
 Mypy 114와 secret/bundle/protected diff 0으로 완료했다. 단 한 번의 final aggregate wrapper는
 FORMAT-API에서 exit 1이므로 PASS로 승격하지 않으며, formatter 교정 뒤 당시 미실행 constituent는

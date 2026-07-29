@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Actual FAIL — A-076 DeepSeek network-recovery evidence
+
+- Confirmed value-free DNS, TCP443 and TLS/HTTP connectivity, then created an A-076 identity that
+  leaves all A-074/A-075 artifacts immutable. Source
+  `c9fc1be452db81ea6270211da666e7c854298fe0` passed offline/readiness with invocation/rerun 1/0.
+- The exact-one actual still ended with `transport_no_response=9`, response/2xx/parse/accepted/
+  match/token 0 and acceptance `FAIL`. Its 28.6-second duration is close to the nine 3-second
+  complete-exchange limits, making timeout expiry the strongest hypothesis without claiming a
+  retained exception detail.
+- Policy/privacy outbound and retained question/body/value/secret are 0; retry/rerun remain 0.
+  The permanent report/local lease are preserved. Tests advanced `2.2.4→2.2.5`, docs
+  `2.31.4→2.31.6`; product/API/DB/data/prompt/dependencies remain unchanged.
+
 ### Actual FAIL — A-075 DeepSeek corrective evidence
 
 - Added a separate A-075 offline/result/report/lease identity without changing or rerunning A-074.

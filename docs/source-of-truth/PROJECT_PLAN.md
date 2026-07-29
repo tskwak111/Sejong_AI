@@ -294,6 +294,12 @@ gitignored trace/screenshot이 남을 수 있으므로 이것을 DB 무저장 �
   2xx, parse, accepted, oracle match와 observed token은 0이고 acceptance는 `FAIL`이다.
   Retention/retry/rerun은 0이며 보수적 worst-case 비용 USD0.02306304는 cap0.20 미만이다.
   A-074 증거는 불변이고 DeepSeek runtime 성공·public/remote/free-input 승인으로 보지 않는다.
+- D-126/D-127의 A-076은 value-free DNS·TCP443·TLS/HTTP probe PASS 뒤 source `c9fc1be...`
+  offline/readiness를 PASS하고 actual을 한 번 실행했다. 그러나 outbound9 모두 다시 HTTP 응답 전
+  `transport_no_response`, response/2xx/parse/accepted/match/token0으로 FAIL했다. 28.6초가
+  9×3초 complete-exchange timeout과 거의 일치하므로 timeout 만료가 가장 강한 가설이지만
+  exception detail 비보관 경계상 확정하지 않는다. Timeout 변경과 추가 actual은 새 승인 전
+  금지하고 A-074/A-075/A-076 증거를 모두 보존한다.
 - 합성 evaluator의 historical 경계와 별도로, Q-LLM-006~012/D-072 시민 경로는 서버가
   supported intent·안전한 마스킹·ACTIVE/OFFICIAL retrieval·grounding을 모두 확인한 SUCCESS
   후보에만 호출을 허용한다. 클라이언트 flag/intent/source/KB ID/mode는 신뢰하지 않는다.

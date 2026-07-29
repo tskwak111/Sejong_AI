@@ -59,12 +59,12 @@ source, then consume offline/readiness/actual exactly once.
 
 - [x] Record the new authority without claiming an unrun result.
 - [x] Run focused runner/privacy tests, Ruff, Mypy, docs, secret and diff checks.
-- [ ] Review and commit a clean source checkpoint.
+- [x] Review and commit a clean source checkpoint.
 
 ### Task 4: Exact-one execution and closeout
 
-- [ ] Run A-076 offline gate exactly once.
-- [ ] Run network-free readiness only after offline PASS.
-- [ ] Run A-076 actual exactly once only after readiness PASS.
-- [ ] Record aggregate outcome, hashes, retention, retry/rerun and cost.
+- [x] Run A-076 offline gate exactly once.
+- [x] Run network-free readiness only after offline PASS.
+- [x] Run A-076 actual exactly once only after readiness PASS.
+- [x] Record aggregate outcome, hashes, retention, retry/rerun and cost.
 - [ ] Commit/push the evidence and update Draft PR #22 without automatic merge.
