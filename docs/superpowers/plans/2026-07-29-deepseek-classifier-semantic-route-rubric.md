@@ -428,7 +428,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
 - Produces: a clean, reviewable source candidate.
 - Does not consume: provider quota, API key, DB, Docker or remote infrastructure.
 
-- [ ] **Step 1: Run the complete related-area tests once**
+- [x] **Step 1: Run the complete related-area tests once**
 
   ```powershell
   Push-Location apps/api
@@ -446,7 +446,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   The existing controlled-double runner cases must still prove selected/skip `20/0`,
   provider-free/provider `11/9`, policy/privacy outbound `0` and accepted/oracle `9/9`.
 
-- [ ] **Step 2: Run static checks**
+- [x] **Step 2: Run static checks**
 
   ```powershell
   Push-Location apps/api
@@ -456,7 +456,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   Pop-Location
   ```
 
-- [ ] **Step 3: Run repository documentation, secret and diff checks**
+- [x] **Step 3: Run repository documentation, secret and diff checks**
 
   ```powershell
   apps/api/.venv/Scripts/python.exe -B scripts/check_repository_docs.py
@@ -466,7 +466,7 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   git status --short
   ```
 
-- [ ] **Step 4: Review spec compliance**
+- [x] **Step 4: Review spec compliance**
 
   The reviewer must report counts for Critical/Important/Minor and explicitly verify:
 
@@ -476,13 +476,13 @@ Mypy 2.3.0, PowerShell 5.1, existing DeepSeek `deepseek-v4-flash` adapter.
   - A-079 artifacts are untouched;
   - actual/provider call count is zero.
 
-- [ ] **Step 5: Review privacy and evidence safety**
+- [x] **Step 5: Review privacy and evidence safety**
 
   The reviewer must verify no question, masked question, provider body, invalid field value, API
   key, DSN or exception detail is written by the new wrappers and that no source/official fact is
   accepted from the provider.
 
-- [ ] **Step 6: Fix findings with focused RED/GREEN tests**
+- [x] **Step 6: Fix findings with focused RED/GREEN tests**
 
   Any Critical or Important finding blocks the clean-source checkpoint. Add a failing regression
   test, observe RED, make the minimum fix and rerun only the affected suite before repeating the
